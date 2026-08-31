@@ -137,6 +137,40 @@ Feature: Reviewing the segments in a recording
       Then I see the transcript for that Segment
       And I can expand to the full Recording transcript if I want it
 
+  Rule: I am told whose voice this is before I publish it
+
+    @happy-path @measured
+    Scenario: The speaker is identified on the Segment
+      # This is the one place the system can cause real harm: a guest preacher
+      # who asked not to be distributed, approved ten days later by a reviewer
+      # who has forgotten. The safeguard was a memory the spec declined to store.
+      #
+      # Identification costs about a second per block and was measured at 4 of 4,
+      # leave-one-out (speaker_diarization.feature). It exists; it was simply
+      # never surfaced.
+      When I open a proposed Segment
+      Then I am told which enrolled voice is teaching, and how confidently
+      And an unrecognised voice is shown as "not a known voice"
+
+    @happy-path @policy
+    Scenario: An unrecognised voice is confirmed before it is published
+      Given a Segment whose teaching voice matches no enrolled profile
+      And its intent is "publish"
+      When I approve it
+      Then I am asked to confirm that this recording may be distributed
+      And the confirmation is recorded with the approval
+      # Not a block — a guest preacher is normal. It is one deliberate step in
+      # front of the only irreversible mistake this system enables.
+
+    @happy-path
+    Scenario: Confirming who preached enrols them
+      # This is what makes the voice library self-maintaining, and it is the only
+      # thing publication_details.feature's "nothing more is collected" rule has
+      # to give ground on.
+      When I confirm or correct who was preaching
+      Then that Segment strengthens or creates that speaker's profile
+      And no separate enrolment session is ever required
+
   Rule: Nothing is published by accident
 
     @happy-path

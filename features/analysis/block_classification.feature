@@ -31,6 +31,7 @@ Feature: Classifying each block
         | communion         | the invitation to and serving of communion                  |
         | qa                | audience questions, typically after a class                 |
         | rehearsal         | band practice or a sound check — playing, stopping, restarting |
+        | seminar           | a teaching session that is part of a multi-part course        |
         | special_service   | a service that is not an ordinary Sunday: Good Friday, a seminar day, a prayer gathering |
         | other             | speech that is none of the above                            |
 

@@ -13,14 +13,14 @@ Feature: Probing a recording's technical metadata
 
     @happy-path @measured
     Scenario: Probing a normal Sunday recording
-      Given the FLAC is 1:44:29 long, 44100 Hz, stereo, 24-bit
+      Given the FLAC is 1:44:29 long, 44100 Hz, stereo, 32-bit
       When the probe stage runs
       Then the Recording records:
         | field            | value      |
         | duration         | 6268.950   |
         | sample_rate      | 44100      |
         | channels         | 2          |
-        | bit_depth        | 24         |
+        | bit_depth        | 32         |
         | codec            | flac       |
         | file_size_bytes  | 841368564  |
       And the values are shown on the Recording detail view
@@ -89,6 +89,9 @@ Feature: Probing a recording's technical metadata
         | 0:00:45  | suspiciously short          |
         | 0:12:00  | suspiciously short          |
         | 4:30:00  | suspiciously long           |
+      # Observed range across 33 recordings is 37 to 203 minutes, so the flags
+      # sit outside it rather than inside. An earlier version cited 79-155 and
+      # would have flagged a real rehearsal and a real Easter service.
 
   Rule: Recordings with no substance are recognised and set aside
 

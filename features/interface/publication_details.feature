@@ -115,7 +115,7 @@ Feature: Publication details
       # Q31, Q32 — closed by Q58. There is no feed, no host, no episode summary.
       # If tags are ever wanted, this is the scenario to change.
       When I open the Segment
-      Then I am not asked for a speaker
+      Then I am not asked to type a speaker name for the filename
       And I am not asked for a series
       And I am not asked for a description
       And no ID3 tags beyond title and date are written to the MP3

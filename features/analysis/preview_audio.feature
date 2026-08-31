@@ -4,7 +4,7 @@ Feature: Preview audio for review
   As a reviewer
   I want a lightweight, seekable version of the audio to play in the browser
 
-  Sources are up to 1.4 GB of 24-bit stereo FLAC. Reviewing a multi-block
+  Sources are up to 1.4 GB of 32-bit stereo FLAC. Reviewing a multi-block
   recording means jumping between a dozen points across three hours, so the
   browser must be able to fetch only the part being played.
 

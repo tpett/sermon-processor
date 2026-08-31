@@ -275,3 +275,77 @@ One further thing left alone: `classification-spec.md` still sets the target at
 `no_edit@1s >= 80%`, which nothing reaches. That number should move only once
 question E1 is answered, because the answer determines whether it is the right
 shape of target at all.
+
+
+---
+
+# Second pass — two adversarial reviews of the spec itself
+
+Two reviewers, one on internal coherence and one on survival in the real world.
+The coherence review's central criticism is correct and worth stating plainly:
+**the first audit was applied file-by-file, not concept-by-concept.** Four of its
+five fixes landed in one file each while the same concept lived on unfixed in
+five to ten others.
+
+## Applied in this pass
+
+| | Finding | Fix |
+| --- | --- | --- |
+| Contradiction | The punch-out tail was capped at 0.5 s and tagged `@measured`, forbidding the one correction that fixes essentially all measured punch-out error | Cap removed; the disagreement between the owner's stated preference and his own editing behaviour is now stated in the scenario and flagged `@needs-decision` |
+| Contradiction | The loudness target asserted −16 LUFS ±1; four of six validated renders land at −16.8 to −17.4 and fail it | Target restated as −17 ±1, matching what the renderer achieves |
+| Contradiction | A re-cut Segment returned to `proposed`, where another file refuses to offer its MP3 | Re-cut is now its own state |
+| Defect | `seminar` was asserted by a scenario and defined in no type list | Added to the enumeration |
+| Defect | Five places said 24-bit. **Every one of the 33 recordings is 32-bit** — including the file one scenario hard-codes and was measured from | Corrected everywhere |
+| Defect | Source duration cited as 79–155 minutes; the corpus spans **37–203** | Corrected; the flags now sit outside the observed range instead of inside it |
+| Defect | 14 of 31 punch-ins fall between 250 ms and 2 s, a band with no difficulty label | The moderate band restored |
+| Hole | The plausibility test used segment length alone — and would not have caught the +118 s class error it cites as its justification | Replaced with five tests including block-edge distance and cross-run disagreement |
+| Hole | Boundary invariants (no clipped word, 250 ms clearance, 1 s lead-in) lived inside the refiner, so the fast path skipped them | Lifted onto the accepted cut, whichever path produced it |
+| Hole | Stage order had probe before waveform though probe reads the envelope; blocking before classification though blocking needs it; agreement before proposal though agreement compares proposals | Envelope is its own first stage; blocking and classification iterate; agreement moved after refinement |
+| Hole | The accuracy suite exempts `hard` cuts and the system grades its own difficulty — the headline could be raised by grading more cuts hard | Difficulty is now graded from the ground truth, never by the configuration under test |
+| Hole | The guest-preacher case — the one place this system causes real harm — was guarded by a reviewer's memory | Speaker identity surfaced on the Segment; an unrecognised voice requires confirmation before publishing; confirming enrols |
+| Hole | Q63 promises a passed-over Segment is extractable in November. There was no search, and the `Skipped segments` filter was used in one scenario and absent from the filter list | Search added; both filters added |
+| Hole | Three silent-drop paths (clock reset, naming change, ingest cutoff) and no 403 handling anywhere | Skipped objects are recorded with a reason and visible; a credential failure is not treated as transient |
+| Honesty | `@measured` was carrying interview hedges — "probably even 250 ms" asserted as 250 ms — and pure policy | Split into `@measured`, `@stated` and `@policy`, each defined in README |
+
+## Still outstanding, and why
+
+**Concept-level, not yet done.** The coherence review is right that these need one
+pass each across every file rather than a patch:
+
+1. **Confidence.** Eleven files still carry an ordinal or numeric confidence,
+   including a *confidence floor* in `block_classification.feature` that would
+   threshold a constant. `classification-spec.md`'s output schema still demands
+   it. Nothing downstream is safe until confidence has one stated source or is
+   removed.
+2. **The type table.** Block types, Segment classifications, which types seed a
+   Segment, and the mapping between them are specified in four places that
+   disagree. `music` Segments are impossible to produce yet three interface
+   Backgrounds depend on them.
+3. **The state machines.** `ignored`, `blocked`, `recut`, revert and cancel are
+   all asserted by feature files and absent from the README diagrams. Several
+   states have no exit: a Recording parked in `discovered` for want of disk is
+   never retried, and reconciliation will not pick it up again because it has
+   been seen.
+
+**Deployment reality.** Every performance figure was measured on a 128 GB M5 Max
+using Apple-Silicon-only tooling. The deployment box has little GPU and has never
+run any of it. The locality scenarios are now `@policy` rather than `@measured`,
+which is honest, but the central technical claim of the whole spike remains
+untested on the machine that has to run it.
+
+## The decisions, unchanged and now blocking
+
+E1 (the acceptance bar) blocks `detection_accuracy.feature` from functioning as a
+regression gate — it currently reports 0% at its own stated target. Q38/Q39
+(authentication) block the interface entirely; `authentication.feature` is the
+one file that is `@needs-decision` throughout while every other interface
+Background opens by assuming a signed-in reviewer.
+
+Added to the list by this pass:
+
+6. **The punch-out tail.** Your stated preference (cut immediately after the last
+   word) and your own editing behaviour (a deliberate 1.0–1.9 s silent tail,
+   22 of 24 segments) disagree. Which wins?
+7. **Speaker capture at approval.** Surfacing identity means the system stores
+   who preached. That reopens "nothing more is collected" — deliberately, because
+   it is the only defence against publishing a guest who asked not to be.

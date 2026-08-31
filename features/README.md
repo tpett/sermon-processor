@@ -81,7 +81,9 @@ store keeps sources indefinitely, so that promise holds (Q71).
 
 ## Source audio facts
 
-Measured from 24 real recordings in `~/Desktop/Sermons`, April–August 2026.
+Measured from 33 real recordings in `~/Desktop/Sermons`, March–August 2026,
+as recorded in `../experiments/data/groundtruth.json`. Regenerate this table from
+that file rather than editing it by hand.
 Scenarios rely on these, so they are recorded here rather than rediscovered.
 
 | Property | Value |
@@ -89,12 +91,12 @@ Scenarios rely on these, so they are recorded here rather than rediscovered.
 | Container / codec | FLAC |
 | Sample rate | 44,100 Hz |
 | Channels | **2, but only channel 1 carries signal.** Channel 2 sits at the -90 dB noise floor in every sample. A mono source is being fed into a stereo recorder. |
-| Bit depth | 24-bit |
-| Source duration | 79 – 155 minutes |
+| Bit depth | 32-bit container |
+| Source duration | 37 – 203 minutes across 33 recordings |
 | Source integrated loudness | around -19 to -20 LUFS, consistent week to week |
 | Source true peak | 0.0 – 0.9 dBFS — **the source clips.** Known, being fixed at the hardware (Q67). |
 | Output format | mono MP3, 44.1 kHz, VBR averaging ~100 kbps |
-| Published segment length | 40 – 68 minutes |
+| Published segment length | 40 – 68 minutes (31 labelled segments) |
 
 The render **takes channel 1 and discards channel 2**. It must never average
 the two, which would cost 6 dB and fold in the dead channel's noise.
@@ -184,7 +186,9 @@ normal; it changes the Segment's state, not the Recording's.
 | `@edge-case` | Real failure modes we know about |
 | `@assumption` | Behaviour invented to fill a gap. Confirm before building. |
 | `@needs-decision` | Cannot be built until a question in QUESTIONS.md is answered. |
-| `@measured` | Behaviour derived from measuring the real recordings, not guessed. |
+| `@measured` | A number here came from the corpus. The comment names what was measured and over how many recordings. |
+| `@stated` | The owner said this in QUESTIONS.md. A preference, not an observation — and the corpus sometimes disagrees with it. |
+| `@policy` | A decision about how the system should behave. Nothing measured it and nothing could. |
 | `@slow` | Touches real audio processing; will not be a fast unit-level test. |
 | `@manual` | Verified by a human, not automatable (audio quality judgements). |
 | `@mobile` | Must work on a phone. Everything else may assume a desktop browser. |

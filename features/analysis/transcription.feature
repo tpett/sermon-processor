@@ -73,7 +73,7 @@ Feature: Transcription
 
   Rule: Nothing leaves the local network
 
-    @happy-path @measured
+    @happy-path @policy
     Scenario: Transcription runs locally
       # Q76 — the same constraint as summarization, and for the same two
       # reasons: avoiding API cost, and not sending the congregation's audio to

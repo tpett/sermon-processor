@@ -150,6 +150,14 @@ Feature: Measuring detection accuracy against real recordings
         | audible noise or feedback near the cut point      | hard       |
         | music fading under the first words                | hard       |
 
+    @happy-path @measured
+    Scenario: Difficulty is graded from the ground truth, never by the system
+      # Otherwise the headline number can be raised by grading more cuts hard.
+      # The grade belongs to the recording, not to the attempt at it.
+      Given the accuracy suite runs
+      Then each boundary's difficulty comes from the audio around the human cut
+      And a configuration cannot change the difficulty of anything it is scored on
+
     @happy-path
     Scenario: Hard cuts are expected to need a human
       Given a transition graded "hard"

@@ -23,7 +23,8 @@ Feature: Analysis orchestration
       Then the Recording enters "analyzing"
       And the following stages run in order:
         | stage                | produces                                            |
-        | probe                | duration, channels, bit depth, loudness profile     |
+        | envelope             | the amplitude envelope every later stage reads      |
+        | probe                | duration, channels, bit depth, loudness, emptiness  |
         | waveform             | downsampled peak data for the interface             |
         | preview              | a constant-bitrate seekable rendition for the browser |
         | transcription        | timestamped words and utterances                    |
@@ -31,10 +32,14 @@ Feature: Analysis orchestration
         | blocking             | the Recording divided on speaker and activity change|
         | block_classification | what each Block is                                  |
         | summarization        | a one-line summary and cue excerpt per Block        |
-        | agreement            | a second independent analysis, for the confidence signal |
         | segment_proposal     | publishable Segments built from Blocks              |
         | boundary_refinement  | precise punch-in and punch-out per Segment          |
-        | scoring              | a Proposal per Segment, with confidence and evidence|
+        | agreement            | a second independent analysis, for the review signal |
+        | scoring              | a Proposal per Segment, with its evidence           |
+      And blocking and block_classification iterate until stable, because a block
+        edge can depend on what its neighbour turns out to be
+      And the agreement stage repeats segment_proposal independently, so it runs
+        after it rather than before
       And when scoring completes the Recording enters "awaiting_review"
       And a notification is sent to the reviewers unless nothing publishable was found
 

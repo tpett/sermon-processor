@@ -22,7 +22,7 @@ Feature: The recording detail view
         | Recorded at        | 2026-08-16 09:00 AM                       |
         | Source duration    | 3:12:00                                   |
         | File size          | 1.4 GB                                    |
-        | Format             | FLAC 44.1 kHz 24-bit, channel 1 only      |
+        | Format             | FLAC 44.1 kHz 32-bit, channel 1 only      |
         | Source object key  | recordings/recording_20260816_090004.flac |
         | Device             | sanctuary-pi-01                           |
 

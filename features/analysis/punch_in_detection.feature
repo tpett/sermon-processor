@@ -35,7 +35,7 @@ Feature: Refining a segment's punch-in
 
   Rule: The cut is kept clear of noise
 
-    @happy-path @measured
+    @happy-path @stated
     Scenario: A quiet margin around the cut
       # Confirmed: "we need to make sure the edit is far away from any noise.
       # By far away, I mean probably even 250 ms. That way, the transition
@@ -76,6 +76,7 @@ Feature: Refining a segment's punch-in
         | condition                                         | difficulty |
         | 10 seconds of clean silence before the first word | easy       |
         | 2 seconds of clean silence                        | easy       |
+        | between 250 ms and 2 s of quiet                   | moderate   |
         | under 250 ms of quiet, words either side          | hard       |
         | audible noise or feedback near the cut point      | hard       |
         | music fading under the first words                | hard       |

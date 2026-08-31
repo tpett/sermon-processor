@@ -63,6 +63,45 @@ Feature: S3 reconciliation
       And the failure is surfaced on the system health view
       And the next scheduled scan runs normally
 
+  Rule: Nothing is dropped without being counted
+
+    @edge-case @policy
+    Scenario: An object the Processor decided to skip
+      # Three ways a recording disappears silently today: a recorder clock reset
+      # writes an unparseable key, a naming change stops matching the pattern,
+      # and anything before the ingest cutoff is discarded. Each currently ends
+      # in "no Recording is created" with no reporting clause.
+      #
+      # Q57 declined an alert for a missing Sunday. That decision only holds if
+      # skipped objects are visible somewhere.
+      Given the reconciliation scan skips an object
+      Then the object key and the reason are recorded
+      And an operator can see every object the Processor has ever skipped
+      And no alert is raised for it
+
+    @edge-case @policy
+    Scenario Outline: Reasons an object is skipped
+      Given an object "<key>"
+      When the reconciliation scan runs
+      Then it is recorded as skipped with the reason "<reason>"
+
+      Examples:
+        | key                            | reason                         |
+        | recording_19700101_000000.flac | recorder clock not set         |
+        | sermon-2027-01-03.flac         | key does not match the pattern |
+        | recordings/README.txt          | not an audio object            |
+        | recording_20240107_101500.flac | before the ingest cutoff       |
+
+    @edge-case @policy
+    Scenario: A credential failure is not a transient error
+      # The retry outline covers 500, 503, connection reset and read timeout. A
+      # 403 would burn the whole retry budget as though it were transient, and
+      # then look identical to a quiet week.
+      Given the object store responds with "403 Forbidden"
+      When the reconciliation scan runs
+      Then it is not retried as a transient failure
+      And it is surfaced on the system health view as a credential problem
+
   Rule: An operator can force ingestion
 
     Scenario: Ingesting a specific object on demand

@@ -17,14 +17,26 @@ Feature: Refining a segment's punch-out
 
   Rule: The punch-out sits just after the last word
 
-    @happy-path @measured
-    Scenario: The tail is minimal
-      # Confirmed: "the punch-out silence lead-out is really much less
-      # important. If it cuts immediately after the last word, I do not think
-      # anyone is going to notice."
+    @happy-path @measured @needs-decision
+    Scenario: The tail matches what the editor actually leaves
+      # Two facts that disagree, and the spec cannot assert both.
+      #
+      # Stated preference (Q18): "the punch-out silence lead-out is really much
+      # less important. If it cuts immediately after the last word, I do not
+      # think anyone is going to notice."
+      #
+      # Measured behaviour, across 22 hand-made edits: the true punch-out sits
+      # 1.0 to 1.9 seconds *after* the last transcribed word, median about 1.3 s,
+      # and the audio in that gap is below -55 dB. All 31 machine punch-outs came
+      # in early; a single +1.2 s constant moved held-out accuracy from 7/14 to
+      # 11/14 within one second.
+      #
+      # An earlier version of this scenario capped the tail at 0.5 s and tagged
+      # it @measured, which forbade the one correction that fixes essentially all
+      # measured punch-out error. The cap is removed until the owner settles it.
       When punch-out refinement runs
-      Then the punch-out is placed at or shortly after "1:14:48.900"
-      And the tail does not exceed 0.5 seconds
+      Then the punch-out is placed at or after the last word
+      And the tail is long enough to match how the editor cuts
       And no audio from the following Block is included
 
     @happy-path @measured

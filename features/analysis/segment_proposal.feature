@@ -114,16 +114,33 @@ Feature: Proposing publishable segments
   Rule: The proposed boundary leads; the rules are a fallback
 
     @happy-path @measured
+    Scenario Outline: What makes a proposal implausible
+      # The first version of this rule tested only segment length, and would have
+      # failed on its own example: the class it cites was 118 s wrong at the
+      # punch-in while its length sat comfortably inside the 30-75 minute band.
+      # Length is the weakest of the available checks.
+      Given a proposed Segment where <condition>
+      Then the proposal is treated as implausible
+
+      Examples:
+        | condition                                                        |
+        | the length falls outside the expected range                      |
+        | a boundary falls outside the Recording                           |
+        | the punch-in is more than 30 s from the nearest Block edge        |
+        | the punch-in falls outside the Block the Segment is seeded on     |
+        | a second independent analysis disagrees by more than 30 s         |
+
+    @happy-path @measured
     Scenario: A plausible proposal is taken as it stands
       # Measured: refining a frontier model's own boundaries made them *worse* —
       # median punch-in 2.18 s to 4.64 s, punch-out 0.78 s to 1.24 s. On one
       # recording the proposal was 0.08 s from the human cut and refinement moved
       # it five seconds away. The rules were written to help and were overwriting
       # a better answer.
-      Given a proposed Segment whose length falls inside the expected range
-      And whose boundaries fall inside the Recording
+      Given a proposed Segment that is not implausible by any of those tests
       Then its boundaries are used as proposed
       And the refinement rules do not run
+      And the boundary invariants below are still enforced
 
     @happy-path @measured
     Scenario: An implausible proposal falls back to the rules
@@ -133,6 +150,18 @@ Feature: Proposing publishable segments
       When segment proposal runs
       Then the refinement rules are applied instead
       And the Segment records that its boundaries came from the rules
+
+    @happy-path @measured
+    Scenario: Some properties hold of every cut, whichever path produced it
+      # These were written inside the refinement files, so skipping refinement
+      # skipped them — which would ship cuts that clip a word. They are
+      # properties of an acceptable boundary, not of the refiner.
+      Given any Segment whose boundaries have been accepted
+      Then the punch-in does not fall inside a word
+      And the punch-out does not fall inside a word
+      And neither boundary sits within 250 ms of audible sound where quiet exists
+      And the lead-in before the first word does not exceed 1.0 second
+      And a boundary that cannot satisfy these is flagged rather than moved silently
 
     @happy-path
     Scenario: Where a boundary came from is always recorded

@@ -75,6 +75,19 @@ Feature: The recordings list
         | Failed              | analysis_failed or processing_failed         |
         | Published           | has at least one complete Segment           |
         | Nothing to publish  | no publishable Segment was found            |
+        | Skipped segments    | has a Segment left for later                |
+        | Ignored             | set aside as having no substantive content  |
+
+    @happy-path @measured
+    Scenario: Finding a recording by what it was
+      # Q63 promises a Segment passed over in August can be extracted in
+      # November. At the measured arrival rate — 3.5 recordings a week — that is
+      # roughly 900 by year five. Stored and findable are different promises and
+      # only the first was ever specified: this list has no search, sorts newest
+      # first only, and paginates.
+      When I search for "Hebrews 12"
+      Then I see recordings whose label or summary matches
+      And I can search by date, by classification, and by what was said
 
     @happy-path @assumption
     Scenario: Filtering by what is inside

@@ -12,8 +12,11 @@ Feature: Re-cutting a completed segment
 
     @happy-path
     Scenario: Re-cutting
+      # Not "proposed": a re-cut Segment still has a finished artifact, and
+      # artifact_downloads.feature correctly refuses to offer an MP3 for a
+      # proposed Segment. Reusing that state made the two files contradict.
       When I choose to re-cut the Segment
-      Then it returns to "proposed"
+      Then it enters "recut"
       And the previously approved boundaries are shown as the starting point
       And the existing MP3 remains downloadable until a new one replaces it
 

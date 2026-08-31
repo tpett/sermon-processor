@@ -108,7 +108,7 @@ Feature: Summarising blocks and segments
 
   Rule: Nothing leaves the local network
 
-    @happy-path @measured
+    @happy-path @policy
     Scenario: Summarization runs locally
       # Q76 — confirmed: "I do want this to stay local if possible... from the
       # standpoint of not wanting to pay for API usage... I do want to run it
