@@ -1,0 +1,4 @@
+work/
+.venv/
+data/groundtruth.partial.json
+__pycache__/

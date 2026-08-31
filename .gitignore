@@ -1,0 +1,12 @@
+# Derived audio and model artifacts. Everything here is reproducible from the
+# source recordings plus the scripts in experiments/src.
+experiments/work/
+experiments/.venv/
+experiments/data/groundtruth.partial.json
+experiments/data/transcripts/
+experiments/data/diarization/
+experiments/data/blocks/
+
+__pycache__/
+*.pyc
+.DS_Store

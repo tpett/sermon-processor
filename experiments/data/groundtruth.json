@@ -1,0 +1,2451 @@
+{
+  "generated_at": "2026-08-31T12:13:32",
+  "method": {
+    "coarse_hz": 100,
+    "fine_hz": 1000,
+    "probe_seconds": 60,
+    "probe_positions": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ],
+    "gates": {
+      "min_coarse_ncc": 0.3,
+      "min_coarse_peak_ratio": 1.5,
+      "min_probe_ncc": 0.3,
+      "max_fit_residual_s": 0.06,
+      "max_drift_ppm": 400.0
+    }
+  },
+  "recordings": [
+    {
+      "desktop_label": "2026-03-15 - Hebrews 9.11-14",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-03-15 - Hebrews 9.11-14.flac",
+      "size_bytes": 825282347,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5747.058,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-03-15 - Hebrews 9.11-14.mp3",
+      "mp3_duration": 2852.725,
+      "object_key": "recording_20260315_102948.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260315_102948",
+      "started_at": "2026-03-15T10:29:48",
+      "segments": [
+        {
+          "punch_in": 1228.788,
+          "punch_out": 4081.513,
+          "derived_from": "2026-03-15 - Hebrews 9.11-14.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 8430
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3390
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 285.3,
+            "offset": 1228.7555,
+            "ncc": 0.8191,
+            "peak_ratio": 6.03
+          },
+          {
+            "at_s": 855.8,
+            "offset": 1228.6685,
+            "ncc": 0.8452,
+            "peak_ratio": 8.37
+          },
+          {
+            "at_s": 1426.4,
+            "offset": 1228.6015,
+            "ncc": 0.8235,
+            "peak_ratio": 6.38
+          },
+          {
+            "at_s": 1996.9,
+            "offset": 1228.5235,
+            "ncc": 0.865,
+            "peak_ratio": 6.05
+          },
+          {
+            "at_s": 2567.5,
+            "offset": 1228.4525,
+            "ncc": 0.8494,
+            "peak_ratio": 4.56
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1228.72,
+        "coarse_ncc": 0.4587,
+        "coarse_peak_ratio": 7.92,
+        "drift_ppm": -131.6,
+        "fit_residual_s": 0.0069,
+        "offset": 1228.7881,
+        "probe_spread_s": 0.303,
+        "probe_ncc_min": 0.8191,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-03-22 - Hebrews 9.15-22",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-03-22 - Hebrews 9.15-22.flac",
+      "size_bytes": 731336741,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5549.27,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-03-22 - Hebrews 9.15-22.mp3",
+      "mp3_duration": 2817.311,
+      "object_key": "recording_20260322_102843.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260322_102843",
+      "started_at": "2026-03-22T10:28:43",
+      "segments": [
+        {
+          "punch_in": 1398.564,
+          "punch_out": 4215.876,
+          "derived_from": "2026-03-22 - Hebrews 9.15-22.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 15920
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 4510
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 281.7,
+            "offset": 1398.533,
+            "ncc": 0.8929,
+            "peak_ratio": 3.02
+          },
+          {
+            "at_s": 845.2,
+            "offset": 1398.445,
+            "ncc": 0.8257,
+            "peak_ratio": 9.95
+          },
+          {
+            "at_s": 1408.7,
+            "offset": 1398.377,
+            "ncc": 0.8224,
+            "peak_ratio": 9.9
+          },
+          {
+            "at_s": 1972.1,
+            "offset": 1398.299,
+            "ncc": 0.772,
+            "peak_ratio": 5.46
+          },
+          {
+            "at_s": 2535.6,
+            "offset": 1398.231,
+            "ncc": 0.8148,
+            "peak_ratio": 5.71
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1398.44,
+        "coarse_ncc": 0.5097,
+        "coarse_peak_ratio": 8.94,
+        "drift_ppm": -133.1,
+        "fit_residual_s": 0.007,
+        "offset": 1398.5645,
+        "probe_spread_s": 0.302,
+        "probe_ncc_min": 0.772,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-03-29 - Hebrews 9.23-28",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-03-29 - Hebrews 9.23-28.flac",
+      "size_bytes": 938096085,
+      "bits_per_raw_sample": 32,
+      "source_duration": 7149.799,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-03-29 - Hebrews 9.23-28.mp3",
+      "mp3_duration": 3281.809,
+      "object_key": "recording_20260329_102928.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260329_102928",
+      "started_at": "2026-03-29T10:29:28",
+      "segments": [
+        {
+          "punch_in": 1344.431,
+          "punch_out": 4626.24,
+          "derived_from": "2026-03-29 - Hebrews 9.23-28.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1690
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3370
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 328.2,
+            "offset": 1344.4311,
+            "ncc": 0.9273,
+            "peak_ratio": 11.69
+          },
+          {
+            "at_s": 984.5,
+            "offset": 1344.4313,
+            "ncc": 0.93,
+            "peak_ratio": 7.23
+          },
+          {
+            "at_s": 1640.9,
+            "offset": 1344.4315,
+            "ncc": 0.9293,
+            "peak_ratio": 8.37
+          },
+          {
+            "at_s": 2297.3,
+            "offset": 1344.4317,
+            "ncc": 0.9343,
+            "peak_ratio": 6.66
+          },
+          {
+            "at_s": 2953.6,
+            "offset": 1344.4319,
+            "ncc": 0.9347,
+            "peak_ratio": 8.19
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1344.43,
+        "coarse_ncc": 0.9952,
+        "coarse_peak_ratio": 15.15,
+        "drift_ppm": 0.3,
+        "fit_residual_s": 0.0,
+        "offset": 1344.431,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9273,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-04-12 - John 18.1-12",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-04-12 - John 18.1-12.flac",
+      "size_bytes": 829678328,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6352.913,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-04-12 - John 18.1-12.mp3",
+      "mp3_duration": 2861.596,
+      "object_key": "recording_20260412_102318.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260412_102318",
+      "started_at": "2026-04-12T10:23:18",
+      "segments": [
+        {
+          "punch_in": 2021.075,
+          "punch_out": 4882.671,
+          "derived_from": "2026-04-12 - John 18.1-12.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 7010
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 4760
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 286.2,
+            "offset": 2021.0754,
+            "ncc": 0.9733,
+            "peak_ratio": 16.9
+          },
+          {
+            "at_s": 858.5,
+            "offset": 2021.0752,
+            "ncc": 0.9749,
+            "peak_ratio": 7.52
+          },
+          {
+            "at_s": 1430.8,
+            "offset": 2021.076,
+            "ncc": 0.9788,
+            "peak_ratio": 6.65
+          },
+          {
+            "at_s": 2003.1,
+            "offset": 2021.0758,
+            "ncc": 0.9741,
+            "peak_ratio": 6.43
+          },
+          {
+            "at_s": 2575.4,
+            "offset": 2021.0756,
+            "ncc": 0.9786,
+            "peak_ratio": 6.56
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 2021.08,
+        "coarse_ncc": 0.9841,
+        "coarse_peak_ratio": 12.96,
+        "drift_ppm": 0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 2021.0753,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9733,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-04-19 - Hebrews 10.1-4",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-04-19 - Hebrews 10.1-4.flac",
+      "size_bytes": 841132832,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6274.406,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-04-19 - Hebrews 10.1-4.mp3",
+      "mp3_duration": 3347.398,
+      "object_key": "recording_20260419_102511.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260419_102511",
+      "started_at": "2026-04-19T10:25:11",
+      "segments": [
+        {
+          "punch_in": 1730.637,
+          "punch_out": 5078.035,
+          "derived_from": "2026-04-19 - Hebrews 10.1-4.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 16160
+          },
+          "difficulty_out": {
+            "label": "hard",
+            "quiet_ms": 0,
+            "reason": "audio at the cut point"
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 334.7,
+            "offset": 1730.5872,
+            "ncc": 0.8448,
+            "peak_ratio": 3.55
+          },
+          {
+            "at_s": 1004.2,
+            "offset": 1730.4636,
+            "ncc": 0.8046,
+            "peak_ratio": 9.66
+          },
+          {
+            "at_s": 1673.7,
+            "offset": 1730.374,
+            "ncc": 0.827,
+            "peak_ratio": 5.01
+          },
+          {
+            "at_s": 2343.2,
+            "offset": 1730.3004,
+            "ncc": 0.8557,
+            "peak_ratio": 8.68
+          },
+          {
+            "at_s": 3012.7,
+            "offset": 1730.1408,
+            "ncc": 0.802,
+            "peak_ratio": 7.76
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1730.44,
+        "coarse_ncc": 0.4318,
+        "coarse_peak_ratio": 4.2,
+        "drift_ppm": -157.7,
+        "fit_residual_s": 0.0328,
+        "offset": 1730.6372,
+        "probe_spread_s": 0.4464,
+        "probe_ncc_min": 0.802,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-04-26 - Hebrews 10.5-10",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-04-26 - Hebrews 10.5-10.flac",
+      "size_bytes": 1239765965,
+      "bits_per_raw_sample": 32,
+      "source_duration": 9301.94,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-04-26 - Hebrews 10.5-10.mp3",
+      "mp3_duration": 3220.533,
+      "object_key": "recording_20260426_093527.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260426_093527",
+      "started_at": "2026-04-26T09:35:27",
+      "segments": [
+        {
+          "punch_in": 4706.948,
+          "punch_out": 7927.481,
+          "derived_from": "2026-04-26 - Hebrews 10.5-10.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 16040
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 6250
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 322.1,
+            "offset": 4706.9478,
+            "ncc": 0.9982,
+            "peak_ratio": 7.77
+          },
+          {
+            "at_s": 966.2,
+            "offset": 4706.9474,
+            "ncc": 0.9979,
+            "peak_ratio": 9.61
+          },
+          {
+            "at_s": 1610.3,
+            "offset": 4706.948,
+            "ncc": 0.9982,
+            "peak_ratio": 12.21
+          },
+          {
+            "at_s": 2254.4,
+            "offset": 4706.9476,
+            "ncc": 0.998,
+            "peak_ratio": 5.64
+          },
+          {
+            "at_s": 2898.5,
+            "offset": 4706.9472,
+            "ncc": 0.9979,
+            "peak_ratio": 8.95
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 4706.95,
+        "coarse_ncc": 0.9943,
+        "coarse_peak_ratio": 11.78,
+        "drift_ppm": -0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 4706.9479,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9979,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-05-03 - Hebrews 10.11-18",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-05-03 - Hebrews 10.11-18.flac",
+      "size_bytes": 757493454,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5787.252,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-05-03 - Hebrews 10.11-18.mp3",
+      "mp3_duration": 3056.437,
+      "object_key": "recording_20260503_102934.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260503_102934",
+      "started_at": "2026-05-03T10:29:34",
+      "segments": [
+        {
+          "punch_in": 1400.473,
+          "punch_out": 4456.909,
+          "derived_from": "2026-05-03 - Hebrews 10.11-18.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1750
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 5380
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 305.6,
+            "offset": 1400.4723,
+            "ncc": 0.9213,
+            "peak_ratio": 6.62
+          },
+          {
+            "at_s": 916.9,
+            "offset": 1400.4729,
+            "ncc": 0.9178,
+            "peak_ratio": 5.36
+          },
+          {
+            "at_s": 1528.2,
+            "offset": 1400.4725,
+            "ncc": 0.9201,
+            "peak_ratio": 5.79
+          },
+          {
+            "at_s": 2139.5,
+            "offset": 1400.4721,
+            "ncc": 0.9155,
+            "peak_ratio": 9.78
+          },
+          {
+            "at_s": 2750.8,
+            "offset": 1400.4727,
+            "ncc": 0.9183,
+            "peak_ratio": 6.34
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1400.47,
+        "coarse_ncc": 0.9919,
+        "coarse_peak_ratio": 9.91,
+        "drift_ppm": 0.0,
+        "fit_residual_s": 0.0004,
+        "offset": 1400.4725,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9155,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-05-03 - TEC",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-05-03 - TEC.flac",
+      "size_bytes": 565118018,
+      "bits_per_raw_sample": 32,
+      "source_duration": 4452.337,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-05-03 - TEC.mp3",
+      "mp3_duration": 3572.994,
+      "object_key": "recording_20260503_090012.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260503_090012",
+      "started_at": "2026-05-03T09:00:12",
+      "segments": [
+        {
+          "punch_in": 6.713,
+          "punch_out": 3579.707,
+          "derived_from": "2026-05-03 - TEC.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 740
+          },
+          "difficulty_out": {
+            "label": "moderate",
+            "quiet_ms": 1190
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 357.3,
+            "offset": 6.7127,
+            "ncc": 0.9548,
+            "peak_ratio": 11.37
+          },
+          {
+            "at_s": 1071.9,
+            "offset": 6.7121,
+            "ncc": 0.9518,
+            "peak_ratio": 8.93
+          },
+          {
+            "at_s": 1786.5,
+            "offset": 6.7125,
+            "ncc": 0.9534,
+            "peak_ratio": 9.46
+          },
+          {
+            "at_s": 2501.1,
+            "offset": 6.7129,
+            "ncc": 0.9605,
+            "peak_ratio": 5.75
+          },
+          {
+            "at_s": 3215.7,
+            "offset": 6.7123,
+            "ncc": 0.955,
+            "peak_ratio": 6.21
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 6.71,
+        "coarse_ncc": 0.9901,
+        "coarse_peak_ratio": 20.73,
+        "drift_ppm": 0.0,
+        "fit_residual_s": 0.0004,
+        "offset": 6.7125,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9518,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-05-10 - Hebrews 10.19-25",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-05-10 - Hebrews 10.19-25.flac",
+      "size_bytes": 822806355,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6338.029,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-05-10 - Hebrews 10.19-25.mp3",
+      "mp3_duration": 3384.526,
+      "object_key": "recording_20260510_102947.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260510_102947",
+      "started_at": "2026-05-10T10:29:47",
+      "segments": [
+        {
+          "punch_in": 1635.896,
+          "punch_out": 5020.422,
+          "derived_from": "2026-05-10 - Hebrews 10.19-25.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 3810
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2380
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 338.5,
+            "offset": 1635.8964,
+            "ncc": 0.9381,
+            "peak_ratio": 11.5
+          },
+          {
+            "at_s": 1015.4,
+            "offset": 1635.8962,
+            "ncc": 0.9395,
+            "peak_ratio": 7.58
+          },
+          {
+            "at_s": 1692.3,
+            "offset": 1635.897,
+            "ncc": 0.9404,
+            "peak_ratio": 7.92
+          },
+          {
+            "at_s": 2369.2,
+            "offset": 1635.8968,
+            "ncc": 0.9283,
+            "peak_ratio": 6.97
+          },
+          {
+            "at_s": 3046.1,
+            "offset": 1635.8966,
+            "ncc": 0.9369,
+            "peak_ratio": 9.44
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1635.9,
+        "coarse_ncc": 0.9934,
+        "coarse_peak_ratio": 26.46,
+        "drift_ppm": 0.1,
+        "fit_residual_s": 0.0004,
+        "offset": 1635.8963,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9283,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-05-17 - Hebrews 10.26-31",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-05-17 - Hebrews 10.26-31.flac",
+      "size_bytes": 733639050,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5601.051,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-05-17 - Hebrews 10.26-31.mp3",
+      "mp3_duration": 3048.198,
+      "object_key": "recording_20260517_102903.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260517_102903",
+      "started_at": "2026-05-17T10:29:03",
+      "segments": [
+        {
+          "punch_in": 1348.223,
+          "punch_out": 4396.421,
+          "derived_from": "2026-05-17 - Hebrews 10.26-31.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1610
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 4020
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 304.8,
+            "offset": 1348.2223,
+            "ncc": 0.9559,
+            "peak_ratio": 4.29
+          },
+          {
+            "at_s": 914.5,
+            "offset": 1348.2229,
+            "ncc": 0.9626,
+            "peak_ratio": 7.51
+          },
+          {
+            "at_s": 1524.1,
+            "offset": 1348.2225,
+            "ncc": 0.9649,
+            "peak_ratio": 8.65
+          },
+          {
+            "at_s": 2133.7,
+            "offset": 1348.2221,
+            "ncc": 0.96,
+            "peak_ratio": 10.59
+          },
+          {
+            "at_s": 2743.4,
+            "offset": 1348.2227,
+            "ncc": 0.9607,
+            "peak_ratio": 5.74
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1348.22,
+        "coarse_ncc": 0.992,
+        "coarse_peak_ratio": 18.23,
+        "drift_ppm": 0.0,
+        "fit_residual_s": 0.0004,
+        "offset": 1348.2225,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9559,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-05-24 - Romans 6.1-4",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-05-24 - Romans 6.1-4.flac",
+      "size_bytes": 630437241,
+      "bits_per_raw_sample": 32,
+      "source_duration": 4726.541,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-05-24 - Romans 6.1-4.mp3",
+      "mp3_duration": 2406.779,
+      "object_key": "recording_20260524_102916.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260524_102916",
+      "started_at": "2026-05-24T10:29:16",
+      "segments": [
+        {
+          "punch_in": 1163.336,
+          "punch_out": 3570.115,
+          "derived_from": "2026-05-24 - Romans 6.1-4.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 680
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2250
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 240.7,
+            "offset": 1163.3362,
+            "ncc": 0.9526,
+            "peak_ratio": 13.04
+          },
+          {
+            "at_s": 722.0,
+            "offset": 1163.3366,
+            "ncc": 0.9544,
+            "peak_ratio": 13.02
+          },
+          {
+            "at_s": 1203.4,
+            "offset": 1163.337,
+            "ncc": 0.9545,
+            "peak_ratio": 7.28
+          },
+          {
+            "at_s": 1684.7,
+            "offset": 1163.3364,
+            "ncc": 0.9482,
+            "peak_ratio": 8.4
+          },
+          {
+            "at_s": 2166.1,
+            "offset": 1163.3368,
+            "ncc": 0.9448,
+            "peak_ratio": 11.28
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1163.34,
+        "coarse_ncc": 0.9864,
+        "coarse_peak_ratio": 6.22,
+        "drift_ppm": 0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 1163.3363,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9448,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-05-31 - Hebrews 10.32-39",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-05-31 - Hebrews 10.32-39.flac",
+      "size_bytes": 855990862,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6476.374,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-05-31 - Hebrews 10.32-39.mp3",
+      "mp3_duration": 3667.89,
+      "object_key": "recording_20260531_102925.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260531_102925",
+      "started_at": "2026-05-31T10:29:25",
+      "segments": [
+        {
+          "punch_in": 1464.074,
+          "punch_out": 5131.964,
+          "derived_from": "2026-05-31 - Hebrews 10.32-39.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1330
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2700
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 366.8,
+            "offset": 1464.074,
+            "ncc": 0.9834,
+            "peak_ratio": 4.95
+          },
+          {
+            "at_s": 1100.4,
+            "offset": 1464.074,
+            "ncc": 0.9787,
+            "peak_ratio": 7.43
+          },
+          {
+            "at_s": 1833.9,
+            "offset": 1464.074,
+            "ncc": 0.9791,
+            "peak_ratio": 8.33
+          },
+          {
+            "at_s": 2567.5,
+            "offset": 1464.073,
+            "ncc": 0.9799,
+            "peak_ratio": 6.38
+          },
+          {
+            "at_s": 3301.1,
+            "offset": 1464.074,
+            "ncc": 0.9789,
+            "peak_ratio": 5.24
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1464.07,
+        "coarse_ncc": 0.988,
+        "coarse_peak_ratio": 18.57,
+        "drift_ppm": -0.1,
+        "fit_residual_s": 0.0007,
+        "offset": 1464.074,
+        "probe_spread_s": 0.001,
+        "probe_ncc_min": 0.9787,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-06-07 - Hebrews 11.1-3",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-06-07 - Hebrews 11.1-3.flac",
+      "size_bytes": 763099120,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5803.97,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-06-07 - Hebrews 11.1-3.mp3",
+      "mp3_duration": 3354.858,
+      "object_key": "recording_20260607_102901.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260607_102901",
+      "started_at": "2026-06-07T10:29:01",
+      "segments": [
+        {
+          "punch_in": 1370.072,
+          "punch_out": 4724.93,
+          "derived_from": "2026-06-07 - Hebrews 11.1-3.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 3180
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3720
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 335.5,
+            "offset": 1370.0722,
+            "ncc": 0.9702,
+            "peak_ratio": 10.94
+          },
+          {
+            "at_s": 1006.5,
+            "offset": 1370.0726,
+            "ncc": 0.9717,
+            "peak_ratio": 7.09
+          },
+          {
+            "at_s": 1677.4,
+            "offset": 1370.073,
+            "ncc": 0.9716,
+            "peak_ratio": 7.45
+          },
+          {
+            "at_s": 2348.4,
+            "offset": 1370.0724,
+            "ncc": 0.9719,
+            "peak_ratio": 7.94
+          },
+          {
+            "at_s": 3019.4,
+            "offset": 1370.0728,
+            "ncc": 0.9737,
+            "peak_ratio": 5.65
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1370.07,
+        "coarse_ncc": 0.9864,
+        "coarse_peak_ratio": 23.04,
+        "drift_ppm": 0.1,
+        "fit_residual_s": 0.0004,
+        "offset": 1370.0724,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9702,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-06-07 - TEC - Conflict",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-06-07 - TEC - Conflict.flac",
+      "size_bytes": 890523936,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6807.049,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-06-07 - TEC - Conflict.mp3",
+      "mp3_duration": 4105.809,
+      "object_key": "recording_20260607_082624.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260607_082624",
+      "started_at": "2026-06-07T08:26:24",
+      "segments": [
+        {
+          "punch_in": 2099.312,
+          "punch_out": 6205.121,
+          "derived_from": "2026-06-07 - TEC - Conflict.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1370
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 602940
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 410.6,
+            "offset": 2099.3122,
+            "ncc": 0.922,
+            "peak_ratio": 6.91
+          },
+          {
+            "at_s": 1231.7,
+            "offset": 2099.3126,
+            "ncc": 0.9243,
+            "peak_ratio": 5.41
+          },
+          {
+            "at_s": 2052.9,
+            "offset": 2099.313,
+            "ncc": 0.9198,
+            "peak_ratio": 8.1
+          },
+          {
+            "at_s": 2874.1,
+            "offset": 2099.3124,
+            "ncc": 0.9285,
+            "peak_ratio": 9.59
+          },
+          {
+            "at_s": 3695.2,
+            "offset": 2099.3128,
+            "ncc": 0.9264,
+            "peak_ratio": 5.35
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 2099.31,
+        "coarse_ncc": 0.9842,
+        "coarse_peak_ratio": 9.32,
+        "drift_ppm": 0.1,
+        "fit_residual_s": 0.0004,
+        "offset": 2099.3124,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9198,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-06-14 - Hebrews 11.4-7",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-06-14 - Hebrews 11.4-7.flac",
+      "size_bytes": 1120817685,
+      "bits_per_raw_sample": 32,
+      "source_duration": 8354.334,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-06-14 - Hebrews 11.4-7.mp3",
+      "mp3_duration": 3005.573,
+      "object_key": "recording_20260614_094126.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260614_094126",
+      "started_at": "2026-06-14T09:41:26",
+      "segments": [
+        {
+          "punch_in": 4209.127,
+          "punch_out": 7214.7,
+          "derived_from": "2026-06-14 - Hebrews 11.4-7.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 600
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3290
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 300.6,
+            "offset": 4209.1268,
+            "ncc": 0.9785,
+            "peak_ratio": 6.45
+          },
+          {
+            "at_s": 901.7,
+            "offset": 4209.1264,
+            "ncc": 0.9751,
+            "peak_ratio": 12.0
+          },
+          {
+            "at_s": 1502.8,
+            "offset": 4209.127,
+            "ncc": 0.975,
+            "peak_ratio": 6.26
+          },
+          {
+            "at_s": 2103.9,
+            "offset": 4209.1266,
+            "ncc": 0.9733,
+            "peak_ratio": 9.58
+          },
+          {
+            "at_s": 2705.0,
+            "offset": 4209.1262,
+            "ncc": 0.9745,
+            "peak_ratio": 4.91
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 4209.13,
+        "coarse_ncc": 0.9887,
+        "coarse_peak_ratio": 12.85,
+        "drift_ppm": -0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 4209.1269,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9733,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-06-21 - 2 Peter 1.3-8",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-06-21 - 2 Peter 1.3-8.flac",
+      "size_bytes": 1049046740,
+      "bits_per_raw_sample": 32,
+      "source_duration": 8034.015,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-06-21 - 2 Peter 1.3-8.mp3",
+      "mp3_duration": 2751.29,
+      "object_key": "recording_20260621_095915.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260621_095915",
+      "started_at": "2026-06-21T09:59:15",
+      "segments": [
+        {
+          "punch_in": 3533.929,
+          "punch_out": 6285.219,
+          "derived_from": "2026-06-21 - 2 Peter 1.3-8.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 720
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 5790
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 275.1,
+            "offset": 3533.929,
+            "ncc": 0.999,
+            "peak_ratio": 17.13
+          },
+          {
+            "at_s": 825.4,
+            "offset": 3533.929,
+            "ncc": 0.9986,
+            "peak_ratio": 17.05
+          },
+          {
+            "at_s": 1375.6,
+            "offset": 3533.929,
+            "ncc": 0.9985,
+            "peak_ratio": 10.52
+          },
+          {
+            "at_s": 1925.9,
+            "offset": 3533.928,
+            "ncc": 0.9988,
+            "peak_ratio": 9.42
+          },
+          {
+            "at_s": 2476.2,
+            "offset": 3533.929,
+            "ncc": 0.9987,
+            "peak_ratio": 11.13
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 3533.93,
+        "coarse_ncc": 0.9958,
+        "coarse_peak_ratio": 4.74,
+        "drift_ppm": -0.2,
+        "fit_residual_s": 0.0007,
+        "offset": 3533.929,
+        "probe_spread_s": 0.001,
+        "probe_ncc_min": 0.9985,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-06-28 - Hebrews 11.8-12",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-06-28 - Hebrews 11.8-12.flac",
+      "size_bytes": 789103150,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5868.057,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-06-28 - Hebrews 11.8-12.mp3",
+      "mp3_duration": 2995.07,
+      "object_key": "recording_20260628_102921.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260628_102921",
+      "started_at": "2026-06-28T10:29:21",
+      "segments": [
+        {
+          "punch_in": 1589.728,
+          "punch_out": 4584.798,
+          "derived_from": "2026-06-28 - Hebrews 11.8-12.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 12900
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3360
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 299.5,
+            "offset": 1589.728,
+            "ncc": 0.994,
+            "peak_ratio": 12.17
+          },
+          {
+            "at_s": 898.5,
+            "offset": 1589.728,
+            "ncc": 0.9947,
+            "peak_ratio": 8.59
+          },
+          {
+            "at_s": 1497.5,
+            "offset": 1589.728,
+            "ncc": 0.995,
+            "peak_ratio": 10.05
+          },
+          {
+            "at_s": 2096.5,
+            "offset": 1589.728,
+            "ncc": 0.9946,
+            "peak_ratio": 8.71
+          },
+          {
+            "at_s": 2695.6,
+            "offset": 1589.728,
+            "ncc": 0.9956,
+            "peak_ratio": 5.4
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1589.73,
+        "coarse_ncc": 0.9929,
+        "coarse_peak_ratio": 19.06,
+        "drift_ppm": -0.0,
+        "fit_residual_s": 0.0,
+        "offset": 1589.728,
+        "probe_spread_s": 0.0,
+        "probe_ncc_min": 0.994,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-06-28 - Members Meeting",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-06-28 - Members Meeting.flac",
+      "size_bytes": 442559439,
+      "bits_per_raw_sample": 32,
+      "source_duration": 3594.615,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-06-28 - Members Meeting.mp3",
+      "mp3_duration": 3594.615,
+      "object_key": "recording_20260628_130014.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260628_130014",
+      "started_at": "2026-06-28T13:00:14",
+      "segments": [
+        {
+          "punch_in": 0.0,
+          "punch_out": 3594.615,
+          "derived_from": "2026-06-28 - Members Meeting.mp3",
+          "difficulty_in": {
+            "label": "hard",
+            "quiet_ms": 0,
+            "reason": "audio at the cut point"
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 602630
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 359.5,
+            "offset": -0.0004,
+            "ncc": 0.9994,
+            "peak_ratio": 11.62
+          },
+          {
+            "at_s": 1078.4,
+            "offset": -0.0002,
+            "ncc": 0.9992,
+            "peak_ratio": 13.29
+          },
+          {
+            "at_s": 1797.3,
+            "offset": 0.0,
+            "ncc": 0.9994,
+            "peak_ratio": 14.6
+          },
+          {
+            "at_s": 2516.2,
+            "offset": -0.0008,
+            "ncc": 0.9994,
+            "peak_ratio": 8.92
+          },
+          {
+            "at_s": 3235.2,
+            "offset": -0.0006,
+            "ncc": 0.8965,
+            "peak_ratio": 45.54
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 0.0,
+        "coarse_ncc": 0.9998,
+        "coarse_peak_ratio": null,
+        "drift_ppm": -0.1,
+        "fit_residual_s": 0.0004,
+        "offset": 0.0,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.8965,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-07-05 - Hebrews - 11.13-16",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-05 - Hebrews - 11.13-16.flac",
+      "size_bytes": 676863273,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5134.26,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-07-05 - Hebrews - 11.13-16.mp3",
+      "mp3_duration": 2736.624,
+      "object_key": "recording_20260705_103004.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260705_103004",
+      "started_at": "2026-07-05T10:30:04",
+      "segments": [
+        {
+          "punch_in": 1234.46,
+          "punch_out": 3971.084,
+          "derived_from": "2026-07-05 - Hebrews - 11.13-16.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 2830
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 6080
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 273.7,
+            "offset": 1234.4596,
+            "ncc": 0.9612,
+            "peak_ratio": 10.26
+          },
+          {
+            "at_s": 821.0,
+            "offset": 1234.4598,
+            "ncc": 0.9597,
+            "peak_ratio": 6.82
+          },
+          {
+            "at_s": 1368.3,
+            "offset": 1234.46,
+            "ncc": 0.9601,
+            "peak_ratio": 7.08
+          },
+          {
+            "at_s": 1915.6,
+            "offset": 1234.4592,
+            "ncc": 0.9616,
+            "peak_ratio": 8.22
+          },
+          {
+            "at_s": 2463.0,
+            "offset": 1234.4594,
+            "ncc": 0.9665,
+            "peak_ratio": 4.69
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1234.46,
+        "coarse_ncc": 0.999,
+        "coarse_peak_ratio": 23.54,
+        "drift_ppm": -0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 1234.4599,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9597,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-07-05 - TEC",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-05 - TEC.flac",
+      "size_bytes": 900926947,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6836.399,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-07-05 - TEC.mp3",
+      "mp3_duration": 3302.198,
+      "object_key": "recording_20260705_082108.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260705_082108",
+      "started_at": "2026-07-05T08:21:08",
+      "segments": [
+        {
+          "punch_in": 2385.276,
+          "punch_out": 5687.474,
+          "derived_from": "2026-07-05 - TEC.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 540
+          },
+          "difficulty_out": {
+            "label": "moderate",
+            "quiet_ms": 1380
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 330.2,
+            "offset": 2385.2753,
+            "ncc": 0.9265,
+            "peak_ratio": 9.99
+          },
+          {
+            "at_s": 990.7,
+            "offset": 2385.2759,
+            "ncc": 0.9266,
+            "peak_ratio": 5.44
+          },
+          {
+            "at_s": 1651.1,
+            "offset": 2385.2755,
+            "ncc": 0.9214,
+            "peak_ratio": 6.43
+          },
+          {
+            "at_s": 2311.5,
+            "offset": 2385.2751,
+            "ncc": 0.9244,
+            "peak_ratio": 5.16
+          },
+          {
+            "at_s": 2972.0,
+            "offset": 2385.2757,
+            "ncc": 0.9237,
+            "peak_ratio": 9.48
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 2385.28,
+        "coarse_ncc": 0.9859,
+        "coarse_peak_ratio": 21.49,
+        "drift_ppm": 0.0,
+        "fit_residual_s": 0.0004,
+        "offset": 2385.2755,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9214,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-07-12 - Hebrews - 11.17-22",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-12 - Hebrews - 11.17-22.flac",
+      "size_bytes": 698084509,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5391.862,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-07-12 - Hebrews - 11.17-22.mp3",
+      "mp3_duration": 3075.8,
+      "object_key": "recording_20260712_103000.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260712_103000",
+      "started_at": "2026-07-12T10:30:00",
+      "segments": [
+        {
+          "punch_in": 1167.88,
+          "punch_out": 4243.68,
+          "derived_from": "2026-07-12 - Hebrews - 11.17-22.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1670
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2930
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 307.6,
+            "offset": 1167.8801,
+            "ncc": 0.9245,
+            "peak_ratio": 20.59
+          },
+          {
+            "at_s": 922.7,
+            "offset": 1167.8803,
+            "ncc": 0.9284,
+            "peak_ratio": 7.72
+          },
+          {
+            "at_s": 1537.9,
+            "offset": 1167.8805,
+            "ncc": 0.9332,
+            "peak_ratio": 9.19
+          },
+          {
+            "at_s": 2153.1,
+            "offset": 1167.8807,
+            "ncc": 0.9369,
+            "peak_ratio": 6.68
+          },
+          {
+            "at_s": 2768.2,
+            "offset": 1167.8809,
+            "ncc": 0.9344,
+            "peak_ratio": 5.48
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1167.88,
+        "coarse_ncc": 0.9943,
+        "coarse_peak_ratio": 22.71,
+        "drift_ppm": 0.3,
+        "fit_residual_s": 0.0,
+        "offset": 1167.88,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9245,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-07-18 - CT-Islam-part1",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-18 - CT-Islam-part1.flac",
+      "size_bytes": 848023995,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6495.344,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260718_081932.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260718_081932",
+      "started_at": "2026-07-18T08:19:32",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "no published MP3"
+        ]
+      }
+    },
+    {
+      "desktop_label": "2026-07-18 - CT-Islam-part2",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-18 - CT-Islam-part2.flac",
+      "size_bytes": 1040619438,
+      "bits_per_raw_sample": 32,
+      "source_duration": 8100.238,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260718_100850.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260718_100850",
+      "started_at": "2026-07-18T10:08:50",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "no published MP3"
+        ]
+      }
+    },
+    {
+      "desktop_label": "2026-07-19 - Mark 14.60-64",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-19 - Mark 14.60-64.flac",
+      "size_bytes": 1110338971,
+      "bits_per_raw_sample": 32,
+      "source_duration": 8236.609,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-07-19 - Mark 14.60-64.mp3",
+      "mp3_duration": 2427.086,
+      "object_key": "recording_20260719_093824.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260719_093824",
+      "started_at": "2026-07-19T09:38:24",
+      "segments": [
+        {
+          "punch_in": 4672.418,
+          "punch_out": 7099.504,
+          "derived_from": "2026-07-19 - Mark 14.60-64.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 29090
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 5220
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 242.7,
+            "offset": 4672.4185,
+            "ncc": 0.9919,
+            "peak_ratio": 10.03
+          },
+          {
+            "at_s": 728.1,
+            "offset": 4672.4185,
+            "ncc": 0.992,
+            "peak_ratio": 10.78
+          },
+          {
+            "at_s": 1213.5,
+            "offset": 4672.4185,
+            "ncc": 0.9924,
+            "peak_ratio": 10.71
+          },
+          {
+            "at_s": 1699.0,
+            "offset": 4672.4185,
+            "ncc": 0.9902,
+            "peak_ratio": 6.53
+          },
+          {
+            "at_s": 2184.4,
+            "offset": 4672.4185,
+            "ncc": 0.9931,
+            "peak_ratio": 6.58
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 4672.42,
+        "coarse_ncc": 0.9964,
+        "coarse_peak_ratio": 8.94,
+        "drift_ppm": 0.0,
+        "fit_residual_s": 0.0,
+        "offset": 4672.4185,
+        "probe_spread_s": 0.0,
+        "probe_ncc_min": 0.9902,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-07-26 - Hebrews 11.23-28",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-07-26 - Hebrews 11.23-28.flac",
+      "size_bytes": 828311662,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6262.03,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-07-26 - Hebrews 11.23-28.mp3",
+      "mp3_duration": 3518.89,
+      "object_key": "recording_20260726_102957.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260726_102957",
+      "started_at": "2026-07-26T10:29:57",
+      "segments": [
+        {
+          "punch_in": 1486.586,
+          "punch_out": 5005.476,
+          "derived_from": "2026-07-26 - Hebrews 11.23-28.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 2200
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 4000
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 351.9,
+            "offset": 1486.586,
+            "ncc": 0.9551,
+            "peak_ratio": 6.91
+          },
+          {
+            "at_s": 1055.7,
+            "offset": 1486.586,
+            "ncc": 0.9592,
+            "peak_ratio": 4.93
+          },
+          {
+            "at_s": 1759.4,
+            "offset": 1486.586,
+            "ncc": 0.9573,
+            "peak_ratio": 8.3
+          },
+          {
+            "at_s": 2463.2,
+            "offset": 1486.586,
+            "ncc": 0.9603,
+            "peak_ratio": 7.09
+          },
+          {
+            "at_s": 3167.0,
+            "offset": 1486.585,
+            "ncc": 0.9501,
+            "peak_ratio": 4.75
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1486.59,
+        "coarse_ncc": 0.9877,
+        "coarse_peak_ratio": 16.04,
+        "drift_ppm": -0.3,
+        "fit_residual_s": 0.0004,
+        "offset": 1486.5863,
+        "probe_spread_s": 0.001,
+        "probe_ncc_min": 0.9501,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-08-09 - Hebrews 11.32-40",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-09 - Hebrews 11.32-40.flac",
+      "size_bytes": 822848583,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6250.141,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-08-09 - Hebrews 11.32-40.mp3",
+      "mp3_duration": 3245.38,
+      "object_key": "recording_20260809_102935.flac",
+      "join": "unique",
+      "split": "dev",
+      "recording_id": "recording_20260809_102935",
+      "started_at": "2026-08-09T10:29:35",
+      "segments": [
+        {
+          "punch_in": 1575.641,
+          "punch_out": 4821.021,
+          "derived_from": "2026-08-09 - Hebrews 11.32-40.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 4020
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2420
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 324.5,
+            "offset": 1575.6411,
+            "ncc": 0.9513,
+            "peak_ratio": 5.06
+          },
+          {
+            "at_s": 973.6,
+            "offset": 1575.6413,
+            "ncc": 0.9465,
+            "peak_ratio": 11.04
+          },
+          {
+            "at_s": 1622.7,
+            "offset": 1575.6415,
+            "ncc": 0.9441,
+            "peak_ratio": 8.08
+          },
+          {
+            "at_s": 2271.8,
+            "offset": 1575.6417,
+            "ncc": 0.9494,
+            "peak_ratio": 5.25
+          },
+          {
+            "at_s": 2920.8,
+            "offset": 1575.6419,
+            "ncc": 0.9422,
+            "peak_ratio": 7.24
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1575.64,
+        "coarse_ncc": 0.9941,
+        "coarse_peak_ratio": 18.09,
+        "drift_ppm": 0.3,
+        "fit_residual_s": 0.0,
+        "offset": 1575.641,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9422,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-08-16 - Hebrews 12.1-3",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-16 - Hebrews 12.1-3.flac",
+      "size_bytes": 752304112,
+      "bits_per_raw_sample": 32,
+      "source_duration": 5663.838,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-08-16 - Hebrews 12.1-3.mp3",
+      "mp3_duration": 2982.619,
+      "object_key": "recording_20260816_103007.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260816_103007",
+      "started_at": "2026-08-16T10:30:07",
+      "segments": [
+        {
+          "punch_in": 1442.475,
+          "punch_out": 4425.094,
+          "derived_from": "2026-08-16 - Hebrews 12.1-3.mp3",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 760
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3400
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 298.3,
+            "offset": 1442.4752,
+            "ncc": 0.9185,
+            "peak_ratio": 4.41
+          },
+          {
+            "at_s": 894.8,
+            "offset": 1442.4756,
+            "ncc": 0.9204,
+            "peak_ratio": 9.86
+          },
+          {
+            "at_s": 1491.3,
+            "offset": 1442.476,
+            "ncc": 0.9192,
+            "peak_ratio": 5.85
+          },
+          {
+            "at_s": 2087.8,
+            "offset": 1442.4754,
+            "ncc": 0.9122,
+            "peak_ratio": 9.94
+          },
+          {
+            "at_s": 2684.4,
+            "offset": 1442.4758,
+            "ncc": 0.9146,
+            "peak_ratio": 5.77
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1442.48,
+        "coarse_ncc": 0.9886,
+        "coarse_peak_ratio": 14.61,
+        "drift_ppm": 0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 1442.4753,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9122,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-08-16 - Member Meeting",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-16 - Member Meeting.flac",
+      "size_bytes": 531238537,
+      "bits_per_raw_sample": 32,
+      "source_duration": 4289.681,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260816_125512.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260816_125512",
+      "started_at": "2026-08-16T12:55:12",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "no published MP3"
+        ]
+      }
+    },
+    {
+      "desktop_label": "2026-08-23 - Hebrews 12.4-11",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-23 - Hebrews 12.4-11.flac",
+      "size_bytes": 841368564,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6268.95,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-08-23 - Hebrews 12.4-11.mp3",
+      "mp3_duration": 3483.409,
+      "object_key": "recording_20260823_102952.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260823_102952",
+      "started_at": "2026-08-23T10:29:52",
+      "segments": [
+        {
+          "punch_in": 1492.812,
+          "punch_out": 4976.221,
+          "derived_from": "2026-08-23 - Hebrews 12.4-11.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 9290
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2100
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 348.3,
+            "offset": 1492.8121,
+            "ncc": 0.9199,
+            "peak_ratio": 3.04
+          },
+          {
+            "at_s": 1045.0,
+            "offset": 1492.8123,
+            "ncc": 0.9156,
+            "peak_ratio": 5.1
+          },
+          {
+            "at_s": 1741.7,
+            "offset": 1492.8125,
+            "ncc": 0.9081,
+            "peak_ratio": 4.35
+          },
+          {
+            "at_s": 2438.4,
+            "offset": 1492.8127,
+            "ncc": 0.9114,
+            "peak_ratio": 5.55
+          },
+          {
+            "at_s": 3135.1,
+            "offset": 1492.8129,
+            "ncc": 0.9201,
+            "peak_ratio": 4.08
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1492.81,
+        "coarse_ncc": 0.9865,
+        "coarse_peak_ratio": 15.25,
+        "drift_ppm": 0.3,
+        "fit_residual_s": 0.0,
+        "offset": 1492.812,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9081,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-08-30 - 0944 rehearsal",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-30 - 0944 rehearsal.flac",
+      "size_bytes": 300042200,
+      "bits_per_raw_sample": 32,
+      "source_duration": 2219.552,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260830_094453.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260830_094453",
+      "started_at": "2026-08-30T09:44:53",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "no published MP3"
+        ]
+      }
+    },
+    {
+      "desktop_label": "2026-08-30 - Hebrews 12.12-17",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-30 - Hebrews 12.12-17.flac",
+      "size_bytes": 837320734,
+      "bits_per_raw_sample": 32,
+      "source_duration": 6313.393,
+      "mp3_path": "/Users/travis/Desktop/Sermons/2026-08-30 - Hebrews 12.12-17.mp3",
+      "mp3_duration": 3323.303,
+      "object_key": "recording_20260830_102838.flac",
+      "join": "unique",
+      "split": "test",
+      "recording_id": "recording_20260830_102838",
+      "started_at": "2026-08-30T10:28:38",
+      "segments": [
+        {
+          "punch_in": 1533.811,
+          "punch_out": 4857.114,
+          "derived_from": "2026-08-30 - Hebrews 12.12-17.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 12990
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3180
+          }
+        }
+      ],
+      "validation": {
+        "probes": [
+          {
+            "at_s": 332.3,
+            "offset": 1533.8108,
+            "ncc": 0.9827,
+            "peak_ratio": 4.43
+          },
+          {
+            "at_s": 997.0,
+            "offset": 1533.8104,
+            "ncc": 0.9816,
+            "peak_ratio": 6.41
+          },
+          {
+            "at_s": 1661.7,
+            "offset": 1533.811,
+            "ncc": 0.9801,
+            "peak_ratio": 9.62
+          },
+          {
+            "at_s": 2326.3,
+            "offset": 1533.8106,
+            "ncc": 0.9787,
+            "peak_ratio": 7.12
+          },
+          {
+            "at_s": 2991.0,
+            "offset": 1533.8102,
+            "ncc": 0.9825,
+            "peak_ratio": 5.27
+          }
+        ],
+        "reasons": [],
+        "coarse_offset": 1533.81,
+        "coarse_ncc": 0.992,
+        "coarse_peak_ratio": 17.23,
+        "drift_ppm": -0.2,
+        "fit_residual_s": 0.0004,
+        "offset": 1533.8108,
+        "probe_spread_s": 0.0008,
+        "probe_ncc_min": 0.9787,
+        "status": "ok"
+      }
+    },
+    {
+      "desktop_label": "2026-04-05",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-04-05.flac",
+      "size_bytes": 1587298526,
+      "bits_per_raw_sample": 32,
+      "source_duration": 12203.343,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260405_085215.flac",
+      "join": "unique",
+      "split": "multi-output",
+      "recording_id": "recording_20260405_085215",
+      "started_at": "2026-04-05T08:52:15",
+      "segments": [
+        {
+          "punch_in": 494.325,
+          "punch_out": 4008.925,
+          "derived_from": "2026-04-05 - TEC - Forgiveness.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 481520
+          },
+          "difficulty_out": {
+            "label": "moderate",
+            "quiet_ms": 1820
+          },
+          "validation": {
+            "probes": [
+              {
+                "at_s": 351.5,
+                "offset": 494.3252,
+                "ncc": 0.9634,
+                "peak_ratio": 8.29
+              },
+              {
+                "at_s": 1054.4,
+                "offset": 494.3256,
+                "ncc": 0.9643,
+                "peak_ratio": 7.4
+              },
+              {
+                "at_s": 1757.3,
+                "offset": 494.326,
+                "ncc": 0.9614,
+                "peak_ratio": 9.17
+              },
+              {
+                "at_s": 2460.2,
+                "offset": 494.3254,
+                "ncc": 0.9641,
+                "peak_ratio": 7.95
+              },
+              {
+                "at_s": 3163.1,
+                "offset": 494.3258,
+                "ncc": 0.9603,
+                "peak_ratio": 6.56
+              }
+            ],
+            "reasons": [],
+            "coarse_offset": 494.33,
+            "coarse_ncc": 0.987,
+            "coarse_peak_ratio": 21.8,
+            "drift_ppm": 0.1,
+            "fit_residual_s": 0.0004,
+            "offset": 494.3253,
+            "probe_spread_s": 0.0008,
+            "probe_ncc_min": 0.9603,
+            "status": "ok"
+          }
+        },
+        {
+          "punch_in": 7565.47,
+          "punch_out": 10555.079,
+          "derived_from": "2026-04-05 - Matthew 12.38-42.mp3",
+          "difficulty_in": {
+            "label": "easy",
+            "quiet_ms": 3090
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 3660
+          },
+          "validation": {
+            "probes": [
+              {
+                "at_s": 299.0,
+                "offset": 7565.4702,
+                "ncc": 0.9326,
+                "peak_ratio": 4.26
+              },
+              {
+                "at_s": 896.9,
+                "offset": 7565.4706,
+                "ncc": 0.9318,
+                "peak_ratio": 9.62
+              },
+              {
+                "at_s": 1494.8,
+                "offset": 7565.471,
+                "ncc": 0.9344,
+                "peak_ratio": 8.6
+              },
+              {
+                "at_s": 2092.7,
+                "offset": 7565.4704,
+                "ncc": 0.9347,
+                "peak_ratio": 5.9
+              },
+              {
+                "at_s": 2690.6,
+                "offset": 7565.4708,
+                "ncc": 0.9374,
+                "peak_ratio": 5.9
+              }
+            ],
+            "reasons": [],
+            "coarse_offset": 7565.47,
+            "coarse_ncc": 0.9979,
+            "coarse_peak_ratio": 16.72,
+            "drift_ppm": 0.2,
+            "fit_residual_s": 0.0004,
+            "offset": 7565.4703,
+            "probe_spread_s": 0.0008,
+            "probe_ncc_min": 0.9318,
+            "status": "ok"
+          }
+        }
+      ],
+      "validation": {
+        "status": "multi-output"
+      }
+    },
+    {
+      "desktop_label": "2026-08-02",
+      "source_path": "/Users/travis/Desktop/Sermons/2026-08-02.flac",
+      "size_bytes": 1423433419,
+      "bits_per_raw_sample": 32,
+      "source_duration": 10803.11,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260802_090011.flac",
+      "join": "unique",
+      "split": "two-level",
+      "recording_id": "recording_20260802_090011",
+      "started_at": "2026-08-02T09:00:11",
+      "sessions": [
+        {
+          "label": "2026-08-02 - TEC - Speech",
+          "kind": "session",
+          "validation": {
+            "probes": [
+              {
+                "at_s": 453.5,
+                "offset": -0.0003,
+                "ncc": 1.0,
+                "peak_ratio": 9.3
+              },
+              {
+                "at_s": 1360.6,
+                "offset": -0.0009,
+                "ncc": 1.0,
+                "peak_ratio": 6.93
+              },
+              {
+                "at_s": 2267.7,
+                "offset": -0.0005,
+                "ncc": 1.0,
+                "peak_ratio": 8.93
+              },
+              {
+                "at_s": 3174.8,
+                "offset": -0.0001,
+                "ncc": 1.0,
+                "peak_ratio": 5.44
+              },
+              {
+                "at_s": 4081.8,
+                "offset": -0.0007,
+                "ncc": 1.0,
+                "peak_ratio": 6.24
+              }
+            ],
+            "reasons": [],
+            "coarse_offset": 0.0,
+            "coarse_ncc": 1.0,
+            "coarse_peak_ratio": 9.08,
+            "drift_ppm": 0.0,
+            "fit_residual_s": 0.0004,
+            "offset": 0.0,
+            "probe_spread_s": 0.0008,
+            "probe_ncc_min": 1.0,
+            "status": "ok"
+          },
+          "start": 0.0,
+          "end": 4535.373
+        },
+        {
+          "label": "2026-08-02 - Hebrews 11.29-31",
+          "kind": "session",
+          "validation": {
+            "probes": [
+              {
+                "at_s": 553.2,
+                "offset": 4758.4232,
+                "ncc": 0.9635,
+                "peak_ratio": 1.77
+              },
+              {
+                "at_s": 1659.5,
+                "offset": 4758.4236,
+                "ncc": 0.9579,
+                "peak_ratio": 3.98
+              },
+              {
+                "at_s": 2765.8,
+                "offset": 4758.424,
+                "ncc": 0.9523,
+                "peak_ratio": 5.77
+              },
+              {
+                "at_s": 3872.2,
+                "offset": 4758.4234,
+                "ncc": 0.9552,
+                "peak_ratio": 4.34
+              },
+              {
+                "at_s": 4978.5,
+                "offset": 4758.4238,
+                "ncc": 0.9549,
+                "peak_ratio": 6.85
+              }
+            ],
+            "reasons": [],
+            "coarse_offset": 4758.42,
+            "coarse_ncc": 0.9896,
+            "coarse_peak_ratio": 2.18,
+            "drift_ppm": 0.1,
+            "fit_residual_s": 0.0004,
+            "offset": 4758.4234,
+            "probe_spread_s": 0.0008,
+            "probe_ncc_min": 0.9523,
+            "status": "ok"
+          },
+          "start": 4758.423,
+          "end": 10290.091
+        }
+      ],
+      "segments": [
+        {
+          "punch_in": 1.462,
+          "punch_out": 3456.252,
+          "derived_from": "2026-08-02 - TEC - Speech.mp3",
+          "within_session": "2026-08-02 - TEC - Speech",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 840
+          },
+          "difficulty_out": {
+            "label": "moderate",
+            "quiet_ms": 1270
+          },
+          "validation": {
+            "probes": [
+              {
+                "at_s": 345.5,
+                "offset": 1.4622,
+                "ncc": 0.9825,
+                "peak_ratio": 14.19
+              },
+              {
+                "at_s": 1036.4,
+                "offset": 1.4626,
+                "ncc": 0.9842,
+                "peak_ratio": 8.46
+              },
+              {
+                "at_s": 1727.4,
+                "offset": 1.463,
+                "ncc": 0.9849,
+                "peak_ratio": 7.23
+              },
+              {
+                "at_s": 2418.4,
+                "offset": 1.4624,
+                "ncc": 0.9845,
+                "peak_ratio": 7.89
+              },
+              {
+                "at_s": 3109.3,
+                "offset": 1.4628,
+                "ncc": 0.9852,
+                "peak_ratio": 12.52
+              }
+            ],
+            "reasons": [],
+            "coarse_offset": 1.46,
+            "coarse_ncc": 0.9865,
+            "coarse_peak_ratio": 14.09,
+            "drift_ppm": 0.1,
+            "fit_residual_s": 0.0004,
+            "offset": 1.4624,
+            "probe_spread_s": 0.0008,
+            "probe_ncc_min": 0.9825,
+            "status": "ok"
+          }
+        },
+        {
+          "punch_in": 6576.061,
+          "punch_out": 9630.042,
+          "derived_from": "2026-08-02 - Hebrews 11.29-31.mp3",
+          "within_session": "2026-08-02 - Hebrews 11.29-31",
+          "difficulty_in": {
+            "label": "moderate",
+            "quiet_ms": 1950
+          },
+          "difficulty_out": {
+            "label": "easy",
+            "quiet_ms": 2670
+          },
+          "validation": {
+            "probes": [
+              {
+                "at_s": 305.4,
+                "offset": 6576.0609,
+                "ncc": 0.984,
+                "peak_ratio": 4.39
+              },
+              {
+                "at_s": 916.2,
+                "offset": 6576.0607,
+                "ncc": 0.9803,
+                "peak_ratio": 6.44
+              },
+              {
+                "at_s": 1527.0,
+                "offset": 6576.0605,
+                "ncc": 0.9819,
+                "peak_ratio": 6.42
+              },
+              {
+                "at_s": 2137.8,
+                "offset": 6576.0603,
+                "ncc": 0.9828,
+                "peak_ratio": 9.84
+              },
+              {
+                "at_s": 2748.6,
+                "offset": 6576.0601,
+                "ncc": 0.9841,
+                "peak_ratio": 4.02
+              }
+            ],
+            "reasons": [],
+            "coarse_offset": 6576.06,
+            "coarse_ncc": 0.9969,
+            "coarse_peak_ratio": 16.27,
+            "drift_ppm": -0.3,
+            "fit_residual_s": 0.0,
+            "offset": 6576.061,
+            "probe_spread_s": 0.0008,
+            "probe_ncc_min": 0.9803,
+            "status": "ok"
+          }
+        }
+      ],
+      "validation": {
+        "status": "two-level"
+      }
+    }
+  ]
+}
