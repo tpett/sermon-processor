@@ -118,20 +118,36 @@ Feature: Probing a recording's technical metadata
       And a reviewer can find it by filtering for ignored recordings
       And a reviewer can restore it for analysis if the machine was wrong
 
-    @happy-path @assumption
+    @happy-path @measured
     Scenario Outline: What counts as substantive
-      # Q78 — the threshold is a guess. The sample corpus has no examples of
-      # this, so it is worth checking against a few real false triggers.
-      Given <proportion> of the Recording is above the noise floor
+      # Measured on six real false triggers pulled from the bucket against five
+      # real recordings. The separation is three orders of magnitude wide, so
+      # this needs no tuning and no threshold to argue about.
+      #
+      #   false triggers   3.6 - 3.9 dB dynamic range,  0.0 - 0.2% active
+      #   real recordings   52 - 79  dB dynamic range,   65 - 85%  active
+      #
+      # Dynamic range is measured against the recording's own noise floor, so it
+      # separates "a room with something happening in it" from "a room with one
+      # bang in it" rather than keying on absolute level.
+      Given the Recording's dynamic range is <range>
       When the probe stage runs
       Then the Recording is <outcome>
 
       Examples:
-        | proportion | outcome                            |
-        | 0.2%       | flagged "no substantive content"   |
-        | 1%         | flagged "no substantive content"   |
-        | 15%        | analysed normally                  |
-        | 60%        | analysed normally                  |
+        | range  | outcome                            |
+        | 4 dB   | flagged "no substantive content"   |
+        | 12 dB  | flagged "no substantive content"   |
+        | 30 dB  | analysed normally                  |
+        | 65 dB  | analysed normally                  |
+
+    @happy-path @measured
+    Scenario: The test runs before transcription
+      # It reads the envelope already computed for the waveform, so a false
+      # trigger costs no GPU time at all.
+      Given a Recording flagged "no substantive content"
+      Then it is never transcribed
+      And it is never diarized
 
     @edge-case
     Scenario: A quiet but real recording is not discarded
@@ -142,6 +158,18 @@ Feature: Probing a recording's technical metadata
       # The test is for near-empty files, not for quiet ones. Erring toward
       # analysing costs a little local compute; erring the other way loses a
       # recording silently.
+
+    @edge-case @measured
+    Scenario: The container is damaged but the audio decodes
+      # Measured: one object in the bucket reports no duration at all — a damaged
+      # FLAC header — and decodes perfectly. This is not the "not decodable"
+      # case, and dropping the recording would be the wrong response.
+      Given the container reports no duration
+      And the audio decodes
+      When the probe stage runs
+      Then the duration is obtained by counting decoded samples
+      And the Recording is flagged "damaged container"
+      And Analysis continues normally
 
     @edge-case
     Scenario: The recording is silent throughout

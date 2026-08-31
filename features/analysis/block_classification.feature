@@ -30,6 +30,8 @@ Feature: Classifying each block
         | lesson            | a class or seminar session                                  |
         | communion         | the invitation to and serving of communion                  |
         | qa                | audience questions, typically after a class                 |
+        | rehearsal         | band practice or a sound check — playing, stopping, restarting |
+        | special_service   | a service that is not an ordinary Sunday: Good Friday, a seminar day, a prayer gathering |
         | other             | speech that is none of the above                            |
 
     @happy-path
@@ -219,6 +221,73 @@ Feature: Classifying each block
       Then that recurrence is evidence that the speaker is hosting rather than preaching
       And a Block from that speaker is less likely to be typed "sermon"
       And this is evidence only, since the preacher occasionally gives the benediction
+
+  Rule: Rehearsal is not the same thing as music in a service
+
+    @happy-path @measured
+    Scenario: A whole recording of rehearsal
+      # Measured: rehearsal is the largest unpublished category in the bucket —
+      # 8 of 20 sampled, 20 to 68 minutes, 63 to 76 dB dynamic range, in the same
+      # room with the same voices as a service. It is the case most likely to
+      # produce a false positive, and it is materially different from "there is
+      # singing in this service".
+      Given a Recording of a band running songs, stopping, and restarting them
+      When block classification runs
+      Then its Blocks are typed "rehearsal", not "music"
+      And no Segment is proposed
+      And the Recording is shown as needing no attention
+
+    @happy-path @measured
+    Scenario Outline: What distinguishes rehearsal from a service
+      Given a Block containing "<signal>"
+      When block classification runs
+      Then that counts as evidence for "rehearsal"
+
+      Examples:
+        | signal                                          |
+        | the same passage of a song sung more than once   |
+        | talk about monitor levels or microphones        |
+        | starting a song, stopping, and starting again   |
+        | discussion of which songs to play               |
+
+  Rule: Not every service is a Sunday service
+
+    @happy-path @measured
+    Scenario Outline: Services with a different shape
+      # Measured: the bucket contains a Good Friday Tenebrae service — readings,
+      # songs and explanations, a shape nothing like a Sunday — and a Saturday
+      # gathering with worship, intercessory prayer, sermons and personal
+      # testimony. Both previously classified as "other", which tells a reviewer
+      # nothing about a recording they may well want to publish.
+      Given a Recording that is "<event>"
+      When block classification runs
+      Then its teaching Blocks are typed "<type>"
+      And the Recording is summarised as "<event>" rather than as "other"
+
+      Examples:
+        | event                                    | type            |
+        | a Good Friday service                    | special_service |
+        | a Saturday worship and prayer gathering  | special_service |
+        | a seminar day with several sessions      | seminar         |
+
+    @happy-path
+    Scenario: A special service still produces a reviewable Segment
+      Given a Recording classified "special_service"
+      Then a Segment is proposed for each sustained teaching Block
+      And the reviewer decides what to publish, as with any other Recording
+      # The point of the type is that the reviewer is told what they are looking
+      # at, not that the system treats it differently.
+
+    @edge-case @measured
+    Scenario: One event across several recordings
+      # Good Friday produced four recordings across a day; a Saturday event
+      # produced four more. Joining them is out of scope (Q65) — but the reviewer
+      # still has to understand that they are parts of one thing.
+      Given several Recordings on the same day within a few hours of each other
+      And each contains part of what is evidently one event
+      Then each is reviewed on its own
+      And the interface shows them grouped by day
+      And the reviewer is told they may be parts of one event
 
   Rule: The reviewer can always correct a block
 

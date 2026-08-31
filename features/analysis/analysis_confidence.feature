@@ -35,19 +35,50 @@ Feature: Proposal confidence and evidence
       And the boundary confidence is "low"
       And the reviewer is prompted to check the punch-out specifically
 
-    @happy-path
-    Scenario Outline: Confidence bands drive how the reviewer is prompted
-      Given the computed boundary confidence is <score>
-      When scoring runs
-      Then the confidence band is "<band>"
-      And the Segment is shown as "<badge>"
+    @happy-path @measured
+    Scenario: A model's own confidence number is not used for anything
+      # Measured: models report 0.95 on essentially every segment, including one
+      # whose punch-in was wrong by 659 seconds and a correct one in the same
+      # run. It is a constant and carries no information.
+      Then no reviewer-facing behaviour depends on a confidence value the model
+        reported about itself
+      And a self-reported confidence may be stored for diagnosis
+      And it is never shown to a reviewer as a quality signal
+
+    @happy-path @measured
+    Scenario Outline: Agreement between two independent analyses is the signal
+      # Measured: across the corpus the failures are the cases where two models
+      # disagreed with each other or with the human. On the one blind recording,
+      # two independent models chose the identical punch-in to the sample and the
+      # cut was right. Agreement needs no calibration — only a second run.
+      Given a second, independent analysis of the same Recording
+      And the two proposed punch-ins differ by <gap>
+      Then the Segment is shown as "<badge>"
 
       Examples:
-        | score | band   | badge                |
-        | 0.92  | high   | Looks good           |
-        | 0.65  | medium | Worth a listen       |
-        | 0.31  | low    | Needs attention      |
-        | 0.00  | none   | Boundaries not found |
+        | gap    | badge           |
+        | 0.2 s  | Looks good      |
+        | 3 s    | Worth a listen  |
+        | 45 s   | Needs attention |
+        | no second segment proposed | Needs attention |
+
+    @happy-path @measured
+    Scenario: Cut difficulty is the second half of the signal
+      # Already computed on every boundary from the silence around it, and worth
+      # surfacing: a cut with no quiet to land in is one a human should see even
+      # when the models agree.
+      Given the punch-in is graded "hard"
+      Then the Segment is shown as needing attention regardless of agreement
+      And the reason is stated, for example "no clean cut point at the punch-in"
+
+    @happy-path
+    Scenario: What a reviewer is told, in order of usefulness
+      Then the Segment carries, most useful first:
+        | signal                                              |
+        | whether a second analysis agrees, and by how much   |
+        | whether either boundary is a hard cut               |
+        | the evidence behind the classification              |
+        | how the segment length compares to the usual range  |
 
     @happy-path
     Scenario: Evidence is human readable

@@ -48,6 +48,26 @@ Feature: Summarising blocks and segments
       Then "Hebrews 12" is suggested as the publication label
       And the reviewer can correct it
 
+  Rule: The model returns words, never a timestamp
+
+    @happy-path @measured
+    Scenario: A cue is a verbatim quote, located afterwards
+      # This is what makes a very small model sufficient. Asking a 2.5 GB model
+      # for a timestamp does not work; asking it to copy a sentence does, and the
+      # words already carry times. Measured: 11 of 11 quotes located, 0.8 s per
+      # block, the whole recording in 9 seconds.
+      When the summarization stage runs
+      Then the model returns the exact words of the recognisable moment
+      And those words are located in the word-level transcript
+      And the excerpt's timing comes from the transcript, never from the model
+
+    @edge-case
+    Scenario: The quote cannot be located
+      Given the returned words do not appear in the transcript
+      Then no cue excerpt is stored for that Block
+      And the Block falls back to its first few seconds
+      And the failure is counted, so a model that drifts is visible
+
   Rule: Every block gets a cue excerpt worth playing
 
     @happy-path

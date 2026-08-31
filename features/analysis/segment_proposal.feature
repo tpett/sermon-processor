@@ -111,6 +111,35 @@ Feature: Proposing publishable segments
       # Extension runs forward only. The prayer before the sermon belongs to the
       # service, not to the message.
 
+  Rule: The proposed boundary leads; the rules are a fallback
+
+    @happy-path @measured
+    Scenario: A plausible proposal is taken as it stands
+      # Measured: refining a frontier model's own boundaries made them *worse* —
+      # median punch-in 2.18 s to 4.64 s, punch-out 0.78 s to 1.24 s. On one
+      # recording the proposal was 0.08 s from the human cut and refinement moved
+      # it five seconds away. The rules were written to help and were overwriting
+      # a better answer.
+      Given a proposed Segment whose length falls inside the expected range
+      And whose boundaries fall inside the Recording
+      Then its boundaries are used as proposed
+      And the refinement rules do not run
+
+    @happy-path @measured
+    Scenario: An implausible proposal falls back to the rules
+      # Refinement earns its place where the proposal is badly wrong — on a class
+      # it turned +118 s into -5 s. So it is a safety net, not the main path.
+      Given a proposed Segment 12 minutes long
+      When segment proposal runs
+      Then the refinement rules are applied instead
+      And the Segment records that its boundaries came from the rules
+
+    @happy-path
+    Scenario: Where a boundary came from is always recorded
+      Then every Segment records whether its boundaries were proposed or refined
+      And that is visible in the processing log
+      # Without it, a regression in either path is invisible.
+
   Rule: Segments never overlap and always sit inside the recording
 
     @edge-case

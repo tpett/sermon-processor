@@ -1,5 +1,8 @@
 # Feature File Audit
 
+**Status: A and B applied, C and D applied. E is open and needs your answers.**
+See the commit "Reconcile the specification with what the spike measured".
+
 Written 2026-08-30, after the spike. These files were authored before anything
 had met real audio. Six weeks of measurement later, some of what they assert is
 wrong, some rests on signals that turned out not to exist, and the corpus
@@ -236,3 +239,39 @@ measured rule with the number in it.
 5. **The loudness itself.** The A/B files in `experiments/work/ab/` are still
    unheard. Everything about the render is measured; whether it *sounds* right is
    not.
+
+
+---
+
+## What was applied
+
+| | Change | Files |
+| --- | --- | --- |
+| A1 | Confidence bands replaced by cross-model agreement plus cut difficulty | `analysis_confidence` |
+| A2 | The proposed boundary leads; the rules became a fallback | `segment_proposal` |
+| A3 | Speaker change says *which* block, the transcript says *where* | `blocking` |
+| A4 | Emptiness restated as dynamic range, `@assumption` dropped | `audio_probe`, `discarding_recordings` |
+| A5 | The object key became the source of truth; the sidecar an enrichment | `recording_download` |
+| B2 | Clock drift measured and corrected, not averaged away | `detection_accuracy` |
+| B3 | Guard against already-edited archive sources | `detection_accuracy` |
+| B4 | A damaged container that still decodes | `audio_probe` |
+| B5 | `rehearsal` added as a block type, distinct from `music` | `block_classification` |
+| B6 | `special_service` added for Good Friday and the like | `block_classification` |
+| B7 | One event across several recordings | `block_classification` |
+| B8 | The back catalogue loudness step, and re-rendering it | `audio_rendering` |
+| C | Q77 decided; the tail, the preview format and the models restated as measured | `preview_audio`, `punch_out_detection` |
+| D | Zoom behaviour, the verbatim-quote design, the voice library, stage list | `waveform_review`, `summarization`, `speaker_diarization`, `analysis_orchestration` |
+
+Every scenario added carries `@measured` where a number in it came from the
+corpus, so a reader can tell an observation from an assumption.
+
+## What was deliberately not applied
+
+The five questions in section E. Each changes behaviour in a way that is a
+judgement rather than a measurement, and answering them wrongly would be worse
+than leaving them visible.
+
+One further thing left alone: `classification-spec.md` still sets the target at
+`no_edit@1s >= 80%`, which nothing reaches. That number should move only once
+question E1 is answered, because the answer determines whether it is the right
+shape of target at all.

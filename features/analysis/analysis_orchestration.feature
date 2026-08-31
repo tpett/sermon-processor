@@ -25,12 +25,13 @@ Feature: Analysis orchestration
         | stage                | produces                                            |
         | probe                | duration, channels, bit depth, loudness profile     |
         | waveform             | downsampled peak data for the interface             |
-        | preview              | a lightweight seekable rendition for the browser    |
+        | preview              | a constant-bitrate seekable rendition for the browser |
         | transcription        | timestamped words and utterances                    |
         | diarization          | speaker-labelled spans                              |
         | blocking             | the Recording divided on speaker and activity change|
         | block_classification | what each Block is                                  |
         | summarization        | a one-line summary and cue excerpt per Block        |
+        | agreement            | a second independent analysis, for the confidence signal |
         | segment_proposal     | publishable Segments built from Blocks              |
         | boundary_refinement  | precise punch-in and punch-out per Segment          |
         | scoring              | a Proposal per Segment, with confidence and evidence|

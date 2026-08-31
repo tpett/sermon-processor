@@ -2,7 +2,13 @@
 Feature: Downloading a recording
   In order to analyse audio we do not own the machine for
   As the Sermon Processor
-  I want to pull the FLAC and its metadata sidecar from the object store
+  I want to pull the FLAC from the object store
+
+  Measured: **there is no metadata sidecar in the bucket.** 85 objects, every one
+  a `.flac`. The recorder writes a `.meta.json` locally and it is not being
+  uploaded. Everything the sidecar would have carried is recoverable from the
+  object key and from the audio, so the key is the source of truth and a sidecar,
+  if one ever appears, is an enrichment.
 
   Background:
     Given a Recording in state "discovered" for object key "recordings/recording_20260823_103015.flac"
@@ -10,8 +16,18 @@ Feature: Downloading a recording
 
   Rule: A successful download makes the Recording analysable
 
+    @happy-path @measured
+    Scenario: Recorded time comes from the object key
+      # `recording_YYYYMMDD_HHMMSS.flac` is reliable and always present. Wall
+      # clock is one of the strongest classification signals available, so this
+      # is the primary path rather than a fallback.
+      Given an object key "recordings/recording_20260830_102838.flac"
+      When the download job runs
+      Then the Recording records a recorded time of "2026-08-30T10:28:38"
+      And no sidecar is required for it
+
     @happy-path
-    Scenario: The FLAC and its sidecar are downloaded
+    Scenario: The FLAC and, if present, its sidecar are downloaded
       When the download job runs
       Then the Recording moves through "downloading" to "downloaded"
       And the FLAC is stored in local working storage

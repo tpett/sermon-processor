@@ -16,6 +16,43 @@ Feature: Dividing a recording into blocks
   Background:
     Given a Recording with a completed transcript and speaker spans
 
+  Rule: Speaker change says which block, the transcript says where it starts
+
+    @happy-path @measured
+    Scenario: A block edge is placed on a transcript edge, not a diarization edge
+      # Measured — distance from the nearest proposed edge to the true punch-in:
+      #
+      #   a model reading the transcript   1.8 s median,  6/8 within 5 s
+      #   diarization edges                8.5 s median,  1/8 within 5 s
+      #
+      # Diarization is reliable about *that* the speaker changed and unreliable
+      # about *when*. Using its turn times directly was the worst boundary source
+      # measured — worse than a language model reading a transcript.
+      Given diarization reports a speaker change near a block boundary
+      When blocking runs
+      Then the boundary is placed on the nearest utterance edge
+      And the speaker change is recorded as the reason for the boundary
+
+    @edge-case @measured
+    Scenario: The clusterer must be constrained or it invents speakers
+      # At the default merge threshold the clusterer returned 12 to 27 speakers
+      # for a service with about four, splitting one preacher across two labels.
+      # The first 40 s of a sermon then fell under the minimum block length and
+      # was absorbed backwards into the scripture reading, moving the edge 40 s
+      # past the punch-in.
+      Given a service with four distinct voices
+      When diarization runs
+      Then it reports a number of speakers in the same order as reality
+      And a single speaker is not split across labels within one block
+
+    @edge-case @measured
+    Scenario: Short turns are absorbed toward their own voice
+      Given a run of turns too short to be a block of their own
+      When blocking runs
+      Then they are absorbed into a neighbouring block that shares their voice
+      And only into the larger neighbour when neither shares it
+      And absorbing them never moves a boundary across a change of voice
+
   Rule: Blocks are bounded by speaker changes
 
     @happy-path

@@ -52,7 +52,10 @@ Feature: Transcription
       When the transcription stage runs
       Then the transcript is still produced
       And the average confidence for the affected region is recorded
-      And the Recording is flagged "<flag>" when average confidence is below 0.5
+      And the Recording is flagged "<flag>" when the transcript is measurably poor
+      # The threshold is deliberately unstated. An earlier draft asserted 0.5 and
+      # nothing in the corpus ever produced it, so there is no evidence for any
+      # particular value. Set it when a recording appears that needs it.
 
       Examples:
         | condition                        | flag                     |

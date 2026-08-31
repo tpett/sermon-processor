@@ -111,7 +111,7 @@ Feature: Refining a segment's punch-in
       Given the first words of the Block are "<phrase>"
       When punch-in refinement runs
       Then the punch-in is placed immediately before that phrase
-      And the punch-in confidence is increased
+      And that counts as evidence for the punch-in
 
       Examples:
         | phrase                                        |

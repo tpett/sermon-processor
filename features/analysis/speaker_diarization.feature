@@ -12,6 +12,37 @@ Feature: Speaker diarization
     Given a Recording in state "downloaded"
     And transcription has completed
 
+  Rule: The voice library is small, free to build, and works
+
+    @happy-path @measured
+    Scenario: Four voices, built from work already done
+      # Measured across 23 teaching spans: clustering finds four voices carrying
+      # 18, 2, 2 and 1 of them — the roster described in Q12, recovered from the
+      # audio without being told. Every approved Segment is by definition a
+      # labelled sample of whoever preached it, so enrolment costs nothing.
+      Given a corpus of approved Segments
+      When voice profiles are built
+      Then a profile is enrolled from each without a separate enrolment session
+      And the number of profiles matches the real preaching roster
+
+    @happy-path @measured
+    Scenario: The preacher's voice finds the teaching block
+      # Measured 4 of 4, leave-one-out: the teaching Block ranked first by
+      # similarity to the primary preacher's profile every time, at 0.92 to 0.95
+      # against 0.16 to 0.48 for music and announcements.
+      Given a Recording and an enrolled profile for the regular preacher
+      When blocks are scored against that profile
+      Then the teaching Block ranks first
+
+    @edge-case @measured
+    Scenario: Voice alone would hand you communion
+      # The runner-up is always the communion block, because the same person
+      # delivers it — 0.81 to 0.89 against the sermon's 0.92 to 0.95. The signal
+      # says "the preacher is talking", not "this is the sermon".
+      Given blocks ranked by similarity to the preacher's profile
+      Then the ranking alone does not identify the sermon
+      And it is combined with duration before a Segment is proposed
+
   Rule: The recording is segmented by speaker
 
     @happy-path

@@ -90,6 +90,40 @@ Feature: Reviewing the waveform
       Then the waveform returns to showing the full duration
       And all Block bands are visible again
 
+  Rule: What each zoom level is actually for
+
+    @happy-path @measured
+    Scenario Outline: Precision by window size
+      # Measured on an 1100 px canvas against a 104-minute recording.
+      Given the visible window is <window>
+      Then 100 ms is <pixels>
+      And placing a boundary to 100 ms is <verdict>
+
+      Examples:
+        | window            | pixels  | verdict     |
+        | whole recording   | 0.0 px  | impossible  |
+        | 5 minutes         | 0.4 px  | impossible  |
+        | 30 seconds        | 3.7 px  | awkward     |
+        | 3 seconds         | 36.7 px | comfortable |
+
+    @happy-path @measured
+    Scenario: Words and waveform serve different steps
+      # At a 30-second window 48 words are readable beside the waveform. At the
+      # tightest zoom there are none — because a good cut lands in silence. So
+      # the words help find the moment and the waveform helps place it.
+      Given I am looking for the right moment
+      Then the transcript is what I read
+      Given I am placing the cut precisely
+      Then the waveform is what I use
+      And no words are expected in view at that zoom
+
+    @happy-path @measured
+    Scenario: Peak data is fetched, not embedded
+      # Peaks and words for one recording are about 2.76 MB.
+      Given a Recording of 104 minutes
+      Then its peak data is fetched per recording rather than inlined in the page
+      And it is served at progressive resolution
+
   Rule: The interface degrades usefully
 
     @edge-case

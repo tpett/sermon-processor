@@ -40,6 +40,49 @@ Feature: Measuring detection accuracy against real recordings
       Then that pair is excluded from the corpus
       And the exclusion is reported rather than silently dropped
 
+  Rule: A source and its edit can run on different clocks
+
+    @edge-case @measured
+    Scenario: Linear drift between the recording and the export
+      # Measured: three early recordings drift about -130 ppm against their
+      # published MP3s — a capture clock at roughly 44,094 Hz labelled 44,100.
+      # Across a 50-minute sermon that accumulates to 0.23 s, which is large
+      # against the tolerances here. Everything from late March onward is within
+      # 0.3 ppm, so it is a property of a recording, not of the room.
+      Given a published output that runs at a slightly different rate to its source
+      When ground truth extraction runs
+      Then the drift is measured rather than averaged away
+      And the punch-in is the intercept of the fit, not the middle of it
+      And the punch-out accounts for the drift across the segment
+
+    @edge-case @measured
+    Scenario: Drift is separated from a real discontinuity
+      # Probes taken at several points through the output will disagree both when
+      # the clocks differ and when material was cut from the middle. Only the
+      # second makes the pair unusable, so the test is the deviation from a
+      # straight line, not the raw disagreement.
+      Given probes through the output disagree about the offset
+      When they fall on a straight line
+      Then the pair is usable and the slope is the clock difference
+      When they do not fall on a straight line
+      Then the pair is excluded as not a contiguous excerpt
+
+  Rule: An already-edited source is not ground truth
+
+    @edge-case @measured
+    Scenario: A lossless copy of just the message
+      # The archive predating the object store contains lossless copies of only
+      # the message. As ground truth these are actively harmful: the punch-in is
+      # zero and the punch-out is the end, which would teach that a sermon starts
+      # at the beginning of its file.
+      Given a Recording whose published output covers more than 95% of its source
+      Then it is flagged rather than silently accepted
+      And it is excluded from boundary statistics
+      And a legitimate untrimmed archive is flagged the same way
+      # The two are indistinguishable from the numbers, so a human decides which
+      # it is. Every recording in the corpus taken from the object store covers
+      # 29% to 80% of its source.
+
   Rule: Accuracy is reported per pair and in aggregate
 
     @happy-path

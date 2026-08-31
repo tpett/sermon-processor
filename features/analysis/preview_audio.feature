@@ -52,14 +52,21 @@ Feature: Preview audio for review
       When I preview a punch-in
       Then only the seconds either side of the boundary are fetched
 
-    @happy-path @assumption
-    Scenario: The format supports seeking without a full download
-      # Q77 — the exact mechanism is a technology choice: segmented streaming,
-      # or a constant-bitrate format that supports byte-range seeking. Either
-      # satisfies this spec. Confirmed the constraint is that it must not be
-      # "overly complicated".
-      Then the preview format allows the player to seek without downloading the whole file
-      And the mechanism is chosen for simplicity over sophistication
+    @happy-path @measured
+    Scenario: A constant-bitrate file served with range requests
+      # Q77, measured. Two candidates on the same source:
+      #
+      #   CBR MP3 + HTTP range   37.6 MB, one file,  0.04 s worst seek error
+      #   HLS segments           42.3 MB, 628 files
+      #
+      # Seeking to 10, 30, 60, 90 and 100 minutes landed within 0.04 s every
+      # time, fetching 0.16% of the file, verified against the source audio.
+      # One file, no manifest, no packaging step.
+      Then the preview is a constant-bitrate file
+      And it is served with HTTP range request support
+      And no seek index has to be parsed before the first seek
+      # A variable-bitrate file would need its index read first, which is exactly
+      # the complication this was meant to avoid.
 
     @happy-path @measured
     Scenario: Seekability buys quality back
