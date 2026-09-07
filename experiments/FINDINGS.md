@@ -1699,3 +1699,105 @@ Across the project the failures have been cases where models disagreed with each
 other or with the truth. That makes agreement between a local model and a second
 opinion a usable flag for the "hard cut, check this one" behaviour the spec asks
 for — and it needs no calibration, just a second run.
+
+## The second blind run — 2026-09-06
+
+A week after the first. Same procedure, nothing tuned in between: three objects
+appeared in the bucket, none of them edited, none of them seen. The point was to
+find out whether 2026-08-30 was luck.
+
+**Three recordings arrived**, and the shapes differ from last week's:
+
+| object | length | what it turned out to be |
+| --- | --- | --- |
+| `recording_20260906_093146` | 53.2 min | band rehearsal |
+| `recording_20260906_102720` | 89.5 min | the service |
+| `recording_20260906_115905` | 10.9 min | empty room |
+
+### The emptiness gate did its job before anything expensive ran
+
+| | minutes | active | longest active run | dynamic range |
+| --- | --- | --- | --- | --- |
+| 0931 rehearsal | 53.2 | 79.5% | 340.5 s | 70.7 dB |
+| service | 89.5 | 73.7% | 456.6 s | 73.7 dB |
+| 1159 | 10.9 | **0.0%** | **0.1 s** | **3.7 dB** |
+
+The third sits exactly on the unpublished-recording profile measured earlier
+(3.6–3.9 dB, 0.0–0.2% active). It is the recorder triggering on an empty room,
+the same class as `2026-08-23 12:20`. One envelope pass rejects it. This is the
+first time the gate has fired on a recording nobody had looked at first.
+
+### Both models, again, to within a twentieth of a second
+
+| | local 35B | frontier control | apart |
+| --- | --- | --- | --- |
+| 0931 rehearsal | 17 blocks, **0 segments** | 3 blocks, **0 segments** | — |
+| 1159 empty room | 1 block, **0 segments** | 1 block, **0 segments** | — |
+| service, punch-in | **1519.40** (0:25:19.40) | **1519.44** (0:25:19.44) | **0.04 s** |
+| service, punch-out | 4169.40 (1:09:29.40) | 4165.94 (1:09:25.94) | 3.46 s |
+
+Two independent models, two blind Sundays, and the punch-in has now agreed twice
+— to the sample on 08-30, to 0.04 s here. Both again discarded the rehearsal,
+and both discarded the empty room without being told it was empty.
+
+The sanity checks hold too. The passage is Hebrews 12:18-24, continuing directly
+from 12:12-17 the previous week; the punch-in falls at 10:52:39 wall-clock,
+inside the 10:50-10:57 band every other service lands in; 44.2 minutes is
+mid-range for the corpus.
+
+Output: 44.2 min, 99 kbps mono, −17.3 LUFS, LRA 9.1 — against last week's
+98 kbps, −17.2 LUFS, LRA 9.0. The render chain reproduces.
+
+Wall clock for the service, on the same M5 Max: transcription 55.9 s (96x),
+diarization 147.2 s (37x), classification 22.9 s, summaries 9 s for all ten
+blocks with every cue quote located. Under four minutes of compute for a
+90-minute recording.
+
+### The disagreement is the interesting part
+
+The two models split on the punch-out, and they split *for a structural reason
+worth recording*. The control made the closing prayer its own `prayer` block and
+let the extension rule carry the segment through it; the local model folded the
+prayer into the sermon block and ended it where communion begins. Different
+block anatomy, nearly the same answer — which is what the extension rule exists
+to produce.
+
+But look at where each one actually lands:
+
+```
+4165.54  "Amen."          starts
+4165.94  "Amen."          ends      <- control cuts here, zero tail
+4169.42  "Well, we are going to partake of communion..."
+4169.40                             <- local cuts here, 0.02 s before that word
+```
+
+The control clips the amen's own decay. The local model butts against the first
+syllable of communion. **Neither is what the editor actually does** — measured
+human behaviour on 22 of 24 segments leaves a deliberate 1.0–1.9 s of silence
+after the last word, and there is 3.5 s of room here to leave it in.
+
+This is open decision 3 made concrete, and it is now testable by ear rather than
+by preference. `work/blind0906/` holds three punch-out clips cut at the 10 s
+mark: A at 4165.94, B at 4169.40, C at 4167.44 — the same cut with a 1.5 s tail.
+
+### What this run adds, and what it still does not
+
+**Adds:** the first evidence that 08-30 was not a single lucky draw. Two blind
+Sundays, two agreements on the punch-in, two correct rejections of a rehearsal,
+and one correct rejection of an empty room. n = 2, which is not a rate either,
+but it is no longer n = 1.
+
+It also exercised a case 08-30 did not: a recording where the service is
+followed by a *third* object that is neither service nor rehearsal. The gate
+handled it for free.
+
+**Still does not:** establish anything about classes, which remain the weak spot
+in every measured configuration. Both blind runs have been ordinary Sundays.
+And none of this has run on the deployment box.
+
+**Cross-model agreement continues to behave like a confidence signal.**
+Self-reported confidence was 0.98 on the local model's punch-out — the end that
+was wrong by a second or two — and 0.98 on the punch-in that was right to 0.04 s.
+The *agreement* separated them cleanly: 0.04 s apart on the punch-in, 3.46 s
+apart on the punch-out. A reviewer told "the punch-in is settled, look at the
+punch-out" would have been told exactly the right thing.
