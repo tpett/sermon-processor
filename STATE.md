@@ -1,6 +1,6 @@
 # Where this project stands
 
-Last updated 2026-09-04. Read this first; it is the handoff.
+Last updated 2026-09-07. Read this first; it is the handoff.
 
 ## What exists
 
@@ -15,7 +15,7 @@ No application code.
 | `features/AUDIT.md` | Two rounds of reconciling the spec against measurement. **Section E and the second-pass list are the open decisions.** |
 | `experiments/` | The spike: alignment, transcription, diarization, classification, rendering |
 | `experiments/FINDINGS.md` | The running record. Every number in the spec traces here. |
-| `experiments/data/groundtruth.json` | 33 recordings, 31 labelled segments. The yardstick. |
+| `experiments/data/groundtruth.json` | 36 recordings, 31 labelled segments. The yardstick. |
 
 Derived data (transcripts, diarization, blocks, audio) is gitignored and
 reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
@@ -31,8 +31,11 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
   block — though it is useless for choosing which block is the sermon.
 - **Model self-reported confidence is a constant** (0.95 on a correct answer and
   on a 659 s error alike). **Cross-model agreement is the real signal.**
-- **On a blind recording, both models landed within 0.21 s of the human punch-in**
-  and both correctly declined the band rehearsal beside it.
+- **On two blind recordings, a week apart, both models found the same punch-in**
+  — 0.21 s from the human cut on 2026-08-30, 0.04 s apart from each other on
+  2026-09-06 — and both declined the band rehearsal beside it each time.
+- **The emptiness gate works unsupervised.** It rejected a 10.9-minute empty-room
+  recording (3.7 dB dynamic range) before any expensive stage ran.
 - Diarization helps *selection*, not *precision*. Its edges were the worst
   boundary source measured.
 
@@ -42,12 +45,15 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
   Apple-Silicon-only tooling. The homelab server has little GPU.
 - **`no_edit@1s` is 0% on held-out for every configuration**, including the
   frontier control. At 5 s the best is 71%.
-- **There is no clean evaluation data left.** dev (8) is tuned to exhaustion,
-  held-out (14) and fresh (6) are each spent once. Further tuning needs new
-  recordings or k-fold across all 33.
+- **There is no clean evaluation data left.** dev (8) is tuned to exhaustion;
+  held-out (now 19, having absorbed 2026-08-30) has been scored twice — once on
+  2026-08-29 and again on 2026-09-07 for the punch-out tail — and fresh (6) once.
+  Further tuning needs new recordings or k-fold across all 33.
 - Classes are the weak spot: every configuration runs 60–90 s late on them.
 
 ## Open decisions — nothing proceeds far without these
+
+Six open, one settled.
 
 1. **The acceptance bar.** `no_edit@1s ≥ 80%` is unreachable. Is the bar 1 second
    always, or 1 second on clean cuts with honest flagging on hard ones? This
@@ -55,9 +61,11 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
 2. **Authentication.** `authentication.feature` is `@needs-decision` throughout
    while every other interface file assumes a signed-in reviewer. Blocks the
    interface entirely.
-3. **The punch-out tail.** Stated preference (cut immediately after the last
-   word) contradicts measured behaviour (a deliberate 1.0–1.9 s silent tail on
-   22 of 24 segments). Which wins?
+3. ~~**The punch-out tail.**~~ **Settled 2026-09-07: 1.5 seconds**, chosen by
+   listening to one real cut at 0.0 s, 1.5 s and 3.5 s. Measured behaviour won
+   over stated preference, and the reason turned out to be that a transcript's
+   word end is about 0.16 s before the sound actually stops. Held-out median
+   punch-out error 1.49 s → 0.76 s. In `segments.add_tail`.
 4. **Speaker capture at approval.** Surfacing who preached is the only defence
    against publishing a guest who asked not to be. It reopens "nothing more is
    collected".
@@ -95,7 +103,10 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
 
 - **`~/Desktop/Sermons` is the only copy of the ground truth.** Read-only except
   for adding new source/edit pairs. Two files of identical byte size break the
-  bucket join, which matches by size.
+  bucket join, which matches by size. **As of 2026-09-07 macOS denies this path
+  to the agent** ("Operation not permitted" on any read); blind-run sources were
+  pulled from S3 into `experiments/work/incoming/` instead, and the 2026-09-06
+  `groundtruth.json` entries point there rather than at the Desktop.
 - **The recorder's first upload is 11 March 2026.** Anything older has no source.
 - **The pre-S3 archive is already-edited** — lossless copies of just the message.
   As ground truth they would teach that a sermon starts at the beginning of its

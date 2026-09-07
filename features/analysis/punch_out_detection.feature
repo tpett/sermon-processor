@@ -17,27 +17,39 @@ Feature: Refining a segment's punch-out
 
   Rule: The punch-out sits just after the last word
 
-    @happy-path @measured @needs-decision
+    @happy-path @measured
     Scenario: The tail matches what the editor actually leaves
-      # Two facts that disagree, and the spec cannot assert both.
+      # Settled 2026-09-07 by listening, not by preference.
       #
-      # Stated preference (Q18): "the punch-out silence lead-out is really much
-      # less important. If it cuts immediately after the last word, I do not
-      # think anyone is going to notice."
+      # The stated preference (Q18) was that a cut immediately after the last
+      # word would go unnoticed. Measured behaviour disagreed: across 22 hand-made
+      # edits the true punch-out sits 1.0 to 1.9 seconds *after* the last
+      # transcribed word, median about 1.3 s.
       #
-      # Measured behaviour, across 22 hand-made edits: the true punch-out sits
-      # 1.0 to 1.9 seconds *after* the last transcribed word, median about 1.3 s,
-      # and the audio in that gap is below -55 dB. All 31 machine punch-outs came
-      # in early; a single +1.2 s constant moved held-out accuracy from 7/14 to
-      # 11/14 within one second.
+      # The owner was played the same real cut three ways and chose 1.5 s:
       #
-      # An earlier version of this scenario capped the tail at 0.5 s and tagged
-      # it @measured, which forbade the one correction that fixes essentially all
-      # measured punch-out error. The cap is removed until the owner settles it.
+      #   0.0 s  clips the amen. The transcript's word end is 0.16 s early -- the
+      #          vowel is still at peak energy when the cut lands.
+      #   1.5 s  chosen. "C seems like the best option in this cut."
+      #   3.5 s  reaches the preacher's next breath. "You can hear him breathe in
+      #          and out... it almost feels like you get left hanging."
+      #
+      # So the tail covers two things, not one: the decay the transcript does not
+      # include, and the silence the editor deliberately leaves.
       When punch-out refinement runs
-      Then the punch-out is placed at or after the last word
-      And the tail is long enough to match how the editor cuts
+      Then the punch-out is placed 1.5 seconds after the last word
+      And the whole of the last word is audible, decay included
+      And the tail stops before any sound belonging to what follows
       And no audio from the following Block is included
+
+    @happy-path @measured
+    Scenario: A short gap shortens the tail rather than overrunning it
+      # The guard matters where the next block starts quickly. The tail is a
+      # target, not a promise: what follows always wins.
+      Given the next Block begins 1.0 seconds after the last word
+      When punch-out refinement runs
+      Then the punch-out is placed before the next Block begins
+      And a margin is left so that no part of the next Block is audible
 
     @happy-path @measured
     Scenario: The cut lands after the amen and before what follows

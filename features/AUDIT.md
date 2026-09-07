@@ -188,7 +188,7 @@ scenario warning the reviewer, but nothing describes what happens to the archive
 | **Q78** emptiness | a guessed 1% threshold | dynamic range under 15 dB, three orders of magnitude of separation |
 | **Q13 / Q76** models | deferred to a spike | a 21 GB local model matches the frontier control on selection; a **2.5 GB** model is sufficient for summaries and cue excerpts |
 | **Q49** compression | "confirm it is not needed" | loudness range 12–15 LU falls to 6.7–8.3 LU with **no compressor** |
-| **Q18** tail | a guess of 1.5 s | the true punch-out sits **1.0–1.9 s after the last transcribed word** — a deliberate silent tail |
+| **Q18** tail | ~~a guess of 1.5 s~~ **settled at 1.5 s, 2026-09-07** | the true punch-out sits **1.0–1.9 s after the last transcribed word** — a deliberate silent tail, chosen by ear over 0.0 s and 3.5 s alternatives |
 
 Each of these should move from `@assumption` / `@needs-decision` to a stated,
 measured rule with the number in it.

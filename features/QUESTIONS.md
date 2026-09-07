@@ -769,10 +769,23 @@ answer this without you having to think about it.
 > RESPOSNE: This feels about right. Lead-in at the beginning of the segment is not super important. One second is perfect. If it's too much more than that, people might wonder if the playback is working, and you don't hear something within the first second. One second is probably the maximum. At the end, the punch-out silence lead-out is really much less important. If it cuts immediately after the last word, I don't think anyone is going to notice. 
 
 
-**Consequence.** Lead-in capped at 1.0 second, tail capped at 0.5 seconds. I had
-guessed 1.5 seconds of tail; your answer says shorter is fine and nobody will
-notice an immediate cut, so the asymmetry is now explicit in
-`punch_out_detection.feature`.
+**Consequence.** Lead-in capped at 1.0 second. The tail was first capped at
+0.5 seconds on this answer, and that turned out to be wrong.
+
+**Settled 2026-09-07, and the original guess of 1.5 s was right.** Two things
+the stated answer could not have known:
+
+1. *An immediate cut does not cut after the last word.* Whisper's word-end
+   timestamp stops before the sound does — measured at 0.16 s early on the
+   closing amen of 2026-09-06 — so "cut immediately" lands mid-vowel.
+2. *The gap after the amen is not empty.* It holds the preacher's next breath.
+   Cutting late enough to include it was described as leaving the listener
+   "hanging".
+
+Played the same real cut at 0.0 s, 1.5 s and 3.5 s of tail, you chose 1.5 s.
+That is inside the 1.0–1.9 s band measured across 22 hand-made edits, and on
+held-out data it moves the median punch-out error from 1.49 s to 0.76 s.
+`punch_out_detection.feature` now asserts it.
 
 **Q19 — Is the closing prayer part of the sermon?** — **ANSWERED**
 Same — measurable from the samples.

@@ -1801,3 +1801,96 @@ was wrong by a second or two — and 0.98 on the punch-in that was right to 0.04
 The *agreement* separated them cleanly: 0.04 s apart on the punch-in, 3.46 s
 apart on the punch-out. A reviewer told "the punch-in is settled, look at the
 punch-out" would have been told exactly the right thing.
+
+## The punch-out tail, settled by ear — 2026-09-07
+
+Open decision 3 has been the same standoff since the first audit: the owner said
+a cut immediately after the last word would go unnoticed, and the measurements
+said he leaves 1.0–1.9 s of silence on 22 of 24 of his own edits. Neither side
+could win on argument. The 09-06 blind run made it audible, because the two
+models landed on opposite sides of it.
+
+Three cuts of the same moment were rendered, each 20 s long and cut at the 10 s
+mark, and the owner listened:
+
+| clip | punch-out | verdict |
+| --- | --- | --- |
+| A | 4165.94 — the control's refined answer | "might be cutting part of it. I can't tell" |
+| B | 4169.40 — the local model's own answer | "adds too much... you can hear him breathe in and out... you get left hanging" |
+| **C** | **4167.44 — a 1.5 s tail** | **"the best option in this cut"** |
+
+### Why A sounded wrong, measured
+
+The owner could not tell by ear whether A clipped the amen. The envelope can.
+The word is transcribed as `Amen. 4165.54 → 4165.94`; here is the energy, in
+50 ms bins against a file floor of 4.1:
+
+```
+4165.80-4165.85   39.1
+4165.85-4165.90   45.5   <- peak
+4165.90-4165.95   45.3   <- A cuts here
+4165.95-4166.00   40.5
+4166.00-4166.05   37.8
+4166.05-4166.10   29.6
+4166.10-4166.15   19.1   <- room tone
+```
+
+**A cuts through the loudest part of the vowel.** Whisper's word-end timestamp is
+0.16 s early, which is not a bug — it marks where the phoneme is recognisable,
+not where the sound stops. Every punch-out anchored on a word end inherits that
+error, and no amount of tail-tuning finds it, because the number looks like a
+correct cut on the last word.
+
+The same envelope explains B. The gap is not silent:
+
+```
+4166.10-4167.35   14-20   room tone
+4167.40-4169.00   21-27   the preacher breathing in and out
+4169.42                   "Well, we are going to partake of communion"
+```
+
+C at 4167.44 lands on the last quiet frame before the breath.
+
+### The correction, and what it did to the numbers
+
+`segments.add_tail` extends a refined punch-out by 1.5 s, applied *after*
+snapping — snapping moves a time to the nearest speech edge, so a tail added
+first is pulled straight back onto the word end it was meant to clear. It stops
+0.4 s short of the next utterance, so a tight gap shortens the tail instead of
+overrunning it.
+
+That also removed the reason `choose()` preferred a model's own punch-out. The
+recorded rationale was "every refined one errs early, clipping the last word" —
+true, and now fixed. Held-out, n = 19, median |punch-out error| and the count
+within one second:
+
+| | model boundary | refined + tail |
+| --- | --- | --- |
+| local 35B | 1.49 s, 4/19 | **0.76 s, 14/19** |
+| frontier control | 1.48 s, 2/19 | **0.62 s, 15/19** |
+
+On dev the same change takes the local model from 0.86 s to 0.51 s and the
+control from 1.24 s to 0.26 s. `choose()` now takes the model's punch-in and
+refinement's punch-out.
+
+**Held-out access.** This consumed a second look at the held-out split, logged
+in `data/test_access.log` at commit `c8e712e`. The policy was not selected on
+those numbers — it was chosen by ear on a recording with no ground truth at all,
+and the +1.20 s constant had already been measured on held-out in August. But it
+is a second look, and the split is that much less clean for it.
+
+### A side effect worth keeping
+
+`ingest_control.py` derived segments without calling `choose()`, while
+`classify.py` called it. The frontier control has therefore been scored on
+refined boundaries this whole time while the local rungs were scored on their
+own. `rederive.py` applies the same path to every config, so re-deriving fixed
+it. It is why the two models looked 3.46 s apart on the 09-06 punch-out when
+their own answers were 2.40 s apart — and why, after the fix, they agree exactly:
+
+```
+t3-qwen3.6.whole.v2   in 1519.40  out 4167.44   model-in/refined-out
+c-frontier.whole.v2   in 1519.40  out 4167.44   model-in/refined-out
+```
+
+Two independent models, identical boundaries, on a recording neither had seen.

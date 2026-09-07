@@ -215,7 +215,42 @@ def refine_out(utts: list[dict], block_type: str = "sermon") -> float | None:
     return end
 
 
-def derive(blocks: list[dict], doc: dict, refine: bool = True) -> list[dict]:
+# The editor leaves a silent tail after the closing amen. Measured across the
+# hand-made edits: 1.0-1.9 s after the last transcribed word on 22 of 24
+# segments, median about 1.3 s, and a +1.20 s constant fitted on dev moved
+# held-out `out<=1s` from 7/14 to 11/14.
+#
+# `refine_out` returns a *word end*, which is earlier still, because Whisper's
+# word-end timestamps stop before the sound does. Measured on 2026-09-06: the
+# closing "Amen" is transcribed as ending at 4165.94 s while its energy peaks at
+# 4165.85-4166.05 and does not reach room tone until 4166.10 — the transcript is
+# 0.16 s early, so a cut on the word end lands mid-vowel. The tail has to cover
+# the decay as well as the silence.
+#
+# 1.5 s is the owner's choice, made by listening to one real cut at 0.0 s, 1.5 s
+# and 3.5 s of tail (2026-09-07). It sits inside the measured band. At 0.0 s the
+# amen is clipped; by 3.5 s the preacher's next breath is audible and the file
+# "leaves you hanging".
+TAIL_S = 1.5
+# ...but never so far that the next block's first breath gets in.
+TAIL_GUARD_S = 0.4
+
+
+def add_tail(pout: float, doc: dict, tail: float = TAIL_S) -> float:
+    """Extend a refined punch-out past the last word, stopping short of what follows.
+
+    Applied *after* snapping, not before: snapping moves a time to the nearest
+    speech edge, so a tail added first would be pulled straight back onto the
+    word end it was meant to clear.
+    """
+    nxt = min((u["start"] for u in doc["utterances"] if u["start"] > pout + 0.01),
+              default=doc["duration"])
+    limit = max(pout, nxt - TAIL_GUARD_S)
+    return round(min(pout + tail, limit, doc["duration"]), 3)
+
+
+def derive(blocks: list[dict], doc: dict, refine: bool = True,
+           tail: float = TAIL_S) -> list[dict]:
     segs = []
     for i, b in enumerate(blocks):
         if b.get("type") not in ("sermon", "lesson"):
@@ -259,6 +294,8 @@ def derive(blocks: list[dict], doc: dict, refine: bool = True) -> list[dict]:
                 nxt and nxt.get("type") == "prayer") else _within(doc, pin, pout + LOOKBACK_S)
             pout = refine_out(tail_src, b.get("type", "sermon")) or pout
         pin, pout = snap(pin, doc), snap(pout, doc)
+        if refine and tail:
+            pout = add_tail(pout, doc, tail)
         if segs and pin < segs[-1]["punch_out"]:
             # The lesson lead-in walk-back can reach into a span already claimed.
             pin = segs[-1]["punch_out"]
@@ -291,6 +328,20 @@ def choose(model_segments, derived, doc):
     class, where it turned +118.89 s into -5.37 s. So the model leads and the
     rules catch it, rather than the rules overwriting it.
 
+    **The punch-out is the exception, and only became one once the tail existed.**
+    The reason a model punch-out used to win was that the refined one clipped the
+    last word; `add_tail` removes that. Measured 2026-09-07 over every labelled
+    recording, held-out (n=19), median |punch-out error| and the count within one
+    second:
+
+        local 35B   model boundary   1.49 s    4/19
+                    refined + tail   0.76 s   14/19
+        control     model boundary   1.48 s    2/19
+                    refined + tail   0.62 s   15/19
+
+    So the model leads on the punch-in, where it is excellent, and refinement
+    leads on the punch-out, where the anchor is a word end plus a constant.
+
     Plausibility is judged against the spec's own length band, not against
     anything fitted to the corpus.
     """
@@ -305,9 +356,14 @@ def choose(model_segments, derived, doc):
                 pin = pout = None
             if pin is not None and 0 <= pin < pout <= doc["duration"] + 1:
                 if PLAUSIBLE_MIN_S <= (pout - pin) <= PLAUSIBLE_MAX_S:
-                    pick = {"punch_in": round(pin, 3), "punch_out": round(pout, 3),
+                    # Punch-out comes from refinement unless refinement landed
+                    # somewhere impossible for this punch-in.
+                    ref_out = d.get("punch_out")
+                    use_ref = ref_out is not None and ref_out > pin
+                    pick = {"punch_in": round(pin, 3),
+                            "punch_out": round(ref_out if use_ref else pout, 3),
                             "classification": d.get("classification"),
                             "confidence": d.get("confidence", 0.5)}
-                    source = "model"
+                    source = "model-in/refined-out" if use_ref else "model"
         out.append(dict(pick, boundary_source=source))
     return out
