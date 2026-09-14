@@ -131,6 +131,10 @@ def probe_bits(path: Path) -> int | None:
 # today and the failure this prevents is someone adding it later.
 MACHINE_CUT_MP3S = {
     "2026-09-06 - Hebrews 12.18-24.mp3",
+    # 2026-09-13, both Segments of the class-plus-service recording. Approved by
+    # ear and copied into the corpus on 2026-09-14 without edit.
+    "2026-09-13 - TEC - Giving.mp3",
+    "2026-09-13 - Hebrews 12.25-29.mp3",
 }
 
 
