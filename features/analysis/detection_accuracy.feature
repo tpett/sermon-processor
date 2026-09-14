@@ -83,6 +83,24 @@ Feature: Measuring detection accuracy against real recordings
       # it is. Every recording in the corpus taken from the object store covers
       # 29% to 80% of its source.
 
+    @edge-case @measured
+    Scenario: A published output the system produced itself
+      # Happened on 2026-09-06: the reviewer approved the proposal and published
+      # it unchanged. The output is a real publication, and it is also byte for
+      # byte the system's own answer. Aligning it would score the system against
+      # itself and every boundary error would read as zero.
+      #
+      # This is the failure mode that grows on its own. The better the proposals
+      # get, the more often they ship unedited, and the more of the corpus turns
+      # into the system's own output -- so accuracy appears to climb while the
+      # evidence for it disappears.
+      Given a Segment was approved with no boundary adjustment
+      And its published output was rendered from the proposed boundaries
+      Then the output is recorded as published
+      And it is excluded from ground truth
+      And its provenance is stored, not inferred later from the audio
+      # By the time it is on disk it is indistinguishable from a human edit.
+
   Rule: Accuracy is reported per pair and in aggregate
 
     @happy-path
@@ -188,7 +206,17 @@ Feature: Measuring detection accuracy against real recordings
       Given a reviewer approved a Segment after adjusting its boundaries
       Then that recording and the approved boundaries can be added to the corpus
       And the corpus grows without anyone hand-labelling anything
-      # Every week of ordinary use produces another test case for free.
+      # Every week of ordinary use produces another test case for free -- but
+      # only where the reviewer actually moved something. An untouched approval
+      # carries no independent information about where the boundary belonged.
+
+    @happy-path @measured
+    Scenario: Untouched approvals are counted, not used as truth
+      # They are the headline measure -- the proportion approved with no edit --
+      # so they must be counted. They just cannot also be the yardstick.
+      Given a reviewer approved a Segment without adjusting either boundary
+      Then it counts toward the proportion approved with no edit
+      And it does not become a labelled example
 
     @edge-case
     Scenario: The corpus is unavailable

@@ -118,6 +118,22 @@ def probe_bits(path: Path) -> int | None:
     return int(out) if out.isdigit() else None
 
 
+# Published outputs that were NOT cut by a human. These are real publications --
+# the machine's proposal was approved and shipped unchanged -- but as ground
+# truth they are circular: aligning one teaches the system that its own answer
+# was correct, and every future measurement against it is self-graded.
+#
+# 2026-09-06 is the first. The reviewer approved the machine cut and published it
+# without editing (confirmed 2026-09-14). It is a genuine result for the
+# acceptance rate and must never be a yardstick.
+#
+# Match on the mp3 filename, because the sibling FLAC may not be on the Desktop
+# today and the failure this prevents is someone adding it later.
+MACHINE_CUT_MP3S = {
+    "2026-09-06 - Hebrews 12.18-24.mp3",
+}
+
+
 def build_corpus() -> list[dict]:
     """Every Desktop FLAC, joined to its bucket object where one exists."""
     by_size = bucket_listing()
@@ -126,6 +142,10 @@ def build_corpus() -> list[dict]:
         size = flac.stat().st_size
         keys = by_size.get(size, [])
         mp3 = flac.with_suffix(".mp3")
+        if mp3.name in MACHINE_CUT_MP3S:
+            print(f"  skipping {mp3.name}: machine cut, not a human edit "
+                  f"(see MACHINE_CUT_MP3S)")
+            mp3 = flac.with_suffix(".__machine_cut__")
         label = flac.stem
         item = {
             "desktop_label": label,

@@ -2509,6 +2509,69 @@
           "not yet edited \u2014 blind run 2026-09-07"
         ]
       }
+    },
+    {
+      "desktop_label": "2026-09-13 - 0844 [UNEDITED]",
+      "source_path": "/Users/travis/Source/open/sermon-tools/sermon-processor/experiments/work/incoming/recording_20260913_084453.flac",
+      "size_bytes": 71027251,
+      "bits_per_raw_sample": 32,
+      "source_duration": 610.456,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260913_084453.flac",
+      "join": "bucket-only",
+      "split": "blind",
+      "recording_id": "recording_20260913_084453",
+      "started_at": "2026-09-13T08:44:53",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "not yet edited \u2014 blind run 2026-09-14"
+        ]
+      }
+    },
+    {
+      "desktop_label": "2026-09-13 - 0900 [UNEDITED]",
+      "source_path": "/Users/travis/Source/open/sermon-tools/sermon-processor/experiments/work/incoming/recording_20260913_090014.flac",
+      "size_bytes": 1456376029,
+      "bits_per_raw_sample": 32,
+      "source_duration": 10990.031,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260913_090014.flac",
+      "join": "bucket-only",
+      "split": "blind",
+      "recording_id": "recording_20260913_090014",
+      "started_at": "2026-09-13T09:00:14",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "not yet edited \u2014 blind run 2026-09-14"
+        ]
+      }
+    },
+    {
+      "desktop_label": "2026-09-13 - 1204 [UNEDITED]",
+      "source_path": "/Users/travis/Source/open/sermon-tools/sermon-processor/experiments/work/incoming/recording_20260913_120452.flac",
+      "size_bytes": 102973318,
+      "bits_per_raw_sample": 32,
+      "source_duration": 935.349,
+      "mp3_path": null,
+      "mp3_duration": null,
+      "object_key": "recording_20260913_120452.flac",
+      "join": "bucket-only",
+      "split": "blind",
+      "recording_id": "recording_20260913_120452",
+      "started_at": "2026-09-13T12:04:52",
+      "segments": [],
+      "validation": {
+        "status": "no-output",
+        "reasons": [
+          "not yet edited \u2014 blind run 2026-09-14"
+        ]
+      }
     }
   ]
 }

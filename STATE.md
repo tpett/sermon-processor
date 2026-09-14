@@ -1,6 +1,6 @@
 # Where this project stands
 
-Last updated 2026-09-07. Read this first; it is the handoff.
+Last updated 2026-09-14. Read this first; it is the handoff.
 
 ## What exists
 
@@ -111,6 +111,11 @@ Six open, one settled.
 - **The pre-S3 archive is already-edited** — lossless copies of just the message.
   As ground truth they would teach that a sermon starts at the beginning of its
   file. `verify.py` fails on any recording whose output covers >95% of its source.
+- **Some published outputs are machine cuts, not human edits.** 2026-09-06 was
+  approved and published exactly as the pipeline produced it. That is a result
+  worth having — but aligning it would make the system its own yardstick, so
+  `align.MACHINE_CUT_MP3S` excludes it by filename. **Add to that set whenever a
+  proposal ships unedited**, or the corpus quietly starts grading itself.
 - **Three early recordings run about −130 ppm off** against their exports. Real,
   measured, and corrected by fitting a line through five alignment probes.
 - **Everything in the bucket is 32-bit**, not 24. The spec said 24 in five places
