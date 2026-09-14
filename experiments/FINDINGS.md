@@ -1894,3 +1894,127 @@ c-frontier.whole.v2   in 1519.40  out 4167.44   model-in/refined-out
 ```
 
 Two independent models, identical boundaries, on a recording neither had seen.
+
+## The third blind run — 2026-09-13, and two bugs it found
+
+The first blind run that was not an ordinary Sunday. Three objects arrived, and
+the middle one is the shape the corpus has only ever contained twice: a
+theological equipping class and the service in a single three-hour recording.
+
+| object | length | what it turned out to be |
+| --- | --- | --- |
+| `recording_20260913_084453` | 10.2 min | mic check, then empty room |
+| `recording_20260913_090014` | **183.2 min** | **class + Q&A + service** |
+| `recording_20260913_120452` | 15.6 min | empty room |
+
+### The gate held on a case it had not seen
+
+| | minutes | active | longest active | dynamic |
+| --- | --- | --- | --- | --- |
+| 0844 | 10.2 | 1.1% | 6.5 s | **5.1 dB** |
+| 0900 | 183.2 | 81.7% | 705.7 s | 67.1 dB |
+| 1204 | 15.6 | 0.2% | 1.1 s | **6.6 dB** |
+
+0844 is not quite the empty rooms measured before — it opens with a few seconds
+of "check one, two", which lifts it to 5.1 dB against the 3.6-3.9 dB of a truly
+silent room. Still an order of magnitude below the 59-74 dB of anything
+publishable, so the gate is nowhere near its margin.
+
+### What the run produced, after two fixes
+
+| | local 35B | frontier control | apart |
+| --- | --- | --- | --- |
+| class, punch-in | 0:00:00.00 | 0:00:01.24 | 1.24 s |
+| class, punch-out | 0:58:17.08 | 0:58:17.08 | **0.00 s** |
+| sermon, punch-in | 1:56:07.10 | 1:56:07.08 | **0.02 s** |
+| sermon, punch-out | 2:45:10.40 | 2:45:10.40 | **0.00 s** |
+
+Three blind Sundays, three agreements on the punch-in. The sermon is Hebrews
+12:25-29 continuing from 12:18-24, and the punch-in falls at 10:56 wall-clock,
+inside the usual band.
+
+**The class punch-in did not run late.** Every prior measurement had classes
+60-90 s late, including +63.5 s on the 2026-08-02 class. This one opens directly
+with "Good morning. Welcome to our Theological Equipping class", where 08-02
+opened with several minutes of gathering — so this is a easier instance of the
+hard case, not evidence the hard case is solved.
+
+Wall clock for the three-hour file: transcription 163.7 s (67x), diarization
+361.5 s (30x), classification 78.5 s, fifteen block summaries in 14 s with every
+cue quote located. Both long stages scale worse than the 90-minute file measured
+last week (96x and 37x).
+
+### Bug 1 — one teaching session, seeded twice
+
+The local model split the class into two adjacent `lesson` blocks at 0:01:43,
+labelling both correctly. `derive()` seeds on each teaching block independently,
+so it produced a **1.7-minute Segment** from the first half and a second Segment
+from the rest.
+
+Nothing was wrong with the model's reading — its own segments list had the class
+right, 0 to 3497.5. The defect is that a Block is "one speaker doing one thing",
+so two adjacent blocks of one type are an artifact of chunking, not two things
+that happened. `segments.coalesce` now merges runs of same-typed blocks before
+seeding.
+
+### Bug 2 — the model and the rules were zipped by position
+
+`choose()` paired `derived[i]` with `model_segments[i]`. Those two lists are
+built differently — one from the model's *blocks*, one from the model's own
+*segments* list — so they only line up when the model's blocking and its segment
+list agree about how many teaching sessions there were. Here they did not: three
+derived against two model segments.
+
+The result was silent and wrong in three ways at once. The class kept the model's
+punch-in and the 1.7-minute fragment's punch-out; the **sermon** was paired with
+the second class fragment and emitted labelled `lesson`; and the real sermon
+segment was left unpaired.
+
+```
+was:  0:00:00.00 -> 0:01:42.86  lesson     <- fragment
+      1:56:07.10 -> 2:45:11.20  lesson     <- the sermon, mislabelled
+      1:56:12.02 -> 2:45:10.40  sermon     <- the sermon again
+now:  0:00:00.00 -> 0:58:17.08  lesson
+      1:56:07.10 -> 2:45:10.40  sermon
+```
+
+`choose()` now pairs by overlap. **Both bugs were invisible on every previous
+blind run**, because a single sermon produces one seed and one model segment,
+where position and overlap cannot disagree.
+
+### What the fixes changed elsewhere
+
+Re-deriving every stored config: 14 of 162 changed, and **not one boundary moved
+on any scored dev or held-out recording**. Dev is identical to the run before the
+fix — local 3.76 s / 0.51 s, control 2.18 s / 0.26 s.
+
+Twelve of the fourteen are fragmented `perblock` runs collapsing into one Segment
+(2026-08-02 went from eleven Segments to four). One is real and was hiding in
+plain sight: `2026-05-03` on the local model had been emitting a 117-second
+`lesson` fragment ahead of the real class since the ladder was first run. It is
+a dev recording, and nobody noticed, because `best_match` requires better than
+50% overlap and simply ignored it.
+
+### A measurement error found while checking the above
+
+`score.py` treated any recording with no ground-truth segments as a negative.
+"No segments" means two different things: a rehearsal has none because there is
+nothing to publish, and an unedited recording has none because **nobody has
+looked yet**. The 09-06 and 09-13 services were both being counted against the
+false-positive rate for correctly finding the sermon that is really there.
+Negatives now exclude the `blind` split.
+
+What remains in the negative set is worth stating precisely, because "false
+positive" flatters and flattens it:
+
+| negative | local 35B | control |
+| --- | --- | --- |
+| 2026-08-30 band rehearsal | declines | declines |
+| 2026-08-16 member meeting | **2 segments** | declines |
+| 2026-07-18 CT-Islam part 1 | 1 segment | 1 segment |
+| 2026-07-18 CT-Islam part 2 | 1 segment | 1 segment |
+
+Only the member meeting is a detection failure, and only for the local model. The
+two CT-Islam recordings are real teaching sessions the church chose not to
+publish — a policy the system has no way to infer from the audio, and the kind of
+case the reviewer's decline exists for.

@@ -31,9 +31,13 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
   block — though it is useless for choosing which block is the sermon.
 - **Model self-reported confidence is a constant** (0.95 on a correct answer and
   on a 659 s error alike). **Cross-model agreement is the real signal.**
-- **On two blind recordings, a week apart, both models found the same punch-in**
-  — 0.21 s from the human cut on 2026-08-30, 0.04 s apart from each other on
-  2026-09-06 — and both declined the band rehearsal beside it each time.
+- **On three blind recordings, three weeks running, both models found the same
+  punch-in** — 0.21 s from the human cut on 2026-08-30, 0.04 s apart on
+  2026-09-06, 0.02 s apart on 2026-09-13 — and both declined the band rehearsal
+  and the empty rooms beside them each time.
+- **A class and a service in one three-hour recording produced both Segments
+  correctly** (2026-09-13), once two bugs that only this shape could expose were
+  fixed. It is the only recording shape the corpus has seen just three times.
 - **The emptiness gate works unsupervised.** It rejected a 10.9-minute empty-room
   recording (3.7 dB dynamic range) before any expensive stage ran.
 - Diarization helps *selection*, not *precision*. Its edges were the worst
@@ -49,7 +53,10 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
   held-out (now 19, having absorbed 2026-08-30) has been scored twice — once on
   2026-08-29 and again on 2026-09-07 for the punch-out tail — and fresh (6) once.
   Further tuning needs new recordings or k-fold across all 33.
-- Classes are the weak spot: every configuration runs 60–90 s late on them.
+- Classes are the weak spot: every configuration runs 60–90 s late on them. The
+  2026-09-13 class was an exception (punch-in at 0:00), but it opens directly on
+  "welcome to our theological equipping class" where 08-02 opens with several
+  minutes of gathering — an easier instance, not a solved problem.
 
 ## Open decisions — nothing proceeds far without these
 

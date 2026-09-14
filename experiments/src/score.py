@@ -101,7 +101,13 @@ def score_one(rec: dict, doc: dict, proposal: dict, config_id: str, stage: int) 
 
     # A recording with no published output should get no proposal. Scored
     # separately, because inventing work is a different failure from missing it.
-    if not rec.get("segments"):
+    #
+    # "No segments" means two different things, though, and only one of them is a
+    # negative. A recording nobody has edited yet has no segments because nobody
+    # has looked -- a *correct* proposal on it then reads as a false positive.
+    # Measured 2026-09-14: the 09-06 and 09-13 services were both being counted
+    # against the false-positive rate for finding the sermon that is really there.
+    if not rec.get("segments") and rec.get("split") != "blind":
         rows.append({
             "config_id": config_id, "stage": stage,
             "recording_id": rec["recording_id"], "desktop_label": rec["desktop_label"],

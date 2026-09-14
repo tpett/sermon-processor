@@ -249,8 +249,39 @@ def add_tail(pout: float, doc: dict, tail: float = TAIL_S) -> float:
     return round(min(pout + tail, limit, doc["duration"]), 3)
 
 
+def coalesce(blocks: list[dict]) -> list[dict]:
+    """Merge consecutive blocks that carry the same type.
+
+    A Block is "one speaker doing one thing", so two adjacent blocks of one type
+    are an artifact of how the model chose to chunk, not two things that
+    happened. Left alone they are seeded separately and one class becomes two
+    Segments.
+
+    Measured 2026-09-13: the model split the theological equipping class at
+    0:01:43 -- correctly labelling both halves `lesson` -- and derive() produced
+    a 1.7-minute Segment from the first half. Its own segments list had the
+    class right, 0 to 3497.5, so nothing was wrong with the reading; only with
+    seeding on blocks rather than on runs of blocks.
+    """
+    out: list[dict] = []
+    for b in blocks:
+        if out and out[-1].get("type") == b.get("type"):
+            prev = out[-1]
+            prev["end"] = b["end"]
+            # Keep the stronger claim and both reasons, so evidence survives.
+            if float(b.get("confidence", 0)) > float(prev.get("confidence", 0)):
+                prev["confidence"] = b["confidence"]
+            ev, add = prev.get("evidence", ""), b.get("evidence", "")
+            if add and add not in ev:
+                prev["evidence"] = f"{ev}; {add}"[:200]
+        else:
+            out.append(dict(b))
+    return out
+
+
 def derive(blocks: list[dict], doc: dict, refine: bool = True,
            tail: float = TAIL_S) -> list[dict]:
+    blocks = coalesce(blocks)
     segs = []
     for i, b in enumerate(blocks):
         if b.get("type") not in ("sermon", "lesson"):
@@ -345,10 +376,42 @@ def choose(model_segments, derived, doc):
     Plausibility is judged against the spec's own length band, not against
     anything fitted to the corpus.
     """
+    # Pair by overlap, never by position. The two lists are built differently --
+    # `derived` is seeded from the model's *blocks*, `model_segments` is what the
+    # model wrote in its segments list -- so they can differ in length whenever
+    # the model's blocks and its own segments disagree about how many teaching
+    # sessions there were.
+    #
+    # Measured 2026-09-13: three derived segments against two model segments
+    # silently zipped the class to the class, the *sermon* to the second derived
+    # class segment, and left the real sermon unpaired. The recording ended up
+    # with a 1.7-minute fragment and the sermon twice, once labelled `lesson`.
+    # Every earlier blind run had exactly one of each, so position and overlap
+    # agreed and the defect was invisible.
+    used: set[int] = set()
+
+    def best_candidate(d):
+        ti, to = d["punch_in"], d["punch_out"]
+        best, best_ov = None, 0.0
+        for j, c in enumerate(model_segments):
+            if j in used:
+                continue
+            try:
+                pin, pout = float(c["punch_in"]), float(c["punch_out"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            ov = min(to, pout) - max(ti, pin)
+            if ov > best_ov:
+                best, best_ov = j, ov
+        if best is None:
+            return None
+        used.add(best)
+        return model_segments[best]
+
     out = []
-    for i, d in enumerate(derived):
+    for d in derived:
         pick, source = d, "refined"
-        cand = model_segments[i] if i < len(model_segments) else None
+        cand = best_candidate(d)
         if cand:
             try:
                 pin, pout = float(cand["punch_in"]), float(cand["punch_out"])
