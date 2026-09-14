@@ -227,6 +227,13 @@ silently truncate.
 The control is a measurement, not a candidate. It never appears in a deployment
 recommendation.
 
+**If you cannot dispatch a subagent, you cannot run the control.** Reading the
+transcript and writing the answer yourself is a second reading, not a control,
+and reporting it as one overstates the independence of any agreement it shows.
+Ask the user to authorise subagents, or label the column
+`second-reading (same context)` and say so wherever the number appears. This was
+got wrong on the 2026-08-30, 09-06 and 09-13 blind runs; see FINDINGS.
+
 ---
 
 ## Decision rules

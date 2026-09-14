@@ -31,10 +31,13 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
   block — though it is useless for choosing which block is the sermon.
 - **Model self-reported confidence is a constant** (0.95 on a correct answer and
   on a 659 s error alike). **Cross-model agreement is the real signal.**
-- **On three blind recordings, three weeks running, both models found the same
-  punch-in** — 0.21 s from the human cut on 2026-08-30, 0.04 s apart on
-  2026-09-06, 0.02 s apart on 2026-09-13 — and both declined the band rehearsal
-  and the empty rooms beside them each time.
+- **On three blind recordings, three weeks running, the pipeline produced a cut
+  the reviewer approved by ear** — 08-30, 09-06 (published unedited) and 09-13.
+  A second reading of each transcript agreed to within 0.21 s, 0.04 s and 0.02 s
+  on the punch-in. **That second reading was not an independent control** — see
+  the correction at the end of FINDINGS — so the reviewer's confirmation is the
+  load-bearing evidence, not the agreement. Rehearsals and empty rooms were
+  declined every time.
 - **A class and a service in one three-hour recording produced both Segments
   correctly** (2026-09-13), once two bugs that only this shape could expose were
   fixed. It is the only recording shape the corpus has seen just three times.

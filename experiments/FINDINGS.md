@@ -2018,3 +2018,42 @@ Only the member meeting is a detection failure, and only for the local model. Th
 two CT-Islam recordings are real teaching sessions the church chose not to
 publish — a policy the system has no way to infer from the audio, and the kind of
 case the reviewer's decline exists for.
+
+## A correction about the control on the three blind runs
+
+**The "frontier control" column for 2026-08-30, 2026-09-06 and 2026-09-13 is not
+an independent system.** `AGENT-BRIEF.md` specifies running the control by
+dispatching a subagent per recording, each in its own context, with the
+transcript and the prompt. That is how the ladder's control was run. For the
+three blind runs it was not: the orchestrating agent read the transcript and
+wrote `work/control/<id>.answer.json` by hand, in the same context that ran
+everything else.
+
+So "both models agreed to 0.02 s" on 09-13 means *the local 35B and the
+orchestrating agent* agreed. That is a weaker claim than it reads as, and it was
+reported without the qualifier three weeks running.
+
+What survives:
+
+- **The local model's numbers are its own.** They come from
+  `classify.py --backend ollama`, they are stored in `model_segments`, and no
+  part of the render path consults the control. The cuts that were approved on
+  08-30, 09-06 and 09-13 are the pipeline's, start to finish.
+- **The control was written before the local model ran** on 09-13 (ordering is
+  visible in the session: control answers written while diarization was still in
+  progress, classification afterwards), so it was not anchored on the result.
+- The control's value as a *second reading* of the same transcript is real. Its
+  value as evidence of **independent** agreement is not, and the cross-model
+  agreement signal recorded earlier in this document rests on the ladder's
+  subagent-run control, not on these three.
+
+**Why it happened:** the session's operating rules forbid dispatching subagents
+unless the user asks. The brief's procedure was therefore unavailable, and the
+substitute was adopted without noting the difference. Either run the control as
+the brief specifies — which needs the user to ask for it — or label the column
+for what it is.
+
+The three blind runs should be read as: *the pipeline produced a cut, a second
+careful reading of the transcript agreed with it, and the reviewer confirmed the
+result by ear.* The last of those is the strongest evidence in the set, and it is
+untouched by this.
