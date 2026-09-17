@@ -30,11 +30,18 @@ Feature: Adjusting a segment's punch points
       Then the punch-in becomes "<result>"
 
       Examples:
-        | direction | amount | result       |
-        | earlier   | 0.1 s  | 2:00:19.900  |
-        | earlier   | 1 s    | 2:00:19.000  |
-        | later     | 1 s    | 2:00:21.000  |
-        | later     | 10 s   | 2:00:30.000  |
+        | direction | amount  | result       |
+        | earlier   | 0.05 s  | 2:00:19.950  |
+        | earlier   | 0.1 s   | 2:00:19.900  |
+        | earlier   | 1 s     | 2:00:19.000  |
+        | later     | 1 s     | 2:00:21.000  |
+        | later     | 10 s    | 2:00:30.000  |
+      # The 50 ms step is not decoration. Tolerance is per-recording, and the
+      # rare hard case is exactly the one that needs it: "it could be that
+      # there's a weird breath or feedback, or something that makes the edit
+      # matter down to 50 ms, or maybe not that low, but 200 to 300 ms." Those
+      # are unreachable by dragging on any zoom level that also shows the
+      # sermon, so they have to be reachable from the keyboard.
 
     @happy-path
     Scenario: Setting a boundary from the playhead

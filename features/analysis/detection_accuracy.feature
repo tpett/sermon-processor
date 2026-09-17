@@ -133,8 +133,55 @@ Feature: Measuring detection accuracy against real recordings
       # to preview the punch-in, hit play to preview the punch-out, approve,
       # and we are done."
       Then the headline measure is the proportion of Segments approved with no boundary edit
-      And the target for that proportion is 80%
       And it is reported alongside the raw error figures, not replaced by them
+
+    @happy-path
+    Scenario: No error figure is a release gate
+      # Settled 2026-09-16. An earlier version of this scenario set a target of
+      # 80% within one second and treated it as a bar to clear. That was wrong
+      # in two directions at once.
+      #
+      # Wrong about the tolerance: "what is acceptable for punch-in/punch-out is
+      # very much dependent on each recording... it could be that there's a weird
+      # breath or feedback that makes the edit matter down to 200 to 300 ms.
+      # That's rare, though. Usually you have a few seconds, and if you make the
+      # cut anywhere in there, you're okay." A single number cannot express that,
+      # and measured data agrees: held-out punch-in errors are 10 early to 9 late
+      # out of 19, and a 3-second early cut and a 3-second clip score identically
+      # under a symmetric bar while being nothing alike.
+      #
+      # Wrong about the role: "it will be approved by a person every time. The
+      # model is just taking a guess, and hopefully it's correct. If not, the
+      # human will be able to correct the punch-in and punch-out points."
+      Then the suite is a regression instrument, not an acceptance test
+      And a change that worsens the error distribution is reported as a regression
+      And no configuration is rejected for missing a fixed tolerance
+      And the reviewer's correction, not the tolerance, is what guarantees the cut
+
+  Rule: One property of the punch-in is not a matter of taste
+
+    @happy-path @measured
+    Scenario: Silence before the first word is bounded
+      # The one failure the reviewer cannot shrug off, because it reads as a
+      # broken file rather than a loose cut: "too much audio silence at the
+      # beginning of the recording is not good. People wonder if it's even
+      # playing." Q18 put the ceiling at one second.
+      #
+      # This is checkable without ground truth, on any proposal, which is what
+      # makes it useful where the error figures are not.
+      Given a proposed Segment
+      When the leading silence is measured from the punch-in to the first speech
+      Then it is at most 1.0 seconds
+      And a proposal exceeding it is flagged to the reviewer before approval
+
+    @edge-case @measured
+    Scenario: Clipping the first word is worse than starting early
+      # Both are errors; only one destroys content. Held-out on the local model,
+      # 6 of 19 punch-ins were late by more than a second -- the failure worth
+      # surfacing -- while the worst early miss was 12 seconds and cost nothing
+      # but lead-in that the leading-silence rule already bounds.
+      Then punch-in error is reported with its sign, never as an absolute value
+      And late punch-ins are reported separately from early ones
 
     @happy-path @measured
     Scenario: Punch-in errors count for more than punch-out errors

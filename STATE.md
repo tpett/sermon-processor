@@ -1,6 +1,6 @@
 # Where this project stands
 
-Last updated 2026-09-14. Read this first; it is the handoff.
+Last updated 2026-09-16. Read this first; it is the handoff.
 
 ## What exists
 
@@ -63,14 +63,19 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
 
 ## Open decisions — nothing proceeds far without these
 
-Six open, one settled.
+Four open, three settled. **Nothing now blocks the build except a benchmark.**
 
-1. **The acceptance bar.** `no_edit@1s ≥ 80%` is unreachable. Is the bar 1 second
-   always, or 1 second on clean cuts with honest flagging on hard ones? This
-   blocks `detection_accuracy.feature` from working as a regression gate.
-2. **Authentication.** `authentication.feature` is `@needs-decision` throughout
-   while every other interface file assumes a signed-in reviewer. Blocks the
-   interface entirely.
+1. ~~**The acceptance bar.**~~ **Settled 2026-09-16: there isn't one.** No error
+   figure is a release gate; the suite is a regression instrument. A human
+   approves every cut, and acceptable tolerance is per-recording — usually
+   seconds of slack, occasionally 200–300 ms. Two things did become assertable:
+   leading silence after the punch-in is capped at 1.0 s (it reads as a broken
+   file, not a loose cut), and punch-in error is reported signed, because late
+   clips content and early does not.
+2. ~~**Authentication.**~~ **Settled 2026-09-16: none.** Tailnet is the
+   perimeter, as it already is for the recorder and the S3 instance. The actor
+   on every action is recorded as `reviewer`, which is the seam to change if a
+   second person ever reviews.
 3. ~~**The punch-out tail.**~~ **Settled 2026-09-07: 1.5 seconds**, chosen by
    listening to one real cut at 0.0 s, 1.5 s and 3.5 s. Measured behaviour won
    over stated preference, and the reason turned out to be that a transcript's
