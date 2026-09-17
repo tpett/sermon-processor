@@ -2057,3 +2057,214 @@ The three blind runs should be read as: *the pipeline produced a cut, a second
 careful reading of the transcript agreed with it, and the reviewer confirmed the
 result by ear.* The last of those is the strongest evidence in the set, and it is
 untouched by this.
+
+## Swapping the Whisper engine — 2026-09-17
+
+The deployment boundary puts transcription in the app container: Linux, x86_64,
+CPU-only, therefore no mlx. Every boundary figure above was measured on mlx word
+timestamps. This is the test of whether that matters.
+
+`faster-whisper 1.2.1` / CTranslate2 4.8.2, `large-v3-turbo` weights, int8, 8
+threads, same language and `condition_on_previous_text=False`, VAD filter
+deliberately **off** (it would drop the silences, and silence runs are
+load-bearing — blocking splits on them and the emptiness gate reads them).
+
+**6.2x realtime** on this laptop's CPU, aggregate over 13.1 hours of real
+recordings (127.8 min wall clock). An earlier note here said 11.1x; that was one
+15-minute file, mostly silence, and it flattered the result. 6.2x is the number
+to plan with.
+
+For the production box that means a three-hour recording takes about **29
+minutes** to transcribe. The Ryzen 9700X has AVX-512, which CTranslate2 uses
+well, so it should beat a laptop CPU — but that is an expectation, not a
+measurement, and the machine has still never run any of this.
+
+### The text barely moves; the utterance boundaries move more
+
+| recording | words mlx | words fw | Δ | utts mlx | utts fw |
+| --- | --- | --- | --- | --- | --- |
+| 2026-04-12 | 9586 | 9650 | +64 | 1177 | 1128 |
+| 2026-05-03 TEC | 10114 | 10188 | +74 | 941 | 995 |
+| 2026-05-10 | 11384 | 11428 | +44 | 1268 | 1298 |
+| 2026-05-31 | 11367 | 11389 | +22 | 1404 | 1338 |
+| 2026-06-14 | 11340 | 11195 | −145 | 1445 | 1389 |
+| 2026-06-28 | 5938 | 5968 | +30 | 546 | 527 |
+| 2026-07-12 | 9519 | 9686 | +167 | 1162 | 1217 |
+
+Word counts agree within 1.5%. **Utterance counts differ by up to 4%** — the
+engines chunk speech differently, which is exactly the thing that could move a
+boundary.
+
+### The oracle degrades slightly, and badly on one recording
+
+Distance from each human cut to the nearest transcript edge — the best any
+downstream stage could do with the transcript it was handed:
+
+| | punch-in | punch-out |
+| --- | --- | --- |
+| mlx | **0.12 s** | 0.72 s |
+| faster-whisper | **0.41 s** | 0.72 s |
+
+3 worse, 1 better, 3 within 50 ms. The median move is driven by one recording:
+**2026-05-03 TEC goes from 0.05 s to 3.61 s** — the fw transcript simply has no
+edge near that human punch-in. It is a class, which is the standing weak spot.
+
+### What actually ships barely changes
+
+Two paths matter and they behave differently, so they are reported separately.
+`refined` is rules-only; `shipped` is what runs — the model's own punch-in with
+refinement's punch-out.
+
+| path | | med \|in\| | med \|out\| | out ≤1 s |
+| --- | --- | --- | --- | --- |
+| refined | mlx | 5.09 s | 0.68 s | 4/7 |
+| refined | fw | 5.39 s | 0.72 s | 5/7 |
+| **shipped** | **mlx** | **2.88 s** | **0.68 s** | **4/7** |
+| **shipped** | **fw** | **2.88 s** | **0.72 s** | **5/7** |
+
+Punch-out per recording: unchanged on four, **improved 1.48 s** on 2026-04-12,
+worsened 1.30 s on the 05-03 class, worsened 0.62 s on 2026-05-31 in the
+*correct* direction (−0.12 s became +0.50 s, which is a tail rather than a clip).
+Within-one-second does not degrade; it improves by one.
+
+### The part this does not prove, stated plainly
+
+**The punch-in agreeing to 0.02 s is partly tautological.** This test holds the
+model's blocks fixed — deliberately, to isolate the transcript effect from the
+classification effect — and `choose()` takes the model's punch-in *raw, never
+snapped to a transcript edge*. So given the same blocks, the shipped punch-in
+cannot move. That is a real property of the design and it is why the engine swap
+is low-risk. It is not evidence that the model would draw the same blocks from
+the faster-whisper text.
+
+Given utterance counts differ by up to 4%, it might not. **That is the remaining
+question, and it is cheap to answer** — one classification pass over these seven
+transcripts. Until it is run, the honest claim is: *the boundary machinery is
+engine-independent by construction; whether the classifier is has not been
+measured.*
+
+### What is settled regardless
+
+- Transcription can move to the container without re-deriving the spec.
+- The rules-only path is the engine-sensitive one, and it is not the path that
+  ships.
+- `Artifact.asr_config` in `features/DOMAIN.md` earns its place: a stored
+  boundary is only comparable against one produced by the same engine.
+- Cut difficulty, the leading-silence cap, running-order position and the
+  length/start-time bands are all computed from the energy envelope or from
+  block structure, so **none of them are exposed to this at all.**
+
+## The ollama 0.34.0 upgrade broke structured output for MLX models
+
+Found 2026-09-17 while running the engine comparison, and worth recording
+prominently because it silently disables the production classifier.
+
+**The regression.** On ollama 0.34.0, a model served by the MLX backend rejects
+`format: json`:
+
+```
+POST /api/generate  {"model":"qwen3.6:35b-mlx", ..., "format":"json"}
+  → HTTP 501  {"error":"structured output is unavailable"}
+```
+
+Characterised on both machines, both running 0.34.0:
+
+| model | backend | `format: json` |
+| --- | --- | --- |
+| `qwen3.6:35b-mlx` | MLX | **501** |
+| `qwen3.6:35b-mlx` | MLX | 200 *without* the constraint |
+| `qwq:32b` | GGUF | 200 |
+| `qwen3:4b` | GGUF | 200 |
+
+So it is specific to the MLX backend, not to the endpoint and not to the model
+size. **`qwen3.6:35b-mlx` is the production classifier** — the one that matched
+the frontier control — and `classify.py` sends `format: json` whenever thinking
+is off, which is every scored run in this document.
+
+**Every number in FINDINGS was measured on 0.32.15, where this worked.** The
+first symptom was all eight dev recordings returning `invalid-json` in 0.0 s.
+
+**Honest about cause:** the upgrade was the owner's, but the daemon was still
+serving 0.32.15 afterwards — Homebrew's launchagent does not restart on upgrade.
+I restarted it to verify the version, which is what put 0.34.0 into service and
+made the regression live. Diagnosing it took four probes; noticing it at all was
+luck, because the failure mode is a clean `invalid-json` with no mention of the
+constraint.
+
+**The fix, and why this one rather than the others.** `ollama()` now retries
+without the constraint on a 501, reporting that it did. Measured on the real
+prompt: the 35B returns clean parseable JSON unconstrained — 18 blocks, 1
+segment, 28.3 s — because `parse_json` already strips fences and think blocks.
+The constraint was insurance for small models replying in prose, and this model
+does not need it.
+
+Rejected alternatives: downgrading ollama (leaves the same trap for the next
+upgrade); switching to a GGUF 35B (changes the model every measurement was taken
+against); enabling thinking (a different config axis, and FINDINGS already
+records that every scored rung ran with it off).
+
+**What this implies for the build.** The reasoning host is a dependency that can
+break the pipeline through a routine `brew upgrade`, with no error that names the
+cause. `features/analysis/analysis_orchestration.feature` already requires a
+model-host failure to name the endpoint rather than raise a generic model error;
+this is the case that motivates it, and "unparseable output" needs to be
+distinguished from "the host refused the request".
+
+### End to end, with the confound removed
+
+The first end-to-end comparison changed two things at once — transcript engine
+*and* the `format: json` constraint, which the 501 fallback had silently dropped
+for the faster-whisper run while the historical baseline still had it. Reporting
+that as an engine result would have been the `ingest_control` mistake again. The
+missing cell was cheap, so here are all three:
+
+| config | transcript | `format: json` | found | ≤1 s | ≤2 s | ≤5 s | med \|in\| | med \|out\| |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `t3` | mlx | **yes** | 100% | 0% | 12% | 50% | 3.76 s | 0.51 s |
+| `u3` | mlx | no | 100% | 12% | 25% | **62%** | **2.20 s** | **0.30 s** |
+| `fw` | faster-whisper | no | 100% | 12% | 25% | 50% | 3.36 s | 0.61 s |
+
+**The dominant effect is not the engine. It is the JSON constraint.**
+
+Dropping `format: json` on the *same* transcripts took the median punch-in from
+3.76 s to **2.20 s**, the median punch-out from 0.51 s to **0.30 s**, and
+within-five-seconds from 50% to 62%. Constrained decoding matches a grammar from
+the first token, and this document already recorded that it destroys a thinking
+model's output entirely; it turns out to cost real accuracy even with thinking
+off. Every scored rung above was measured with the handicap on.
+
+**So the ollama regression forced an improvement.** The fallback is not damage
+control — unconstrained is the better configuration and should be the production
+default regardless of what ollama does next.
+
+**And faster-whisper is genuinely a little worse, not better.** Against `u3`,
+the honest comparison: punch-in 2.20 s → 3.36 s, punch-out 0.30 s → 0.61 s,
+within-five-seconds 62% → 50%. The earlier reading that it looked *better* was
+entirely the confound. Its oracle is consistent with this — 0.21 s to the nearest
+edge against mlx's 0.12 s, so its edges really do sit further from the human cuts.
+
+### What this means for the decision
+
+Transcription has to run in the container, so faster-whisper is not really being
+chosen over mlx — it is the only option that runs where the app runs. What the
+measurement establishes is the size of the cost:
+
+- **Nothing breaks.** Both configurations find 100% of Segments on dev.
+- **Punch-in costs about 1.2 s of median accuracy**, punch-out about 0.3 s.
+- **There is no acceptance gate** and a human approves every cut, so a second of
+  median drift changes how often a boundary gets nudged, not whether the system
+  works.
+- **Cut difficulty, the leading-silence cap, running-order position and the
+  length/start-time bands are untouched** — all computed from the energy
+  envelope or block structure.
+
+**Limits of this result, stated rather than buried.** n = 8, on dev, which is
+tuned to exhaustion; differences of a second in a median over eight recordings
+are suggestive, not significant. Confirming on held-out would cost a third access
+to a split already scored twice, and would not change the decision — the
+container is where transcription has to run. The better use of held-out is a
+future change that might be rejected on the numbers.
+
+**One thing to carry into the build**: `u3` beat `t3` on the same inputs, which
+means the numbers throughout this document understate what the local model can
+do. If a figure here is ever used as a target, it is a floor.

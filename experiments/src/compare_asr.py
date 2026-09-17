@@ -83,16 +83,27 @@ def main() -> int:
         bp = DATA / "blocks" / f"{rid}.{args.config}.json"
         if not bp.exists():
             continue
-        blocks = json.loads(bp.read_text())["blocks"]
+        stored = json.loads(bp.read_text())
+        blocks = stored["blocks"]
+        model_segs = stored.get("model_segments") or []
         for doc, tag in ((a, "base"), (b, "alt")):
             SEG._EDGE_CACHE.clear()
             derived = SEG.derive(blocks, doc)
+            # The shipping path: the model's own punch-in (never snapped to a
+            # transcript edge) with refinement's punch-out. This is the one that
+            # matters -- `refined` alone is a diagnostic, not what runs.
+            shipped = SEG.choose(model_segs, derived, doc)
             for seg in rec["segments"]:
                 m = S.best_match(derived, seg)
                 if m:
                     e2e.append({"label": rec["desktop_label"], "which": tag,
-                                "in_err": m["punch_in"] - seg["punch_in"],
+                                "layer": "refined", "in_err": m["punch_in"] - seg["punch_in"],
                                 "out_err": m["punch_out"] - seg["punch_out"]})
+                k = S.best_match(shipped, seg)
+                if k:
+                    e2e.append({"label": rec["desktop_label"], "which": tag,
+                                "layer": "shipped", "in_err": k["punch_in"] - seg["punch_in"],
+                                "out_err": k["punch_out"] - seg["punch_out"]})
 
     if not rows:
         print(f"no recordings have both {args.base} and {args.alt}")
@@ -120,16 +131,29 @@ def main() -> int:
           f"{len(rows)-worse-better} within 50 ms")
 
     if e2e:
-        print("\n=== 3. boundaries actually derived (blocks held fixed) ===")
-        for which in ("base", "alt"):
+        print("\n=== 3. boundaries derived, blocks held fixed ===")
+        for layer in ("refined", "shipped"):
+            print(f"  -- {layer} --")
+            for which in ("base", "alt"):
+                sel = [r for r in e2e if r["which"] == which and r["layer"] == layer]
+                if not sel:
+                    continue
+                i1 = sum(1 for r in sel if abs(r["in_err"]) <= 1)
+                o1 = sum(1 for r in sel if abs(r["out_err"]) <= 1)
+                o2 = sum(1 for r in sel if abs(r["out_err"]) <= 2)
+                print(f"     {which:<5} n={len(sel)}  "
+                      f"med|in| {med([abs(r['in_err']) for r in sel]):6.2f}s  "
+                      f"med|out| {med([abs(r['out_err']) for r in sel]):5.2f}s  "
+                      f"in<=1s {i1}/{len(sel)}  out<=1s {o1}/{len(sel)}  out<=2s {o2}/{len(sel)}")
+        print()
+        e2e = [r for r in e2e if r["layer"] == "shipped"] or e2e
+        print("  per recording, SHIPPED path:")
+        for which in ("base",):
             sel = [r for r in e2e if r["which"] == which]
             i1 = sum(1 for r in sel if abs(r["in_err"]) <= 1)
             o1 = sum(1 for r in sel if abs(r["out_err"]) <= 1)
-            print(f"  {which:<5} n={len(sel)}  "
-                  f"med|in| {med([abs(r['in_err']) for r in sel]):5.2f}s  "
-                  f"med|out| {med([abs(r['out_err']) for r in sel]):5.2f}s  "
-                  f"in<=1s {i1}/{len(sel)}  out<=1s {o1}/{len(sel)}")
-        print(f"\n  {'recording':<34}{'in base':>9}{'in alt':>9}{'out base':>10}{'out alt':>9}")
+            pass
+        print(f"  {'recording':<34}{'in base':>9}{'in alt':>9}{'out base':>10}{'out alt':>9}")
         bykey = {}
         for r in e2e:
             bykey.setdefault(r["label"], {})[r["which"]] = r

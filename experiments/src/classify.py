@@ -59,10 +59,35 @@ def ollama(model: str, prompt: str, think: bool = False) -> str:
     else:
         body["think"] = False
         body["format"] = "json"
-    req = urllib.request.Request(OLLAMA, data=json.dumps(body).encode(),
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
-        return json.loads(r.read())["response"]
+    def post(b: dict) -> str:
+        req = urllib.request.Request(OLLAMA, data=json.dumps(b).encode(),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+            return json.loads(r.read())["response"]
+
+    try:
+        return post(body)
+    except urllib.error.HTTPError as e:
+        # ollama 0.34.0 regression: MLX-backend models reject `format: json`
+        # with 501 "structured output is unavailable". GGUF models on the same
+        # server still accept it, and 0.32.15 accepted it for both -- which is
+        # what every number in FINDINGS was measured under.
+        #
+        # Measured 2026-09-17 on the real prompt: the 35B returns clean,
+        # parseable JSON without the constraint anyway (18 blocks, 1 segment,
+        # 28.3 s), because `parse_json` already strips fences and think blocks.
+        # So drop the constraint rather than the model.
+        if e.code != 501 or "format" not in body:
+            raise
+        detail = ""
+        try:
+            detail = e.read().decode()[:200]
+        except Exception:  # noqa: BLE001
+            pass
+        print(f"    [structured output refused ({detail.strip()}); "
+              f"retrying unconstrained]", flush=True)
+        body.pop("format", None)
+        return post(body)
 
 
 def parse_json(text: str) -> dict | None:
