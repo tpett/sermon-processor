@@ -2268,3 +2268,55 @@ future change that might be rejected on the numbers.
 **One thing to carry into the build**: `u3` beat `t3` on the same inputs, which
 means the numbers throughout this document understate what the local model can
 do. If a figure here is ever used as a target, it is a floor.
+
+### Correction: the engine is not producing worse output
+
+The write-up above concluded faster-whisper was "genuinely a little worse". That
+conflated boundary accuracy with transcription quality. Measured properly:
+
+| | mlx vs faster-whisper |
+| --- | --- |
+| word agreement (token-level, 78,453 matched words) | **98.9%** median |
+| median word-timestamp difference | **0.000 s** |
+| p90 word-timestamp difference | **0.040 s** |
+| words differing by more than 0.5 s | 2.3% |
+
+**The text is the same and the word timings are the same.** Whatever is moving
+the boundaries, it is not transcription accuracy.
+
+### What is actually moving them, and it is our code
+
+The engines agree on words and disagree on how to group them into *utterances*.
+`segments.candidate_edges` snaps to utterance starts and ends — so the one thing
+the engines disagree about is exactly the thing the boundary code depends on.
+
+Words are in the transcript too, and there are six times as many of them:
+
+| edge set | edges per recording | oracle to human punch-in, mlx | faster-whisper |
+| --- | --- | --- | --- |
+| utterance starts/ends | ~1,980 | 0.178 s | 0.344 s |
+| **word starts/ends** | **~11,520** | **0.134 s** | **0.237 s** |
+
+Both engines improve, and the gap between them halves. The recording that drove
+the whole degradation collapses:
+
+```
+2026-05-03 TEC, distance to the nearest available edge at the human punch-in
+  utterance edges, faster-whisper   3.61 s
+  word edges,      faster-whisper   0.57 s
+```
+
+Punch-out is unchanged either way (0.759 s / 0.769 s) — `refine_out` anchors on
+the closing amen and the 1.5 s tail dominates, so the edge set barely matters
+there.
+
+**This is a real improvement available to both engines, not a workaround.** It
+also reframes the deployment risk: the exposure was never "a different engine
+hears different words", it was "our edge set is built from the one thing engines
+disagree about".
+
+**Not yet done, and deliberately.** The oracle is the *best achievable* with an
+edge set, not what `snap()` actually picks — a six-times denser set gives it more
+chances to choose a nearer wrong edge. Changing `candidate_edges` touches every
+stored boundary in the corpus, so it wants measuring as its own change rather
+than folding into this one.
