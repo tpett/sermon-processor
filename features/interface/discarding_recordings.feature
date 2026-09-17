@@ -13,7 +13,7 @@ Feature: Discarding and skipping
     trigger, a sound check, a false start.
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
 
   Rule: Skipping a segment is not throwing it away
 
@@ -75,12 +75,23 @@ Feature: Discarding and skipping
 
     @edge-case @needs-decision
     Scenario: Permanently deleting a recording
-      # Q35 — do you ever want a hard delete, and who is allowed to do it?
+      # Q35 — **still open: do you want a hard delete at all?** The "who" half
+      # is now answered and needs no separate decision: authentication is none
+      # and there are no roles (interface/authentication.feature), so anyone on
+      # the tailnet could do this. That makes an irreversible local delete a
+      # sharper question than it was when an admin role was assumed, not a
+      # softer one.
+      #
+      # Everything below is safe regardless of how you answer, because the
+      # object store keeps the source: the worst case is re-downloading and
+      # re-analysing, which costs minutes, not content. That is why this is the
+      # last undecided scenario in the spec rather than a blocking one.
       Given a Recording in state "discarded"
-      When an administrator permanently deletes it
+      When it is permanently deleted
       Then the local audio and derived artifacts are removed
       And the record of the deletion is retained
       And the source object in the object store is not removed
+      And the Recording can be re-ingested from the object store afterwards
 
   Rule: Recordings with nothing publishable do not need dispositioning
 

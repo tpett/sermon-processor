@@ -4,35 +4,60 @@ Feature: Reviewing the segments in a recording
   As a reviewer
   I want to decide what happens to each session found in a recording
 
-  A Recording may hold a class, a service, and some music. I want to approve the
-  one I am publishing, leave the others alone, and know that leaving them alone
-  does not mean losing them.
+  A Recording may hold a class and a service. I want to approve the one I am
+  publishing, leave the other alone, and know that leaving it alone does not
+  mean losing it.
+
+  This Background is the real shape of 2026-09-13: a class, its Q&A, and the
+  service, in one three-hour file. The singing between them is Blocks, not a
+  Segment — only teaching Blocks seed Segments (features/README.md, "The three
+  vocabularies"). An earlier version of this Background had a third Segment
+  classified `music`, which cannot exist.
 
   Background:
-    Given I am signed in as a reviewer
-    And a Recording in state "awaiting_review" containing 3 Segments:
+    Given a Recording in state "awaiting_review" containing 2 Segments:
       | # | classification | boundaries        | confidence |
-      | 1 | lesson         | 0:04:10 – 1:03:55 | high       |
-      | 2 | music          | 1:28:40 – 1:54:50 | high       |
-      | 3 | sermon         | 2:00:20 – 2:43:32 | high       |
+      | 1 | lesson         | 0:00:01 – 0:58:17 | high       |
+      | 2 | sermon         | 1:56:07 – 2:45:10 | high       |
+    And its remaining Blocks are music, prayer, qa and communion
+
+  Rule: Revisiting a Segment reopens its Recording
+
+    @happy-path
+    Scenario: A skipped Segment is revisited months later
+      # The README has always promised this ("a piece passed over in August can
+      # be extracted in November") but no scenario said what it does to the
+      # Recording, which had reached "reviewed" precisely because everything was
+      # dispositioned. It cannot stay there.
+      Given a Recording in state "reviewed"
+      And one of its Segments was skipped
+      When I revisit that Segment
+      Then the Segment returns to "proposed"
+      And the Recording returns to "awaiting_review"
+      And its boundaries, classification, summary and evidence are unchanged
+      And no re-analysis is needed
+
+    @happy-path
+    Scenario: The Recording settles again once it is dispositioned
+      Given a Recording returned to "awaiting_review" by a revisit
+      When I dispose of that Segment
+      Then the Recording returns to "reviewed"
 
   Rule: Each segment is dispositioned independently
 
     @happy-path
     Scenario: Approving one segment and skipping the rest
-      When I approve Segment 3
+      When I approve Segment 2
       And I skip Segment 1
-      And I skip Segment 2
-      Then Segment 3 enters "approved" and is queued for processing
-      And Segments 1 and 2 enter "skipped"
+      Then Segment 2 enters "approved" and is queued for processing
+      And Segment 1 enters "skipped"
       And the Recording enters "reviewed"
       And exactly one MP3 will be produced
 
     @happy-path
     Scenario: Approving two segments from one recording
       When I approve Segment 1
-      And I approve Segment 3
-      And I skip Segment 2
+      And I approve Segment 2
       Then two separate processing jobs are queued
       And two separate MP3s will be produced
       And each carries its own publication details
@@ -54,7 +79,7 @@ Feature: Reviewing the segments in a recording
 
     @happy-path
     Scenario: Changing my mind about an approved segment before it renders
-      Given I approved Segment 3 a moment ago
+      Given I approved Segment 2 a moment ago
       When I revert it to proposed
       Then the queued processing job is cancelled
       And the Segment returns to "proposed"
@@ -174,14 +199,16 @@ Feature: Reviewing the segments in a recording
   Rule: Nothing is published by accident
 
     @happy-path
-    Scenario: Music is not proposed for publication
+    Scenario: Music is never a publication candidate, because it is never a Segment
+      # It is not filtered out of a list of candidates — it never enters one.
       When I open the Recording detail view
-      Then Segment 2 is shown but not offered as a publication candidate
-      And I can still approve it if I choose to
+      Then the music Blocks are shown in the anatomy of the Recording
+      And no Segment was proposed for them
+      And nothing offers them for publication
 
     @edge-case
     Scenario: Leaving a recording part-reviewed
-      When I approve Segment 3 and leave Segments 1 and 2 alone
+      When I approve Segment 2 and leave Segment 1 alone
       Then the Recording stays in "awaiting_review"
       And it still appears as needing attention
       And I am not forced to disposition everything in one sitting

@@ -5,7 +5,7 @@ Feature: Reviewing the waveform
   I want to see and hear the audio around the proposed boundaries
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Recording in state "awaiting_review" with waveform peak data
     And it is 3:12:00 long and contains 2 Segments
     And I have selected the Segment whose punch-in is "2:00:20" and punch-out is "2:43:32"

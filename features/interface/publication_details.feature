@@ -10,7 +10,7 @@ Feature: Publication details
   a date and a human label. Everything else was invented.
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Recording from "2026-08-23 10:29 AM"
     And a Segment classified "sermon" awaiting approval
 

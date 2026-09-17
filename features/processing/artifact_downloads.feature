@@ -7,7 +7,7 @@ Feature: Downloading artifacts
   Downloading is the finish line — the Processor does no publishing of its own.
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Segment in state "complete" from a Recording dated "2026-08-23"
     And its label is "Hebrews 12.4-11"
 

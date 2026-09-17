@@ -68,7 +68,7 @@ Feature: Background jobs and retries
 
     @happy-path
     Scenario: Viewing the queue
-      Given I am signed in as an operator
+      Given I am on the tailnet
       When I open the system health view
       Then I see how many jobs are queued, running, and failed
       And I can see how long the oldest queued job has been waiting

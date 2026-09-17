@@ -8,7 +8,7 @@ Feature: The recordings list
   because a Recording is a file and a Segment is the thing I actually care about.
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And the following Recordings exist:
       | recorded_at         | duration | state           | segments                        |
       | 2026-08-23 10:29 AM | 1:44:29  | awaiting_review | 1 sermon (high)                 |

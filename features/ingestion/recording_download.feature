@@ -91,6 +91,28 @@ Feature: Downloading a recording
       And the Recording stays in "discovered"
       And a storage alert is raised on the system health view
 
+    @edge-case
+    Scenario: A Recording waiting on disk is eventually picked back up
+      # The one genuine deadlock in the lifecycle, found redrawing the state
+      # machines on 2026-09-17. Reconciliation creates Recordings only for
+      # object keys it has never seen (see ingestion/s3_reconciliation.feature),
+      # so a Recording already sitting in "discovered" is invisible to every
+      # future scan. Without this scenario it waits forever and the only
+      # symptom is a storage alert nobody connects to a missing sermon.
+      Given a Recording has stayed in "discovered" because local disk was short
+      And disk space has since been freed
+      When the download job next runs
+      Then that Recording is retried without needing a new webhook or scan
+      And it is retried before any newly discovered Recording
+      # Oldest first: it has been waiting longest and its source is no less
+      # permanent, but the reviewer has been missing it for longer.
+
+    @edge-case
+    Scenario: Retrying does not mean retrying forever in silence
+      Given a Recording has been waiting on disk for more than one day
+      Then it is surfaced as needing attention rather than only as an alert
+      And the reason given names the disk, not the Recording
+
   Rule: The source file is never modified
 
     Scenario: The original FLAC is preserved byte-for-byte

@@ -5,7 +5,7 @@ Feature: Approving a segment
   I want to approve a Segment's boundaries and hand off to processing
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Recording in state "awaiting_review"
     And a Segment classified "sermon" with punch-in "2:00:20" and punch-out "2:43:32"
 

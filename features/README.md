@@ -179,68 +179,135 @@ the two, which would cost 6 dB and fold in the dead channel's noise.
 
 ## Lifecycle
 
-Two state machines now: one for the Recording, one for each Segment.
+Two state machines: one for the Recording, one for each Segment. Redrawn
+2026-09-17 — the previous diagrams were missing four states and five
+transitions that features already asserted, and one state had no way out.
 
 ### Recording
 
 ```
-                    ┌──────────────┐
-   webhook / scan ─▶│  discovered  │
-                    └──────┬───────┘
-                           ▼
-                    ┌──────────────┐   download fails N times   ┌────────────────┐
-                    │ downloading  │──────────────────────────▶ │ ingest_failed  │
-                    └──────┬───────┘                            └────────────────┘
-                           ▼
-                    ┌──────────────┐
-                    │  downloaded  │
-                    └──────┬───────┘
-                           ▼
-                    ┌──────────────┐   analysis fails           ┌──────────────────┐
-                    │  analyzing   │──────────────────────────▶ │ analysis_failed  │
-                    └──────┬───────┘                            └────────┬─────────┘
-                           ▼                                             │ segment
-                    ┌──────────────────┐                                 │ by hand
-                    │ awaiting_review  │◀────────────────────────────────┘
-                    └──────┬───────────┘
-                           │ every Segment dispositioned
-                           ▼
-                    ┌──────────────┐
-                    │   reviewed   │
-                    └──────────────┘
+                     ┌──────────────┐
+    webhook / scan ─▶│  discovered  │◀──── retry when disk frees up
+                     └──┬────────┬──┘      (reconciliation will NOT
+              download  │        │          re-queue it: it only creates
+                        │        │          Recordings for unseen keys)
+                        ▼        │ no local disk
+                 ┌──────────────┐│
+                 │ downloading  │┘
+                 └──┬────────┬──┘
+                    │        │ retry budget exhausted
+                    │        ▼
+                    │  ┌────────────────┐  operator retries
+                    │  │ ingest_failed  │──────────────┐
+                    │  └────────────────┘              │
+                    ▼                                  │
+             ┌──────────────┐◀─────────────────────────┘
+             │  downloaded  │
+             └──────┬───────┘
+                    ▼
+             ┌──────────────┐  nothing substantive   ┌───────────┐
+             │  analyzing   │──────────────────────▶ │  ignored  │
+             └──┬────────┬──┘  (probe stage, no      └─────┬─────┘
+                │        │      human asked)               │ reviewer
+                │        │ analysis fails                  │ restores
+                │        ▼                                 │
+                │ ┌──────────────────┐                     │
+                │ │ analysis_failed  │───────┐             │
+                │ └──────────────────┘       │ segment     │
+                ▼                            │ by hand     │
+        ┌──────────────────┐◀────────────────┘             │
+        │ awaiting_review  │◀──────────────────────────────┘
+        └──────┬───────────┘
+               │ every Segment dispositioned
+               ▼
+        ┌──────────────┐  a skipped Segment is revisited
+        │   reviewed   │──────────────────────────────┐
+        └──────────────┘◀─────────────────────────────┘
+                          (back to awaiting_review)
 
-   any state ─────▶ ┌──────────────┐  (whole file is rubbish — e.g. band practice)
-                    │  discarded   │
-                    └──────────────┘
+    any state ─────────▶ ┌──────────────┐
+                         │  discarded   │   the whole file is rubbish
+                         └──────────────┘
 ```
 
-`reviewed` is not terminal. Revisiting a skipped Segment is expected and
-normal; it changes the Segment's state, not the Recording's.
+**`ignored` is not `discarded`.** `ignored` is the machine's own call on a
+Recording with no substantive content — no human is asked, no notification is
+sent, and it stays out of the default list but remains findable and restorable.
+`discarded` is a human throwing something away. Conflating them would mean either
+pestering the reviewer about every false trigger or silently destroying real
+recordings.
+
+**`discovered` has two exits, and it needs both.** A Recording that cannot be
+downloaded for want of disk stays in `discovered` and raises a storage alert —
+but reconciliation only creates Recordings for object keys it has *never seen*,
+so it will never be picked up again by a scan. Something has to retry it when
+space frees up. This was a dead end in the previous diagram and is the one
+genuine deadlock the redraw found.
+
+**`reviewed` is not terminal**, and now says how it is left: revisiting a skipped
+Segment returns the Recording to `awaiting_review`.
 
 ### Segment
 
 ```
-                 ┌────────────┐
-   analysis ────▶│  proposed  │
-                 └──┬──────┬──┘
-          approve   │      │   skip
-                    ▼      ▼
-          ┌────────────┐  ┌───────────┐
-          │  approved  │  │  skipped  │──┐
-          └─────┬──────┘  └───────────┘  │ revisit, any time later
-                ▼              ▲          │
-         ┌────────────┐        └──────────┘
-         │ processing │
-         └──┬──────┬──┘
-            │      │ render fails      ┌────────────────────┐
-            │      └─────────────────▶ │ processing_failed  │
-            ▼                          └────────────────────┘
-      ┌───────────┐
-      │ complete  │──┐
-      └───────────┘  │ re-cut
-            ▲        │
-            └────────┘
+                    ┌────────────┐
+      analysis ────▶│  proposed  │◀──────────────────────┐
+                    └──┬──────┬──┘                       │
+             approve   │      │   skip                    │ revert,
+                       ▼      ▼                           │ or cancel
+             ┌────────────┐  ┌───────────┐                │ processing
+             │  approved  │  │  skipped  │──┐             │
+             └─────┬──────┘  └───────────┘  │ revisit,    │
+                   │  ▲            ▲        │ any time    │
+                   │  └────────────┴────────┘             │
+                   ▼                                      │
+            ┌────────────┐                                │
+            │ processing │────────────────────────────────┘
+            └──┬──────┬──┘
+               │      │ render fails    ┌────────────────────┐
+               │      └───────────────▶ │ processing_failed  │──┐
+               │                        └────────────────────┘  │ retry
+               ▼                                                │
+         ┌───────────┐                                          │
+         │ complete  │◀─────────────────────────────────────────┘
+         └─────┬─────┘
+               │ re-cut
+               ▼
+         ┌───────────┐  adjust and re-approve
+         │   recut   │────────────────────────▶ processing
+         └───────────┘
 ```
+
+**`recut` is a state, not a loop.** A re-cut Segment still has a finished
+artifact and a published file behind it, which is exactly what distinguishes it
+from `proposed` — the old artifact stays until the new one succeeds.
+
+**Three ways back to `proposed`**, all asserted by features and none previously
+drawn: reverting an approval before processing starts, cancelling processing
+mid-render (partial output discarded), and reverting adjusted boundaries to the
+machine proposal.
+
+### Every state, and how it is left
+
+| State | Of | Exits |
+| --- | --- | --- |
+| `discovered` | Recording | `downloading`; stays put with an alert if disk is short, and needs an explicit retry |
+| `downloading` | Recording | `downloaded`, or `ingest_failed` when the retry budget runs out |
+| `ingest_failed` | Recording | `downloaded` on an operator retry |
+| `downloaded` | Recording | `analyzing` |
+| `analyzing` | Recording | `awaiting_review`, `analysis_failed`, or `ignored` |
+| `analysis_failed` | Recording | `awaiting_review` if a human segments it by hand |
+| `ignored` | Recording | `awaiting_review` if a reviewer restores it |
+| `awaiting_review` | Recording | `reviewed` once every Segment is dispositioned |
+| `reviewed` | Recording | back to `awaiting_review` when a skipped Segment is revisited |
+| `discarded` | Recording | terminal, reachable from any state |
+| `proposed` | Segment | `approved` or `skipped` |
+| `approved` | Segment | `processing`, or back to `proposed` on revert |
+| `skipped` | Segment | `proposed` when revisited |
+| `processing` | Segment | `complete`, `processing_failed`, or `proposed` if cancelled |
+| `processing_failed` | Segment | `processing` on retry |
+| `complete` | Segment | `recut` |
+| `recut` | Segment | `processing` once boundaries are adjusted and re-approved |
 
 ## Folder map
 

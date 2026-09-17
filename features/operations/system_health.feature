@@ -8,7 +8,7 @@ Feature: System health
 
     @happy-path
     Scenario: Viewing system health
-      Given I am signed in as an operator
+      Given I am on the tailnet
       When I open the system health view
       Then I see the status of:
         | dependency              |

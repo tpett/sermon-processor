@@ -105,7 +105,7 @@ Feature: S3 reconciliation
   Rule: An operator can force ingestion
 
     Scenario: Ingesting a specific object on demand
-      Given an operator is signed in
+      Given I am on the tailnet
       When they submit the object key "recordings/recording_20240107_101500.flac" for manual ingestion
       Then a Recording is created regardless of the ingest cutoff date
       And this is how the sample corpus is loaded for the accuracy suite

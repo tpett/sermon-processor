@@ -5,7 +5,7 @@ Feature: Adjusting a segment's punch points
   I want to move a Segment's punch-in and punch-out precisely
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Recording in state "awaiting_review"
     And I have selected a Segment classified "sermon" spanning "1:28:40" to "3:12:00"
     And its punch-in is "2:00:20.000" and punch-out is "2:43:32.000"

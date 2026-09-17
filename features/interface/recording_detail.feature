@@ -5,7 +5,7 @@ Feature: The recording detail view
   I want a page showing its metadata, the segments found inside it, and controls
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Recording from "2026-08-16 09:00 AM" in state "awaiting_review"
     And it contains 2 Segments:
       | classification | spans             | boundaries        | confidence |

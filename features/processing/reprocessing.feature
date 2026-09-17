@@ -5,7 +5,7 @@ Feature: Re-cutting a completed segment
   I want to change a Segment's boundaries and render it again
 
   Background:
-    Given I am signed in as a reviewer
+    Given I am on the tailnet
     And a Segment in state "complete" with punch-in "2:00:20" and punch-out "2:43:32"
 
   Rule: A completed segment can be sent back for re-cutting
