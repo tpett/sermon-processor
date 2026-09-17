@@ -108,6 +108,9 @@ Feature: Approving a segment
 
     @happy-path
     Scenario: Publishing something that defaulted to archive
+      # `meeting` Segments exist only because a reviewer archived a whole
+      # Recording (see interface/recording_detail.feature). Their intent
+      # defaults to archive, and this is the path back out of that default.
       Given the Segment is classified "meeting"
       When I change the intent to "publish" and approve
       Then the Segment renders with the full publication treatment

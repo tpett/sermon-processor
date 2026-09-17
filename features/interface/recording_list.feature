@@ -45,7 +45,13 @@ Feature: The recordings list
 
     @happy-path
     Scenario: Band practice does not demand attention
-      Given the recording from "2026-08-16 08:15 AM" contains only a "music" Segment
+      # This used to say the recording "contains only a music Segment", which
+      # cannot happen: only teaching Blocks seed Segments, so a rehearsal
+      # produces none at all. Measured — on 2026-08-30 and 2026-09-06 both
+      # models proposed zero Segments for the band rehearsal, which is the
+      # correct behaviour and the thing this scenario should assert.
+      Given the recording from "2026-08-16 08:15 AM" has kind "rehearsal"
+      And no Segment was proposed for it
       When I visit the recordings list
       Then it is not counted as needing attention
       And it is still visible in the list

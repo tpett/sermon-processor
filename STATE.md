@@ -113,6 +113,26 @@ app server (linux, docker, little GPU)        mac-m1 (M1 Max, 64 GB)
   `/v1/audio/transcriptions` endpoint exists but has no model behind it, on
   0.32.15 and 0.34.0 alike.
 
+### Verified 2026-09-17 against the real production box
+
+`nas` is an **AMD Ryzen 7 9700X** (8C/16T, x86_64), 30 GiB RAM with ~19 GiB
+available, Arch + Docker on ZFS. **No GPU of any kind** — nothing in
+`homelab/docs` or any compose file references one.
+
+- **`nas` reaches mac-m1's ollama**: `curl http://100.88.211.71:11434/api/version`
+  → `{"version":"0.34.0"}`.
+- **So does a container on the `proxy` network**, which is the one that mattered
+  and was not obvious — Docker bridge traffic routes out through the host's
+  tailscale interface with no extra configuration.
+- x86_64 means CTranslate2 and `sherpa-onnx` both have manylinux wheels.
+
+Deployment follows the `workouts` precedent in `~/Source/personal/homelab`:
+a config-only `stacks/sermon-processor/` building from `./src`, with
+`bin/nas app-deploy` git-archiving this repo's HEAD onto the server. Caddy route
+rather than published ports; recordings are large, so a dedicated ZFS dataset
+(`zfs create` needs sudo — Travis runs it); Garage credentials via
+`bin/nas secrets push`.
+
 ### The open risk this creates
 
 Transcription must therefore run in the app container, on Linux, **without mlx**

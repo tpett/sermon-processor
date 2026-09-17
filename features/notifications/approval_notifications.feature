@@ -83,9 +83,20 @@ Feature: Notifying a reviewer
       And it states why confidence is low
 
     @happy-path
-    Scenario: A recording the machine could not classify
-      Given a Recording finishes Analysis with a Segment classified "other"
-      Then the reviewer is notified that something was found but not identified
+    Scenario: A recording with content but no teaching the machine recognised
+      # This used to posit a Segment classified "other", which cannot exist --
+      # only teaching Blocks seed Segments. The real case is a Recording with
+      # substantive speech where nothing was typed as teaching, and it is not
+      # hypothetical: the two 2026-07-18 course recordings and the 2026-08-16
+      # members' meeting are exactly this.
+      #
+      # It must not be silent, because the fix is one click away -- retyping a
+      # Block re-runs Segment proposal (see analysis/block_classification.feature).
+      Given a Recording finishes Analysis with substantive speech
+      And no Block was typed as teaching, so no Segment was proposed
+      Then the reviewer is notified that content was found but no teaching was identified
+      And the notification says the Blocks can be retyped to produce a Segment
+      And this is distinguished from a Recording that held nothing at all
 
     @happy-path
     Scenario: Notification when analysis fails

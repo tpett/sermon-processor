@@ -88,6 +88,9 @@ Feature: The recording detail view
       When I choose to archive the whole recording
       Then a Segment is created spanning the entire Recording
       And it is classified "meeting"
+      # The only Segment classification that comes from a human action rather
+      # than from a seed Block's type. No classifier ever emits it; see
+      # features/README.md, "The three vocabularies".
       And its intent is "archive"
       And it is approved for processing without asking me for boundaries
 

@@ -20,20 +20,54 @@ Feature: Classifying each block
       When block classification runs
       Then a Block may be typed "<type>" meaning "<meaning>"
 
+      # The closed set. `special_service` used to appear here and does not
+      # belong: a Good Friday service *contains* announcements, music, readings
+      # and teaching Blocks. What is special is the service, not a span inside
+      # it. It is a Recording kind — see features/README.md, "The three
+      # vocabularies", which this table is the authority for.
       Examples:
         | type              | meaning                                                     |
         | announcements     | welcome, notices, housekeeping                              |
         | music             | congregational singing or instrumental                      |
-        | prayer            | someone praying aloud                                       |
-        | scripture_reading | a passage being read                                        |
-        | sermon            | the Sunday sermon                                           |
-        | lesson            | a class or seminar session                                  |
+        | prayer            | someone praying aloud; may contain long silence             |
+        | scripture_reading | a passage being read, usually announced by reference        |
+        | sermon            | the Sunday message                                          |
+        | lesson            | a class session: teaching, usually followed by questions    |
+        | seminar           | a session of a multi-part course                            |
         | communion         | the invitation to and serving of communion                  |
-        | qa                | audience questions, typically after a class                 |
-        | rehearsal         | band practice or a sound check — playing, stopping, restarting |
-        | seminar           | a teaching session that is part of a multi-part course        |
-        | special_service   | a service that is not an ordinary Sunday: Good Friday, a seminar day, a prayer gathering |
+        | qa                | audience questions; short alternating turns                 |
+        | rehearsal         | playing, stopping, restarting — a run-through, not a performance |
         | other             | speech that is none of the above                            |
+
+    @happy-path
+    Scenario Outline: Only teaching Blocks can seed a Segment
+      # The three vocabularies are distinct and this is where they meet. A Block
+      # type is not a Segment classification; only these three cross over.
+      Then a Block typed "<type>" <seeds> a Segment
+
+      Examples:
+        | type              | seeds     |
+        | sermon            | seeds     |
+        | lesson            | seeds     |
+        | seminar           | seeds     |
+        | announcements     | never seeds |
+        | music             | never seeds |
+        | prayer            | never seeds |
+        | scripture_reading | never seeds |
+        | communion         | never seeds |
+        | qa                | never seeds |
+        | rehearsal         | never seeds |
+        | other             | never seeds |
+
+    @happy-path
+    Scenario: Consecutive Blocks of one type are one Block for seeding
+      # 2026-09-13: the classifier split the class at 0:01:43, typing both
+      # halves `lesson` correctly, and seeding each produced a 1.7-minute
+      # Segment from the first fragment. Runs are coalesced before seeding.
+      Given two adjacent Blocks are both typed "lesson"
+      When Segment proposal runs
+      Then one Segment is seeded, not two
+      And it spans both Blocks
 
     @happy-path
     Scenario: A whole service classified
@@ -260,20 +294,26 @@ Feature: Classifying each block
       # gathering with worship, intercessory prayer, sermons and personal
       # testimony. Both previously classified as "other", which tells a reviewer
       # nothing about a recording they may well want to publish.
+      # Two separate labels, and conflating them was the bug: the *Recording*
+      # is the unusual thing, its teaching Blocks are ordinary teaching.
       Given a Recording that is "<event>"
       When block classification runs
-      Then its teaching Blocks are typed "<type>"
+      Then the Recording kind is "<kind>"
+      And its teaching Blocks are typed "<block type>"
       And the Recording is summarised as "<event>" rather than as "other"
 
       Examples:
-        | event                                    | type            |
-        | a Good Friday service                    | special_service |
-        | a Saturday worship and prayer gathering  | special_service |
-        | a seminar day with several sessions      | seminar         |
+        | event                                    | kind            | block type |
+        | a Good Friday service                    | special_service | sermon     |
+        | a Saturday worship and prayer gathering  | special_service | sermon     |
+        | a seminar day with several sessions      | special_service | seminar    |
+        | an ordinary Sunday                       | service         | sermon     |
+        | a members' meeting                       | meeting         | other      |
+        | band practice, start to finish           | rehearsal       | rehearsal  |
 
     @happy-path
     Scenario: A special service still produces a reviewable Segment
-      Given a Recording classified "special_service"
+      Given a Recording whose kind is "special_service"
       Then a Segment is proposed for each sustained teaching Block
       And the reviewer decides what to publish, as with any other Recording
       # The point of the type is that the reviewer is told what they are looking
