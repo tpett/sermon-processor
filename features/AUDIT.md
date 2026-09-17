@@ -307,10 +307,48 @@ five to ten others.
 | Hole | Three silent-drop paths (clock reset, naming change, ingest cutoff) and no 403 handling anywhere | Skipped objects are recorded with a reason and visible; a credential failure is not treated as transient |
 | Honesty | `@measured` was carrying interview hedges — "probably even 250 ms" asserted as 250 ms — and pure policy | Split into `@measured`, `@stated` and `@policy`, each defined in README |
 
+## Third pass — 2026-09-17 — the three concept-level items, closed
+
+All three were done as single sweeps across every file, which is what this
+section asked for. Each found more than it was described as:
+
+1. **Confidence** was not "eleven files carrying an ordinal" — it was
+   load-bearing in twelve and *defined in none*. Now computed from named
+   observable inputs with a table of which are always available. The confidence
+   floor is gone; it could only have thresholded the model's constant. Its old
+   behaviour also retyped an unsure Block to `other`, which silently destroys
+   the Segment, since `other` does not seed.
+2. **The type table** was not four disagreeing lists — three different *levels*
+   of thing shared one vocabulary. Block type, Segment classification and
+   Recording kind are now separate, `special_service` moved out of the Block
+   table, and three scenarios asserting impossible Segments (`music`, `other`,
+   and Blocks typed with a Recording kind) were rewritten.
+3. **The state machines** were missing four states and five transitions, and had
+   one real deadlock: a Recording stuck in `discovered` for want of disk, which
+   reconciliation will never re-queue. Both diagrams now carry a table of every
+   state and how it is left.
+
+**Verified afterwards, not assumed:** every Block type asserted anywhere is in
+the defined set; Segment classifications reduce to the three the seed rule can
+produce plus `meeting`; all sixteen states asserted across the features appear in
+the exits table.
+
+**Also closed since the second pass:** the acceptance bar (there is none — the
+suite is a regression instrument, and two things became assertable in its place:
+a 1.0 s leading-silence cap and signed punch-in error), authentication (none,
+tailnet is the perimeter), and the punch-out tail (1.5 s, chosen by ear).
+
+**And added:** `DOMAIN.md`, the data model. The feature files said what the
+system does and nothing said what it holds, which is not a spec you can choose a
+framework against.
+
+Two `@needs-decision` tags remain in the whole spec: whether a second analysis
+runs for the agreement signal, and whether a hard delete exists.
+
 ## Still outstanding, and why
 
-**Concept-level, not yet done.** The coherence review is right that these need one
-pass each across every file rather than a patch:
+**Concept-level — DONE 2026-09-17, see the third pass above.** Retained as
+written so the third pass can be checked against what it was asked to do:
 
 1. **Confidence.** Eleven files still carry an ordinal or numeric confidence,
    including a *confidence floor* in `block_classification.feature` that would
