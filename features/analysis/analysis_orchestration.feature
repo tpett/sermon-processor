@@ -15,6 +15,43 @@ Feature: Analysis orchestration
     And the Recording is 3:12:00 long
     And it contains a 9:00 class and the 10:30 service
 
+  Rule: Inference is reached over HTTP, and only over HTTP
+
+    # Settled 2026-09-17. Reasoning runs on a separate always-on Mac because the
+    # app server has little GPU. That host serves ollama and nothing else.
+    #
+    # "Normal operations of this tool should only invoke ollama over the API. We
+    # will not deploy ssh credentials to the production environment to be able to
+    # talk to mac-m1 that way."
+    #
+    # This is a boundary on the *runtime*, not on how the host was set up. It
+    # decides where each stage can physically run, so it belongs here rather than
+    # in a deployment note nobody reads.
+
+    @happy-path
+    Scenario: Reasoning stages call the model host over its API
+      Given block classification and summarisation need a language model
+      When those stages run
+      Then they issue HTTP requests to the configured model endpoint
+      And they hold no credentials for the machine serving it
+      And they never open a shell on it
+
+    @happy-path @measured
+    Scenario: Speech-to-text cannot be delegated to that endpoint
+      # Checked on ollama 0.32.15 and 0.34.0: `POST /v1/audio/transcriptions`
+      # exists and routes, but every `whisper` tag in the library registry 404s
+      # and `ollama pull whisper` fails. The endpoint has no model behind it.
+      Then transcription runs wherever the application itself runs
+      And it is not sent to the model endpoint
+
+    @edge-case
+    Scenario: The model host is unreachable
+      Given the model endpoint does not answer
+      When analysis reaches a reasoning stage
+      Then the Recording is left in a state the run can resume from
+      And the stages already cached are not recomputed
+      And the failure names the endpoint, not a generic model error
+
   Rule: The pipeline runs its stages in dependency order
 
     @happy-path

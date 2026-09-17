@@ -1,6 +1,6 @@
 # Where this project stands
 
-Last updated 2026-09-16. Read this first; it is the handoff.
+Last updated 2026-09-17. Read this first; it is the handoff.
 
 ## What exists
 
@@ -90,6 +90,39 @@ Four open, three settled. **Nothing now blocks the build except a benchmark.**
    Re-render the archive, or accept the step change?
 7. **The loudness itself.** `experiments/work/ab/` holds four A/B clips, unheard.
    A is the new pipeline, B is the hand-made one.
+
+## Where things run — settled 2026-09-17
+
+```
+app server (linux, docker, little GPU)        mac-m1 (M1 Max, 64 GB)
+  ingest, envelope, probe, waveform             ollama 0.34.0
+  preview, TRANSCRIPTION, DIARIZATION   ──API──▶ qwen3.6:35b-mlx  (classification)
+  segment derivation, render                    qwen3:4b          (summaries, to pull)
+```
+
+- **HTTP only.** The app holds no credentials for mac-m1 and never opens a shell
+  on it. `analysis_orchestration.feature` asserts this.
+- **mac-m1 serves ollama and nothing else.** It is also the owner's active dev
+  machine. `OLLAMA_HOST=0.0.0.0:11434` is set in
+  `~/Library/LaunchAgents/sh.brew.ollama.plist` (backed up beside it), and the
+  macOS firewall allows the binary at
+  `/opt/homebrew/Cellar/ollama/**0.34.0**/libexec/ollama` — **a version-pinned
+  path that a `brew upgrade` will invalidate, silently.** Connections then hang
+  rather than refuse.
+- **Transcription cannot be delegated to ollama.** Its
+  `/v1/audio/transcriptions` endpoint exists but has no model behind it, on
+  0.32.15 and 0.34.0 alike.
+
+### The open risk this creates
+
+Transcription must therefore run in the app container, on Linux, **without mlx**
+— and every boundary number in FINDINGS was measured on mlx word timestamps that
+punch-ins snap to. faster-whisper or whisper.cpp use the same weights and a
+different alignment. **Nothing is known about how far the boundaries move.**
+Measuring that is the next task, and it needs no machine but the laptop.
+
+`sherpa-onnx` is not affected — it ships manylinux wheels for x86_64 and aarch64,
+so diarization ports unchanged.
 
 ## Work queued, in order
 
