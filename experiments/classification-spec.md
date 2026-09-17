@@ -60,6 +60,21 @@ cause instead of two.
 }
 ```
 
+**On the `confidence` field.** It is still required of candidates, because a
+model that cannot be asked for one is a model that cannot be compared with the
+others, and refusing it would change what is being measured mid-experiment.
+
+But it is **diagnostic only, and the experiment showed why**: every candidate
+returns approximately 0.95 regardless of whether the answer is right. Measured
+0.95 on a correct punch-in and 0.95 on one wrong by 659 seconds, in the same
+run. Treat it as a field the protocol requires, not as information.
+
+Reviewer-facing confidence is computed from evidence that can be checked
+independently of the model — cut difficulty, cue presence, position in the
+running order, length and start time against their usual bands, and agreement
+with a second analysis. See `../features/analysis/analysis_confidence.feature`,
+which is the authority. Nothing downstream may threshold this field.
+
 ### Block types
 
 | Type | Definition |
@@ -74,6 +89,26 @@ cause instead of two.
 | `qa` | Audience questions. Short alternating turns, questions often inaudible. |
 | `other` | Speech that is none of the above. |
 
+**This table is what the experiment ran with, and it is deliberately left
+alone.** Every prompt in `prompts/`, every transcript in `data/`, and every
+number in `FINDINGS.md` used exactly these nine types. Editing it would
+misdescribe what was measured.
+
+The specification has since settled on eleven, and the delta matters if this
+experiment is ever re-run:
+
+- **`seminar`** — a session of a multi-part course. Was folded into `lesson`
+  here, which is why the 2026-07-18 course recordings had nowhere accurate to
+  land. It seeds a Segment.
+- **`rehearsal`** — a run-through: playing, stopping, restarting. Was `music` or
+  `other` here. Both blind runs classified band practice correctly anyway and
+  proposed zero Segments, so nothing measured depended on it.
+- **`special_service`** appeared briefly in the feature files as a Block type and
+  was wrong there. It is a *Recording* kind, not a Block type, and never belonged
+  in this table.
+
+`../features/README.md`, "The three vocabularies", is the authority.
+
 ### Rules the output must satisfy
 
 1. Blocks are contiguous and non-overlapping, covering `[0, duration]`.
@@ -81,6 +116,10 @@ cause instead of two.
 3. `segments` is derived by one rule, and candidates are expected to apply it:
    **seed on a `sermon` or `lesson` block; extend forward through an
    immediately following `prayer` block; stop there.**
+   (The specification adds `seminar` as a third seed type, and coalesces
+   consecutive same-typed blocks before seeding — a class the classifier split
+   in two is one class. Neither was in force when these numbers were measured;
+   the coalescing fix came out of 2026-09-13. See `src/segments.py`.)
 4. `punch_in` and `punch_out` are absolute seconds against the source file.
 5. Zero segments is a valid answer, and is correct for band practice or a false
    trigger.

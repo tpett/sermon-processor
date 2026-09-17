@@ -85,7 +85,8 @@ Feature: Classifying each block
         | communion         |
         | music             |
         | prayer            |
-      And each type carries a confidence
+      And each type carries a confidence derived from evidence, not self-reported
+      # See analysis/analysis_confidence.feature for what derives it.
       And each carries the evidence that produced it
 
   Rule: Spoken cues drive classification
@@ -340,13 +341,37 @@ Feature: Classifying each block
       And Segment proposal runs again for the affected Blocks
       And any boundary the reviewer set by hand is preserved
 
-    @edge-case
+    @edge-case @measured
     Scenario: Classification is unsure
-      Given no type scores above the confidence floor for a Block
+      # This used to say "no type scores above the confidence floor", which
+      # cannot work: the only per-type score available is the model's own
+      # number, and that is a constant at 0.95 (see
+      # analysis/analysis_confidence.feature). A floor on it would either fire
+      # never or always.
+      #
+      # What actually indicates an unsure classification is the *absence of
+      # corroborating evidence*, which is observable.
+      Given a Block has none of the following:
+        | corroboration                                        |
+        | a cue phrase matching its type                       |
+        | a position consistent with the expected running order |
+        | a duration typical of its type                       |
+        | a speaker distinct from the surrounding Blocks        |
       When block classification runs
-      Then the Block is typed "other"
+      Then the Block keeps the type the classifier gave it
+      And its classification confidence is "low"
       And it is flagged as needing the reviewer to look at it
-      And the top candidate types are offered as suggestions
+      And the evidence states which corroboration was missing
+
+    @edge-case
+    Scenario: An unsure teaching Block still produces a Segment
+      # The previous version retyped an unsure Block to "other", which would
+      # silently destroy the Segment -- `other` does not seed. Flagging a
+      # low-confidence sermon is useful; deleting it is not.
+      Given a Block typed "sermon" with low classification confidence
+      When Segment proposal runs
+      Then a Segment is still seeded on it
+      And it is shown as needing attention
 
     @edge-case
     Scenario: A block that is genuinely two things

@@ -9,6 +9,27 @@ Feature: Proposal confidence and evidence
   ends* (boundaries). A Segment can be confidently a sermon with badly guessed
   boundaries, or vice versa, and the reviewer needs to know which.
 
+  **Confidence is computed, never reported.** This is the whole of it, and the
+  rest of this file follows from it. A language model asked how confident it is
+  answers 0.95 — on a correct boundary and on one wrong by 659 seconds, in the
+  same run. It is a constant. So confidence here is *derived* from things that
+  can be checked independently of the model that produced the answer, and the
+  three levels are `high`, `medium` and `low` rather than a number, because a
+  number implies a precision none of these inputs have.
+
+  The inputs, and what each one can tell you:
+
+  | Input | Available always? | Bears on |
+  | --- | --- | --- |
+  | cut difficulty — quiet around the boundary | yes, computed from the envelope | boundaries |
+  | leading silence after the punch-in | yes | boundaries |
+  | expected cue found (reading before, amen/communion after) | yes | both |
+  | position in the expected running order | yes | classification |
+  | Segment length against the usual 30–75 minute band | yes | classification |
+  | wall-clock start against the usual 10:50–10:57 band | yes, for a Sunday service | classification |
+  | a known speaker matched | only if voice profiles exist | classification |
+  | **agreement with a second, independent analysis** | **only if one is run — see the last Rule** | both |
+
   Background:
     Given a Recording with classified Blocks and proposed Segments
 
@@ -47,10 +68,17 @@ Feature: Proposal confidence and evidence
 
     @happy-path @measured
     Scenario Outline: Agreement between two independent analyses is the signal
-      # Measured: across the corpus the failures are the cases where two models
-      # disagreed with each other or with the human. On the one blind recording,
-      # two independent models chose the identical punch-in to the sample and the
-      # cut was right. Agreement needs no calibration — only a second run.
+      # Measured: across the corpus the failures are the cases where two
+      # analyses disagreed with each other or with the human. Agreement needs no
+      # calibration — only a second run.
+      #
+      # Honest about the evidence: the *ladder's* control was genuinely
+      # independent (a separate model in a separate context) and that is what
+      # this rests on. The three blind runs reported "both models agreed" where
+      # the second reading was the orchestrating agent, not an independent
+      # system — see the correction at the end of experiments/FINDINGS.md. The
+      # signal is real; two of the four data points for it are weaker than they
+      # were written up as.
       Given a second, independent analysis of the same Recording
       And the two proposed punch-ins differ by <gap>
       Then the Segment is shown as "<badge>"
@@ -90,6 +118,40 @@ Feature: Proposal confidence and evidence
         | 2:00:20  | speaker change to a new voice                    | punch-in        |
         | 2:43:28  | closing prayer ends with "amen"                  | punch-out       |
         | 2:43:35  | communion invitation begins                      | post-sermon     |
+
+  Rule: A second opinion is what makes agreement available
+
+    @happy-path @needs-decision
+    Scenario: Whether to run a second analysis at all
+      # **Open decision.** Agreement is the strongest confidence signal measured,
+      # and it is the only one that needs something the pipeline does not
+      # currently do: a second pass with a different model.
+      #
+      # The cost is concrete. The model host holds `qwen3.6:35b-mlx` (23.6 GB)
+      # and `qwq:32b` (19.9 GB). Loading both at once is 43 GB of 64 GB on a
+      # machine that is also a working dev box; loading them in turn costs about
+      # 19 seconds per swap plus a second full classification pass — on the order
+      # of a minute or two for a three-hour recording, once a week.
+      #
+      # Against that: without it, boundary confidence rests on cut difficulty and
+      # cue presence alone, and the "hard cut, check this one" behaviour this
+      # spec asks for gets materially weaker.
+      Given a Recording has been analysed once
+      When a second analysis is configured
+      Then it uses a different model from the first
+      And it reads the same transcript, so only the reasoning differs
+      And its result is used for agreement only, never as the proposal
+
+    @edge-case
+    Scenario: No second opinion is configured
+      # Must degrade, not break. This is the default until the decision above is
+      # made, and it is also what happens whenever the second model is
+      # unavailable.
+      Given no second analysis is configured
+      When scoring runs
+      Then confidence is computed from the remaining inputs
+      And the reviewer is not shown an agreement badge
+      And the absence is stated rather than shown as agreement
 
   Rule: Missing evidence lowers confidence rather than blocking the Proposal
 
