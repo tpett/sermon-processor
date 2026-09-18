@@ -60,16 +60,9 @@ def blocks_from_diarization(doc: dict, dia: dict) -> list[dict]:
                 left = segs[i - 1] if i > 0 else None
                 right = segs[i + 1] if i + 1 < len(segs) else None
                 me = segs[i]["speaker"]
-                # Absorb into whichever neighbour shares this voice, and only
-                # fall back to "the longer one" when neither does.
-                #
-                # Picking purely by length moved boundaries badly: a preacher's
-                # opening lines come back as several short turns, so the first
-                # 40 s of a sermon fell under the minimum and was absorbed
-                # *backwards* into the scripture reading. That pushed the block
-                # edge 30-40 s past the true punch-in on two dev recordings,
-                # while the raw diarizer edge was within 0.2-3.0 s of it. The
-                # boundary was there; the smoothing was throwing it away.
+                # Voice before length: a preacher's short opening turns are
+                # otherwise absorbed backwards into the scripture reading,
+                # moving the block edge 30-40 s past the punch-in.
                 if left is not None and left["speaker"] == me:
                     pick = left
                 elif right is not None and right["speaker"] == me:

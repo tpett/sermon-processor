@@ -215,24 +215,9 @@ def refine_out(utts: list[dict], block_type: str = "sermon") -> float | None:
     return end
 
 
-# The editor leaves a silent tail after the closing amen. Measured across the
-# hand-made edits: 1.0-1.9 s after the last transcribed word on 22 of 24
-# segments, median about 1.3 s, and a +1.20 s constant fitted on dev moved
-# held-out `out<=1s` from 7/14 to 11/14.
-#
-# `refine_out` returns a *word end*, which is earlier still, because Whisper's
-# word-end timestamps stop before the sound does. Measured on 2026-09-06: the
-# closing "Amen" is transcribed as ending at 4165.94 s while its energy peaks at
-# 4165.85-4166.05 and does not reach room tone until 4166.10 — the transcript is
-# 0.16 s early, so a cut on the word end lands mid-vowel. The tail has to cover
-# the decay as well as the silence.
-#
-# 1.5 s is the owner's choice, made by listening to one real cut at 0.0 s, 1.5 s
-# and 3.5 s of tail (2026-09-07). It sits inside the measured band. At 0.0 s the
-# amen is clipped; by 3.5 s the preacher's next breath is audible and the file
-# "leaves you hanging".
+# A word end is ~0.16 s before the sound stops, so the tail covers the decay and
+# not only the silence. FINDINGS: "The punch-out tail, settled by ear".
 TAIL_S = 1.5
-# ...but never so far that the next block's first breath gets in.
 TAIL_GUARD_S = 0.4
 
 
@@ -376,18 +361,9 @@ def choose(model_segments, derived, doc):
     Plausibility is judged against the spec's own length band, not against
     anything fitted to the corpus.
     """
-    # Pair by overlap, never by position. The two lists are built differently --
-    # `derived` is seeded from the model's *blocks*, `model_segments` is what the
-    # model wrote in its segments list -- so they can differ in length whenever
-    # the model's blocks and its own segments disagree about how many teaching
-    # sessions there were.
-    #
-    # Measured 2026-09-13: three derived segments against two model segments
-    # silently zipped the class to the class, the *sermon* to the second derived
-    # class segment, and left the real sermon unpaired. The recording ended up
-    # with a 1.7-minute fragment and the sermon twice, once labelled `lesson`.
-    # Every earlier blind run had exactly one of each, so position and overlap
-    # agreed and the defect was invisible.
+    # The two lists can differ in length -- `derived` is seeded from the model's
+    # blocks, `model_segments` is what it wrote -- so pairing by position
+    # mismatches every entry after a disagreement.
     used: set[int] = set()
 
     def best_candidate(d):
