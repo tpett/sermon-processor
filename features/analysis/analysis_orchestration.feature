@@ -72,8 +72,9 @@ Feature: Analysis orchestration
         | segment_proposal     | publishable Segments built from Blocks              |
         | boundary_refinement  | precise punch-in and punch-out per Segment          |
         | scoring              | a Proposal per Segment, with its evidence           |
-      And blocking and block_classification iterate until stable, because a block
-        edge can depend on what its neighbour turns out to be
+      # They iterate until stable, because a block edge can depend on what its
+      # neighbour turns out to be.
+      And blocking and block_classification iterate until stable
       And when scoring completes the Recording enters "awaiting_review"
       # An `agreement` stage -- a second independent analysis feeding the review
       # signal -- was specified here and is **not in v1** (2026-09-18). It would

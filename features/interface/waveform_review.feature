@@ -136,8 +136,12 @@ Feature: Reviewing the waveform
 
     @happy-path
     Scenario: Zoom is chosen from named steps
-      Then the zoom steps offered are the whole recording, a few minutes,
-        thirty seconds, and three seconds
+      Then the zoom steps offered are:
+        | step            |
+        | whole recording |
+        | a few minutes   |
+        | thirty seconds  |
+        | three seconds   |
       And each step states what it is for
       And the three-second step is the one that places a cut
 

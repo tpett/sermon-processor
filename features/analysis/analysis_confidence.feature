@@ -61,8 +61,7 @@ Feature: Proposal confidence and evidence
       # Measured: models report 0.95 on essentially every segment, including one
       # whose punch-in was wrong by 659 seconds and a correct one in the same
       # run. It is a constant and carries no information.
-      Then no reviewer-facing behaviour depends on a confidence value the model
-        reported about itself
+      Then no reviewer-facing behaviour depends on a model's self-reported confidence
       And a self-reported confidence may be stored for diagnosis
       And it is never shown to a reviewer as a quality signal
 
@@ -137,8 +136,14 @@ Feature: Proposal confidence and evidence
       # missing.
       Given a Recording has been analysed
       Then exactly one analysis informs the Proposal
-      And confidence is computed from cut difficulty, leading silence, cue
-        presence, position in the running order, and the length and start-time bands
+      And confidence is computed from these inputs only:
+        | input                            |
+        | cut difficulty                   |
+        | leading silence                  |
+        | cue presence                     |
+        | position in the running order     |
+        | the length band                  |
+        | the start-time band              |
       And no agreement badge is shown
       And nothing implies a second opinion was sought and agreed
 
