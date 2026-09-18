@@ -2,7 +2,13 @@
 
 Last updated 2026-09-18. Read this first; it is the handoff.
 
-**The specification is done for v1. Nothing is blocking a build.**
+**The specification is done for v1, and the stack is chosen. See
+[ARCHITECTURE.md](ARCHITECTURE.md).**
+
+Python throughout: the existing pipeline extracted into a package, Flask as a
+thin API, a `Job` table rather than a broker, SQLite and files, a vanilla
+ES-modules client, and `pytest-bdd` + Playwright running all 460 scenarios from
+one runner. Reasoning stays on mac-m1 over HTTP.
 
 ## What exists
 
