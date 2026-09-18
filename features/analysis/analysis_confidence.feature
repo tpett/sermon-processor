@@ -28,7 +28,7 @@ Feature: Proposal confidence and evidence
   | Segment length against the usual 30–75 minute band | yes | classification |
   | wall-clock start against the usual 10:50–10:57 band | yes, for a Sunday service | classification |
   | a known speaker matched | only if voice profiles exist | classification |
-  | **agreement with a second, independent analysis** | **only if one is run — see the last Rule** | both |
+  | ~~agreement with a second, independent analysis~~ | **not in v1** — see the last Rule | both |
 
   Background:
     Given a Recording with classified Blocks and proposed Segments
@@ -66,8 +66,17 @@ Feature: Proposal confidence and evidence
       And a self-reported confidence may be stored for diagnosis
       And it is never shown to a reviewer as a quality signal
 
-    @happy-path @measured
+    @deferred @measured
     Scenario Outline: Agreement between two independent analyses is the signal
+      # **Not in v1** (2026-09-18): "we can always refine the process later. I
+      # think what we have is good enough for v1."
+      #
+      # Kept in full because the evidence for it is the strongest in the project
+      # and a later reader should not have to rediscover it. See also the
+      # 2026-09-17 engine trace: of eight recordings, the one whose final cut
+      # differed materially was a 19.6 s disagreement between two runs on nearly
+      # identical transcripts -- precisely what this badge would have caught, and
+      # precisely what v1 will not catch.
       # Measured: across the corpus the failures are the cases where two
       # analyses disagreed with each other or with the human. Agreement needs no
       # calibration — only a second run.
@@ -92,18 +101,18 @@ Feature: Proposal confidence and evidence
 
     @happy-path @measured
     Scenario: Cut difficulty is the second half of the signal
-      # Already computed on every boundary from the silence around it, and worth
-      # surfacing: a cut with no quiet to land in is one a human should see even
-      # when the models agree.
+      # Already computed on every boundary from the silence around it, and in v1
+      # it is the *primary* signal rather than the second half of one -- with no
+      # agreement badge, a cut with no quiet to land in is the main thing that
+      # asks a reviewer to listen.
       Given the punch-in is graded "hard"
-      Then the Segment is shown as needing attention regardless of agreement
+      Then the Segment is shown as needing attention
       And the reason is stated, for example "no clean cut point at the punch-in"
 
     @happy-path
     Scenario: What a reviewer is told, in order of usefulness
       Then the Segment carries, most useful first:
         | signal                                              |
-        | whether a second analysis agrees, and by how much   |
         | whether either boundary is a hard cut               |
         | the evidence behind the classification              |
         | how the segment length compares to the usual range  |
@@ -119,39 +128,45 @@ Feature: Proposal confidence and evidence
         | 2:43:28  | closing prayer ends with "amen"                  | punch-out       |
         | 2:43:35  | communion invitation begins                      | post-sermon     |
 
-  Rule: A second opinion is what makes agreement available
+  Rule: v1 runs one analysis, and says so
 
-    @happy-path @needs-decision
-    Scenario: Whether to run a second analysis at all
-      # **Open decision.** Agreement is the strongest confidence signal measured,
-      # and it is the only one that needs something the pipeline does not
-      # currently do: a second pass with a different model.
+    @happy-path
+    Scenario: One analysis is the v1 behaviour, not a degraded mode
+      # Settled 2026-09-18. What was written as a fallback is now the whole of
+      # it, so it has to read as a complete design rather than as something
+      # missing.
+      Given a Recording has been analysed
+      Then exactly one analysis informs the Proposal
+      And confidence is computed from cut difficulty, leading silence, cue
+        presence, position in the running order, and the length and start-time bands
+      And no agreement badge is shown
+      And nothing implies a second opinion was sought and agreed
+
+    @happy-path
+    Scenario: What the reviewer loses, stated where they can see it
+      # The honest consequence. Without agreement a confidently wrong boundary
+      # looks exactly like a confidently right one -- the 19.6 s case had nothing
+      # distinguishing it from the six that were correct.
+      Then the Segment does not claim more certainty than one analysis supports
+      And cut difficulty remains the signal that asks for a listen
+
+    @deferred
+    Scenario: Adding a second opinion later changes scoring, not the pipeline
+      # Why this is safe to leave out of v1: the second analysis reads the same
+      # frozen transcript and only the reasoning differs, so it is an added stage
+      # rather than a change to any existing one. Nothing in v1 needs to be built
+      # differently to accommodate it.
       #
-      # The cost is concrete. The model host holds `qwen3.6:35b-mlx` (23.6 GB)
-      # and `qwq:32b` (19.9 GB). Loading both at once is 43 GB of 64 GB on a
-      # machine that is also a working dev box; loading them in turn costs about
-      # 19 seconds per swap plus a second full classification pass — on the order
-      # of a minute or two for a three-hour recording, once a week.
-      #
-      # Against that: without it, boundary confidence rests on cut difficulty and
-      # cue presence alone, and the "hard cut, check this one" behaviour this
-      # spec asks for gets materially weaker.
-      Given a Recording has been analysed once
-      When a second analysis is configured
+      # The cost, recorded so it does not need re-deriving: the model host holds
+      # `qwen3.6:35b-mlx` (23.6 GB) and `qwq:32b` (19.9 GB). Both resident is
+      # 43 GB of 64 GB on a machine that is also a working dev box; in turn it is
+      # about 19 seconds per swap plus a second classification pass — a minute or
+      # two for a three-hour recording, once a week.
+      Given a second analysis is added after v1
       Then it uses a different model from the first
       And it reads the same transcript, so only the reasoning differs
       And its result is used for agreement only, never as the proposal
-
-    @edge-case
-    Scenario: No second opinion is configured
-      # Must degrade, not break. This is the default until the decision above is
-      # made, and it is also what happens whenever the second model is
-      # unavailable.
-      Given no second analysis is configured
-      When scoring runs
-      Then confidence is computed from the remaining inputs
-      And the reviewer is not shown an agreement badge
-      And the absence is stated rather than shown as agreement
+      And no existing stage changes
 
   Rule: Missing evidence lowers confidence rather than blocking the Proposal
 

@@ -73,19 +73,21 @@ Feature: Discarding and skipping
       And the Recording's record and analysis artifacts are retained
       # Q34 — should discarding eventually free local disk? After how long?
 
-    @edge-case @needs-decision
+    @deferred
     Scenario: Permanently deleting a recording
-      # Q35 — **still open: do you want a hard delete at all?** The "who" half
-      # is now answered and needs no separate decision: authentication is none
-      # and there are no roles (interface/authentication.feature), so anyone on
-      # the tailnet could do this. That makes an irreversible local delete a
-      # sharper question than it was when an admin role was assumed, not a
-      # softer one.
+      # Q35 — **not in v1** (2026-09-18). There is no hard delete: `discarded`
+      # retains the record and the derived artifacts, and the source object is
+      # never touched by anything.
       #
-      # Everything below is safe regardless of how you answer, because the
-      # object store keeps the source: the worst case is re-downloading and
-      # re-analysing, which costs minutes, not content. That is why this is the
-      # last undecided scenario in the spec rather than a blocking one.
+      # That is the safe default rather than a gap, for two reasons. The object
+      # store keeps every source indefinitely, so nothing is at risk of being
+      # lost by *not* deleting. And authentication is none with no roles
+      # (interface/authentication.feature), so a hard delete would be an
+      # irreversible action available to anything on the tailnet — the one
+      # combination worth avoiding until there is a reason for it.
+      #
+      # Kept specified because the shape is settled and only the scheduling is
+      # not. Whoever adds it should add it exactly like this.
       Given a Recording in state "discarded"
       When it is permanently deleted
       Then the local audio and derived artifacts are removed

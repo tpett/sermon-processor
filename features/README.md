@@ -329,6 +329,7 @@ machine proposal.
 | `@edge-case` | Real failure modes we know about |
 | `@assumption` | Behaviour invented to fill a gap. Confirm before building. |
 | `@needs-decision` | Cannot be built until a question in QUESTIONS.md is answered. |
+| `@deferred` | Specified, understood, and deliberately **not in v1**. The comment says who decided and why. These are not holes — leaving them unwritten would be the hole, because the reason they were dropped is the thing a later reader needs. |
 | `@measured` | A number here came from the corpus. The comment names what was measured and over how many recordings. |
 | `@stated` | The owner said this in QUESTIONS.md. A preference, not an observation — and the corpus sometimes disagrees with it. |
 | `@policy` | A decision about how the system should behave. Nothing measured it and nothing could. |

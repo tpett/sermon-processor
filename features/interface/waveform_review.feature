@@ -78,13 +78,15 @@ Feature: Reviewing the waveform
 
   Rule: I can listen to the audio
 
-    @happy-path @needs-decision
+    @deferred
     Scenario: Playback speed
-      # **Open, and small.** The three-click week is two short auditions, where
-      # speed is irrelevant. It would only matter for listening through a segment
-      # to judge content rather than boundaries, which is not a job this screen
-      # claims. Left undecided rather than assumed in either direction.
-      Then whether playback speed can be changed is not yet decided
+      # **Not in v1** (2026-09-18). Playback is single-speed.
+      #
+      # The three-click week is two short auditions, where speed is irrelevant.
+      # It would only matter for listening through a segment to judge content
+      # rather than boundaries, and that is not a job this screen claims.
+      Then playback runs at normal speed
+      And no speed control is offered
 
 
     @happy-path

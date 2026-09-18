@@ -71,13 +71,16 @@ Feature: Analysis orchestration
         | summarization        | a one-line summary and cue excerpt per Block        |
         | segment_proposal     | publishable Segments built from Blocks              |
         | boundary_refinement  | precise punch-in and punch-out per Segment          |
-        | agreement            | a second independent analysis, for the review signal |
         | scoring              | a Proposal per Segment, with its evidence           |
       And blocking and block_classification iterate until stable, because a block
         edge can depend on what its neighbour turns out to be
-      And the agreement stage repeats segment_proposal independently, so it runs
-        after it rather than before
       And when scoring completes the Recording enters "awaiting_review"
+      # An `agreement` stage -- a second independent analysis feeding the review
+      # signal -- was specified here and is **not in v1** (2026-09-18). It would
+      # sit between boundary_refinement and scoring, repeating segment_proposal
+      # against a different model on the same frozen transcript. Left out of the
+      # table rather than listed as disabled, so nothing builds a stage that does
+      # not run. See analysis/analysis_confidence.feature.
       And a notification is sent to the reviewers unless nothing publishable was found
 
     @happy-path

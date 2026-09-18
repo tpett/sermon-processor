@@ -128,7 +128,8 @@ Feature: Proposing publishable segments
         | a boundary falls outside the Recording                           |
         | the punch-in is more than 30 s from the nearest Block edge        |
         | the punch-in falls outside the Block the Segment is seeded on     |
-        | a second independent analysis disagrees by more than 30 s         |
+        # `a second independent analysis disagrees by more than 30 s` was a
+        # condition here and is not in v1 -- there is only one analysis.
 
     @happy-path @measured
     Scenario: A plausible proposal is taken as it stands

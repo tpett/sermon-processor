@@ -2,6 +2,8 @@
 
 Last updated 2026-09-18. Read this first; it is the handoff.
 
+**The specification is done for v1. Nothing is blocking a build.**
+
 ## What exists
 
 **Nothing is built.** There is a specification, an experiment that tested whether
@@ -61,35 +63,33 @@ reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
   "welcome to our theological equipping class" where 08-02 opens with several
   minutes of gathering — an easier instance, not a solved problem.
 
-## Open decisions — nothing proceeds far without these
+## Decisions — all settled
 
-Four open, three settled. **Nothing now blocks the build except a benchmark.**
+Nothing in `features/` carries `@needs-decision` any more. Four scenarios carry
+`@deferred`: specified, understood, and deliberately out of v1.
 
-1. ~~**The acceptance bar.**~~ **Settled 2026-09-16: there isn't one.** No error
-   figure is a release gate; the suite is a regression instrument. A human
-   approves every cut, and acceptable tolerance is per-recording — usually
-   seconds of slack, occasionally 200–300 ms. Two things did become assertable:
-   leading silence after the punch-in is capped at 1.0 s (it reads as a broken
-   file, not a loose cut), and punch-in error is reported signed, because late
-   clips content and early does not.
-2. ~~**Authentication.**~~ **Settled 2026-09-16: none.** Tailnet is the
-   perimeter, as it already is for the recorder and the S3 instance. The actor
-   on every action is recorded as `reviewer`, which is the seam to change if a
-   second person ever reviews.
-3. ~~**The punch-out tail.**~~ **Settled 2026-09-07: 1.5 seconds**, chosen by
-   listening to one real cut at 0.0 s, 1.5 s and 3.5 s. Measured behaviour won
-   over stated preference, and the reason turned out to be that a transcript's
-   word end is about 0.16 s before the sound actually stops. Held-out median
-   punch-out error 1.49 s → 0.76 s. In `segments.add_tail`.
-4. **Speaker capture at approval.** Surfacing who preached is the only defence
-   against publishing a guest who asked not to be. It reopens "nothing more is
-   collected".
-5. **Special services.** Good Friday and a Saturday prayer gathering currently
-   land in `other`. Own types, or `other` plus a good summary?
-6. **The back catalogue.** New output is 7–11 LU louder than everything published.
-   Re-render the archive, or accept the step change?
-7. **The loudness itself.** `experiments/work/ab/` holds four A/B clips, unheard.
-   A is the new pipeline, B is the hand-made one.
+| | |
+| --- | --- |
+| The acceptance bar | **There isn't one.** The suite is a regression instrument; a human approves every cut. A 1.0 s leading-silence cap and signed punch-in error became assertable in its place. |
+| Authentication | **None.** The tailnet is the perimeter, as it already is for the recorder and the object store. |
+| The punch-out tail | **1.5 s**, chosen by ear against 0.0 s and 3.5 s. |
+| A second opinion | **Not in v1.** "We can always refine the process later." |
+| Hard delete | **Not in v1.** `discarded` keeps everything; the source object is never touched. |
+| Playback speed | **Not in v1.** Single-speed playback. |
+| Speaker capture at approval | Specified in `segment_review.feature`; it is how a guest who asked not to be published is caught. |
+| Special services | A **Recording kind**, not a Block type. Settled by the vocabulary pass. |
+| The back catalogue | New output is 7–11 LU louder than the archive. Re-render or accept the step change — a publishing question, not a build one. |
+| The loudness itself | `experiments/work/ab/` holds four A/B clips, still unheard. |
+
+**What deferring the second opinion costs, stated once so it is not a surprise.**
+Cross-run agreement was the strongest confidence signal measured, and the
+2026-09-17 engine trace showed why: of eight recordings, the one whose final cut
+differed materially was a 19.6 s disagreement between two runs on near-identical
+transcripts. Nothing distinguished it from the six that were right. In v1, cut
+difficulty is the signal that asks the reviewer to listen, and a confidently
+wrong boundary looks like a confidently right one. It is safe to add later — the
+second analysis reads the same frozen transcript, so it is an added stage rather
+than a change to an existing one.
 
 ## Where things run — settled 2026-09-17
 
