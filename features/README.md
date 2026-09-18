@@ -324,7 +324,7 @@ machine proposal.
 
 | Tag | Meaning |
 | --- | --- |
-| `@ingestion` `@analysis` `@interface` `@processing` `@ops` | Subsystem |
+| `@ingestion` `@analysis` `@interface` `@processing` `@notifications` `@ops` | Subsystem |
 | `@happy-path` | The main flow — build these first |
 | `@edge-case` | Real failure modes we know about |
 | `@assumption` | Behaviour invented to fill a gap. Confirm before building. |
