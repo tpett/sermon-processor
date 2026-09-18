@@ -17,6 +17,36 @@ one, which outranks `CLAUDE.md` prose.
 | **LS-003** Service objects | **no** | Scoped to `app/services/**/*.rb`. Not a Rails app. The *naming* convention is worth keeping: third-person singular verb phrases. |
 | **LS-004** Comment discipline | yes, `(global)`, every language | The one with real consequences here. See below. |
 
+## How work gets done: `/do-bead`
+
+Beads is the task record and `.claude/skills/do-bead/` is how one gets executed.
+The shape is borrowed from Launchy's `launchy-implement-issue` and
+`launchy-review-changes`, reduced to what this project needs:
+
+```
+bd show → claim → implementer subagent (TDD) → parallel reviewers
+        → bounded fix loop (max 2) → verdict → close or report
+```
+
+Three properties are the point, and each is a rule in the skills:
+
+**The implementer and the reviewers are different agents.** Neither marks its own
+homework. The top-level session orchestrates and does not write the code.
+
+**Reviewers get one concern each and run in parallel.** Acceptance, scenario
+fidelity, comment discipline, code quality, plus a discretionary reviewer per
+constraint the bead implies. A reviewer straying outside its concern produces
+duplicate findings that waste a fix iteration.
+
+**Conventions are passed, not remembered.** The skill reads `CLAUDE.md` and hands
+it to each subagent verbatim. Paraphrasing from memory is how a convention quietly
+stops being enforced — which is the reason for writing them down at all.
+
+One classification is deliberately strict: **a scenario that passes while
+asserting something weaker than its Gherkin is Important, not Minor.** That is the
+failure this whole arrangement exists to prevent — the suite goes green and the
+spec stops meaning anything.
+
 ## LS-001 — TDD, and why this project is already mid-cycle
 
 460 scenarios exist and nothing implements them. **That is the Red phase for the
