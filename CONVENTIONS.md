@@ -33,10 +33,16 @@ Three properties are the point, and each is a rule in the skills:
 **The implementer and the reviewers are different agents.** Neither marks its own
 homework. The top-level session orchestrates and does not write the code.
 
-**Reviewers get one concern each and run in parallel.** Acceptance, scenario
-fidelity, comment discipline, code quality, plus a discretionary reviewer per
-constraint the bead implies. A reviewer straying outside its concern produces
-duplicate findings that waste a fix iteration.
+**Review is one subagent working a fixed checklist.** Acceptance, scenario
+fidelity, comment discipline, code quality, plus an item per constraint the bead
+implies. Parallel single-concern reviewers find more, but each costs another full
+copy of the diff, and at this size that is the wrong trade.
+
+What replaces their independence is a **per-concern verdict line**: the reviewer
+reports on every checklist item even when it has nothing to say, and a missing line
+is a failed review rather than an approval. That makes the single reviewer's real
+failure mode — running out of attention and quietly skipping the later items —
+detectable instead of invisible.
 
 **Conventions are passed, not remembered.** The skill reads `CLAUDE.md` and hands
 it to each subagent verbatim. Paraphrasing from memory is how a convention quietly

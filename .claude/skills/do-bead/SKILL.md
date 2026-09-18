@@ -1,6 +1,6 @@
 ---
 name: do-bead
-description: Implement one Beads issue end to end with subagent-driven development — a TDD implementer subagent, then a parallel reviewer set, a bounded fix loop, and a verdict. Use when the user names a bead (e.g. "do sp-1vn.1", "work the next bead") or asks to start the next ready piece of work.
+description: Implement one Beads issue end to end with subagent-driven development — a TDD implementer subagent, then an independent reviewer subagent, a bounded fix loop, and a verdict. Use when the user names a bead (e.g. "do sp-1vn.1", "work the next bead") or asks to start the next ready piece of work.
 argument-hint: "[bead id, or omit to take the first from bd ready]"
 ---
 
@@ -148,8 +148,8 @@ and why — that is a decision for the human, not a detail to absorb.
 
 ## Do not
 
-- Implement or review in the top-level session. Both are subagent work; the point
-  is that they are independent.
+- Implement or review in the top-level session. Both are subagent work, and the
+  point is that the reviewer is not the author.
 - Restate conventions from memory. Read `CLAUDE.md` and pass it.
 - Close a bead on a `changes_requested` verdict.
 - Fix Minor findings. File them.
