@@ -4,6 +4,44 @@ Feature: Reviewing the waveform
   As a reviewer
   I want to see and hear the audio around the proposed boundaries
 
+  The shape of this screen was settled by building it against real recordings
+  rather than by drawing it. What that exercise established, and what the
+  scenarios below are the consequences of:
+
+  **Two views, not one, and both on screen at once.** A single zoomable waveform
+  cannot do this job, because the two things a reviewer does need incompatible
+  scales. Finding the moment needs minutes in view; placing the cut needs
+  seconds. So there is an overview of the whole recording that never moves, and a
+  detail view that does — and the overview carries the detail view's window as a
+  marker, so the reviewer never loses the answer to "where am I".
+
+  **Zoom is a small set of named steps, not a slider.** The measured table below
+  is why: precision is not a smooth function of window size, it has a cliff. At
+  thirty seconds, 100 ms is under four pixels and placing a cut is awkward; at
+  three seconds it is thirty-seven pixels and comfortable. A continuous zoom
+  invites the reviewer to sit at the wrong scale and blame themselves for a
+  fiddly cut. Discrete steps — the whole recording, a few minutes, thirty
+  seconds, three seconds — each correspond to a task, and the last of them is the
+  only one where the cut actually gets placed.
+
+  **The words sit beside the detail view and belong to a different step.** At a
+  thirty-second window about forty-eight words are readable; at the tightest zoom
+  there are none, because a good cut lands in silence. That is not a defect of
+  the transcript panel — it is the signal that the reviewer has finished reading
+  and started placing.
+
+  **The numbers are part of the interface, not decoration.** Punch-in, punch-out,
+  length, and the gap to whatever comes next, all to hundredths. The gap is the
+  one a reviewer would otherwise have to infer from pixels, and it is exactly
+  what the tail rule and the 250 ms clearance are about.
+
+  One thing the exercise produced that deliberately does **not** appear here: it
+  showed each boundary's distance from the known human cut. That was an
+  instrument for judging the machine, and it has no counterpart in use — in
+  production there is no human boundary to compare against until the reviewer
+  makes one. Carrying it across would mean inventing a number, so the numbers
+  above are all about the audio and the proposal, never about correctness.
+
   Background:
     Given I am on the tailnet
     And a Recording in state "awaiting_review" with waveform peak data
@@ -40,6 +78,15 @@ Feature: Reviewing the waveform
 
   Rule: I can listen to the audio
 
+    @happy-path @needs-decision
+    Scenario: Playback speed
+      # **Open, and small.** The three-click week is two short auditions, where
+      # speed is irrelevant. It would only matter for listening through a segment
+      # to judge content rather than boundaries, which is not a job this screen
+      # claims. Left undecided rather than assumed in either direction.
+      Then whether playback speed can be changed is not yet decided
+
+
     @happy-path
     Scenario: Playing from anywhere
       When I click a point on the waveform
@@ -68,6 +115,46 @@ Feature: Reviewing the waveform
       And only the region being played is fetched
       And playback begins within 2 seconds of pressing play
 
+  Rule: The overview and the detail view are both present, and linked
+
+    @happy-path
+    Scenario: The overview never moves
+      When I zoom the detail view into the punch-in
+      Then the overview still shows the whole recording
+      And the overview marks the window the detail view is showing
+      And I can see where in the service that window falls
+
+    @happy-path
+    Scenario: Moving around from the overview
+      When I click a point on the overview
+      Then the detail view moves to that point
+      And its zoom level is unchanged
+      # Changing position and changing scale are separate acts. Doing both at
+      # once is how a reviewer gets lost.
+
+    @happy-path
+    Scenario: Zoom is chosen from named steps
+      Then the zoom steps offered are the whole recording, a few minutes,
+        thirty seconds, and three seconds
+      And each step states what it is for
+      And the three-second step is the one that places a cut
+
+  Rule: The readout says where the boundaries are, never how right they are
+
+    @happy-path
+    Scenario: What the numbers show
+      Then the punch-in, the punch-out and the length are shown to hundredths
+      And the gap between the punch-out and whatever follows is shown
+      And nothing claims the boundary is correct
+
+    @happy-path
+    Scenario: The gap is shown because it is the thing pixels hide
+      # The tail rule and the 250 ms clearance are both about this number, and it
+      # cannot be read off a waveform at any useful zoom.
+      Given the punch-out is 0.90 seconds before the next speech
+      Then the gap is shown as "0.90 s"
+      And it is marked as shorter than the 1.5 second tail the editor prefers
+
   Rule: Zooming lets me place a boundary precisely
 
     @happy-path
@@ -91,6 +178,11 @@ Feature: Reviewing the waveform
       And all Block bands are visible again
 
   Rule: What each zoom level is actually for
+
+    # The table below is the reason zoom is a set of steps rather than a
+    # continuum, and the reason the tightest step exists at all. Read the
+    # `pixels` column as "how much of the screen 100 milliseconds buys you".
+
 
     @happy-path @measured
     Scenario Outline: Precision by window size
@@ -123,6 +215,29 @@ Feature: Reviewing the waveform
       Given a Recording of 104 minutes
       Then its peak data is fetched per recording rather than inlined in the page
       And it is served at progressive resolution
+
+  Rule: When something the screen needs is missing, it says so
+
+    # The waveform-unavailable path was already here. These are the other two
+    # things this screen depends on and cannot produce itself.
+
+    @edge-case
+    Scenario: The preview audio will not play
+      Given the seekable preview has not been rendered
+      When I try to audition the punch-in
+      Then I am told the preview is not ready rather than left with a dead control
+      And the waveform and the transcript remain usable
+      And the boundaries can still be adjusted and approved
+
+    @edge-case
+    Scenario: The model host is unreachable while I am reviewing
+      # Analysis reaches the reasoning host over HTTP and nothing else -- see
+      # analysis/analysis_orchestration.feature. A reviewer mid-edit should not
+      # discover that by watching a control do nothing.
+      Given the configured model endpoint does not answer
+      Then reviewing, adjusting and approving continue to work
+      And only the actions that need a model are shown as unavailable
+      And the reason names the endpoint rather than blaming the Recording
 
   Rule: The interface degrades usefully
 

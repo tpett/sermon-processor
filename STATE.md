@@ -1,6 +1,6 @@
 # Where this project stands
 
-Last updated 2026-09-17. Read this first; it is the handoff.
+Last updated 2026-09-18. Read this first; it is the handoff.
 
 ## What exists
 
@@ -143,6 +143,25 @@ Measuring that is the next task, and it needs no machine but the laptop.
 
 `sherpa-onnx` is not affected — it ships manylinux wheels for x86_64 and aarch64,
 so diarization ports unchanged.
+
+## The interface
+
+139 scenarios across 9 files in `features/interface/`. The core claim is the
+three-click week — preview the punch-in, preview the punch-out, approve — with
+the waveform editor available and not required. A cut graded `hard` deliberately
+interrupts that path and opens the editor ready for the adjustment.
+
+`waveform_review.feature` and `punch_point_adjustment.feature` carry the design
+the Punch Point Editor spike settled, as prose: two linked views rather than one
+zoomable one, zoom as named steps rather than a slider (precision has a cliff —
+100 ms is 3.7 px at a thirty-second window and 36.7 px at three seconds), the
+transcript belonging to a different step from the waveform, and a readout that
+says where the boundaries are and never how right they are.
+
+One thing from that spike is deliberately excluded: it showed each boundary's
+distance from the known human cut, which is an instrument for judging the machine
+and has no counterpart in use. In production nothing exists to compare against
+until the reviewer moves something.
 
 ## Work queued, in order
 

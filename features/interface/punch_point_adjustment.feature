@@ -4,11 +4,68 @@ Feature: Adjusting a segment's punch points
   As a reviewer
   I want to move a Segment's punch-in and punch-out precisely
 
+  Four ways to move a boundary, and they are not redundant — each is the only
+  comfortable way to do one thing:
+
+  **Dragging** is for when the reviewer can see the right place. It works down to
+  about a third of a second at the three-second zoom and not at all above it, so
+  it is the coarse tool however precise it feels.
+
+  **Typing a timecode** is for when the reviewer already knows the number —
+  usually because they read it off the transcript or the readout.
+
+  **The playhead** is for when the ear found it before the eye did: play, hear the
+  moment, and set the boundary where you are.
+
+  **The keyboard** is for everything dragging cannot reach. This is not a
+  convenience. Tolerance here is per-recording and mostly generous, but the rare
+  hard case — a breath, a bit of feedback, a word clipped at its onset — matters
+  down to 200 or 300 milliseconds and sometimes 50, and no zoom that also shows
+  enough context to be oriented can resolve that by mouse. The nudge steps exist
+  to make those cases reachable at all.
+
+  Because the keyboard is load-bearing, **which boundary has focus has to be
+  visible at all times**. A reviewer who cannot tell whether the next keystroke
+  moves the punch-in or the punch-out will not trust any of it, and the failure is
+  silent — the wrong boundary moves by 50 ms and nothing says so.
+
+  Nothing here is destructive. An adjustment saves itself without being approved
+  and survives a reload, the machine's proposal stays available to return to, and
+  a later re-analysis offers its new proposal beside the reviewer's work rather
+  than over it.
+
   Background:
     Given I am on the tailnet
     And a Recording in state "awaiting_review"
     And I have selected a Segment classified "sermon" spanning "1:28:40" to "3:12:00"
     And its punch-in is "2:00:20.000" and punch-out is "2:43:32.000"
+
+  Rule: The keyboard is usable, which means focus is visible
+
+    @happy-path
+    Scenario: Which boundary the keyboard will move is always apparent
+      # The gap my own audit found, and the only one in this file that is a
+      # defect rather than an absence: the precision path is the keyboard, and a
+      # keyboard-driven editor whose focus is invisible moves the wrong boundary
+      # quietly.
+      When I focus the punch-in
+      Then the punch-in is visibly marked as the one the keyboard will move
+      And the punch-out is visibly not
+      And the marking survives my scrolling or zooming the waveform
+
+    @happy-path
+    Scenario: Moving focus between the two boundaries
+      Given the punch-in has focus
+      When I move focus to the punch-out
+      Then the punch-out becomes the boundary the keyboard moves
+      And the change is apparent without my having to test it with a nudge
+
+    @happy-path
+    Scenario: The nudge steps are stated, not discovered
+      Then the available nudge steps are shown alongside the boundary
+      And they read as 50 ms, 0.1 s, 1 s and 10 s
+      # A reviewer who has to guess the step size will use the mouse instead, and
+      # the mouse cannot do this job.
 
   Rule: Boundaries can be moved several ways
 
