@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sermon-processor"
+version = "0.1.0"
+description = "Finds the sermon inside a recorded church service, reviews the cut, renders an MP3"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "faster-whisper==1.2.1",
+    "sherpa-onnx==1.13.8",
+    "numpy",
+    "flask",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-bdd==8.1.0",
+    "playwright==1.63.0",
+    "gherkin-official==29.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
