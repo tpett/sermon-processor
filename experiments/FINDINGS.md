@@ -2320,3 +2320,85 @@ edge set, not what `snap()` actually picks — a six-times denser set gives it m
 chances to choose a nearer wrong edge. Changing `candidate_edges` touches every
 stored boundary in the corpus, so it wants measuring as its own change rather
 than folding into this one.
+
+### Is there a difference in the final product, and where does it enter?
+
+Traced stage by stage, same model, same unconstrained generation, only the
+transcript differing. `|fw − mlx|` after each stage that can move a boundary,
+across the 8 labelled dev recordings:
+
+| stage | median | max | n > 0.25 s |
+| --- | --- | --- | --- |
+| model's own block start | 0.15 s | 19.60 s | 3 |
+| after `refine_in` | **2.29 s** | 24.72 s | 5 |
+| after `snap` | 2.29 s | 24.72 s | 5 |
+| **FINAL punch-in** | **0.06 s** | 19.60 s | 2 |
+| model's own block end | 0.50 s | 708.40 s | 5 |
+| after `refine_out` | **0.02 s** | 721.10 s | 3 |
+| after `add_tail` | 0.33 s | 721.10 s | 4 |
+| **FINAL punch-out** | **0.33 s** | 721.10 s | 4 |
+
+**Yes, but barely, and not where I expected.** Three things fall out:
+
+**1. `refine_in` amplifies the difference 15× and it does not matter.** 0.15 s in,
+2.29 s out. But `choose()` takes the model's punch-in raw, so the amplification is
+discarded before it reaches the file. It is latent, not active — and it is a
+warning about ever trusting `refine_in` for the punch-in.
+
+**2. `refine_out` converges them.** 0.50 s in, **0.02 s** out. It anchors on the
+closing amen, which is *text* — and the text agrees to 98.9%. Cue anchoring is
+engine-independent in a way that edge snapping is not. This is the part of the
+design that is working.
+
+**3. `add_tail` then re-introduces 0.33 s.** From 0.02 s to 0.33 s, because the
+guard clamps against *the next utterance's start*, and that is the engine-
+dependent quantity. Correctable: anchor the guard on the envelope's silence runs
+or on the next *word*, both of which are stable. Magnitude is smaller than the
+tail itself, so it is cosmetic rather than damaging.
+
+### The one real difference, and what it actually is
+
+Six of eight recordings have final punch-ins within 0.25 s. One differs by
+**19.6 s**, and it is not an ASR error:
+
+```
+2026-04-12, the scripture reading closing into the sermon
+  mlx   1999.80-2001.44  "This is the word of the Lord for the people of the Lord."
+        2001.52-2002.06  "You may be seated."
+        2020.96-2025.32  "Sometimes the one in shackles is the one calling the shots."
+  fw    1999.74-2001.44  "this is the word of the Lord"
+        2001.44-2002.06  "you may be seated"
+        2020.84-2029.12  "sometimes the one in shackles is the one calling the shots..."
+
+  truth 2021.1      mlx chose 2021.0 (+0.1 s)      fw chose 2001.4 (-19.7 s)
+```
+
+Same words, same times to within 120 ms. **The model made a different call at an
+ambiguous transition** — whether the sermon starts at the reading's close or after
+it. Checked and ruled out as causes: capitalisation and punctuation (11.6% vs
+11.3% capitalised, 6.4% vs 5.6% periods) and utterance granularity (median
+duration 2.60 s vs 2.56 s, short-utterance fraction 22.1% vs 21.1%). Both are
+near-identical corpus-wide; the one window that looked different was not
+representative.
+
+What remains is prompt sensitivity: a 60,000-character prompt differing in a few
+hundred bytes elsewhere produced a different decision at this one boundary, at
+temperature 0.
+
+### So is it correctable
+
+**The punch-out difference is, cheaply** — move `add_tail`'s guard off utterance
+starts. Worth doing alongside the word-edge change, since both are the same
+mistake: depending on the one thing engines disagree about.
+
+**The punch-in difference is not a bug to fix, and the system already specifies
+the response.** A classifier that is unstable at a genuinely ambiguous transition
+is what cross-run agreement exists to catch: two runs 19.6 s apart is exactly the
+"Needs attention" badge in `analysis/analysis_confidence.feature`, and the
+reviewer moves one boundary.
+
+**This is the first empirical support for the second-opinion decision** that file
+tags `@needs-decision`. The single case in this comparison where the final
+product differs materially is precisely a case agreement would have flagged —
+and without it, that recording ships 19.7 s early with high confidence and
+nothing to distinguish it from the six that are right.
