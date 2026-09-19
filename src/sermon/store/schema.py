@@ -251,10 +251,10 @@ def unique_ddl(table, unique):
     conditions = " AND ".join(
         f"{column} IN ({quoted(values)})" for column, values in unique.only_while.items()
     )
+    scope = f" WHERE {conditions}" if conditions else ""
     return (
         f"CREATE UNIQUE INDEX IF NOT EXISTS unique_{table.name}_{unique.column} "
-        f"ON {table.name} ({unique.column})"
-        f"{f' WHERE {conditions}' if conditions else ''}"
+        f"ON {table.name} ({unique.column}){scope}"
     )
 
 

@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+
 class PathEscapesDataRoot(ValueError):
     pass
 

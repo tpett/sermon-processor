@@ -7,14 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import get_type_hints
 
-from .schema import (
-    TABLES,
-    column_names,
-    element_columns,
-    order_by,
-    schema_statements,
-    unwrapped,
-)
+from .schema import TABLES, column_names, element_columns, order_by, schema_statements, unwrapped
 from .stored_paths import ResolvesStoredPath
 
 DATABASE_NAME = "sermon.sqlite3"
@@ -79,12 +72,6 @@ class Store:
                 self._writes(collection, identity, getattr(entity, collection.field))
         return replace(entity, **{table.identity: identity})
 
-    def _guards_paths(self, table, entity):
-        for name in table.paths:
-            stored = getattr(entity, name)
-            if stored is not None:
-                self._resolves_stored_path(stored)
-
     def loads(self, entity_type, identity):
         table = TABLES[entity_type]
         row = self._connection.execute(
@@ -104,6 +91,12 @@ class Store:
             [to_column(value) for value in criteria.values()],
         ).fetchall()
         return [self._entity(table, row) for row in rows]
+
+    def _guards_paths(self, table, entity):
+        for name in table.paths:
+            stored = getattr(entity, name)
+            if stored is not None:
+                self._resolves_stored_path(stored)
 
     def _entity(self, table, row):
         annotations = get_type_hints(table.entity)

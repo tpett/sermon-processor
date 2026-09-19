@@ -1,4 +1,3 @@
-from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
 from .entities import (
     Artifact,
     Block,
@@ -10,6 +9,7 @@ from .entities import (
     SpeakerProfile,
 )
 from .store import DATABASE_NAME, Store, opens_store
+from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
 
 __all__ = [
     "Artifact",
