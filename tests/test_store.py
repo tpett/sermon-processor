@@ -28,6 +28,7 @@ IDENTITIES = {
     "proposal": "segment_id",
     "artifact": "artifact_id",
     "job": "job_id",
+    "notification": "notification_id",
     "speaker_profile": "speaker_profile_id",
 }
 
@@ -38,6 +39,7 @@ ENTITY_TYPES = {
     "proposal": Proposal,
     "artifact": Artifact,
     "job": Job,
+    "notification": Notification,
     "speaker_profile": SpeakerProfile,
 }
 
@@ -57,6 +59,7 @@ CLOSED_COLUMNS = [
     ("artifact", "kind", vocabularies.ARTIFACT_KINDS),
     ("job", "kind", vocabularies.JOB_KINDS),
     ("job", "state", vocabularies.JOB_STATES),
+    ("notification", "state", vocabularies.NOTIFICATION_STATES),
 ]
 
 
@@ -293,6 +296,7 @@ def graph(store):
         "proposal": store.saves(populated_proposal(segment)),
         "artifact": store.saves(populated_artifact(recording, segment)),
         "job": store.saves(populated_job(recording, segment)),
+        "notification": store.saves(populated_notification(recording, segment)),
     }
 
 
@@ -479,10 +483,9 @@ def test_a_notification_about_a_whole_recording_names_no_segment(store, graph):
 
 
 def test_a_recording_lists_the_notifications_it_raised_oldest_first(store, graph):
-    later = store.saves(populated_notification(graph["recording"], graph["segment"]))
     earlier = store.saves(minimal_notification(graph["recording"]))
     listed = store.lists(Notification, recording_id=graph["recording"].recording_id)
-    assert listed == [earlier, later]
+    assert listed == [earlier, graph["notification"]]
 
 
 def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_dropped(store, graph):

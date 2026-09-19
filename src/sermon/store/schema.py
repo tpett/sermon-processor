@@ -6,7 +6,17 @@ from types import UnionType
 from typing import Union, get_args, get_origin, get_type_hints
 
 from . import vocabularies
-from .entities import Artifact, Block, Evidence, Job, Proposal, Recording, Segment, SpeakerProfile
+from .entities import (
+    Artifact,
+    Block,
+    Evidence,
+    Job,
+    Notification,
+    Proposal,
+    Recording,
+    Segment,
+    SpeakerProfile,
+)
 
 COLUMN_TYPES = {
     str: "TEXT",
@@ -200,6 +210,17 @@ TABLES = {
                 "segment_id": "segment(segment_id)",
             },
             closed={"kind": vocabularies.JOB_KINDS, "state": vocabularies.JOB_STATES},
+        ),
+        Table(
+            entity=Notification,
+            name="notification",
+            identity="notification_id",
+            order=("created_at",),
+            references={
+                "recording_id": "recording(recording_id)",
+                "segment_id": "segment(segment_id)",
+            },
+            closed={"state": vocabularies.NOTIFICATION_STATES},
         ),
     )
 }

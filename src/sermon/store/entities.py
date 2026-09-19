@@ -122,4 +122,11 @@ class SpeakerProfile:
 
 @dataclass(frozen=True, kw_only=True)
 class Notification:
-    pass
+    notification_id: int | None = None
+    recording_id: str
+    segment_id: int | None = None
+    kind: str
+    recipient: str
+    summary: str
+    created_at: datetime
+    state: str
