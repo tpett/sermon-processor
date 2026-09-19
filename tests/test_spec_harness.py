@@ -138,6 +138,15 @@ def test_a_scenario_with_no_step_definitions_fails_rather_than_errors(tmp_path):
     assert (returncode, counted("failed", report), counted("error", report)) == (1, 1, 0), report
 
 
+def test_running_the_spec_executes_every_scenario_it_does_not_defer():
+    report = runs_pytest("-q", SPEC_MODULE)[1]
+    executed = counted("passed", report) + counted("failed", report)
+    assert (executed, counted("skipped", report)) == (
+        SPEC_TESTS - DEFERRED_TESTS,
+        DEFERRED_TESTS,
+    ), report
+
+
 def test_running_the_spec_reports_no_errors():
     returncode, report = runs_pytest("-q", SPEC_MODULE)
     assert counted("error", report) == 0, report
