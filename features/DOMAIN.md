@@ -217,8 +217,12 @@ from raising it (`notifications/approval_notifications.feature`).
 (`operations/storage_and_retention.feature`). Raising a record and delivering it
 are already separate here, and every other field applies unchanged, so the
 subject is nullable rather than there being a second entity that repeats all six.
-A Recording-scoped alert still names its Recording, which is what keeps "which
-Sunday was I never told about?" a query over this table.
+A notification naming a Segment must name that Segment's Recording, and the table
+refuses one that does not: a nullable subject otherwise rests on every caller
+remembering, and the one that forgets is both missing from "which Sunday was I
+never told about?" and sitting in the system-alert bucket pretending to be an
+alert. Naming neither stays unconstrained, because that *is* the system alert and
+`kind` is open — nothing in the row tells an alert from an omission.
 
 **Not stored:** delivery attempts, per-channel results, retry counts. The channel
 is undecided, the same Notification may be delivered by more than one of them,
