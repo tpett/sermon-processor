@@ -262,7 +262,7 @@ def element_columns(collection):
 
 
 def order_by(table):
-    return table.order or (table.identity,)
+    return (*table.order, table.identity)
 
 
 def quoted(values):

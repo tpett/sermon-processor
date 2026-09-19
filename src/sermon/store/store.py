@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import replace
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import get_type_hints
 
@@ -25,11 +25,19 @@ def to_column(annotation, value):
         raise UnstorableValue(f"{type(value).__name__} where {kind.__name__} is declared")
     if kind is bool:
         return int(value)
-    if kind in (date, datetime):
+    if kind is datetime:
+        return in_utc(value).isoformat()
+    if kind is date:
         return value.isoformat()
     if kind is dict:
         return json.dumps(value, sort_keys=True)
     return value
+
+
+def in_utc(moment):
+    if moment.tzinfo is None:
+        raise UnstorableValue("naive datetime, which no stored moment can be ordered against")
+    return moment.astimezone(UTC)
 
 
 def from_column(annotation, value):
