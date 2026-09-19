@@ -9,6 +9,7 @@ import urllib.request
 from . import blocks as B
 from . import features as F
 from . import segments as SEG
+from .roots import requires_directory_under_root, requires_root
 
 # Injected, never derived from this module's own location, for the same reason
 # as segments.DATA_ROOT: reading either of these from __file__ made the module's
@@ -140,7 +141,7 @@ def coerce_blocks(raw: dict, doc: dict) -> list[dict]:
 
 
 def run_whole(model: str, doc: dict, think: bool = False) -> dict:
-    tpl = (PROMPTS / "whole_transcript.v2.md").read_text()
+    tpl = (requires_root(__name__, "PROMPTS", PROMPTS) / "whole_transcript.v2.md").read_text()
     prompt = (tpl.replace("{started_at}", doc["started_at"])
                  .replace("{duration_hms}", hms(doc["duration"]))
                  .replace("{duration}", f"{doc['duration']:.1f}")
@@ -158,7 +159,7 @@ def run_whole(model: str, doc: dict, think: bool = False) -> dict:
 
 
 def load_diarization(rid: str) -> dict | None:
-    p = DATA / "diarization" / f"{rid}.json"
+    p = requires_directory_under_root(__name__, "DATA", DATA, "diarization") / f"{rid}.json"
     return json.loads(p.read_text()) if p.exists() else None
 
 
@@ -172,7 +173,7 @@ def run_structured(model: str, doc: dict, think: bool = False) -> dict:
     if not cands:
         return {"blocks": [], "segments": [], "status": "no-blocks", "repairs": 0}
 
-    tpl = (PROMPTS / "structured.v1.md").read_text()
+    tpl = (requires_root(__name__, "PROMPTS", PROMPTS) / "structured.v1.md").read_text()
     prompt = (tpl.replace("{started_at}", doc["started_at"])
                  .replace("{duration_hms}", hms(doc["duration"]))
                  .replace("{table}", F.render_table(cands, doc, dia)))
@@ -203,7 +204,7 @@ def run_structured(model: str, doc: dict, think: bool = False) -> dict:
 
 def run_perblock(model: str, doc: dict, think: bool = False) -> dict:
     deadline = time.time() + RECORDING_BUDGET_S
-    tpl = (PROMPTS / "per_block.v2.md").read_text()
+    tpl = (requires_root(__name__, "PROMPTS", PROMPTS) / "per_block.v2.md").read_text()
     cands = B.candidates(doc)
     start_dt = doc["started_at"]
     summaries = [f"{(c['end']-c['start'])/60:.0f} min of speech" for c in cands]
