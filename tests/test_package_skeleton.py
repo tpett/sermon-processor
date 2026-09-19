@@ -5,6 +5,7 @@ import sys
 import zipfile
 from importlib import import_module
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -28,13 +29,40 @@ def loaded_from_experiments(module):
     return bool(location) and EXPERIMENTS_ROOT in Path(location).resolve().parents
 
 
+def modules_reached_through(packages):
+    pending = [import_module(name) for name in packages]
+    seen = set()
+    found = {}
+    while pending:
+        module = pending.pop()
+        if not isinstance(module, ModuleType):
+            continue
+        marker = id(module)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        name = getattr(module, "__name__", None)
+        if name:
+            found[name] = module
+        try:
+            values = vars(module).values()
+        except TypeError:
+            continue
+        for value in values:
+            if isinstance(value, ModuleType):
+                pending.append(value)
+                continue
+            origin = getattr(value, "__module__", None)
+            if origin and (other := sys.modules.get(origin)) is not None:
+                pending.append(other)
+    return found
+
+
 def experiments_modules_reached_through(packages):
-    for package in packages:
-        import_module(package)
     return sorted(
         name
-        for name, module in list(sys.modules.items())
-        if module is not None and loaded_from_experiments(module)
+        for name, module in modules_reached_through(packages).items()
+        if loaded_from_experiments(module)
     )
 
 
