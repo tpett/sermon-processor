@@ -211,6 +211,22 @@ def configures_the_setting(tree, setting):
     )
 
 
+def uses_a_library_callable(tree, module):
+    names = set(MOVED[module])
+    wanted = names_pipeline_module(module)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == wanted:
+            if any(alias.name in names for alias in node.names):
+                return True
+        elif (
+            isinstance(node, ast.Attribute)
+            and node.attr in names
+            and isinstance(node.ctx, ast.Load)
+        ):
+            return True
+    return False
+
+
 def finds_callers_that_leave_a_root_unset(roots, library=PIPELINE_ROOT):
     offenders = []
     for root in roots:
@@ -220,6 +236,8 @@ def finds_callers_that_leave_a_root_unset(roots, library=PIPELINE_ROOT):
             tree = ast.parse(path.read_text(encoding="utf-8"))
             for module, settings in sorted(INJECTED_SETTINGS.items()):
                 if not reaches_the_pipeline_module(tree, module):
+                    continue
+                if not uses_a_library_callable(tree, module):
                     continue
                 offenders += [
                     f"{path.name} leaves {names_pipeline_module(module)}.{setting} unset"
@@ -279,6 +297,55 @@ def test_the_guard_covers_a_caller_under_the_production_package(tmp_path):
     assert finds_callers_that_leave_a_root_unset([tmp_path]) == [
         "finds_the_sermon.py leaves sermon.pipeline.segments.DATA_ROOT unset"
     ]
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from sermon.pipeline.classify import run_whole",
+        "from sermon.pipeline.classify import load_diarization",
+        "from sermon.pipeline import classify\nclassify.run_whole('a-model', doc)\n",
+        "from sermon.pipeline import classify\nclassify.load_diarization('rec1')\n",
+    ],
+)
+def test_the_guard_sees_a_call_into_the_library(source):
+    assert uses_a_library_callable(ast.parse(source), "classify")
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from sermon.pipeline import classify",
+        "from sermon.pipeline import classify\nclassify.ENDPOINT = host\n",
+    ],
+)
+def test_the_guard_does_not_treat_an_endpoint_assignment_as_a_call_into_the_library(source):
+    assert not uses_a_library_callable(ast.parse(source), "classify")
+
+
+def test_the_guard_covers_a_caller_that_runs_the_library_without_setting_roots(tmp_path):
+    caller = tmp_path / "sermon" / "jobs"
+    caller.mkdir(parents=True)
+    (caller / "finds_the_sermon.py").write_text(
+        "from sermon.pipeline import classify\n"
+        "classify.ENDPOINT = configuration.model_endpoint\n"
+        "classify.run_whole('a-model', doc)\n"
+        "classify.load_diarization('rec1')\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == [
+        "finds_the_sermon.py leaves sermon.pipeline.classify.DATA unset",
+        "finds_the_sermon.py leaves sermon.pipeline.classify.PROMPTS unset",
+    ]
+
+
+def test_the_guard_does_not_require_roots_of_a_bind_that_only_assigns_the_endpoint(tmp_path):
+    binder = tmp_path / "sermon"
+    binder.mkdir(parents=True)
+    (binder / "binds_an_endpoint.py").write_text(
+        "from sermon.pipeline import classify\n"
+        "classify.ENDPOINT = configuration.model_endpoint\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == []
 
 
 def test_every_caller_of_the_library_sets_the_roots_it_needs():
