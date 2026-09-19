@@ -63,6 +63,13 @@ class Uniqueness:
 
 
 @dataclass(frozen=True)
+class Presence:
+    column: str
+    requires: tuple[str, ...] = ()
+    only_while: dict[str, tuple[str | int, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class Collection:
     field: str
     table: str
@@ -80,6 +87,7 @@ class Table:
     generated: bool = True
     order: tuple[str, ...] = ()
     unique: tuple[Uniqueness, ...] = ()
+    presence: tuple[Presence, ...] = ()
     paths: tuple[str, ...] = ()
     references: dict[str, str] = field(default_factory=dict)
     closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
@@ -242,6 +250,7 @@ TABLES = {
                 "recording_id": "recording(recording_id)",
                 "segment_id": "segment(segment_id)",
             },
+            presence=(Presence(column="segment_id", requires=("recording_id",)),),
             closed={"state": vocabularies.NOTIFICATION_STATES},
         ),
         Table(
@@ -297,8 +306,8 @@ def order_by(table):
     return (*table.order, table.identity)
 
 
-def quoted(values):
-    return ", ".join(f"'{value}'" for value in values)
+def listed(values):
+    return ", ".join(f"'{value}'" if isinstance(value, str) else str(value) for value in values)
 
 
 def column_definition(table, name, annotation):
@@ -311,7 +320,7 @@ def column_definition(table, name, annotation):
     if kind is bool:
         parts.append(f"CHECK ({name} IN (0, 1))")
     if name in table.closed:
-        parts.append(f"CHECK ({name} IN ({quoted(table.closed[name])}))")
+        parts.append(f"CHECK ({name} IN ({listed(table.closed[name])}))")
     if name in table.references:
         parts.append(f"REFERENCES {table.references[name]}")
     return " ".join(parts)
@@ -322,12 +331,21 @@ def table_ddl(table):
     definitions = [
         column_definition(table, name, annotations[name]) for name in column_names(table)
     ]
+    definitions += [presence_check(one) for one in table.presence]
     return creates(table.name, definitions)
+
+
+def presence_check(presence):
+    conditions = [f"{name} IS NOT NULL" for name in presence.requires]
+    conditions += [
+        f"{column} IN ({listed(values)})" for column, values in presence.only_while.items()
+    ]
+    return f"CHECK ({presence.column} IS NULL OR ({' AND '.join(conditions)}))"
 
 
 def unique_ddl(table, unique):
     conditions = " AND ".join(
-        f"{column} IN ({quoted(values)})" for column, values in unique.only_while.items()
+        f"{column} IN ({listed(values)})" for column, values in unique.only_while.items()
     )
     scope = f" WHERE {conditions}" if conditions else ""
     return (
