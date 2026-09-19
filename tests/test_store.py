@@ -1473,6 +1473,16 @@ def test_a_closed_collection_holds_every_value_the_spec_declares_at_once(
     assert getattr(reloaded(store, saved, name), field) == allowed
 
 
+@pytest.mark.parametrize("name, field, allowed", CLOSED_COLLECTIONS)
+def test_a_set_shaped_collection_refuses_the_same_value_twice(
+    store, graph, tmp_path, name, field, allowed
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph[name], **{field: (allowed[0], allowed[0])}))
+    assert everything_stored(store, tmp_path) == stored
+
+
 def test_two_recordings_cannot_claim_one_object_key(store, graph, tmp_path):
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):

@@ -80,7 +80,9 @@ view explains `source clipping detected` specifically
 (`interface/recording_detail.feature`) — so a typo would silently disable a gate.
 `Notification.kind` and `LogEntry.kind` stay open because nothing branches on
 them. `sidecar disagrees with the audio` is the one value the Gherkin describes
-without quoting, and takes the wording of its scenario's title.
+without quoting, and takes the wording of its scenario's title. It is a set, so
+one warning cannot be raised twice on one Recording; `channel_levels[]` and
+`speaker_matches[]` are ordered lists of measurements and are not deduplicated.
 
 **Four more of the conditions a scenario flags on a Recording are derivable, and
 are not stored.** `no substantive content` and `no audio content` are what

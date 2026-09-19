@@ -76,6 +76,7 @@ class Collection:
     owner: str
     element: type
     column: str | None = None
+    distinct: bool = False
     references: dict[str, str] = field(default_factory=dict)
     closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
@@ -124,6 +125,7 @@ TABLES = {
                     owner="recording_id",
                     element=str,
                     column="warning",
+                    distinct=True,
                     closed={"warning": vocabularies.RECORDING_WARNINGS},
                 ),
             ),
@@ -192,6 +194,7 @@ TABLES = {
                     owner="segment_id",
                     element=str,
                     column="warning",
+                    distinct=True,
                     closed={"warning": vocabularies.SEGMENT_WARNINGS},
                 ),
             ),
@@ -411,6 +414,9 @@ def collection_ddl(table, collection):
         *element_definitions(collection),
         f"PRIMARY KEY ({collection.owner}, position)",
     ]
+    if collection.distinct:
+        held = ", ".join(element_columns(collection))
+        definitions.append(f"UNIQUE ({collection.owner}, {held})")
     return creates(collection.table, definitions)
 
 
