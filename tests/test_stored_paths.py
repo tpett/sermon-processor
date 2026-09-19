@@ -2,14 +2,15 @@ from pathlib import Path
 
 import pytest
 
-from sermon.store import DEFAULT_DATA_ROOT, PathEscapesDataRoot, ResolvesStoredPath
+from sermon.store import PathEscapesDataRoot, ResolvesStoredPath
 
 STORED = "recording_20260913_090014/2026-09-13 - Hebrews 12.mp3"
 
 
-def test_the_data_root_is_injected_with_a_default():
-    assert ResolvesStoredPath().data_root == DEFAULT_DATA_ROOT
+def test_the_data_root_is_injected_and_has_no_default():
     assert ResolvesStoredPath(data_root=Path("/srv/sermons")).data_root == Path("/srv/sermons")
+    with pytest.raises(TypeError):
+        ResolvesStoredPath()
 
 
 def test_a_stored_path_resolves_under_the_data_root(tmp_path):

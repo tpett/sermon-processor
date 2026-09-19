@@ -15,6 +15,7 @@ from sermon.store import (
     PathEscapesDataRoot,
     Segment,
     SpeakerProfile,
+    Store,
     opens_store,
     vocabularies,
 )
@@ -508,6 +509,16 @@ def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store,
 def test_listing_by_something_no_entity_holds_is_refused(store):
     with pytest.raises(ValueError):
         store.lists(Recording, needs_attention=True)
+
+
+def test_a_store_cannot_be_opened_without_somewhere_to_keep_it():
+    with pytest.raises(TypeError):
+        opens_store()
+
+
+def test_a_store_is_given_the_resolver_for_the_data_root_it_lives_in(tmp_path):
+    with pytest.raises(TypeError):
+        Store(sqlite3.connect(tmp_path / DATABASE_NAME))
 
 
 def test_reopening_the_data_root_finds_what_was_stored(tmp_path):
