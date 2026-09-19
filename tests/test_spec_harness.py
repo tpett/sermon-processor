@@ -1,6 +1,7 @@
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 from gherkin.parser import Parser
@@ -72,9 +73,12 @@ def test_no_tag_the_spec_uses_is_an_unknown_mark():
     assert returncode == 0, report
 
 
-def test_the_registered_markers_are_the_tags_the_spec_declares(pytestconfig, spec_guardrail):
-    registered = {f"@{entry.split(':', 1)[0]}" for entry in pytestconfig.getini("markers")}
-    assert registered == spec_guardrail.declared_tags(SPEC_ROOT / "README.md")
+def test_the_registered_markers_are_the_tags_the_spec_declares(spec_guardrail):
+    settings = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text())
+    registered = settings["tool"]["pytest"]["ini_options"].get("markers", [])
+    assert {f"@{entry.split(':', 1)[0]}" for entry in registered} == spec_guardrail.declared_tags(
+        SPEC_ROOT / "README.md"
+    )
 
 
 def test_scenarios_deferred_out_of_v1_are_skipped():
