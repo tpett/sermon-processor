@@ -9,6 +9,7 @@ from . import vocabularies
 from .entities import (
     Artifact,
     Block,
+    Candidate,
     Evidence,
     Job,
     LogEntry,
@@ -182,6 +183,12 @@ TABLES = {
                     owner="proposal_id",
                     element=str,
                     column="description",
+                ),
+                Collection(
+                    field="punch_in_candidates",
+                    table="proposal_punch_in_candidate",
+                    owner="proposal_id",
+                    element=Candidate,
                 ),
             ),
         ),

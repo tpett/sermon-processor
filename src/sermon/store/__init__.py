@@ -1,6 +1,7 @@
 from .entities import (
     Artifact,
     Block,
+    Candidate,
     Evidence,
     Job,
     LogEntry,
@@ -17,6 +18,7 @@ from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
 __all__ = [
     "Artifact",
     "Block",
+    "Candidate",
     "DATABASE_NAME",
     "Evidence",
     "Job",

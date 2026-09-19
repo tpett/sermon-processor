@@ -7,6 +7,7 @@ import pytest
 from sermon.store import (
     Artifact,
     Block,
+    Candidate,
     DATABASE_NAME,
     Evidence,
     Job,
@@ -816,6 +817,23 @@ def test_a_past_render_is_reproducible_from_the_boundaries_and_settings_it_used(
         9812.0,
         graph["artifact"].render_settings,
     )
+
+
+def test_analysis_records_an_alternative_punch_in_candidate_and_why_it_was_considered(store, graph):
+    alternative = Candidate(
+        timecode=6890.0, considered_because="4.2 s of quiet before “good morning”"
+    )
+    proposal = store.saves(replace(graph["proposal"], punch_in_candidates=(alternative,)))
+    assert reloaded(store, proposal, "proposal").punch_in_candidates == (alternative,)
+
+
+def test_alternative_punch_in_candidates_are_kept_in_the_order_analysis_ranked_them(store, graph):
+    ranked = (
+        Candidate(timecode=6890.0, considered_because="4.2 s of quiet before “good morning”"),
+        Candidate(timecode=6842.0, considered_because="the end of the preceding prayer"),
+    )
+    proposal = store.saves(replace(graph["proposal"], punch_in_candidates=ranked))
+    assert reloaded(store, proposal, "proposal").punch_in_candidates == ranked
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):

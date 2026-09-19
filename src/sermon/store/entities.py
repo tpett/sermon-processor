@@ -70,6 +70,11 @@ class Evidence:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Candidate:
+    timecode: float
+
+
+@dataclass(frozen=True, kw_only=True)
 class SpeakerMatch:
     speaker_profile_id: int
     similarity: float
@@ -87,6 +92,7 @@ class Proposal:
     superseded_by: int | None = None
     evidence: tuple[Evidence, ...] = ()
     missing_evidence: tuple[str, ...] = ()
+    punch_in_candidates: tuple[Candidate, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
