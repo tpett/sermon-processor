@@ -1,0 +1,43 @@
+{
+ "n_speakers": 5,
+ "recording_id": "fixture_service",
+ "seconds": 3240.0,
+ "threshold": 0.5,
+ "turns": [
+  {
+   "end": 170.386,
+   "speaker": "S0",
+   "start": 2.786
+  },
+  {
+   "end": 421.129,
+   "speaker": "S1",
+   "start": 189.229
+  },
+  {
+   "end": 572.482,
+   "speaker": "S2",
+   "start": 439.682
+  },
+  {
+   "end": 2540.673,
+   "speaker": "S3",
+   "start": 598.095
+  },
+  {
+   "end": 2701.288,
+   "speaker": "S3",
+   "start": 2557.886
+  },
+  {
+   "end": 2902.061,
+   "speaker": "S4",
+   "start": 2719.053
+  },
+  {
+   "end": 3093.666,
+   "speaker": "S1",
+   "start": 2918.478
+  }
+ ]
+}

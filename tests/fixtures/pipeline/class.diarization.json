@@ -1,0 +1,28 @@
+{
+ "n_speakers": 3,
+ "recording_id": "fixture_class",
+ "seconds": 2400.0,
+ "threshold": 0.5,
+ "turns": [
+  {
+   "end": 90.918,
+   "speaker": "S0",
+   "start": 2.669
+  },
+  {
+   "end": 201.407,
+   "speaker": "S0",
+   "start": 109.358
+  },
+  {
+   "end": 1900.559,
+   "speaker": "S1",
+   "start": 217.724
+  },
+  {
+   "end": 2292.755,
+   "speaker": "S2",
+   "start": 1918.912
+  }
+ ]
+}

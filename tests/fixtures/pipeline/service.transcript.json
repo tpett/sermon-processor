@@ -1,0 +1,6031 @@
+{
+ "asr_config": "fixture.v1",
+ "duration": 3240.0,
+ "model": "fixture",
+ "recording_id": "fixture_service",
+ "split": "fixture",
+ "started_at": "2026-04-05T10:00:00",
+ "utterances": [
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 8.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 4.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 12.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 8.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 16.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 12.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 21.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 17.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 25.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 21.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 30.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 26.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 34.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 30.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 38.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 34.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 43.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 39.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 47.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 43.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 52.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 48.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 56.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 52.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 60.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 56.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 65.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 61.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 69.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 65.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 74.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 70.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 78.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 74.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 82.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 78.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 87.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 83.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 91.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 87.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 96.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 92.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 100.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 96.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 104.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 100.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 109.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 105.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 113.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 109.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 118.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 114.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 122.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 118.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 126.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 122.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 131.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 127.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 135.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 131.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 140.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 136.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 144.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 140.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 148.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 144.8,
+   "text": "Next Sunday the elders will host a members meeting after the"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 153.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 149.2,
+   "text": "If you're new here this week, please stop by the guest"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 157.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 153.6,
+   "text": "Sign up in the lobby for the spring service day on"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 162.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 158.0,
+   "text": "Good morning and welcome to Reformation Church. Next Sunday the elders"
+  },
+  {
+   "avg_logprob": -0.2,
+   "compression_ratio": 1.5,
+   "end": 166.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S0",
+   "start": 162.4,
+   "text": "We have a few announcements before we begin our service together."
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 194.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 190.0,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 198.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 194.4,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 202.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 198.8,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 207.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 203.2,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 211.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 207.6,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 216.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 212.0,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 220.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 216.4,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 224.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 220.8,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 229.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 225.2,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 233.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 229.6,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 238.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 234.0,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 242.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 238.4,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 246.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 242.8,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 251.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 247.2,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 255.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 251.6,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 260.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 256.0,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 264.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 260.4,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 268.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 264.8,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 273.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 269.2,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 277.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 273.6,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 282.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 278.0,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 286.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 282.4,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 290.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 286.8,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 295.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 291.2,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 299.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 295.6,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 304.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 300.0,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 308.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 304.4,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 312.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 308.8,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 317.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 313.2,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 321.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 317.6,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 326.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 322.0,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 330.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 326.4,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 334.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 330.8,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 339.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 335.2,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 343.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 339.6,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 348.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 344.0,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 352.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 348.4,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 356.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 352.8,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 361.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 357.2,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 365.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 361.6,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 370.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 366.0,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 374.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 370.4,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 378.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 374.8,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 383.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 379.2,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 387.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 383.6,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 392.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 388.0,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 396.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 392.4,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 400.8,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 396.8,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 405.2,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 401.2,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 409.6,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 405.6,
+   "text": "Early in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 414.0,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 410.0,
+   "text": "Perfect in"
+  },
+  {
+   "avg_logprob": -0.8,
+   "compression_ratio": 1.5,
+   "end": 418.4,
+   "no_speech_prob": 0.5,
+   "speaker": "S1",
+   "start": 414.4,
+   "text": "Holy holy"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 444.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 440.0,
+   "text": "Turn with me in your Bible to the book of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 448.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 444.4,
+   "text": "Our reading this morning comes from the book of Romans"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 452.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 448.8,
+   "text": "Hear now the word of the Lord as I read"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 457.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 453.2,
+   "text": "Follow along as I read beginning at verse one of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 461.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 457.6,
+   "text": "This is the word of the Lord and it stands"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 466.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 462.0,
+   "text": "Turn with me in your Bible to the book of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 470.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 466.4,
+   "text": "Our reading this morning comes from the book of Romans"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 474.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 470.8,
+   "text": "Hear now the word of the Lord as I read"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 479.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 475.2,
+   "text": "Follow along as I read beginning at verse one of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 483.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 479.6,
+   "text": "This is the word of the Lord and it stands"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 488.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 484.0,
+   "text": "Turn with me in your Bible to the book of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 492.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 488.4,
+   "text": "Our reading this morning comes from the book of Romans"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 496.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 492.8,
+   "text": "Hear now the word of the Lord as I read"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 501.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 497.2,
+   "text": "Follow along as I read beginning at verse one of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 505.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 501.6,
+   "text": "This is the word of the Lord and it stands"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 510.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 506.0,
+   "text": "Turn with me in your Bible to the book of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 514.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 510.4,
+   "text": "Our reading this morning comes from the book of Romans"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 518.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 514.8,
+   "text": "Hear now the word of the Lord as I read"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 523.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 519.2,
+   "text": "Follow along as I read beginning at verse one of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 527.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 523.6,
+   "text": "This is the word of the Lord and it stands"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 532.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 528.0,
+   "text": "Turn with me in your Bible to the book of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 536.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 532.4,
+   "text": "Our reading this morning comes from the book of Romans"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 540.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 536.8,
+   "text": "Hear now the word of the Lord as I read"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 545.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 541.2,
+   "text": "Follow along as I read beginning at verse one of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 549.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 545.6,
+   "text": "This is the word of the Lord and it stands"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 554.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 550.0,
+   "text": "Turn with me in your Bible to the book of"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 558.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 554.4,
+   "text": "Our reading this morning comes from the book of Romans"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 562.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 558.8,
+   "text": "Hear now the word of the Lord as I read"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 567.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S2",
+   "start": 563.2,
+   "text": "Follow along as I read beginning at verse one of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 604.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 600.0,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 608.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 604.4,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 612.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 608.8,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 617.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 613.2,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 621.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 617.6,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 626.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 622.0,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 630.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 626.4,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 634.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 630.8,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 639.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 635.2,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 643.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 639.6,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 648.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 644.0,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 652.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 648.4,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 656.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 652.8,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 661.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 657.2,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 665.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 661.6,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 670.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 666.0,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 674.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 670.4,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 678.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 674.8,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 683.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 679.2,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 687.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 683.6,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 692.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 688.0,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 696.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 692.4,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 700.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 696.8,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 705.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 701.2,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 709.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 705.6,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 714.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 710.0,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 718.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 714.4,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 722.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 718.8,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 727.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 723.2,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 731.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 727.6,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 736.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 732.0,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 740.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 736.4,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 744.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 740.8,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 749.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 745.2,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 753.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 749.6,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 758.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 754.0,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 762.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 758.4,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 766.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 762.8,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 771.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 767.2,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 775.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 771.6,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 780.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 776.0,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 784.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 780.4,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 788.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 784.8,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 793.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 789.2,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 797.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 793.6,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 802.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 798.0,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 806.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 802.4,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 810.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 806.8,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 815.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 811.2,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 819.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 815.6,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 824.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 820.0,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 828.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 824.4,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 832.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 828.8,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 837.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 833.2,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 841.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 837.6,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 846.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 842.0,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 850.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 846.4,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 854.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 850.8,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 859.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 855.2,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 863.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 859.6,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 868.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 864.0,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 872.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 868.4,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 876.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 872.8,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 881.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 877.2,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 885.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 881.6,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 890.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 886.0,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 894.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 890.4,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 898.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 894.8,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 903.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 899.2,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 907.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 903.6,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 912.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 908.0,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 916.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 912.4,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 920.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 916.8,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 925.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 921.2,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 929.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 925.6,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 934.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 930.0,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 938.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 934.4,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 942.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 938.8,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 947.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 943.2,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 951.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 947.6,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 956.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 952.0,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 960.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 956.4,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 964.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 960.8,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 969.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 965.2,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 973.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 969.6,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 978.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 974.0,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 982.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 978.4,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 986.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 982.8,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 991.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 987.2,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 995.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 991.6,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1000.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 996.0,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1004.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1000.4,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1008.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1004.8,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1013.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1009.2,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1017.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1013.6,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1022.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1018.0,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1026.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1022.4,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1030.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1026.8,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1035.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1031.2,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1039.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1035.6,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1044.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1040.0,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1048.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1044.4,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1052.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1048.8,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1057.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1053.2,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1061.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1057.6,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1066.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1062.0,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1070.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1066.4,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1074.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1070.8,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1079.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1075.2,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1083.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1079.6,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1088.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1084.0,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1092.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1088.4,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1096.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1092.8,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1101.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1097.2,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1105.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1101.6,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1110.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1106.0,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1114.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1110.4,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1118.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1114.8,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1123.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1119.2,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1127.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1123.6,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1132.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1128.0,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1136.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1132.4,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1140.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1136.8,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1145.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1141.2,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1149.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1145.6,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1154.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1150.0,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1158.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1154.4,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1162.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1158.8,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1167.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1163.2,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1171.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1167.6,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1176.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1172.0,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1180.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1176.4,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1184.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1180.8,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1189.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1185.2,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1193.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1189.6,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1198.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1194.0,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1202.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1198.4,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1206.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1202.8,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1211.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1207.2,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1215.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1211.6,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1220.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1216.0,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1224.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1220.4,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1228.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1224.8,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1233.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1229.2,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1237.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1233.6,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1242.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1238.0,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1246.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1242.4,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1250.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1246.8,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1255.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1251.2,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1259.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1255.6,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1264.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1260.0,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1268.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1264.4,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1272.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1268.8,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1277.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1273.2,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1281.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1277.6,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1286.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1282.0,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1290.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1286.4,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1294.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1290.8,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1299.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1295.2,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1303.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1299.6,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1308.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1304.0,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1312.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1308.4,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1316.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1312.8,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1321.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1317.2,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1325.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1321.6,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1330.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1326.0,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1334.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1330.4,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1338.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1334.8,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1343.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1339.2,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1347.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1343.6,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1352.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1348.0,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1356.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1352.4,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1360.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1356.8,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1365.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1361.2,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1369.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1365.6,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1374.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1370.0,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1378.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1374.4,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1382.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1378.8,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1387.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1383.2,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1391.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1387.6,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1396.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1392.0,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1400.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1396.4,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1404.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1400.8,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1409.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1405.2,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1413.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1409.6,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1418.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1414.0,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1422.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1418.4,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1426.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1422.8,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1431.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1427.2,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1435.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1431.6,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1440.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1436.0,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1444.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1440.4,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1448.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1444.8,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1453.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1449.2,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1457.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1453.6,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1462.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1458.0,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1466.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1462.4,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1470.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1466.8,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1475.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1471.2,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1479.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1475.6,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1484.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1480.0,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1488.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1484.4,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1492.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1488.8,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1497.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1493.2,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1501.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1497.6,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1506.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1502.0,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1510.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1506.4,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1514.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1510.8,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1519.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1515.2,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1523.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1519.6,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1528.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1524.0,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1532.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1528.4,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1536.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1532.8,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1541.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1537.2,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1545.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1541.6,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1550.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1546.0,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1554.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1550.4,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1558.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1554.8,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1563.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1559.2,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1567.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1563.6,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1572.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1568.0,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1576.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1572.4,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1580.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1576.8,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1585.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1581.2,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1589.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1585.6,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1594.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1590.0,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1598.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1594.4,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1602.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1598.8,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1607.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1603.2,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1611.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1607.6,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1616.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1612.0,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1620.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1616.4,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1624.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1620.8,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1629.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1625.2,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1633.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1629.6,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1638.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1634.0,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1642.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1638.4,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1646.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1642.8,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1651.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1647.2,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1655.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1651.6,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1660.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1656.0,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1664.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1660.4,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1668.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1664.8,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1673.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1669.2,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1677.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1673.6,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1682.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1678.0,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1686.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1682.4,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1690.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1686.8,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1695.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1691.2,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1699.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1695.6,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1704.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1700.0,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1708.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1704.4,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1712.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1708.8,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1717.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1713.2,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1721.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1717.6,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1726.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1722.0,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1730.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1726.4,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1734.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1730.8,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1739.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1735.2,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1743.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1739.6,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1748.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1744.0,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1752.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1748.4,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1756.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1752.8,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1761.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1757.2,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1765.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1761.6,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1770.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1766.0,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1774.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1770.4,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1778.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1774.8,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1783.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1779.2,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1787.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1783.6,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1792.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1788.0,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1796.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1792.4,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1800.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1796.8,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1805.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1801.2,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1809.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1805.6,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1814.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1810.0,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1818.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1814.4,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1822.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1818.8,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1827.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1823.2,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1831.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1827.6,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1836.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1832.0,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1840.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1836.4,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1844.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1840.8,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1849.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1845.2,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1853.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1849.6,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1858.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1854.0,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1862.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1858.4,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1866.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1862.8,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1871.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1867.2,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1875.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1871.6,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1880.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1876.0,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1884.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1880.4,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1888.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1884.8,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1893.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1889.2,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1897.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1893.6,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1902.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1898.0,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1906.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1902.4,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1910.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1906.8,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1915.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1911.2,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1919.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1915.6,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1924.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1920.0,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1928.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1924.4,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1932.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1928.8,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1937.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1933.2,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1941.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1937.6,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1946.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1942.0,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1950.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1946.4,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1954.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1950.8,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1959.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1955.2,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1963.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1959.6,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1968.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1964.0,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1972.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1968.4,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1976.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1972.8,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1981.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1977.2,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1985.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1981.6,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1990.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1986.0,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1994.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1990.4,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 1998.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1994.8,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2003.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 1999.2,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2007.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2003.6,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2012.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2008.0,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2016.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2012.4,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2020.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2016.8,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2025.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2021.2,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2029.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2025.6,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2034.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2030.0,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2038.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2034.4,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2042.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2038.8,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2047.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2043.2,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2051.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2047.6,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2056.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2052.0,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2060.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2056.4,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2064.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2060.8,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2069.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2065.2,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2073.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2069.6,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2078.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2074.0,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2082.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2078.4,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2086.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2082.8,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2091.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2087.2,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2095.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2091.6,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2100.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2096.0,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2104.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2100.4,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2108.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2104.8,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2113.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2109.2,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2117.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2113.6,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2122.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2118.0,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2126.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2122.4,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2130.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2126.8,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2135.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2131.2,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2139.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2135.6,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2144.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2140.0,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2148.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2144.4,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2152.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2148.8,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2157.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2153.2,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2161.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2157.6,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2166.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2162.0,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2170.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2166.4,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2174.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2170.8,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2179.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2175.2,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2183.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2179.6,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2188.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2184.0,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2192.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2188.4,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2196.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2192.8,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2201.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2197.2,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2205.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2201.6,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2210.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2206.0,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2214.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2210.4,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2218.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2214.8,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2223.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2219.2,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2227.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2223.6,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2232.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2228.0,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2236.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2232.4,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2240.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2236.8,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2245.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2241.2,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2249.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2245.6,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2254.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2250.0,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2258.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2254.4,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2262.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2258.8,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2267.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2263.2,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2271.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2267.6,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2276.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2272.0,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2280.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2276.4,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2284.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2280.8,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2289.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2285.2,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2293.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2289.6,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2298.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2294.0,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2302.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2298.4,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2306.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2302.8,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2311.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2307.2,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2315.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2311.6,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2320.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2316.0,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2324.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2320.4,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2328.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2324.8,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2333.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2329.2,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2337.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2333.6,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2342.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2338.0,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2346.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2342.4,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2350.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2346.8,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2355.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2351.2,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2359.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2355.6,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2364.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2360.0,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2368.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2364.4,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2372.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2368.8,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2377.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2373.2,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2381.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2377.6,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2386.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2382.0,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2390.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2386.4,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2394.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2390.8,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2399.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2395.2,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2403.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2399.6,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2408.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2404.0,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2412.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2408.4,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2416.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2412.8,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2421.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2417.2,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2425.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2421.6,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2430.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2426.0,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2434.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2430.4,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2438.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2434.8,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2443.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2439.2,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2447.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2443.6,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2452.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2448.0,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2456.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2452.4,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2460.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2456.8,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2465.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2461.2,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2469.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2465.6,
+   "text": "The grounds are a substitution, one life given in"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2474.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2470.0,
+   "text": "That is the logic of the whole letter, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2478.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2474.4,
+   "text": "Notice what he does not say, because what he"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2482.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2478.8,
+   "text": "He does not say there is now a little"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2487.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2483.2,
+   "text": "He says there is none, and none is a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2491.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2487.6,
+   "text": "So when the accusation comes, and it will come,"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2496.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2492.0,
+   "text": "You point away from yourself entirely, to the one"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2500.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2496.4,
+   "text": "That is what it means to live out of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2504.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2500.8,
+   "text": "So turn with me again and look at what"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2509.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2505.2,
+   "text": "The whole weight of the passage rests on a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2513.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2509.6,
+   "text": "He has spent seven chapters building a case, and"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2518.0,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2514.0,
+   "text": "There is no condemnation, and that is not a"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2522.4,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2518.4,
+   "text": "A verdict is something handed down from outside of"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2526.8,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2522.8,
+   "text": "Which means the question is never how you feel"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2531.2,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2527.2,
+   "text": "The question is who handed it down, and on"
+  },
+  {
+   "avg_logprob": -0.18,
+   "compression_ratio": 1.5,
+   "end": 2535.6,
+   "no_speech_prob": 0.01,
+   "speaker": "S3",
+   "start": 2531.6,
+   "text": "And the grounds are not your record, because your"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2564.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2560.0,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2568.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2564.4,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2572.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2568.8,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2577.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2573.2,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2581.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2577.6,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2586.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2582.0,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2590.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2586.4,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2594.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2590.8,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2599.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2595.2,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2603.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2599.6,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2608.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2604.0,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2612.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2608.4,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2616.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2612.8,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2621.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2617.2,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2625.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2621.6,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2630.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2626.0,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2634.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2630.4,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2638.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2634.8,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2643.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2639.2,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2647.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2643.6,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2652.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2648.0,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2656.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2652.4,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2660.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2656.8,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2665.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2661.2,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2669.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2665.6,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2674.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2670.0,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2678.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2674.4,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2682.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2678.8,
+   "text": "In Jesus' name, amen. In Jesus' name, amen."
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2687.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2683.2,
+   "text": "Let us pray. In Jesus' name, amen. In"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2691.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2687.6,
+   "text": "Father, we thank you for this word and"
+  },
+  {
+   "avg_logprob": -0.25,
+   "compression_ratio": 1.5,
+   "end": 2696.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S3",
+   "start": 2692.0,
+   "text": "Heavenly Father, send us out this week in"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2724.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2720.0,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2728.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2724.4,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2732.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2728.8,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2737.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2733.2,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2741.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2737.6,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2746.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2742.0,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2750.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2746.4,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2754.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2750.8,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2759.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2755.2,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2763.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2759.6,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2768.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2764.0,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2772.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2768.4,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2776.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2772.8,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2781.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2777.2,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2785.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2781.6,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2790.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2786.0,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2794.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2790.4,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2798.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2794.8,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2803.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2799.2,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2807.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2803.6,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2812.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2808.0,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2816.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2812.4,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2820.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2816.8,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2825.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2821.2,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2829.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2825.6,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2834.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2830.0,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2838.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2834.4,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2842.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2838.8,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2847.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2843.2,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2851.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2847.6,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2856.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2852.0,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2860.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2856.4,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2864.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2860.8,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2869.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2865.2,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2873.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2869.6,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2878.0,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2874.0,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2882.4,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2878.4,
+   "text": "Well, if you're a visitor with us this morning, we"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2886.8,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2882.8,
+   "text": "The elders will be coming forward in a moment with"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2891.2,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2887.2,
+   "text": "If you have trusted Christ and been baptized, come to"
+  },
+  {
+   "avg_logprob": -0.22,
+   "compression_ratio": 1.5,
+   "end": 2895.6,
+   "no_speech_prob": 0.02,
+   "speaker": "S4",
+   "start": 2891.6,
+   "text": "This is the Lord's Supper and we take communion together"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2924.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2920.0,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2928.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2924.4,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2932.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2928.8,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2937.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2933.2,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2941.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2937.6,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2946.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2942.0,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2950.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2946.4,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2954.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2950.8,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2959.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2955.2,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2963.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2959.6,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2968.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2964.0,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2972.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2968.4,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2976.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2972.8,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2981.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2977.2,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2985.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2981.6,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2990.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2986.0,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2994.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2990.4,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 2998.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2994.8,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3003.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 2999.2,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3007.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3003.6,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3012.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3008.0,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3016.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3012.4,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3020.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3016.8,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3025.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3021.2,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3029.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3025.6,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3034.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3030.0,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3038.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3034.4,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3042.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3038.8,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3047.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3043.2,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3051.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3047.6,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3056.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3052.0,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3060.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3056.4,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3064.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3060.8,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3069.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3065.2,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3073.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3069.6,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3078.0,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3074.0,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3082.4,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3078.4,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3086.8,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3082.8,
+   "text": "Praise him"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3091.2,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3087.2,
+   "text": "Praise God"
+  },
+  {
+   "avg_logprob": -0.82,
+   "compression_ratio": 1.5,
+   "end": 3095.6,
+   "no_speech_prob": 0.55,
+   "speaker": "S1",
+   "start": 3091.6,
+   "text": "Praise him"
+  }
+ ]
+}
