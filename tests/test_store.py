@@ -1013,6 +1013,11 @@ def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store,
     assert seen == [graph["block"].block_id, later.block_id]
 
 
+def test_a_segment_keeps_no_second_copy_of_the_cuts_the_machine_proposed(store):
+    with pytest.raises(ValueError):
+        store.lists(Segment, proposed_punch_in=63.125)
+
+
 def test_listing_by_something_no_entity_holds_is_refused(store):
     with pytest.raises(ValueError):
         store.lists(Recording, needs_attention=True)
