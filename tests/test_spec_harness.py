@@ -155,6 +155,17 @@ def test_nothing_above_a_scenario_is_deferred():
     assert finds_deferrals_above_scenario_level() == []
 
 
+def test_a_step_module_that_defines_a_hook_is_refused(tmp_path):
+    plants_step_module(
+        tmp_path, "hooked_steps.py", "def pytest_collection_modifyitems(items):\n    items.clear()\n"
+    )
+    returncode, report = runs_pytest("-q", cwd=tmp_path)
+    assert "INTERNALERROR" not in report, report
+    assert "tests/steps/hooked_steps.py" in report, report
+    assert "pytest_collection_modifyitems" in report, report
+    assert returncode == pytest.ExitCode.USAGE_ERROR, report
+
+
 def test_a_step_module_that_cannot_be_imported_names_itself(tmp_path):
     plants_step_module(tmp_path, "unimportable_steps.py", "def broken(:\n")
     returncode, report = runs_pytest("-q", cwd=tmp_path)

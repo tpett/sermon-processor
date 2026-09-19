@@ -23,9 +23,20 @@ def loads_step_definitions(path):
     return module
 
 
+def refuses_hooks(manager, module, path):
+    hooks = sorted(name for name in dir(module) if manager.parse_hookimpl_opts(module, name))
+    if hooks:
+        raise pytest.UsageError(
+            f"{path.relative_to(PROJECT_ROOT)} defines {', '.join(hooks)}; "
+            f"a pytest hook belongs in a conftest, not in a step definition module"
+        )
+
+
 def pytest_configure(config):
     for path in sorted(STEP_ROOT.glob("[!_]*.py")):
-        config.pluginmanager.register(loads_step_definitions(path), f"{STEP_ROOT.name}.{path.stem}")
+        module = loads_step_definitions(path)
+        refuses_hooks(config.pluginmanager, module, path)
+        config.pluginmanager.register(module, f"{STEP_ROOT.name}.{path.stem}")
 
 
 @pytest.fixture(scope="session")
