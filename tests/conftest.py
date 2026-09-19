@@ -13,7 +13,13 @@ def loads_step_definitions(path):
     location = importlib.util.spec_from_file_location(f"{STEP_ROOT.name}.{path.stem}", path)
     module = importlib.util.module_from_spec(location)
     sys.modules[location.name] = module
-    location.loader.exec_module(module)
+    try:
+        location.loader.exec_module(module)
+    except Exception as failure:
+        raise pytest.UsageError(
+            f"{path.relative_to(PROJECT_ROOT)} could not be imported: "
+            f"{type(failure).__name__}: {failure}"
+        ) from failure
     return module
 
 
@@ -29,7 +35,13 @@ def spec_guardrail():
     )
     module = importlib.util.module_from_spec(location)
     sys.modules[location.name] = module
-    location.loader.exec_module(module)
+    try:
+        location.loader.exec_module(module)
+    except Exception as failure:
+        raise pytest.UsageError(
+            f"{path.relative_to(PROJECT_ROOT)} could not be imported: "
+            f"{type(failure).__name__}: {failure}"
+        ) from failure
     return module
 
 

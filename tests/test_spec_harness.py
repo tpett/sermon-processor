@@ -4,6 +4,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+import pytest
 from gherkin.parser import Parser
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +37,14 @@ def finds_summary(report):
 def counted(outcome, report):
     found = re.search(rf"(\d+) {outcome}", finds_summary(report))
     return int(found.group(1)) if found else 0
+
+
+def plants_step_module(root, name, source):
+    steps = root / "tests" / "steps"
+    steps.mkdir(parents=True)
+    (steps / name).write_text(source)
+    (root / "tests" / "conftest.py").write_text((PROJECT_ROOT / "tests" / "conftest.py").read_text())
+    (root / "tests" / "test_nothing.py").write_text("def test_nothing():\n    assert True\n")
 
 
 def tag_names(node):
@@ -144,6 +153,14 @@ def test_scenarios_deferred_out_of_v1_are_skipped():
 
 def test_nothing_above_a_scenario_is_deferred():
     assert finds_deferrals_above_scenario_level() == []
+
+
+def test_a_step_module_that_cannot_be_imported_names_itself(tmp_path):
+    plants_step_module(tmp_path, "unimportable_steps.py", "def broken(:\n")
+    returncode, report = runs_pytest("-q", cwd=tmp_path)
+    assert "INTERNALERROR" not in report, report
+    assert "tests/steps/unimportable_steps.py" in report, report
+    assert returncode == pytest.ExitCode.USAGE_ERROR, report
 
 
 def test_a_step_module_is_the_object_the_import_system_holds(pytestconfig):
