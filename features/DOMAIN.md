@@ -50,7 +50,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
 | `channels`, `sample_rate`, `bits_per_raw_sample` | Reported on the detail view. **32-bit, not 24** — the spec said 24 in five places and was wrong. |
-| `state` | One of eleven. See the lifecycle in `README.md`; every state's exits are tabulated there. |
+| `state` | One of ten. See the lifecycle in `README.md`; every state's exits are tabulated there. |
 | `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
@@ -170,7 +170,7 @@ from raising it (`notifications/approval_notifications.feature`).
 | Field | Why it exists |
 | --- | --- |
 | `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns". Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
-| `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for eight different reasons without ever declaring the vocabulary, and naming one here would be inventing spec rather than recording it. |
+| `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for many different reasons and declare a vocabulary for none of them, so naming one here would be inventing spec rather than recording it. |
 | `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. |
 | `summary` | What it says, in plain text. It states the recording date and the proposed length, and names each session when a Recording held more than one — so it is composed when the Notification is raised, not when a channel renders it. |
 | `created_at` | When it was raised. The reminder for a Segment left undispositioned for 3 days is measured from it. |
