@@ -1,3 +1,4 @@
+import importlib.util
 import shutil
 import subprocess
 import sys
@@ -25,6 +26,16 @@ PACKAGES = [
 def loaded_from_experiments(module):
     location = getattr(module, "__file__", None)
     return bool(location) and EXPERIMENTS_ROOT in Path(location).resolve().parents
+
+
+def experiments_modules_reached_through(packages):
+    for package in packages:
+        import_module(package)
+    return sorted(
+        name
+        for name, module in list(sys.modules.items())
+        if module is not None and loaded_from_experiments(module)
+    )
 
 
 @pytest.mark.parametrize("package", PACKAGES)
@@ -60,14 +71,20 @@ def test_no_module_mentions_experiments():
 
 
 def test_no_package_loads_a_module_from_experiments():
-    for package in PACKAGES:
-        import_module(package)
-    offenders = sorted(
-        name
-        for name, module in list(sys.modules.items())
-        if module is not None and loaded_from_experiments(module)
+    assert experiments_modules_reached_through(PACKAGES) == []
+
+
+def test_hygiene_guard_ignores_experiments_modules_loaded_elsewhere():
+    location = importlib.util.spec_from_file_location(
+        "experiments_baseline_probe", EXPERIMENTS_ROOT / "baseline.py"
     )
-    assert offenders == []
+    module = importlib.util.module_from_spec(location)
+    sys.modules[location.name] = module
+    try:
+        location.loader.exec_module(module)
+        assert experiments_modules_reached_through(PACKAGES) == []
+    finally:
+        sys.modules.pop(location.name, None)
 
 
 def plants_web_assets(root):
