@@ -390,10 +390,16 @@ def test_a_re_run_keeps_the_proposal_it_replaced(store, graph):
 
 
 def test_the_machine_proposal_beside_a_reviewers_work_is_the_one_not_yet_superseded(store, graph):
-    fresh = store.saves(populated_proposal(graph["segment"]))
+    adjusted = store.saves(
+        replace(graph["segment"], punch_in_seconds=5582.0, boundary_source="human")
+    )
+    reproposed = store.saves(replace(adjusted, proposed_punch_in=5590.5))
+    fresh = store.saves(populated_proposal(reproposed))
     store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
-    listed = store.lists(Proposal, segment_id=graph["segment"].segment_id, superseded_by=None)
-    assert listed == [fresh]
+    stored = reloaded(store, reproposed, "segment")
+    assert (stored.punch_in_seconds, stored.boundary_source) == (5582.0, "human")
+    assert stored.proposed_punch_in == 5590.5
+    assert store.lists(Proposal, segment_id=adjusted.segment_id, superseded_by=None) == [fresh]
 
 
 def test_a_segment_lists_the_renders_made_from_it(store, graph):
