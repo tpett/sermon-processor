@@ -5,6 +5,9 @@ import re
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urljoin
+
+from sermon.config import ReachesModelEndpoint, UnusableConfiguration
 
 from . import blocks as B
 from . import features as F
@@ -17,7 +20,8 @@ from .roots import requires_directory_under_root, requires_root
 # read a prompt template or a diarization artefact.
 DATA = None
 PROMPTS = None
-OLLAMA = "http://localhost:11434/api/generate"
+
+ENDPOINT = None
 
 MAX_REPAIRS = 2
 TIMEOUT_S = 900
@@ -56,10 +60,21 @@ def ollama(model: str, prompt: str, think: bool = False) -> str:
         body["think"] = False
         body["format"] = "json"
     def post(b: dict) -> str:
-        req = urllib.request.Request(OLLAMA, data=json.dumps(b).encode(),
-                                     headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
-            return json.loads(r.read())["response"]
+        if ENDPOINT is None:
+            raise UnusableConfiguration(
+                f"nothing set {__name__}.ENDPOINT; the caller owning the model host must"
+            )
+
+        def over(endpoint):
+            req = urllib.request.Request(
+                urljoin(endpoint, "/api/generate"),
+                data=json.dumps(b).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+                return json.loads(r.read())["response"]
+
+        return ReachesModelEndpoint(endpoint=ENDPOINT, over=over)()
 
     try:
         return post(body)
