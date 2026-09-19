@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import get_type_hints
 
 from .artifact_paths import DEFAULT_DATA_ROOT, ResolvesArtifactPath
+from .entities import Artifact
 from .schema import TABLES, column_names, element_columns, order_by, schema_sql, unwrapped
 
 DATABASE_NAME = "sermon.sqlite3"
@@ -42,13 +43,15 @@ class Store:
         self._resolves_artifact_path = resolves_artifact_path
 
     def resolves(self, artifact):
-        return None
+        return self._resolves_artifact_path(artifact.path)
 
     def close(self):
         self._connection.close()
 
     def saves(self, entity):
         table = TABLES[type(entity)]
+        if isinstance(entity, Artifact):
+            self._resolves_artifact_path(entity.path)
         columns = column_names(table)
         assignments = ", ".join(
             f"{name} = excluded.{name}" for name in columns if name != table.identity
