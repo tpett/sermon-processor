@@ -200,7 +200,7 @@ and supersedes the one before it rather than overwriting it.
 | `segment_id` | |
 | `classification_confidence`, `boundary_confidence` | Separate, because a Segment can be confidently a sermon with badly guessed boundaries. Both derived. |
 | `evidence[]` | Each entry: `timecode`, `finding`, `implies`. Rendered as a table for the reviewer. |
-| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut the machine proposed. The grade of the ground-truth cut lives on `CorpusPair`, so a configuration cannot raise the headline by grading more of its own cuts hard (`analysis/detection_accuracy.feature`). |
+| `punch_in_grade`, `punch_out_grade` | `easy` / `moderate` / `hard`, from the quiet around the cut the machine proposed. The grade is shown to the reviewer (`analysis/punch_in_detection.feature`, `analysis/punch_out_detection.feature`). |
 | `agreement_gap_seconds` | Distance to a second analysis's punch-in. Null in v1 because one analysis is the whole design; a second opinion is deferred, not open. The absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
 | `punch_in_candidates[]` | Each entry: `timecode` and `considered_because`. "Analysis recorded an alternative punch-in candidate" whose evidence panel "shows why that candidate was considered" (`interface/punch_point_adjustment.feature`) — a bare timecode cannot. Ordered by rank. |
@@ -409,7 +409,7 @@ trap where the corpus starts grading itself
 | `alignment` | `aligned`, `cannot be aligned`, or `not a contiguous excerpt`, null when the published output is one the system produced itself. A pair that cannot be aligned is excluded from the corpus and the exclusion is reported rather than silently dropped (`analysis/detection_accuracy.feature`). |
 | `punch_in_seconds`, `punch_out_seconds` | The derived boundaries, stored as the expected answer for that pair. Punch-in is the intercept of the fit, not the middle of it; punch-out accounts for the drift across the segment (`analysis/detection_accuracy.feature`). Only an `aligned` human pair has them. |
 | `drift_ppm` | The slope of the fit, in parts per million. Measured rather than averaged away (`analysis/detection_accuracy.feature`). Null when there are no boundaries. |
-| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, graded from the audio around the human cut. A configuration cannot change the difficulty of anything it is scored on (`analysis/detection_accuracy.feature`). Null when there are no boundaries. |
+| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, graded from the audio around the human cut, never by the system. A configuration cannot change the difficulty of anything it is scored on (`analysis/detection_accuracy.feature`). Null when there are no boundaries. |
 | `covers_more_than_95_percent` | A published output covering more than 95% of its source is flagged rather than silently accepted, and excluded from boundary statistics; a legitimate untrimmed archive is flagged the same way (`analysis/detection_accuracy.feature`). |
 | `provenance` | `human` or `machine`. Whether the published output is a human edit or one the system produced itself. Stored, not inferred later from the audio (`analysis/detection_accuracy.feature`). |
 

@@ -211,8 +211,8 @@ TABLES = {
             closed={
                 "classification_confidence": vocabularies.CONFIDENCE_LEVELS,
                 "boundary_confidence": vocabularies.CONFIDENCE_LEVELS,
-                "punch_in_difficulty": vocabularies.CUT_DIFFICULTIES,
-                "punch_out_difficulty": vocabularies.CUT_DIFFICULTIES,
+                "punch_in_grade": vocabularies.CUT_DIFFICULTIES,
+                "punch_out_grade": vocabularies.CUT_DIFFICULTIES,
             },
             collections=(
                 Collection(

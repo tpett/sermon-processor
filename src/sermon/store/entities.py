@@ -107,8 +107,8 @@ class Proposal:
     segment_id: int
     classification_confidence: str
     boundary_confidence: str
-    punch_in_difficulty: str
-    punch_out_difficulty: str
+    punch_in_grade: str
+    punch_out_grade: str
     agreement_gap_seconds: float | None = None
     superseded_by: int | None = None
     evidence: tuple[Evidence, ...] = ()

@@ -85,7 +85,7 @@ SPEC_VOCABULARIES = {
     "SEGMENT_INTENTS": (2, domain_field("Segment", "intent")),
     "BOUNDARY_SOURCES": (4, domain_field("Segment", "boundary_source")),
     "CONFIDENCE_LEVELS": (3, domain_field("Block", "classification_confidence")),
-    "CUT_DIFFICULTIES": (3, domain_field("Proposal", "punch_in_difficulty")),
+    "CUT_DIFFICULTIES": (3, domain_field("Proposal", "punch_in_grade")),
     "ARTIFACT_KINDS": (7, domain_field("Artifact", "kind")),
     "JOB_KINDS": (3, domain_field("Job", "kind")),
     "JOB_STATES": (5, domain_field("Job", "state")),
@@ -125,7 +125,8 @@ def test_the_states_a_logged_transition_can_enter_belong_to_exactly_one_lifecycl
 
 
 def test_the_difficulty_of_both_cuts_comes_from_one_vocabulary():
-    assert domain_field("Proposal", "punch_out_difficulty") == vocabularies.CUT_DIFFICULTIES
+    assert domain_field("Proposal", "punch_in_grade") == vocabularies.CUT_DIFFICULTIES
+    assert domain_field("Proposal", "punch_out_grade") == vocabularies.CUT_DIFFICULTIES
 
 
 def test_a_corpus_pair_grades_its_cuts_from_the_same_vocabulary_as_a_proposal():

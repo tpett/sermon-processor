@@ -71,8 +71,8 @@ CLOSED_COLUMNS = [
     ("segment", "boundary_source", vocabularies.BOUNDARY_SOURCES),
     ("proposal", "classification_confidence", vocabularies.CONFIDENCE_LEVELS),
     ("proposal", "boundary_confidence", vocabularies.CONFIDENCE_LEVELS),
-    ("proposal", "punch_in_difficulty", vocabularies.CUT_DIFFICULTIES),
-    ("proposal", "punch_out_difficulty", vocabularies.CUT_DIFFICULTIES),
+    ("proposal", "punch_in_grade", vocabularies.CUT_DIFFICULTIES),
+    ("proposal", "punch_out_grade", vocabularies.CUT_DIFFICULTIES),
     ("artifact", "kind", vocabularies.ARTIFACT_KINDS),
     ("job", "kind", vocabularies.JOB_KINDS),
     ("job", "state", vocabularies.JOB_STATES),
@@ -254,8 +254,8 @@ def populated_proposal(segment):
         segment_id=segment.segment_id,
         classification_confidence="high",
         boundary_confidence="medium",
-        punch_in_difficulty="easy",
-        punch_out_difficulty="hard",
+        punch_in_grade="easy",
+        punch_out_grade="hard",
         agreement_gap_seconds=1.375,
         evidence=(
             Evidence(timecode=61.5, finding="speaker change", implies="the class begins"),
@@ -273,8 +273,8 @@ def minimal_proposal(segment):
         segment_id=segment.segment_id,
         classification_confidence="low",
         boundary_confidence="low",
-        punch_in_difficulty="moderate",
-        punch_out_difficulty="moderate",
+        punch_in_grade="moderate",
+        punch_out_grade="moderate",
     )
 
 
@@ -1589,6 +1589,21 @@ def test_the_machines_grade_of_its_cut_and_the_ground_truth_difficulty_are_separ
     assert {"punch_in_difficulty", "punch_out_difficulty"} <= corpus
     assert proposal.isdisjoint({"punch_in_difficulty", "punch_out_difficulty"})
     assert corpus.isdisjoint({"punch_in_grade", "punch_out_grade"})
+
+
+def test_the_cut_the_machine_proposed_is_graded_and_the_grade_survives_a_correction(store, graph):
+    graded = store.saves(replace(graph["proposal"], punch_in_grade="hard", punch_out_grade="easy"))
+    stored = reloaded(store, graded, "proposal")
+    assert (stored.punch_in_grade, stored.punch_out_grade) == ("hard", "easy")
+
+
+def test_grading_a_proposal_does_not_change_the_difficulty_the_pair_is_scored_on(store, graph):
+    store.saves(replace(graph["proposal"], punch_in_grade="hard", punch_out_grade="easy"))
+    stored = reloaded(store, graph["corpus_pair"], "corpus_pair")
+    assert (stored.punch_in_difficulty, stored.punch_out_difficulty) == (
+        graph["corpus_pair"].punch_in_difficulty,
+        graph["corpus_pair"].punch_out_difficulty,
+    )
 
 
 def test_each_pair_is_graded_against_the_difficulty_of_its_own_transition(store):

@@ -42,7 +42,13 @@ def test_the_machines_grade_of_its_cut_and_the_ground_truth_difficulty_are_separ
     assert "`punch_out_grade`" not in corpus
     stated = why("CorpusPair", "punch_in_difficulty").lower()
     assert "human cut" in stated
+    assert "never by the system" in stated
     assert "configuration cannot change" in stated
+    graded = why("Proposal", "punch_in_grade").lower()
+    assert "machine proposed" in graded
+    assert "shown to the reviewer" in graded
+    assert "human cut" not in graded
+    assert "configuration" not in graded
 
 
 def test_agreement_gap_seconds_is_still_a_proposal_field():
