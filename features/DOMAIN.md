@@ -22,7 +22,7 @@ Recording ──1:N──▶ Block
     │                 │
     │                 │ seeds (teaching Blocks only)
     │                 ▼
-    ├────1:N────▶ Segment ──1:1──▶ Proposal
+    ├────1:N────▶ Segment ──1:N──▶ Proposal  (a re-run adds another; the old one stays)
     │                 │
     │                 └──1:N──▶ Artifact  (a render; a re-cut adds another)
     │
@@ -113,8 +113,8 @@ and what renders.
 
 ## Proposal
 
-Why the machine thinks what it thinks. One per Segment, replaced when analysis
-re-runs.
+Why the machine thinks what it thinks. Several per Segment: a re-run adds one
+and supersedes the one before it rather than overwriting it.
 
 | Field | Why it exists |
 | --- | --- |
@@ -124,6 +124,7 @@ re-runs.
 | `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut. **Graded from the ground truth where it exists, never by the configuration being measured** — otherwise the headline can be raised by grading more cuts hard. |
 | `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null when no second opinion is configured, and the absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
+| `superseded_by` | Re-running Analysis keeps the previous Proposals in the Recording's history, and where a reviewer has already edited a Segment the fresh machine proposal is shown *alongside* their work rather than over it (`analysis/analysis_orchestration.feature`, `interface/punch_point_adjustment.feature`). Two Proposals for one Segment therefore have to exist at once, which a 1:1 cannot do, and which of them is current has to be a stored fact. Written the way `Artifact.superseded_by` already is. |
 
 ---
 
@@ -208,4 +209,21 @@ flagged as an open decision, not settled here.
   because that decision is open (`analysis/analysis_confidence.feature`).
 - **Whether local audio is ever reclaimed.** `local_path` is nullable and the
   object store is durable, so both answers fit. Q34 is open.
+- **Whether a Proposal carries the boundaries it proposed.** They live on the
+  Segment as `proposed_punch_in` and `proposed_punch_out`, which hold only the
+  current machine suggestion, so a superseded Proposal keeps its reasoning and
+  not its cuts. Moving them here would close that, and it is the same question
+  as the boundary history `processing/reprocessing.feature` asks for — "each set
+  of boundaries with who approved them and when" — which needs an actor and a
+  time this model has nowhere to put.
+- **The processing log.** Four feature files ask for one: each state transition
+  with its timestamp, each job attempt with its duration and error, and who
+  performed each human action against which Segment
+  (`interface/recording_detail.feature`, `operations/system_health.feature`,
+  `analysis/analysis_orchestration.feature`, `analysis/segment_proposal.feature`).
+  `Job` holds the current attempt count and the last error, never a record per
+  attempt, and nothing at all holds transitions or human actions — so this is an
+  entity the spec requires and this model does not have. It is left out
+  deliberately rather than by oversight: it also carries the boundary and
+  adjustment history above, and wants designing once for all of them.
 - **Hard delete.** The last `@needs-decision` in the spec.

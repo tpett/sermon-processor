@@ -26,7 +26,7 @@ IDENTITIES = {
     "recording": "recording_id",
     "block": "block_id",
     "segment": "segment_id",
-    "proposal": "segment_id",
+    "proposal": "proposal_id",
     "artifact": "artifact_id",
     "job": "job_id",
     "notification": "notification_id",
@@ -375,7 +375,7 @@ def test_a_segment_grows_from_the_block_that_seeded_it(store, graph):
     assert reloaded(store, graph["segment"], "segment").seed_block_id == graph["block"].block_id
 
 
-def test_a_segment_has_one_proposal(store, graph):
+def test_correcting_a_proposal_does_not_make_it_a_second_one(store, graph):
     replacement = replace(graph["proposal"], boundary_confidence="low", missing_evidence=())
     store.saves(replacement)
     assert store.lists(Proposal, segment_id=graph["segment"].segment_id) == [replacement]

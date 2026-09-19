@@ -77,12 +77,14 @@ class SpeakerMatch:
 
 @dataclass(frozen=True, kw_only=True)
 class Proposal:
+    proposal_id: int | None = None
     segment_id: int
     classification_confidence: str
     boundary_confidence: str
     punch_in_difficulty: str
     punch_out_difficulty: str
     agreement_gap_seconds: float | None = None
+    superseded_by: int | None = None
     evidence: tuple[Evidence, ...] = ()
     missing_evidence: tuple[str, ...] = ()
 

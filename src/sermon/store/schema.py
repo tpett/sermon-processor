@@ -157,9 +157,11 @@ TABLES = {
         Table(
             entity=Proposal,
             name="proposal",
-            identity="segment_id",
-            generated=False,
-            references={"segment_id": "segment(segment_id)"},
+            identity="proposal_id",
+            references={
+                "segment_id": "segment(segment_id)",
+                "superseded_by": "proposal(proposal_id)",
+            },
             closed={
                 "classification_confidence": vocabularies.CONFIDENCE_LEVELS,
                 "boundary_confidence": vocabularies.CONFIDENCE_LEVELS,
@@ -170,13 +172,13 @@ TABLES = {
                 Collection(
                     field="evidence",
                     table="proposal_evidence",
-                    owner="segment_id",
+                    owner="proposal_id",
                     element=Evidence,
                 ),
                 Collection(
                     field="missing_evidence",
                     table="proposal_missing_evidence",
-                    owner="segment_id",
+                    owner="proposal_id",
                     element=str,
                     column="description",
                 ),
