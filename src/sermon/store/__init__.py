@@ -10,6 +10,7 @@ from .entities import (
     Proposal,
     Recording,
     Segment,
+    SkippedObject,
     SpeakerMatch,
     SpeakerProfile,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "Recording",
     "ResolvesStoredPath",
     "Segment",
+    "SkippedObject",
     "SpeakerMatch",
     "SpeakerProfile",
     "Store",

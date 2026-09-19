@@ -85,6 +85,7 @@ SPEC_VOCABULARIES = {
     "JOB_KINDS": (3, domain_field("Job", "kind")),
     "JOB_STATES": (5, domain_field("Job", "state")),
     "NOTIFICATION_STATES": (4, domain_field("Notification", "state")),
+    "SKIP_REASONS": (4, domain_field("SkippedObject", "reason")),
 }
 
 

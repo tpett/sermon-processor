@@ -18,6 +18,7 @@ from sermon.store import (
     Recording,
     PathEscapesDataRoot,
     Segment,
+    SkippedObject,
     SpeakerMatch,
     SpeakerProfile,
     Store,
@@ -70,6 +71,13 @@ CLOSED_COLUMNS = [
     ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
     ("log_entry", "boundary_source", vocabularies.BOUNDARY_SOURCES),
 ]
+
+SKIPPED_OBJECTS = (
+    ("recording_19700101_000000.flac", "recorder clock not set"),
+    ("sermon-2027-01-03.flac", "key does not match the pattern"),
+    ("recordings/README.txt", "not an audio object"),
+    ("recording_20240107_101500.flac", "before the ingest cutoff"),
+)
 
 MOMENTS = [
     ("recording", "started_at"),
@@ -334,6 +342,11 @@ def minimal_log_entry(recording):
         occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
         correlation_id="analyze-4b20e9",
     )
+
+
+def skipped_object():
+    key, reason = SKIPPED_OBJECTS[0]
+    return SkippedObject(object_key=key, reason=reason)
 
 
 @pytest.fixture
@@ -1080,6 +1093,30 @@ def test_alternative_punch_in_candidates_are_kept_in_the_order_analysis_ranked_t
     )
     proposal = store.saves(replace(graph["proposal"], punch_in_candidates=ranked))
     assert reloaded(store, proposal, "proposal").punch_in_candidates == ranked
+
+
+def test_an_object_the_scan_skipped_is_recorded_with_its_key_and_reason(store):
+    skipped = store.saves(skipped_object())
+    assert store.loads(SkippedObject, skipped.object_key) == skipped
+
+
+def test_an_operator_can_see_every_object_the_processor_has_ever_skipped(store):
+    for key, reason in SKIPPED_OBJECTS:
+        store.saves(SkippedObject(object_key=key, reason=reason))
+    listed = store.lists(SkippedObject)
+    assert {(one.object_key, one.reason) for one in listed} == set(SKIPPED_OBJECTS)
+
+
+def test_a_key_no_recording_could_be_built_from_is_still_recorded_as_skipped(store):
+    skipped = store.saves(skipped_object())
+    assert store.lists(Recording) == []
+    assert store.loads(SkippedObject, skipped.object_key).reason == "recorder clock not set"
+
+
+def test_an_object_skipped_again_for_another_reason_is_not_listed_twice(store):
+    store.saves(skipped_object())
+    reconsidered = store.saves(replace(skipped_object(), reason="not an audio object"))
+    assert store.lists(SkippedObject) == [reconsidered]
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):

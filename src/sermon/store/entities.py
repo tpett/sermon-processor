@@ -179,3 +179,8 @@ class LogEntry:
     punch_in_seconds: float | None = None
     punch_out_seconds: float | None = None
     boundary_source: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SkippedObject:
+    pass

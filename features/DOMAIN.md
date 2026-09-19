@@ -33,10 +33,12 @@ Recording ──1:N──▶ Block
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
+
+SkippedObject                   (an object no Recording will ever be made of)
 ```
 
-Five nouns the reviewer names, plus four the system needs: `Job`,
-`Notification`, `LogEntry` and `SpeakerProfile`.
+Five nouns the reviewer names, plus five the system needs: `Job`,
+`Notification`, `LogEntry`, `SpeakerProfile` and `SkippedObject`.
 
 ---
 
@@ -62,7 +64,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
-| `skip_reason` | Why an object was not ingested at all, when that happens. Must be visible rather than silent (`s3_reconciliation.feature`). |
+| `skip_reason` | Why a Recording that exists was not ingested. An object no Recording could be built for is a `SkippedObject` instead (`s3_reconciliation.feature`). |
 
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth
@@ -264,6 +266,23 @@ budget is read before the attempt it authorises is logged.
 **This entity is the one place the system stores something about a person.** It
 exists deliberately and narrowly, and it reopens "nothing more is collected" —
 flagged as an open decision, not settled here.
+
+---
+
+## SkippedObject
+
+An object the reconciliation scan decided not to ingest. Not a Recording state:
+`recording_id` is derived from the key and `started_at` parsed out of it, so
+three of the four reasons leave nothing a Recording could be built from.
+
+| Field | Why it exists |
+| --- | --- |
+| `object_key` | What was skipped, and the identity. An operator sees every object ever skipped, which is a list of objects rather than one of scans, so a later scan corrects the record instead of adding one. |
+| `reason` | `recorder clock not set`, `key does not match the pattern`, `not an audio object`, `before the ingest cutoff` — the four the outline names (`ingestion/s3_reconciliation.feature`). |
+
+**Not stored:** when it was skipped, or which scan skipped it. "Nothing is
+dropped without being counted" asks what was dropped and why; no scenario reads
+a time off this record, and no alert is raised from it.
 
 ---
 
