@@ -426,6 +426,26 @@ def test_a_segment_grows_from_the_block_that_seeded_it(store, graph):
     assert reloaded(store, graph["segment"], "segment").seed_block_id == graph["block"].block_id
 
 
+def test_a_segment_holds_an_outer_span_its_punch_points_sit_inside(store, graph):
+    stored = reloaded(store, graph["segment"], "segment")
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (61.0, 3600.0)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (61.5, 3497.25)
+
+
+def test_extending_a_segments_span_leaves_its_punch_points_where_they_were(store, graph):
+    extended = store.saves(replace(graph["segment"], span_start_seconds=5.0))
+    stored = reloaded(store, extended, "segment")
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (5.0, 3600.0)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (61.5, 3497.25)
+
+
+def test_a_segment_no_block_seeded_holds_a_span_of_its_own(store, graph):
+    drawn = store.saves(minimal_segment(graph["recording"]))
+    stored = reloaded(store, drawn, "segment")
+    assert stored.seed_block_id is None
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (0.0, 11520.0)
+
+
 def test_correcting_a_proposal_does_not_make_it_a_second_one(store, graph):
     replacement = replace(graph["proposal"], boundary_confidence="low", missing_evidence=())
     store.saves(replacement)
