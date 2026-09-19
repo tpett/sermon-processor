@@ -311,8 +311,15 @@ recordings each discovered (`operations/system_health.feature`).
 | `kind` | `webhook` or `scan`. Which of the two the health view is showing the last of, and the reason one record serves both. |
 | `occurred_at` | "When the last webhook was received" and "when the last reconciliation scan ran". An instant, so records written in different offsets still order against each other. |
 | `discovered_count` | "How many recordings each discovered". Nothing on a Recording names its discoverer and a re-scan finds nothing new, so the count cannot be derived back. |
-| `failure` | `transient` or `credentials`, null when nothing went wrong. A 403 is surfaced as a credential problem rather than burning the retry budget as though it were transient (`ingestion/s3_reconciliation.feature`). |
+| `failure` | `transient` or `credentials`, null when nothing went wrong. A 403 is surfaced as a credential problem rather than burning the retry budget as though it were transient (`ingestion/s3_reconciliation.feature`). A scan's alone, and it holds `discovered_count` at zero. |
 | `event` | The webhook's own `event` field: "the ignored event type is logged" for one the Processor does not handle (`ingestion/webhook_notification.feature`). Open, since the point is a type it has no vocabulary for. Null on a scan. |
+
+**Each kind admits only its own fields, and the table says so.** `failure` is a
+scan's and `event` a webhook's, so neither stores on the other kind, and a
+`failure` pins `discovered_count` to zero — both failing-scan scenarios end with
+no Recording created and none changed. Serving two kinds from one entity is only
+safe while the combinations neither kind can mean are refused. Nothing else bounds
+`discovered_count`; no scenario does.
 
 **A failed scan is not an alert.** Both failure scenarios ask only that it be
 surfaced on the system health view, and the skipped-object Rule says explicitly
