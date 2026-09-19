@@ -91,3 +91,38 @@ def test_enrolment_is_a_second_profile_to_segment_relationship():
     assert "SpeakerProfile ──1:N──▶ Segment" in speaker_lines
     assert "SpeakerProfile ──N:M──▶ Segment" in speaker_lines
     assert "Recording" not in speaker_lines
+
+
+def glance_intro():
+    return DOMAIN.read_text().split("## Entities at a glance", 1)[1].split("## Recording", 1)[0]
+
+
+def section(entity):
+    return DOMAIN.read_text().split(f"\n## {entity}\n", 1)[1].split("\n## ")[0]
+
+
+def test_glance_includes_the_reviewer():
+    assert "Reviewer" in glance()
+
+
+def test_the_reviewer_is_counted_among_the_system_nouns():
+    intro = glance_intro()
+    assert "plus eight the system needs" in intro
+    assert "`Reviewer`" in intro
+    assert "plus seven the system needs" not in intro
+
+
+def test_opting_out_is_modelled_on_the_reviewer_not_the_notification():
+    assert "nothing yet models" not in section("Notification")
+    stated = why("Reviewer", "receives_notifications").lower()
+    assert "send" in stated
+    assert "created" in stated
+
+
+def test_the_reviewer_is_identified_by_the_actor_seam():
+    assert "\n## Reviewer\n" in DOMAIN.read_text()
+    stated = why("Reviewer", "actor").lower()
+    assert "seam" in stated
+    assert "recipient" in stated
+    recipient = why("Notification", "recipient").lower()
+    assert "not a reference" in recipient
