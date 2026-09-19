@@ -144,5 +144,12 @@ class Notification:
 class LogEntry:
     log_entry_id: int | None = None
     recording_id: str
+    segment_id: int | None = None
+    job_id: int | None = None
     kind: str
     occurred_at: datetime
+    correlation_id: str
+    actor: str | None = None
+    entered_state: str | None = None
+    duration_seconds: float | None = None
+    error: str | None = None

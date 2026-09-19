@@ -279,19 +279,27 @@ def minimal_speaker_profile():
     return SpeakerProfile(name="not a known voice", embedding=b"\x00\x01")
 
 
-def populated_log_entry(recording):
+def populated_log_entry(recording, segment, job):
     return LogEntry(
         recording_id=recording.recording_id,
+        segment_id=segment.segment_id,
+        job_id=job.job_id,
         kind="approved",
-        occurred_at=datetime(2026, 9, 13, 11, 4, 9, tzinfo=UTC),
+        occurred_at=datetime(2026, 9, 13, 8, 55, tzinfo=UTC),
+        correlation_id="ingest-7f3a1c",
+        actor="the reviewer",
+        entered_state="approved",
+        duration_seconds=812.4,
+        error="the transcription service was unreachable",
     )
 
 
 def minimal_log_entry(recording):
     return LogEntry(
         recording_id=recording.recording_id,
-        kind="entered_analyzing",
+        kind="state_change",
         occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
+        correlation_id="analyze-4b20e9",
     )
 
 
@@ -316,16 +324,19 @@ def graph(store):
         )
     )
     segment = store.saves(populated_segment(recording, block))
+    proposal = store.saves(populated_proposal(segment))
+    artifact = store.saves(populated_artifact(recording, segment))
+    job = store.saves(populated_job(recording, segment))
     return {
         "recording": recording,
         "block": block,
         "speaker_profile": profile,
         "segment": segment,
-        "proposal": store.saves(populated_proposal(segment)),
-        "artifact": store.saves(populated_artifact(recording, segment)),
-        "job": store.saves(populated_job(recording, segment)),
+        "proposal": proposal,
+        "artifact": artifact,
+        "job": job,
         "notification": store.saves(populated_notification(recording, segment)),
-        "log_entry": store.saves(populated_log_entry(recording)),
+        "log_entry": store.saves(populated_log_entry(recording, segment, job)),
     }
 
 
@@ -646,17 +657,18 @@ def test_the_log_records_a_segments_transitions_beside_the_recordings(store, gra
     )
     logged = store.lists(LogEntry, recording_id=graph["recording"].recording_id)
     assert [(entry.entered_state, entry.segment_id) for entry in logged] == [
-        (None, None),
+        ("approved", graph["segment"].segment_id),
         ("awaiting_review", None),
         ("recut", graph["segment"].segment_id),
     ]
 
 
 def test_every_job_attempt_is_recorded_with_its_timestamp_duration_and_error(store, graph):
+    job = store.saves(minimal_job(graph["recording"]))
     attempt = replace(
         minimal_log_entry(graph["recording"]),
         kind="analyze_attempt",
-        job_id=graph["job"].job_id,
+        job_id=job.job_id,
         duration_seconds=44.5,
         error="the transcription service was unreachable",
     )
@@ -669,7 +681,7 @@ def test_every_job_attempt_is_recorded_with_its_timestamp_duration_and_error(sto
             error=None,
         )
     )
-    logged = store.lists(LogEntry, job_id=graph["job"].job_id)
+    logged = store.lists(LogEntry, job_id=job.job_id)
     assert [(entry.occurred_at, entry.duration_seconds, entry.error) for entry in logged] == [
         (first.occurred_at, 44.5, "the transcription service was unreachable"),
         (second.occurred_at, 2841.0, None),
@@ -692,7 +704,6 @@ def test_a_human_action_records_who_performed_it_and_against_which_segment(store
             kind="punch_in_adjusted",
             actor="the reviewer",
             segment_id=graph["segment"].segment_id,
-            punch_in_seconds=7216.5,
         )
     )
     stored = reloaded(store, adjustment, "log_entry")

@@ -21,6 +21,8 @@ SEGMENT_STATES = (
     "recut",
 )
 
+LOGGED_STATES = RECORDING_STATES + SEGMENT_STATES
+
 BLOCK_TYPES = (
     "announcements",
     "music",

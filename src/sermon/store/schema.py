@@ -230,7 +230,12 @@ TABLES = {
             name="log_entry",
             identity="log_entry_id",
             order=("occurred_at",),
-            references={"recording_id": "recording(recording_id)"},
+            references={
+                "recording_id": "recording(recording_id)",
+                "segment_id": "segment(segment_id)",
+                "job_id": "job(job_id)",
+            },
+            closed={"entered_state": vocabularies.LOGGED_STATES},
         ),
     )
 }

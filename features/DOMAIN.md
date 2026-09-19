@@ -28,13 +28,14 @@ Recording ──1:N──▶ Block
     │
     ├────1:N────▶ Artifact       (transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
-    └────1:N────▶ Notification   (naming its Segment too, when it concerns one)
+    ├────1:N────▶ Notification   (naming its Segment too, when it concerns one)
+    └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 ```
 
-Five nouns the reviewer names, plus three the system needs: `Job`,
-`Notification` and `SpeakerProfile`.
+Five nouns the reviewer names, plus four the system needs: `Job`,
+`Notification`, `LogEntry` and `SpeakerProfile`.
 
 ---
 
@@ -189,6 +190,33 @@ reviewer, and nothing yet models one.
 
 ---
 
+## LogEntry
+
+One thing that happened to a Recording, in the order it happened. This is one
+entity rather than three because `interface/recording_detail.feature` renders
+state transitions, job attempts and human actions as a single list in time
+order, and three tables cannot be ordered by one query.
+
+| Field | Why it exists |
+| --- | --- |
+| `recording_id` | Whose log it is: "I open **its** processing log" (`operations/system_health.feature`). |
+| `segment_id` | "Who performed each human action, **against which Segment**". Null for an entry about the whole Recording, written the way `Artifact` and `Notification` write it. |
+| `job_id` | Which job an attempt was of, so the entry does not repeat what `Job.kind` already says. |
+| `kind` | What happened. Deliberately not a closed set: the scenarios log transitions, attempts, approvals, adjustments and reverts and declare a vocabulary for none of them — `Notification.kind` is open for the same reason. |
+| `occurred_at` | "Each state transition **with its timestamp**". The log's order, so entries are ordered on it rather than on the identity. |
+| `correlation_id` | "I can correlate an entry to the application logs". Required on every entry: an identifier that may be absent is the same as no identifier. |
+| `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` names — there are no accounts (`interface/authentication.feature`). |
+| `entered_state` | "Each state transition with its timestamp". One of the Recording's ten states or the Segment's seven; the two sets are disjoint, so one column holds either and `segment_id` says whose. |
+| `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
+
+**Not stored:** `from_state`. The state a transition left is the previous entry's
+`entered_state` for the same subject, and every transition is logged, so storing
+it would be a second source of truth. Nor the attempt ordinal, which is the
+position of that job's attempt entries. `Job.attempts` stays, because the retry
+budget is read before the attempt it authorises is logged.
+
+---
+
 ## SpeakerProfile
 
 | Field | Why it exists |
@@ -220,14 +248,4 @@ flagged as an open decision, not settled here.
   as the boundary history `processing/reprocessing.feature` asks for — "each set
   of boundaries with who approved them and when" — which needs an actor and a
   time this model has nowhere to put.
-- **The processing log.** Four feature files ask for one: each state transition
-  with its timestamp, each job attempt with its duration and error, and who
-  performed each human action against which Segment
-  (`interface/recording_detail.feature`, `operations/system_health.feature`,
-  `analysis/analysis_orchestration.feature`, `analysis/segment_proposal.feature`).
-  `Job` holds the current attempt count and the last error, never a record per
-  attempt, and nothing at all holds transitions or human actions — so this is an
-  entity the spec requires and this model does not have. It is left out
-  deliberately rather than by oversight: it also carries the boundary and
-  adjustment history above, and wants designing once for all of them.
 - **Hard delete.** The last `@needs-decision` in the spec.
