@@ -52,11 +52,11 @@ One source audio file from the recorder. The unit of ingestion.
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
 | `channels`, `sample_rate`, `bits_per_raw_sample` | Reported on the detail view. **32-bit, not 24** — the spec said 24 in five places and was wrong. |
-| `state` | One of ten. See the lifecycle in `README.md`; every state's exits are tabulated there. |
-| `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `channel_levels[]` | Each entry: `channel` and `rms_db`. "The Recording records a per-channel RMS level" — channel 1 at −21.3 dB against channel 2 at the −90.4 dB noise floor is what identifies the dead channel, and both are needed to tell that case from two channels carrying signal (`analysis/audio_probe.feature`). |
 | `mono_source` | Which channel or mix the render must take: "the Recording records that the render should use channel 1 only" (`analysis/audio_probe.feature`). Deliberately not a closed set — the scenarios name that one value and declare no vocabulary for the reviewer's answer when both channels carry signal. |
 | `mono_source_confirmed` | A Recording flagged "unexpected stereo content" does not render until a human answers how to mix it (`processing/audio_rendering.feature`), and that answer has to outlive a re-probe which would otherwise recompute `mono_source` over it. Null until the question is asked, written the way `Segment.distribution_confirmed` is. |
+| `state` | One of ten. See the lifecycle in `README.md`; every state's exits are tabulated there. |
+| `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
