@@ -686,6 +686,48 @@ def test_confirming_that_a_recording_may_be_distributed_is_recorded_with_the_app
     assert reloaded(store, approved, "segment").distribution_confirmed is True
 
 
+def test_a_human_confirming_who_preached_is_recorded_against_the_segment(store, graph):
+    confirmed = store.saves(
+        replace(
+            graph["segment"],
+            confirmed_speaker_profile_id=graph["speaker_profile"].speaker_profile_id,
+        )
+    )
+    stored = reloaded(store, confirmed, "segment")
+    assert stored.confirmed_speaker_profile_id == graph["speaker_profile"].speaker_profile_id
+
+
+def test_a_corrected_speaker_outlives_a_re_analysis_that_re_ranks_the_machine_matches(store, graph):
+    guest = store.saves(minimal_speaker_profile())
+    corrected = store.saves(
+        replace(graph["segment"], confirmed_speaker_profile_id=guest.speaker_profile_id)
+    )
+    store.saves(
+        replace(
+            graph["block"],
+            speaker_matches=(
+                SpeakerMatch(
+                    speaker_profile_id=graph["speaker_profile"].speaker_profile_id, similarity=0.97
+                ),
+            ),
+        )
+    )
+    stored = reloaded(store, corrected, "segment")
+    assert stored.confirmed_speaker_profile_id == guest.speaker_profile_id
+
+
+def test_a_segment_confirming_a_voice_that_does_not_exist_is_never_stored(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["segment"], confirmed_speaker_profile_id=404))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_segment_nobody_has_confirmed_a_voice_for_names_none(store, graph):
+    drawn = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, drawn, "segment").confirmed_speaker_profile_id is None
+
+
 def test_a_declined_confirmation_is_distinguishable_from_never_having_been_asked(store, graph):
     declined = store.saves(replace(graph["segment"], distribution_confirmed=False))
     never_asked = store.saves(minimal_segment(graph["recording"]))
