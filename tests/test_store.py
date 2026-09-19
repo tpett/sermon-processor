@@ -506,7 +506,9 @@ def test_a_published_segment_keeps_the_date_and_label_its_filename_is_built_from
     assert (stored.publication_date, stored.label) == (date(2026, 8, 23), "Hebrews 12.4-11")
 
 
-def test_a_publication_date_is_stored_as_the_calendar_date_the_filename_uses(store, graph, tmp_path):
+def test_a_publication_date_is_stored_as_the_calendar_date_the_filename_uses(
+    store, graph, tmp_path
+):
     store.saves(replace(graph["segment"], publication_date=date(2026, 8, 23)))
     assert "2026-08-23" in rows_another_connection_sees(tmp_path)["segment"][0]
 
