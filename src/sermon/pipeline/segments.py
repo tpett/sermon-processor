@@ -8,7 +8,13 @@ are actually testing: whether a technology can identify the anatomy of a service
 
 from __future__ import annotations
 
-import cues as C
+from . import cues as C
+from .roots import requires_directory_under_root
+
+# Injected, never derived from this module's own location. A root resolved from
+# __file__ follows the file when the file moves, and then points at a directory
+# that does not exist. The caller that owns the layout sets this.
+DATA_ROOT = None
 
 
 def speaker_edges(doc: dict) -> list[float]:
@@ -20,9 +26,8 @@ def speaker_edges(doc: dict) -> list[float]:
     value signal available.
     """
     import json as _json
-    from pathlib import Path as _Path
-    p = (_Path(__file__).resolve().parent.parent / "data" / "diarization"
-         / f"{doc['recording_id']}.json")
+    under = requires_directory_under_root(__name__, "DATA_ROOT", DATA_ROOT, "diarization")
+    p = under / f"{doc['recording_id']}.json"
     if not p.exists():
         return []
     d = _json.loads(p.read_text())

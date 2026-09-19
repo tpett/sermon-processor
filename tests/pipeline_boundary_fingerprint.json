@@ -1,0 +1,3489 @@
+{
+ "recording_20260315_102948.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1228.8,
+    "punch_out": 4082.13
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1228.8,
+    "punch_out": 4082.13
+   }
+  ]
+ },
+ "recording_20260315_102948.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1228.8,
+    "punch_out": 4082.13
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1228.8,
+    "punch_out": 4082.13
+   }
+  ]
+ },
+ "recording_20260315_102948.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1228.0,
+    "punch_out": 4082.13
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1228.8,
+    "punch_out": 4082.13
+   }
+  ]
+ },
+ "recording_20260322_102843.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1399.6,
+    "punch_out": 4216.74
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1401.7,
+    "punch_out": 4216.74
+   }
+  ]
+ },
+ "recording_20260322_102843.t0-rules.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260322_102843.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1399.6,
+    "punch_out": 4216.74
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1401.7,
+    "punch_out": 4216.74
+   }
+  ]
+ },
+ "recording_20260329_102928.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1342.1,
+    "punch_out": 4627.04
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1342.1,
+    "punch_out": 4627.04
+   }
+  ]
+ },
+ "recording_20260329_102928.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1342.1,
+    "punch_out": 4627.04
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1342.1,
+    "punch_out": 4627.04
+   }
+  ]
+ },
+ "recording_20260329_102928.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1342.1,
+    "punch_out": 4627.04
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1342.1,
+    "punch_out": 4627.04
+   }
+  ]
+ },
+ "recording_20260405_085215.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.94,
+    "punch_in": 582.2,
+    "punch_out": 4008.88
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 7561.7,
+    "punch_out": 10554.26
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.94,
+    "punch_in": 1.36,
+    "punch_out": 4008.88
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 7561.7,
+    "punch_out": 10554.26
+   }
+  ]
+ },
+ "recording_20260405_085215.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 7907.28,
+    "punch_out": 10554.26
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 7907.28,
+    "punch_out": 10554.26
+   }
+  ]
+ },
+ "recording_20260405_085215.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 582.0,
+    "punch_out": 4007.04
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 7561.0,
+    "punch_out": 10549.32
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.36,
+    "punch_out": 4007.04
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 7561.7,
+    "punch_out": 10549.32
+   }
+  ]
+ },
+ "recording_20260412_102318.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2021.0,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2026.16,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2001.4,
+    "punch_out": 4881.94
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2001.44,
+    "punch_out": 4881.94
+   }
+  ]
+ },
+ "recording_20260412_102318.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2020.96,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2020.96,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1.42,
+    "punch_out": 560.48
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 897.36,
+    "punch_out": 1910.98
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2020.96,
+    "punch_out": 6333.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1.42,
+    "punch_out": 560.48
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 897.36,
+    "punch_out": 1910.98
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2020.96,
+    "punch_out": 6333.78
+   }
+  ]
+ },
+ "recording_20260412_102318.t1-qwen3.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2001.52,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2001.52,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1462.04,
+    "punch_out": 1910.98
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2020.96,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1462.04,
+    "punch_out": 1910.98
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2020.96,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2026.16,
+    "punch_out": 2498.86
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2500.6,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2026.16,
+    "punch_out": 2498.86
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2503.52,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1462.04,
+    "punch_out": 1910.98
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2020.96,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1462.04,
+    "punch_out": 1910.98
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2020.96,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2001.52,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2001.52,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2021.0,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2026.16,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260412_102318.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2021.0,
+    "punch_out": 4880.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2026.16,
+    "punch_out": 4880.46
+   }
+  ]
+ },
+ "recording_20260419_102511.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1744.5,
+    "punch_out": 5075.44
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1746.76,
+    "punch_out": 5075.44
+   }
+  ]
+ },
+ "recording_20260419_102511.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 3839.34,
+    "punch_out": 5081.82
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 3839.34,
+    "punch_out": 5081.82
+   }
+  ]
+ },
+ "recording_20260419_102511.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1744.0,
+    "punch_out": 5022.2
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1744.46,
+    "punch_out": 5022.2
+   }
+  ]
+ },
+ "recording_20260426_093527.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4707.9,
+    "punch_out": 7926.72
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4707.9,
+    "punch_out": 7926.72
+   }
+  ]
+ },
+ "recording_20260426_093527.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 6169.56,
+    "punch_out": 7926.72
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 6169.56,
+    "punch_out": 7926.72
+   }
+  ]
+ },
+ "recording_20260426_093527.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4710.0,
+    "punch_out": 7926.72
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4711.72,
+    "punch_out": 7926.72
+   }
+  ]
+ },
+ "recording_20260503_090012.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 125.6,
+    "punch_out": 3579.64
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 3579.64
+   }
+  ]
+ },
+ "recording_20260503_090012.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 117.2,
+    "punch_out": 3576.96
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 1.32,
+    "punch_out": 3576.96
+   }
+  ]
+ },
+ "recording_20260503_090012.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.6,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.6,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   }
+  ]
+ },
+ "recording_20260503_090012.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2323.74,
+    "punch_out": 4354.42
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2323.74,
+    "punch_out": 4354.42
+   }
+  ]
+ },
+ "recording_20260503_090012.t1-qwen3.structured.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260503_090012.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2323.74,
+    "punch_out": 3579.64
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.85,
+    "punch_in": 3603.64,
+    "punch_out": 3758.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2323.74,
+    "punch_out": 3579.64
+   },
+   {
+    "classification": "lesson",
+    "confidence": 0.85,
+    "punch_in": 3603.64,
+    "punch_out": 3758.5
+   }
+  ]
+ },
+ "recording_20260503_090012.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 117.2,
+    "punch_out": 120.82
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 120.82,
+    "punch_out": 3542.22
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 1.34,
+    "punch_out": 120.82
+   },
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 120.82,
+    "punch_out": 3542.22
+   }
+  ]
+ },
+ "recording_20260503_090012.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2323.74,
+    "punch_out": 3579.64
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 3603.64,
+    "punch_out": 3758.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 2296.62
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 2323.74,
+    "punch_out": 3579.64
+   },
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 3603.64,
+    "punch_out": 3758.5
+   }
+  ]
+ },
+ "recording_20260503_090012.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 3579.64
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.34,
+    "punch_out": 3579.64
+   }
+  ]
+ },
+ "recording_20260503_090012.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 0.0,
+    "punch_out": 3578.26
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 1.34,
+    "punch_out": 3578.26
+   }
+  ]
+ },
+ "recording_20260503_090012.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 117.2,
+    "punch_out": 3579.64
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 1.34,
+    "punch_out": 3579.64
+   }
+  ]
+ },
+ "recording_20260503_102934.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1398.1,
+    "punch_out": 4457.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1402.56,
+    "punch_out": 4457.46
+   }
+  ]
+ },
+ "recording_20260503_102934.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1149.22,
+    "punch_out": 4457.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1149.22,
+    "punch_out": 4457.46
+   }
+  ]
+ },
+ "recording_20260503_102934.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1398.1,
+    "punch_out": 4457.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1402.56,
+    "punch_out": 4457.46
+   }
+  ]
+ },
+ "recording_20260510_102947.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1635.9,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1638.5,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 573.8,
+    "punch_out": 1025.24
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1039.24,
+    "punch_out": 1558.72
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 573.8,
+    "punch_out": 1025.24
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1039.24,
+    "punch_out": 1558.72
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t1-qwen3.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.97,
+    "punch_in": 1638.42,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.97,
+    "punch_in": 1638.42,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1039.24,
+    "punch_out": 1558.72
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1039.24,
+    "punch_out": 1558.72
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 774.7,
+    "punch_out": 1386.0
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 774.7,
+    "punch_out": 1386.0
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1039.24,
+    "punch_out": 1558.72
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1039.24,
+    "punch_out": 1558.72
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1638.42,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1638.42,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1562.7,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1562.72,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260510_102947.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1635.8,
+    "punch_out": 5020.68
+   }
+  ]
+ },
+ "recording_20260517_102903.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1345.9,
+    "punch_out": 4395.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1345.94,
+    "punch_out": 4395.8
+   }
+  ]
+ },
+ "recording_20260517_102903.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1345.94,
+    "punch_out": 4395.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1345.94,
+    "punch_out": 4395.8
+   }
+  ]
+ },
+ "recording_20260517_102903.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1345.0,
+    "punch_out": 4395.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1345.94,
+    "punch_out": 4395.8
+   }
+  ]
+ },
+ "recording_20260524_102916.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1163.6,
+    "punch_out": 3569.98
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1164.3,
+    "punch_out": 3569.98
+   }
+  ]
+ },
+ "recording_20260524_102916.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1050.46,
+    "punch_out": 3068.96
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1050.46,
+    "punch_out": 3068.96
+   }
+  ]
+ },
+ "recording_20260524_102916.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1405.2,
+    "punch_out": 3569.98
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1405.24,
+    "punch_out": 3569.98
+   }
+  ]
+ },
+ "recording_20260531_102925.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1465.4,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1465.44,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260531_102925.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.6,
+    "punch_out": 5132.46
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1467.84,
+    "punch_out": 5132.46
+   }
+  ]
+ },
+ "recording_20260531_102925.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 3407.6,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 3407.6,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260531_102925.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1042.7,
+    "punch_out": 1376.58
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1465.44,
+    "punch_out": 6455.44
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1042.7,
+    "punch_out": 1376.58
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1465.44,
+    "punch_out": 6455.44
+   }
+  ]
+ },
+ "recording_20260531_102925.t1-qwen3.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1467.72,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1467.72,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260531_102925.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1042.7,
+    "punch_out": 1376.58
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1042.7,
+    "punch_out": 1376.58
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260531_102925.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.4,
+    "punch_out": 5071.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 5071.8
+   }
+  ]
+ },
+ "recording_20260531_102925.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1042.7,
+    "punch_out": 1376.58
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 3396.74
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1042.7,
+    "punch_out": 1376.58
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 3396.74
+   }
+  ]
+ },
+ "recording_20260531_102925.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1467.72,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1467.72,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260531_102925.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.4,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260531_102925.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.4,
+    "punch_out": 5131.84
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1465.44,
+    "punch_out": 5131.84
+   }
+  ]
+ },
+ "recording_20260607_082624.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.9,
+    "punch_in": 2099.6,
+    "punch_out": 6203.24
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.9,
+    "punch_in": 1470.74,
+    "punch_out": 6203.24
+   }
+  ]
+ },
+ "recording_20260607_082624.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2037.0,
+    "punch_out": 5244.12
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2037.0,
+    "punch_out": 5244.12
+   }
+  ]
+ },
+ "recording_20260607_082624.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2102.3,
+    "punch_out": 6203.24
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 2107.7,
+    "punch_out": 6203.24
+   }
+  ]
+ },
+ "recording_20260607_102901.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1358.0,
+    "punch_out": 4725.51
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1360.83,
+    "punch_out": 4725.51
+   }
+  ]
+ },
+ "recording_20260607_102901.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1357.97,
+    "punch_out": 4725.51
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1357.97,
+    "punch_out": 4725.51
+   }
+  ]
+ },
+ "recording_20260607_102901.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1358.0,
+    "punch_out": 4725.51
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1360.83,
+    "punch_out": 4725.51
+   }
+  ]
+ },
+ "recording_20260614_094126.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4195.0,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4199.94,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4199.9,
+    "punch_out": 7215.42
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4199.94,
+    "punch_out": 7215.42
+   }
+  ]
+ },
+ "recording_20260614_094126.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1772.78,
+    "punch_out": 2008.28
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1772.78,
+    "punch_out": 2008.28
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.t1-qwen3.structured.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260614_094126.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.9,
+    "punch_in": 3502.7,
+    "punch_out": 4190.94
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.9,
+    "punch_in": 4199.94,
+    "punch_out": 5303.16
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.9,
+    "punch_in": 3510.08,
+    "punch_out": 4190.94
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.9,
+    "punch_in": 4199.94,
+    "punch_out": 5303.16
+   }
+  ]
+ },
+ "recording_20260614_094126.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4188.92,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 4199.9,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 4199.94,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260614_094126.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 4199.9,
+    "punch_out": 7215.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 4199.94,
+    "punch_out": 7215.38
+   }
+  ]
+ },
+ "recording_20260621_095915.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.93,
+    "punch_in": 3531.5,
+    "punch_out": 6283.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.93,
+    "punch_in": 3531.52,
+    "punch_out": 6283.8
+   }
+  ]
+ },
+ "recording_20260621_095915.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 3291.24,
+    "punch_out": 6283.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 3291.24,
+    "punch_out": 6283.8
+   }
+  ]
+ },
+ "recording_20260621_095915.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 3531.5,
+    "punch_out": 6283.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 3531.52,
+    "punch_out": 6283.8
+   }
+  ]
+ },
+ "recording_20260628_102921.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1590.5,
+    "punch_out": 4585.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1590.52,
+    "punch_out": 4585.36
+   }
+  ]
+ },
+ "recording_20260628_102921.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2126.42,
+    "punch_out": 4585.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2126.42,
+    "punch_out": 4585.36
+   }
+  ]
+ },
+ "recording_20260628_102921.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1590.5,
+    "punch_out": 4583.06
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1590.52,
+    "punch_out": 4583.06
+   }
+  ]
+ },
+ "recording_20260628_130014.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.54,
+    "punch_out": 2629.1
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.54,
+    "punch_out": 2629.1
+   }
+  ]
+ },
+ "recording_20260628_130014.t0-rules.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1071.14,
+    "punch_out": 3583.8
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1071.14,
+    "punch_out": 3583.8
+   }
+  ]
+ },
+ "recording_20260628_130014.t1-qwen3.structured.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.t2-qwen3.perblock.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.t2-qwen3.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.t3-qwen3.6.structured.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260628_130014.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.52,
+    "punch_out": 2629.1
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.52,
+    "punch_out": 2629.1
+   }
+  ]
+ },
+ "recording_20260628_130014.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.52,
+    "punch_out": 1908.0
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.52,
+    "punch_out": 1908.0
+   }
+  ]
+ },
+ "recording_20260705_082108.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.94,
+    "punch_in": 2340.8,
+    "punch_out": 5687.52
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.94,
+    "punch_in": 1897.84,
+    "punch_out": 5687.52
+   }
+  ]
+ },
+ "recording_20260705_082108.t0-rules.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260705_082108.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 2385.3,
+    "punch_out": 5687.52
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 1734.94,
+    "punch_out": 5687.52
+   }
+  ]
+ },
+ "recording_20260705_103004.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1231.6,
+    "punch_out": 3968.42
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1231.6,
+    "punch_out": 3968.42
+   }
+  ]
+ },
+ "recording_20260705_103004.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1434.06,
+    "punch_out": 3968.42
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1434.06,
+    "punch_out": 3968.42
+   }
+  ]
+ },
+ "recording_20260705_103004.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1231.6,
+    "punch_out": 3968.42
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1231.6,
+    "punch_out": 3968.42
+   }
+  ]
+ },
+ "recording_20260712_103000.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1165.7,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.8,
+    "punch_out": 4243.76
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1167.92,
+    "punch_out": 4243.76
+   }
+  ]
+ },
+ "recording_20260712_103000.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.t1-qwen3.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 4481.76,
+    "punch_out": 5378.3
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 4481.76,
+    "punch_out": 5378.3
+   }
+  ]
+ },
+ "recording_20260712_103000.t1-qwen3.whole.v1.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260712_103000.t1-qwen3.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260712_103000.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1387.7,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1390.8,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1167.88,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1167.88,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.0,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260712_103000.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.0,
+    "punch_out": 4243.78
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1165.74,
+    "punch_out": 4243.78
+   }
+  ]
+ },
+ "recording_20260718_081932.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.93,
+    "punch_in": 0.0,
+    "punch_out": 5885.34
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.93,
+    "punch_in": 0.0,
+    "punch_out": 5885.34
+   }
+  ]
+ },
+ "recording_20260718_081932.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1355.96,
+    "punch_out": 6470.88
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1355.96,
+    "punch_out": 6470.88
+   }
+  ]
+ },
+ "recording_20260718_081932.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 0.0,
+    "punch_out": 5887.18
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 0.0,
+    "punch_out": 5887.18
+   }
+  ]
+ },
+ "recording_20260718_100850.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.93,
+    "punch_in": 1.58,
+    "punch_out": 4991.88
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.93,
+    "punch_in": 1.58,
+    "punch_out": 4991.88
+   }
+  ]
+ },
+ "recording_20260718_100850.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.6,
+    "punch_in": 333.3,
+    "punch_out": 2685.9
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.6,
+    "punch_in": 333.3,
+    "punch_out": 2685.9
+   }
+  ]
+ },
+ "recording_20260718_100850.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 333.3,
+    "punch_out": 4991.88
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 333.3,
+    "punch_out": 4991.88
+   }
+  ]
+ },
+ "recording_20260719_093824.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 4678.3,
+    "punch_out": 7100.0
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 4678.32,
+    "punch_out": 7100.0
+   }
+  ]
+ },
+ "recording_20260719_093824.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 4678.32,
+    "punch_out": 7100.0
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 4678.32,
+    "punch_out": 7100.0
+   }
+  ]
+ },
+ "recording_20260719_093824.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4678.3,
+    "punch_out": 7100.0
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 4678.32,
+    "punch_out": 7100.0
+   }
+  ]
+ },
+ "recording_20260726_102957.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1484.1,
+    "punch_out": 5006.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1484.12,
+    "punch_out": 5006.38
+   }
+  ]
+ },
+ "recording_20260726_102957.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2667.74,
+    "punch_out": 5006.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 2667.74,
+    "punch_out": 5006.38
+   }
+  ]
+ },
+ "recording_20260726_102957.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1484.1,
+    "punch_out": 5006.38
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1484.12,
+    "punch_out": 5006.38
+   }
+  ]
+ },
+ "recording_20260802_090011.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 65.1,
+    "punch_out": 3456.54
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 6573.9,
+    "punch_out": 9630.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 3456.54
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 6576.3,
+    "punch_out": 9630.5
+   }
+  ]
+ },
+ "recording_20260802_090011.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 7220.5,
+    "punch_out": 9630.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 7220.5,
+    "punch_out": 9630.5
+   }
+  ]
+ },
+ "recording_20260802_090011.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 574.32
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 818.46,
+    "punch_out": 5359.4
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 5545.84,
+    "punch_out": 5739.04
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6027.48,
+    "punch_out": 9630.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 574.32
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 818.46,
+    "punch_out": 5359.4
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 5545.84,
+    "punch_out": 5739.04
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6027.48,
+    "punch_out": 9630.5
+   }
+  ]
+ },
+ "recording_20260802_090011.t1-qwen3.structured.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260802_090011.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 574.32
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 684.28,
+    "punch_out": 3985.82
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 6573.86,
+    "punch_out": 9630.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 574.32
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 684.28,
+    "punch_out": 3985.82
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 6573.86,
+    "punch_out": 9630.5
+   }
+  ]
+ },
+ "recording_20260802_090011.t2-qwen3.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260802_090011.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 574.32
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 684.28,
+    "punch_out": 3610.02
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6573.86,
+    "punch_out": 9630.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.5,
+    "punch_out": 574.32
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 684.28,
+    "punch_out": 3610.02
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6573.86,
+    "punch_out": 9630.5
+   }
+  ]
+ },
+ "recording_20260802_090011.t3-qwen3.6.structured.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260802_090011.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 65.0,
+    "punch_out": 3456.54
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 6573.0,
+    "punch_out": 9630.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.98,
+    "punch_in": 1.5,
+    "punch_out": 3456.54
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 6573.86,
+    "punch_out": 9630.5
+   }
+  ]
+ },
+ "recording_20260809_102935.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.96,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.fw-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1575.36,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1911.86,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1911.86,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t1-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 736.16,
+    "punch_out": 1900.86
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1911.86,
+    "punch_out": 6249.9
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 736.16,
+    "punch_out": 1900.86
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1911.86,
+    "punch_out": 6249.9
+   }
+  ]
+ },
+ "recording_20260809_102935.t1-qwen3.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.97,
+    "punch_in": 1999.28,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.97,
+    "punch_in": 1999.28,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t2-qwen3.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1911.86,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1911.86,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t2-qwen3.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t3-qwen3.6.perblock.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1307.04,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1307.04,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t3-qwen3.6.structured.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1999.28,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1999.28,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260809_102935.u3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1571.0,
+    "punch_out": 4821.36
+   }
+  ]
+ },
+ "recording_20260816_103007.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1442.2,
+    "punch_out": 4425.98
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1447.1,
+    "punch_out": 4425.98
+   }
+  ]
+ },
+ "recording_20260816_103007.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1746.0,
+    "punch_out": 4425.98
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1746.0,
+    "punch_out": 4425.98
+   }
+  ]
+ },
+ "recording_20260816_103007.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1442.2,
+    "punch_out": 4425.98
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1447.1,
+    "punch_out": 4425.98
+   }
+  ]
+ },
+ "recording_20260816_125512.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260816_125512.t0-rules.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1079.1,
+    "punch_out": 2683.54
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 1079.1,
+    "punch_out": 2683.54
+   }
+  ]
+ },
+ "recording_20260816_125512.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.9,
+    "punch_in": 1.4,
+    "punch_out": 518.28
+   },
+   {
+    "boundary_source": "refined",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 529.64,
+    "punch_out": 3417.36
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.9,
+    "punch_in": 1.4,
+    "punch_out": 518.28
+   },
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 529.64,
+    "punch_out": 3417.36
+   }
+  ]
+ },
+ "recording_20260823_102952.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1495.7,
+    "punch_out": 4976.74
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1495.74,
+    "punch_out": 4976.74
+   }
+  ]
+ },
+ "recording_20260823_102952.t0-rules.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260823_102952.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1495.7,
+    "punch_out": 4976.74
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1495.74,
+    "punch_out": 4976.74
+   }
+  ]
+ },
+ "recording_20260830_094453.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260830_094453.t3-qwen3.6.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260830_102838.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1533.6,
+    "punch_out": 4857.02
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1533.6,
+    "punch_out": 4857.02
+   }
+  ]
+ },
+ "recording_20260830_102838.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1533.6,
+    "punch_out": 4857.02
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.99,
+    "punch_in": 1533.6,
+    "punch_out": 4857.02
+   }
+  ]
+ },
+ "recording_20260906_093146.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260906_093146.t3-qwen3.6.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260906_102720.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1519.4,
+    "punch_out": 4167.44
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 1519.44,
+    "punch_out": 4167.44
+   }
+  ]
+ },
+ "recording_20260906_102720.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1519.4,
+    "punch_out": 4167.44
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.98,
+    "punch_in": 1519.44,
+    "punch_out": 4167.44
+   }
+  ]
+ },
+ "recording_20260906_115905.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260906_115905.t3-qwen3.6.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260913_084453.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260913_084453.t3-qwen3.6.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260913_090014.c-frontier.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.24,
+    "punch_out": 3497.08
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6967.08,
+    "punch_out": 9910.4
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.24,
+    "punch_out": 3497.08
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6972.02,
+    "punch_out": 9910.4
+   }
+  ]
+ },
+ "recording_20260913_090014.t3-qwen3.6.whole.v2.json": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 0.0,
+    "punch_out": 3497.08
+   },
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6967.1,
+    "punch_out": 9910.4
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.95,
+    "punch_in": 1.24,
+    "punch_out": 3497.08
+   },
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 6972.02,
+    "punch_out": 9910.4
+   }
+  ]
+ },
+ "recording_20260913_120452.c-frontier.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ },
+ "recording_20260913_120452.t3-qwen3.6.whole.v2.json": {
+  "chosen": [],
+  "derived": []
+ }
+}

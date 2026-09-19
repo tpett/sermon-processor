@@ -12,10 +12,11 @@ import datetime as dt, json, re, sys, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-import classify as C  # noqa: E402
+from sermon.pipeline import classify as C  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
-WORK, PROMPTS = HERE / "work", HERE / "prompts"
+DATA, WORK, PROMPTS = HERE / "data", HERE / "work", HERE / "prompts"
+C.DATA, C.PROMPTS = DATA, PROMPTS
 MODEL = "qwen3.6:35b-mlx"
 
 survey = {r["key"]: r for r in json.loads((WORK / "unpublished_survey.json").read_text())}

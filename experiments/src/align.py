@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
-import audio  # noqa: E402
+from sermon.pipeline import audio  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 WORK = HERE / "work"

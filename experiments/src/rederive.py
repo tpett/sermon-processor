@@ -12,9 +12,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-import segments as SEG  # noqa: E402
+from sermon.pipeline import segments as SEG  # noqa: E402
 
 DATA = Path(__file__).resolve().parent.parent / "data"
+
+SEG.DATA_ROOT = DATA
 
 n = 0
 for path in sorted((DATA / "blocks").glob("*.json")):
