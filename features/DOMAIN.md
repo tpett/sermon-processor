@@ -32,6 +32,7 @@ Recording ──1:N──▶ Block
     └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
+SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
 ```
 
 Five nouns the reviewer names, plus four the system needs: `Job`,
@@ -109,6 +110,7 @@ and what renders.
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
 | `disposition_at` | When it was approved or skipped. A skipped Segment must be findable years later. |
 | `distribution_confirmed` | A Segment whose teaching voice matches no enrolled profile is confirmed as distributable before it is published, and the confirmation is recorded with the approval (`interface/segment_review.feature`). Null until the question is asked, so a confirmation nobody was asked for stays distinguishable from one that was declined. |
+| `confirmed_speaker_profile_id` | Who a human said was preaching, confirming the machine's match or correcting it (`interface/segment_review.feature`). Only `similarity` on the seeding Block is stored otherwise, so without this the next re-analysis reverts the correction — the failure `Block.retyped_by_human` exists to prevent — and the confirmation that enrols the voice has nothing to enrol from. `distribution_confirmed` is the consent half of the same rule; this is the identity half. |
 | `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Where the current boundaries came from: "every Segment records whether its boundaries were proposed or refined" (`analysis/segment_proposal.feature`). Already produced by the pipeline. |
 | `summary` | Its own one line, shown beside it in review and again in the notification (`analysis/summarization.feature`). `Notification.summary` is composed delivery text, and the Block summaries beneath a Segment do not compose into one. Null until summarization runs. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
@@ -256,7 +258,7 @@ budget is read before the attempt it authorises is logged.
 | `name` | Shown before publishing, which is the only defence against publishing a guest who asked not to be. |
 | `embedding` | Enrolled from already-published sermons — no separate enrolment session. |
 | `enrolled_from[]` | Which Recordings contributed. Needed to un-enrol. |
-| `confirmed_by_human` | An unrecognised voice requires confirmation before publishing, and confirming enrols. A profile built by confirmation is not the same as one guessed. |
+| `confirmed_by_human` | An unrecognised voice requires confirmation before publishing, and confirming enrols. A profile built by confirmation is not the same as one guessed. Which Segment's voice a human attested to is `Segment.confirmed_speaker_profile_id`. |
 
 **This entity is the one place the system stores something about a person.** It
 exists deliberately and narrowly, and it reopens "nothing more is collected" —

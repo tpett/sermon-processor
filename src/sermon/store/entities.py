@@ -62,6 +62,7 @@ class Segment:
     intent: str | None = None
     disposition_at: datetime | None = None
     distribution_confirmed: bool | None = None
+    confirmed_speaker_profile_id: int | None = None
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
     summary: str | None = None

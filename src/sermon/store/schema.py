@@ -157,6 +157,7 @@ TABLES = {
             references={
                 "recording_id": "recording(recording_id)",
                 "seed_block_id": "block(block_id)",
+                "confirmed_speaker_profile_id": "speaker_profile(speaker_profile_id)",
             },
             closed={
                 "classification": vocabularies.SEGMENT_CLASSIFICATIONS,

@@ -157,7 +157,7 @@ def minimal_block(recording):
     )
 
 
-def populated_segment(recording, block):
+def populated_segment(recording, block, profile):
     return Segment(
         recording_id=recording.recording_id,
         seed_block_id=block.block_id,
@@ -170,6 +170,7 @@ def populated_segment(recording, block):
         intent="publish",
         disposition_at=datetime(2026, 9, 14, 8, 12, tzinfo=UTC),
         distribution_confirmed=True,
+        confirmed_speaker_profile_id=profile.speaker_profile_id,
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
         summary="A class on Hebrews 12, taught by one voice",
@@ -355,7 +356,7 @@ def graph(store):
             ),
         )
     )
-    segment = store.saves(populated_segment(recording, block))
+    segment = store.saves(populated_segment(recording, block, profile))
     proposal = store.saves(populated_proposal(segment))
     artifact = store.saves(populated_artifact(recording, segment))
     job = store.saves(populated_job(recording, segment))
