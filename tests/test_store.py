@@ -408,6 +408,20 @@ def test_skipping_a_segment_keeps_everything_the_machine_found(store, graph):
     assert reloaded(store, graph["proposal"], "proposal") == graph["proposal"]
 
 
+def test_confirming_that_a_recording_may_be_distributed_is_recorded_with_the_approval(store, graph):
+    approved = store.saves(
+        replace(graph["segment"], state="approved", intent="publish", distribution_confirmed=True)
+    )
+    assert reloaded(store, approved, "segment").distribution_confirmed is True
+
+
+def test_a_declined_confirmation_is_distinguishable_from_never_having_been_asked(store, graph):
+    declined = store.saves(replace(graph["segment"], distribution_confirmed=False))
+    never_asked = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, declined, "segment").distribution_confirmed is False
+    assert reloaded(store, never_asked, "segment").distribution_confirmed is None
+
+
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
     store.saves(graph["proposal"])
     store.saves(graph["block"])
