@@ -347,6 +347,25 @@ def test_a_recording_lists_its_jobs_oldest_first(store, graph):
     assert listed == [download, graph["job"]]
 
 
+def test_a_block_carries_every_piece_of_evidence_that_produced_it(store, graph):
+    evidence = (
+        Evidence(
+            timecode=920.0,
+            finding="sustained single-speaker teaching",
+            implies="the Block is the sermon",
+        ),
+        Evidence(
+            timecode=905.0,
+            finding="follows a scripture reading",
+            implies="the Block is the sermon",
+        ),
+    )
+    saved = store.saves(
+        replace(minimal_block(graph["recording"]), type="sermon", evidence=evidence)
+    )
+    assert reloaded(store, saved, "block").evidence == evidence
+
+
 def test_a_block_lists_the_voices_recognised_in_it(store, graph):
     stored = reloaded(store, graph["block"], "block")
     assert stored.speaker_profile_ids == (graph["speaker_profile"].speaker_profile_id,)
