@@ -55,6 +55,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
+| `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
 | `skip_reason` | Why an object was not ingested at all, when that happens. Must be visible rather than silent (`s3_reconciliation.feature`). |

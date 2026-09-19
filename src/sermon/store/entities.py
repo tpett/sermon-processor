@@ -18,6 +18,9 @@ class Recording:
     bits_per_raw_sample: int | None = None
     local_path: str | None = None
     checksum: str | None = None
+    integrated_loudness_lufs: float | None = None
+    true_peak_dbtp: float | None = None
+    loudness_range_lu: float | None = None
     dynamic_range_db: float | None = None
     active_fraction: float | None = None
     longest_active_seconds: float | None = None
