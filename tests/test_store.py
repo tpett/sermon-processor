@@ -1210,6 +1210,15 @@ def test_an_alert_about_the_system_is_not_listed_among_a_recordings_notification
     assert listed == [graph["notification"]]
 
 
+def test_a_notification_about_a_segment_names_the_recording_the_segment_belongs_to(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["notification"], notification_id=None, recording_id=None))
+    assert everything_stored(store, tmp_path) == stored
+
+
 def test_an_object_the_scan_skipped_is_recorded_with_its_key_and_reason(store):
     skipped = store.saves(skipped_object())
     assert store.loads(SkippedObject, skipped.object_key) == skipped
