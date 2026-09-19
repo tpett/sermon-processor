@@ -918,9 +918,18 @@ def test_a_block_keeps_the_voices_it_matched_in_the_order_they_ranked(store, gra
     assert reloaded(store, saved, "block").speaker_matches == ranked
 
 
-def test_a_speaker_profile_lists_the_recordings_that_enrolled_it(store, graph):
+def test_a_speaker_profile_lists_the_segments_that_enrolled_it(store, graph):
     stored = reloaded(store, graph["speaker_profile"], "speaker_profile")
-    assert stored.enrolled_from == (graph["recording"].recording_id,)
+    assert stored.enrolled_from == (graph["segment"].segment_id,)
+
+
+def test_enrolment_refuses_a_recording_id_where_a_segment_id_is_declared(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(UnstorableValue):
+        store.saves(
+            replace(graph["speaker_profile"], enrolled_from=(graph["recording"].recording_id,))
+        )
+    assert everything_stored(store, tmp_path) == stored
 
 
 def test_a_recut_keeps_the_previous_render_until_the_new_one_succeeds(store, graph):

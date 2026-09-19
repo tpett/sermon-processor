@@ -73,3 +73,21 @@ def test_settled_questions_are_out_of_what_the_model_does_not_decide():
     assert "hard delete" not in lowered
     assert "@needs-decision" not in section
     assert "q34" not in lowered
+
+
+def glance():
+    return DOMAIN.read_text().split("## Entities at a glance", 1)[1].split("```", 2)[1]
+
+
+def test_enrolment_names_the_segments_that_contributed():
+    stated = why("SpeakerProfile", "enrolled_from[]").lower()
+    assert "segment" in stated
+    assert "recording" not in stated
+    assert "un-enrol" in stated
+
+
+def test_enrolment_is_a_second_profile_to_segment_relationship():
+    speaker_lines = "\n".join(line for line in glance().splitlines() if "SpeakerProfile" in line)
+    assert "SpeakerProfile ──1:N──▶ Segment" in speaker_lines
+    assert "SpeakerProfile ──N:M──▶ Segment" in speaker_lines
+    assert "Recording" not in speaker_lines
