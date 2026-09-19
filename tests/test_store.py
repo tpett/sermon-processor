@@ -92,6 +92,12 @@ def populated_recording():
         channels=2,
         sample_rate=44100,
         bits_per_raw_sample=32,
+        channel_levels=(
+            ChannelLevel(channel=1, rms_db=-21.3),
+            ChannelLevel(channel=2, rms_db=-90.4),
+        ),
+        mono_source="channel 1 only",
+        mono_source_confirmed=True,
         local_path="recording_20260913_090014/source.flac",
         checksum="ac5f0d2b9e1c4477",
         integrated_loudness_lufs=-24.6,

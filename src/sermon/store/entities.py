@@ -16,6 +16,9 @@ class Recording:
     channels: int | None = None
     sample_rate: int | None = None
     bits_per_raw_sample: int | None = None
+    channel_levels: tuple[ChannelLevel, ...] = ()
+    mono_source: str | None = None
+    mono_source_confirmed: bool | None = None
     local_path: str | None = None
     checksum: str | None = None
     integrated_loudness_lufs: float | None = None

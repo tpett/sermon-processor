@@ -10,6 +10,7 @@ from .entities import (
     Artifact,
     Block,
     Candidate,
+    ChannelLevel,
     Evidence,
     Job,
     LogEntry,
@@ -98,6 +99,14 @@ TABLES = {
                 "state": vocabularies.RECORDING_STATES,
                 "kind": vocabularies.RECORDING_KINDS,
             },
+            collections=(
+                Collection(
+                    field="channel_levels",
+                    table="recording_channel_level",
+                    owner="recording_id",
+                    element=ChannelLevel,
+                ),
+            ),
         ),
         Table(
             entity=Block,
