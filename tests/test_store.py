@@ -378,7 +378,7 @@ def completed_scan():
 def system_alert():
     return Notification(
         kind="scratch_exhausted",
-        recipient="the operator",
+        recipient="reviewer",
         summary="Scratch space is exhausted; downloads and renders are paused",
         created_at=datetime(2026, 9, 13, 4, 15, tzinfo=UTC),
         state="pending",
