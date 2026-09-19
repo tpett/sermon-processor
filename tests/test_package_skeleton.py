@@ -1,5 +1,7 @@
+import shutil
 import subprocess
 import sys
+import zipfile
 from importlib import import_module
 from pathlib import Path
 
@@ -8,6 +10,8 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = PROJECT_ROOT / "src"
 EXPERIMENTS_ROOT = PROJECT_ROOT / "experiments"
+WEB_ASSETS = ("templates/index.html", "templates/partials/segment.html", "static/waveform.js")
+BUILDS_A_WHEEL = "from setuptools import build_meta; print(build_meta.build_wheel('.'))"
 
 PACKAGES = [
     "sermon",
@@ -64,3 +68,32 @@ def test_no_package_loads_a_module_from_experiments():
         if module is not None and loaded_from_experiments(module)
     )
     assert offenders == []
+
+
+def plants_web_assets(root):
+    shutil.copy(PROJECT_ROOT / "pyproject.toml", root / "pyproject.toml")
+    shutil.copytree(SOURCE_ROOT, root / "src", ignore=shutil.ignore_patterns("__pycache__"))
+    for asset in WEB_ASSETS:
+        planted = root / "src" / "sermon" / "web" / asset
+        planted.parent.mkdir(parents=True, exist_ok=True)
+        planted.write_text(f"the {asset} a wheel must carry\n")
+
+
+def builds_a_wheel(root):
+    built = subprocess.run(
+        [sys.executable, "-c", BUILDS_A_WHEEL],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert built.returncode == 0, built.stdout + built.stderr
+    return root / built.stdout.splitlines()[-1]
+
+
+def test_a_built_wheel_carries_the_templates_and_client_assets_under_the_web_package(tmp_path):
+    plants_web_assets(tmp_path)
+    with zipfile.ZipFile(builds_a_wheel(tmp_path)) as wheel:
+        carried = set(wheel.namelist())
+    assert "sermon/web/__init__.py" in carried
+    assert {f"sermon/web/{asset}" for asset in WEB_ASSETS} <= carried
