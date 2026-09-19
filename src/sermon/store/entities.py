@@ -49,6 +49,8 @@ class Segment:
     seed_block_id: int | None = None
     classification: str
     state: str
+    span_start_seconds: float
+    span_end_seconds: float
     punch_in_seconds: float
     punch_out_seconds: float
     intent: str | None = None

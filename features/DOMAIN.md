@@ -99,6 +99,7 @@ and what renders.
 | `recording_id` | |
 | `seed_block_id` | Which teaching Block it grew from. Null only for a `meeting` Segment, which a human creates by archiving a whole Recording. |
 | `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. **Not the Block vocabulary.** |
+| `span_start_seconds`, `span_end_seconds` | The Segment's own outer bounds, which the punch points sit inside: a reviewer extends the start and "the Segment's span grows" while the punch-in stays where it was (`interface/punch_point_adjustment.feature`), and the detail view lists a span and a pair of boundaries per Segment (`interface/recording_detail.feature`). Not derivable from `seed_block_id`: extending would rewrite a machine-produced Block, and a `meeting` or hand-drawn Segment has no seed Block. |
 | `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. The machine's original is not a second pair here: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`) by reading the cuts the `LogEntry` naming that Proposal carries. |
 | `state` | `proposed`, `approved`, `skipped`, `processing`, `processing_failed`, `complete`, `recut`. |
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
@@ -108,6 +109,17 @@ and what renders.
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
 | `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
+
+**A span is not a second name for the punch points.** They coincide when a
+Segment is first made — a merge produces one "spanning from the first punch-in to
+the last punch-out" (`analysis/segment_proposal.feature`) — and they part as soon
+as a reviewer extends the span or moves a boundary inside it.
+
+**Neither rejection is a property of the row.** "The boundary must fall within
+the Segment" compares two of a Segment's own values and is the kind of sanity
+constraint the store still owes everything else it holds; "rejected if it would
+overlap the neighbouring Segment" compares two Segments, so it can only belong to
+the adjustment behaviour, next to the message the reviewer is shown.
 
 ---
 

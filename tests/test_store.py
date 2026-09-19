@@ -153,6 +153,8 @@ def populated_segment(recording, block):
         seed_block_id=block.block_id,
         classification="lesson",
         state="approved",
+        span_start_seconds=61.0,
+        span_end_seconds=3600.0,
         punch_in_seconds=61.5,
         punch_out_seconds=3497.25,
         intent="publish",
@@ -170,6 +172,8 @@ def minimal_segment(recording):
         recording_id=recording.recording_id,
         classification="meeting",
         state="proposed",
+        span_start_seconds=0.0,
+        span_end_seconds=11520.0,
         punch_in_seconds=0.0,
         punch_out_seconds=11520.0,
     )
