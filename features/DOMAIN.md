@@ -99,8 +99,7 @@ and what renders.
 | `recording_id` | |
 | `seed_block_id` | Which teaching Block it grew from. Null only for a `meeting` Segment, which a human creates by archiving a whole Recording. |
 | `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. **Not the Block vocabulary.** |
-| `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. |
-| `proposed_punch_in`, `proposed_punch_out` | The machine's original. Required: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`), which is impossible if adjustment overwrites. |
+| `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. The machine's original is not a second pair here: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`) by reading the cuts the `LogEntry` naming that Proposal carries. |
 | `state` | `proposed`, `approved`, `skipped`, `processing`, `processing_failed`, `complete`, `recut`. |
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
 | `disposition_at` | When it was approved or skipped. A skipped Segment must be findable years later. |
@@ -134,8 +133,10 @@ Only punch-in has one, because only punch-in has a scenario.
 
 **Its cuts are not here.** A `LogEntry` naming this Proposal carries them, so the
 machine's boundary sets and the reviewer's sit in one ordered history instead of
-two (`processing/reprocessing.feature`). `Segment.proposed_punch_in` still holds
-the current machine suggestion, because reverting to it must not read the log.
+two (`processing/reprocessing.feature`). Nor are they copied onto the Segment:
+reverting reads the entries naming the Proposal that is not yet superseded, which
+is one query rather than a second copy of the cuts that can drift from the
+history and that nothing would detect had drifted.
 
 ---
 

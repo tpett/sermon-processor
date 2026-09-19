@@ -51,8 +51,6 @@ class Segment:
     state: str
     punch_in_seconds: float
     punch_out_seconds: float
-    proposed_punch_in: float | None = None
-    proposed_punch_out: float | None = None
     intent: str | None = None
     disposition_at: datetime | None = None
     distribution_confirmed: bool | None = None

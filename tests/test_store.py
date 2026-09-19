@@ -155,8 +155,6 @@ def populated_segment(recording, block):
         state="approved",
         punch_in_seconds=61.5,
         punch_out_seconds=3497.25,
-        proposed_punch_in=63.125,
-        proposed_punch_out=3499.0,
         intent="publish",
         disposition_at=datetime(2026, 9, 14, 8, 12, tzinfo=UTC),
         distribution_confirmed=True,
@@ -446,13 +444,23 @@ def test_the_machine_proposal_beside_a_reviewers_work_is_the_one_not_yet_superse
     adjusted = store.saves(
         replace(graph["segment"], punch_in_seconds=5582.0, boundary_source="human")
     )
-    reproposed = store.saves(replace(adjusted, proposed_punch_in=5590.5))
-    fresh = store.saves(populated_proposal(reproposed))
+    fresh = store.saves(populated_proposal(adjusted))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="boundaries_proposed",
+            segment_id=adjusted.segment_id,
+            proposal_id=fresh.proposal_id,
+            punch_in_seconds=5590.5,
+            boundary_source="model",
+        )
+    )
     store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
-    stored = reloaded(store, reproposed, "segment")
+    stored = reloaded(store, adjusted, "segment")
     assert (stored.punch_in_seconds, stored.boundary_source) == (5582.0, "human")
-    assert stored.proposed_punch_in == 5590.5
     assert store.lists(Proposal, segment_id=adjusted.segment_id, superseded_by=None) == [fresh]
+    logged = store.lists(LogEntry, proposal_id=fresh.proposal_id)
+    assert [entry.punch_in_seconds for entry in logged] == [5590.5]
 
 
 def test_a_segment_lists_the_renders_made_from_it(store, graph):
@@ -1011,6 +1019,38 @@ def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store,
     later = store.saves(minimal_block(graph["recording"]))
     seen = [row[0] for row in rows_another_connection_sees(tmp_path)["block"]]
     assert seen == [graph["block"].block_id, later.block_id]
+
+
+def test_reverting_to_the_machine_proposal_reads_the_cuts_that_proposal_carries(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    proposed = store.saves(minimal_proposal(segment))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="boundaries_proposed",
+            segment_id=segment.segment_id,
+            proposal_id=proposed.proposal_id,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+            boundary_source="model",
+        )
+    )
+    adjusted = store.saves(replace(segment, punch_in_seconds=7216.5, boundary_source="human"))
+    current = store.lists(Proposal, segment_id=adjusted.segment_id, superseded_by=None)
+    machine = store.lists(LogEntry, proposal_id=current[-1].proposal_id)[-1]
+    reverted = store.saves(
+        replace(
+            adjusted,
+            punch_in_seconds=machine.punch_in_seconds,
+            punch_out_seconds=machine.punch_out_seconds,
+            boundary_source=machine.boundary_source,
+        )
+    )
+    assert (reverted.punch_in_seconds, reverted.punch_out_seconds, reverted.boundary_source) == (
+        7220.0,
+        9812.0,
+        "model",
+    )
 
 
 def test_a_segment_keeps_no_second_copy_of_the_cuts_the_machine_proposed(store):
