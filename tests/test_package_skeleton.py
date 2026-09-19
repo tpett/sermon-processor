@@ -115,6 +115,17 @@ def test_hygiene_guard_ignores_experiments_modules_loaded_elsewhere():
         sys.modules.pop(location.name, None)
 
 
+def test_the_import_hygiene_guard_fails_when_a_package_imports_from_experiments():
+    package = import_module("sermon")
+    planted = ModuleType("planted_experiments")
+    planted.__file__ = str(EXPERIMENTS_ROOT / "baseline.py")
+    package.planted_experiments = planted
+    try:
+        assert experiments_modules_reached_through(PACKAGES) == ["planted_experiments"]
+    finally:
+        delattr(package, "planted_experiments")
+
+
 def plants_web_assets(root):
     shutil.copy(PROJECT_ROOT / "pyproject.toml", root / "pyproject.toml")
     shutil.copytree(SOURCE_ROOT, root / "src", ignore=shutil.ignore_patterns("__pycache__"))
