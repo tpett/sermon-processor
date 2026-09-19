@@ -27,3 +27,22 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "ingestion: subsystem",
+    "analysis: subsystem",
+    "interface: subsystem",
+    "processing: subsystem",
+    "notifications: subsystem",
+    "ops: subsystem",
+    "happy-path: the main flow",
+    "edge-case: a real failure mode",
+    "assumption: invented to fill a gap; confirm before building",
+    "needs-decision: blocked on a question in features/QUESTIONS.md",
+    "deferred: specified and deliberately not in v1",
+    "measured: a number here came from the corpus",
+    "stated: the owner said this; a preference, not an observation",
+    "policy: a decision about behaviour that nothing measured",
+    "slow: touches real audio processing",
+    "manual: verified by a human, not automatable",
+    "mobile: must work on a phone",
+]
