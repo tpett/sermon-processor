@@ -180,6 +180,9 @@ def populated_proposal(segment):
             Evidence(timecode=3497.25, finding="amen", implies="the closing prayer ends"),
         ),
         missing_evidence=("no diarization for the final 4 minutes",),
+        punch_in_candidates=(
+            Candidate(timecode=6890.0, considered_because="4.2 s of quiet before a greeting"),
+        ),
     )
 
 

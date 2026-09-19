@@ -72,6 +72,7 @@ class Evidence:
 @dataclass(frozen=True, kw_only=True)
 class Candidate:
     timecode: float
+    considered_because: str
 
 
 @dataclass(frozen=True, kw_only=True)

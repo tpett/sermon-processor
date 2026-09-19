@@ -125,7 +125,12 @@ and supersedes the one before it rather than overwriting it.
 | `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut. **Graded from the ground truth where it exists, never by the configuration being measured** — otherwise the headline can be raised by grading more cuts hard. |
 | `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null when no second opinion is configured, and the absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
+| `punch_in_candidates[]` | Each entry: `timecode` and `considered_because`. "Analysis recorded an alternative punch-in candidate" whose evidence panel "shows why that candidate was considered" (`interface/punch_point_adjustment.feature`) — a bare timecode cannot. Ordered by rank. |
 | `superseded_by` | Re-running Analysis keeps the previous Proposals in the Recording's history, and where a reviewer has already edited a Segment the fresh machine proposal is shown *alongside* their work rather than over it (`analysis/analysis_orchestration.feature`, `interface/punch_point_adjustment.feature`). Two Proposals for one Segment therefore have to exist at once, which a 1:1 cannot do, and which of them is current has to be a stored fact. Written the way `Artifact.superseded_by` already is. |
+
+**A candidate is not an `evidence[]` entry**, though it borrows the shape: most
+evidence is not a boundary, and `implies` has nothing to say about a candidate.
+Only punch-in has one, because only punch-in has a scenario.
 
 **Its cuts are not here.** A `LogEntry` naming this Proposal carries them, so the
 machine's boundary sets and the reviewer's sit in one ordered history instead of
