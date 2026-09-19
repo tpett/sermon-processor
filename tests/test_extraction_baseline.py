@@ -254,8 +254,28 @@ def test_a_configuration_that_was_not_in_the_baseline_is_drift(captured, perturb
     assert "t9-new" in rendered(findings)
 
 
-def test_a_whole_derived_directory_going_absent_is_drift(captured, perturbed):
-    shutil.rmtree(perturbed / "blocks")
+@pytest.mark.parametrize("absent", ["blocks", "transcripts", "diarization"])
+def test_a_whole_derived_directory_going_absent_cannot_be_compared(captured, perturbed, absent):
+    shutil.rmtree(perturbed / absent)
+    with pytest.raises(baseline.BaselineUnusable) as refused:
+        drift(captured, perturbed)
+    assert absent in str(refused.value)
+
+
+def test_a_data_root_without_the_gitignored_artefacts_exits_two_rather_than_reporting_drift(
+    captured, perturbed, tmp_path
+):
+    written = tmp_path / "baseline.json"
+    written.write_text(json.dumps(captured))
+    for name in ("blocks", "transcripts", "diarization"):
+        shutil.rmtree(perturbed / name)
+    assert baseline.main(["--baseline", str(written), "--data", str(perturbed)]) == 2
+
+
+def test_one_artefact_going_absent_from_a_directory_that_is_there_is_still_drift(
+    captured, perturbed
+):
+    (perturbed / "blocks" / FIRST_BLOCK).unlink()
     findings = drift(captured, perturbed)
     assert "missing" in kinds(findings)
     assert FIRST_BLOCK in rendered(findings)

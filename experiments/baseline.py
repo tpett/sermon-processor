@@ -212,10 +212,10 @@ def compares_summary(scope, was, now):
 
 def compares_derived(scope, expected, directory, summarises):
     if not directory.is_dir():
-        return [
-            Finding(f"{scope}/{name}", "missing", f"there is no {scope} directory")
-            for name in sorted(expected)
-        ]
+        raise BaselineUnusable(
+            f"there is no {scope} directory under {directory.parent}; "
+            f"{scope} is gitignored and exists only in the primary working tree"
+        )
     present = {path.name for path in directory.glob("*.json")}
     findings = []
     for name in sorted({*expected, *present}):
