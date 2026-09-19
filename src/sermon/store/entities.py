@@ -34,7 +34,7 @@ class Block:
     type: str
     classification_confidence: str | None = None
     self_reported_confidence: float | None = None
-    evidence: str | None = None
+    evidence: tuple[Evidence, ...] = ()
     summary: str | None = None
     cue_start_seconds: float | None = None
     cue_end_seconds: float | None = None

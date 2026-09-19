@@ -98,7 +98,18 @@ def populated_block(recording):
         type="lesson",
         classification_confidence="high",
         self_reported_confidence=0.95,
-        evidence="0:01:01 speaker change, then “turn with me to Hebrews”",
+        evidence=(
+            Evidence(
+                timecode=61.0,
+                finding="a speaker change",
+                implies="the previous Block ended",
+            ),
+            Evidence(
+                timecode=64.0,
+                finding="“turn with me to Hebrews”",
+                implies="teaching from a passage",
+            ),
+        ),
         summary="A class on Hebrews 12, taught by one voice",
         cue_start_seconds=120.0,
         cue_end_seconds=132.0,

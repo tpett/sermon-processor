@@ -79,6 +79,12 @@ TABLES = {
             },
             collections=(
                 Collection(
+                    field="evidence",
+                    table="block_evidence",
+                    owner="block_id",
+                    element=Evidence,
+                ),
+                Collection(
                     field="speaker_profile_ids",
                     table="block_speaker_profile",
                     owner="block_id",
