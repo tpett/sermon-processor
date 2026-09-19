@@ -1037,7 +1037,7 @@ def test_a_host_failure_that_is_not_a_refused_constraint_is_raised(monkeypatch):
 
 def posts_one_generation(classify, monkeypatch, endpoint, host=None):
     host = host or AnswersLikeAHost(['{"ok": 1}'])
-    monkeypatch.setattr(classify, "ENDPOINT", endpoint, raising=False)
+    monkeypatch.setattr(classify, "ENDPOINT", endpoint)
     monkeypatch.setattr(classify.urllib.request, "urlopen", host)
     assert classify.ollama("a-model", "ask") == '{"ok": 1}'
     return host
@@ -1110,7 +1110,7 @@ def test_an_unanswered_model_endpoint_is_named_rather_than_a_generic_model_error
     unanswered, monkeypatch
 ):
     classify = imports_moved("classify")
-    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT, raising=False)
+    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT)
 
     def does_not_answer(request, timeout=None):
         raise unanswered
@@ -1137,7 +1137,7 @@ def test_an_unset_endpoint_is_named_rather_than_posted_to_a_hardcoded_host(monke
 def test_generation_refuses_an_endpoint_reached_over_anything_but_http(endpoint, monkeypatch):
     classify = imports_moved("classify")
     host = AnswersLikeAHost(['{"ok": 1}'])
-    monkeypatch.setattr(classify, "ENDPOINT", endpoint, raising=False)
+    monkeypatch.setattr(classify, "ENDPOINT", endpoint)
     monkeypatch.setattr(classify.urllib.request, "urlopen", host)
     with pytest.raises(UnusableConfiguration):
         classify.ollama("a-model", "ask")

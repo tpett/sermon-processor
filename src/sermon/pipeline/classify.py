@@ -5,7 +5,7 @@ import re
 import time
 import urllib.error
 import urllib.request
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urljoin
 
 from sermon.config import ReachesModelEndpoint, UnusableConfiguration
 
@@ -20,7 +20,6 @@ from .roots import requires_directory_under_root, requires_root
 # read a prompt template or a diarization artefact.
 DATA = None
 PROMPTS = None
-
 ENDPOINT = None
 
 MAX_REPAIRS = 2
@@ -66,10 +65,8 @@ def ollama(model: str, prompt: str, think: bool = False) -> str:
             )
 
         def over(endpoint):
-            reached = urlparse(endpoint)
-            url = urlunparse((reached.scheme, reached.netloc, "/api/generate", "", "", ""))
             req = urllib.request.Request(
-                url,
+                urljoin(endpoint, "/api/generate"),
                 data=json.dumps(b).encode(),
                 headers={"Content-Type": "application/json"},
             )
