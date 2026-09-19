@@ -7,6 +7,7 @@ import pytest
 from sermon.store import (
     Artifact,
     Block,
+    DATABASE_NAME,
     Evidence,
     Job,
     Proposal,
@@ -26,6 +27,16 @@ IDENTITIES = {
     "artifact": "artifact_id",
     "job": "job_id",
     "speaker_profile": "speaker_profile_id",
+}
+
+ENTITY_TYPES = {
+    "recording": Recording,
+    "block": Block,
+    "segment": Segment,
+    "proposal": Proposal,
+    "artifact": Artifact,
+    "job": Job,
+    "speaker_profile": SpeakerProfile,
 }
 
 CLOSED_COLUMNS = [
@@ -250,6 +261,27 @@ def reloaded(store, entity, name):
     return store.loads(type(entity), getattr(entity, IDENTITIES[name]))
 
 
+def rows_another_connection_sees(tmp_path):
+    connection = sqlite3.connect(tmp_path / DATABASE_NAME)
+    try:
+        tables = [
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+            )
+        ]
+        return {name: connection.execute(f"SELECT * FROM {name}").fetchall() for name in tables}
+    finally:
+        connection.close()
+
+
+def everything_stored(store, tmp_path):
+    return (
+        {name: store.lists(entity) for name, entity in ENTITY_TYPES.items()},
+        rows_another_connection_sees(tmp_path),
+    )
+
+
 @pytest.mark.parametrize("name", sorted(IDENTITIES))
 def test_every_field_of_an_entity_survives_a_round_trip(store, graph, name):
     assert reloaded(store, graph[name], name) == graph[name]
@@ -354,10 +386,12 @@ def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph)
 
 @pytest.mark.parametrize("name, column, allowed", CLOSED_COLUMNS)
 def test_a_closed_column_refuses_a_value_the_spec_does_not_declare(
-    store, graph, name, column, allowed
+    store, graph, tmp_path, name, column, allowed
 ):
+    stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
         store.saves(replace(graph[name], **{column: "whatever the caller felt like"}))
+    assert everything_stored(store, tmp_path) == stored
 
 
 @pytest.mark.parametrize("name, column, allowed", CLOSED_COLUMNS)
@@ -367,28 +401,51 @@ def test_a_closed_column_accepts_every_value_the_spec_declares(store, graph, nam
         assert getattr(reloaded(store, saved, name), column) == value
 
 
-def test_two_recordings_cannot_claim_one_object_key(store, graph):
+def test_two_recordings_cannot_claim_one_object_key(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
         store.saves(replace(graph["recording"], recording_id="recording_20260920_090014"))
+    assert everything_stored(store, tmp_path) == stored
 
 
-def test_one_recording_cannot_have_the_same_work_enqueued_twice(store, graph):
+def test_one_recording_cannot_have_the_same_work_enqueued_twice(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
         store.saves(replace(graph["job"], job_id=None))
+    assert everything_stored(store, tmp_path) == stored
 
 
-def test_an_artifact_cannot_belong_to_a_recording_that_does_not_exist(store, graph):
+def test_an_artifact_cannot_belong_to_a_recording_that_does_not_exist(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
         store.saves(
             replace(
                 graph["artifact"], artifact_id=None, recording_id="recording_20000101_000000"
             )
         )
+    assert everything_stored(store, tmp_path) == stored
 
 
-def test_a_segment_cannot_be_seeded_by_a_block_that_does_not_exist(store, graph):
+def test_a_segment_cannot_be_seeded_by_a_block_that_does_not_exist(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
         store.saves(replace(graph["segment"], segment_id=None, seed_block_id=404))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_block_naming_a_voice_that_does_not_exist_is_never_stored(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(minimal_block(graph["recording"]), speaker_profile_ids=(404,)))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store, graph, tmp_path):
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(minimal_block(graph["recording"]), speaker_profile_ids=(404,)))
+    later = store.saves(minimal_block(graph["recording"]))
+    seen = [row[0] for row in rows_another_connection_sees(tmp_path)["block"]]
+    assert seen == [graph["block"].block_id, later.block_id]
 
 
 def test_listing_by_something_no_entity_holds_is_refused(store):
@@ -411,9 +468,8 @@ def test_the_store_resolves_an_artifact_under_its_data_root(store, graph, tmp_pa
     assert store.resolves(graph["artifact"]) == tmp_path / graph["artifact"].path
 
 
-def test_an_artifact_whose_path_escapes_the_data_root_is_never_stored(store, graph):
+def test_an_artifact_whose_path_escapes_the_data_root_is_never_stored(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
     with pytest.raises(PathEscapesDataRoot):
         store.saves(replace(graph["artifact"], artifact_id=None, path="../../escaped.mp3"))
-    assert store.lists(Artifact, recording_id=graph["recording"].recording_id) == [
-        graph["artifact"]
-    ]
+    assert everything_stored(store, tmp_path) == stored
