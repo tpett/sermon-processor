@@ -74,3 +74,14 @@ JOB_STATES = ("queued", "running", "succeeded", "failed", "cancelled")
 JOB_STATES_IN_FLIGHT = ("queued", "running")
 
 NOTIFICATION_STATES = ("pending", "delivered", "failed", "suppressed")
+
+SKIP_REASONS = (
+    "recorder clock not set",
+    "key does not match the pattern",
+    "not an audio object",
+    "before the ingest cutoff",
+)
+
+DISCOVERY_KINDS = ("webhook", "scan")
+
+DISCOVERY_FAILURES = ("transient", "credentials")

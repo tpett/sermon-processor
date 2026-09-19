@@ -28,15 +28,18 @@ Recording ──1:N──▶ Block
     │
     ├────1:N────▶ Artifact       (envelope, transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
-    ├────1:N────▶ Notification   (naming its Segment too, when it concerns one)
+    ├────1:N────▶ Notification   (its Segment too, or neither when the system is the subject)
     └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
+
+SkippedObject                   (an object the reconciliation scan did not ingest)
+Discovery                       (a webhook received or a scan run, and what it found)
 ```
 
-Five nouns the reviewer names, plus four the system needs: `Job`,
-`Notification`, `LogEntry` and `SpeakerProfile`.
+Five nouns the reviewer names, plus six the system needs: `Job`,
+`Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject` and `Discovery`.
 
 ---
 
@@ -62,7 +65,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
-| `skip_reason` | Why an object was not ingested at all, when that happens. Must be visible rather than silent (`s3_reconciliation.feature`). |
+| `skip_reason` | **Fate open; `sp-8eh` owns it.** Nothing skips a *Recording* — all four skip reasons are `SkippedObject`'s. Four scenarios do give a Recording a reason string, of two characters: a flag ("no substantive content", `interface/discarding_recordings.feature`; "source no longer available", `operations/storage_and_retention.feature`) and a failure reason (`ingestion/recording_download.feature`, `interface/recording_detail.feature`). Whether this field becomes either is for the beads owning those to settle, not for this row to assume. |
 
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth
@@ -202,12 +205,24 @@ from raising it (`notifications/approval_notifications.feature`).
 
 | Field | Why it exists |
 | --- | --- |
-| `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns". Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
+| `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns", and neither when it is the system itself. Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
 | `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for many different reasons and declare a vocabulary for none of them, so naming one here would be inventing spec rather than recording it. |
 | `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. |
 | `summary` | What it says, in plain text. It states the recording date and the proposed length, and names each session when a Recording held more than one — so it is composed when the Notification is raised, not when a channel renders it. |
 | `created_at` | When it was raised. The reminder for a Segment left undispositioned for 3 days is measured from it. |
 | `state` | `pending`, `delivered`, `failed` or `suppressed`. A Recording that produced nothing publishable is recorded as `suppressed` rather than not recorded at all, which is what makes "why was I not told about that Sunday?" answerable without reading logs. |
+
+**A system-scoped alert names neither.** Scratch space exhausted and the array at
+90% raise an alert about the system, with no Recording to hang it on
+(`operations/storage_and_retention.feature`). Raising a record and delivering it
+are already separate here, and every other field applies unchanged, so the
+subject is nullable rather than there being a second entity that repeats all six.
+A notification naming a Segment must name that Segment's Recording, and the table
+refuses one that does not: a nullable subject otherwise rests on every caller
+remembering, and the one that forgets is both missing from "which Sunday was I
+never told about?" and sitting in the system-alert bucket pretending to be an
+alert. Naming neither stays unconstrained, because that *is* the system alert and
+`kind` is open — nothing in the row tells an alert from an omission.
 
 **Not stored:** delivery attempts, per-channel results, retry counts. The channel
 is undecided, the same Notification may be delivered by more than one of them,
@@ -264,6 +279,61 @@ budget is read before the attempt it authorises is logged.
 **This entity is the one place the system stores something about a person.** It
 exists deliberately and narrowly, and it reopens "nothing more is collected" —
 flagged as an open decision, not settled here.
+
+---
+
+## SkippedObject
+
+An object the reconciliation scan decided not to ingest. Not a Recording state:
+`recording_id` is derived from the key and `started_at` parsed out of it, so
+three of the four reasons leave nothing a Recording could be built from.
+
+| Field | Why it exists |
+| --- | --- |
+| `object_key` | What was skipped, and the identity. An operator sees every object ever skipped, which is a list of objects rather than one of scans, so a later scan corrects the record instead of adding one. |
+| `reason` | `recorder clock not set`, `key does not match the pattern`, `not an audio object`, `before the ingest cutoff` — the four the outline names (`ingestion/s3_reconciliation.feature`). |
+
+**A manually ingested object keeps its row.** `before the ingest cutoff` is the
+one reason a Recording can still be made from the key, on demand, which is how the
+accuracy corpus is loaded (`s3_reconciliation.feature`). Nothing clears the row,
+and that is accepted: the list answers what the *scan* dropped, no scenario reads
+it to decide anything, and the operator reading it is the one who forced the
+ingestion.
+
+**Not stored:** when it was skipped, or which scan skipped it. "Nothing is
+dropped without being counted" asks what was dropped and why; no scenario reads
+a time off this record, and no alert is raised from it.
+
+---
+
+## Discovery
+
+One occasion on which the Processor learned what the bucket holds — a webhook it
+was sent, or a scan it ran. One entity rather than two because the health view
+renders them as one thing: when the last of each happened, and how many
+recordings each discovered (`operations/system_health.feature`).
+
+| Field | Why it exists |
+| --- | --- |
+| `kind` | `webhook` or `scan`. Which of the two the health view is showing the last of, and the reason one record serves both. |
+| `occurred_at` | "When the last webhook was received" and "when the last reconciliation scan ran". An instant, so records written in different offsets still order against each other. |
+| `discovered_count` | "How many recordings each discovered". Nothing on a Recording names its discoverer and a re-scan finds nothing new, so the count cannot be derived back. |
+| `failure` | `transient` or `credentials`, null when nothing went wrong. A 403 is surfaced as a credential problem rather than burning the retry budget as though it were transient (`ingestion/s3_reconciliation.feature`). A scan's alone, and it holds `discovered_count` at zero. |
+| `event` | The webhook's own `event` field: "the ignored event type is logged" for one the Processor does not handle (`ingestion/webhook_notification.feature`). Open, since the point is a type it has no vocabulary for. Null on a scan. |
+
+**Each kind admits only its own fields, and the table says so.** `failure` is a
+scan's and `event` a webhook's, so neither stores on the other kind, and a
+`failure` pins `discovered_count` to zero — both failing-scan scenarios end with
+no Recording created and none changed. Serving two kinds from one entity is only
+safe while the combinations neither kind can mean are refused. Nothing else bounds
+`discovered_count`; no scenario does.
+
+**A failed scan is not an alert.** Both failure scenarios ask only that it be
+surfaced on the system health view, and the skipped-object Rule says explicitly
+that no alert is raised — so nothing here raises a `Notification`.
+
+**Not stored:** which Recordings a discovery produced. No scenario reads a
+Recording's discoverer, and the count is what the view shows.
 
 ---
 

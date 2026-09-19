@@ -152,7 +152,7 @@ class SpeakerProfile:
 @dataclass(frozen=True, kw_only=True)
 class Notification:
     notification_id: int | None = None
-    recording_id: str
+    recording_id: str | None = None
     segment_id: int | None = None
     kind: str
     recipient: str
@@ -179,3 +179,19 @@ class LogEntry:
     punch_in_seconds: float | None = None
     punch_out_seconds: float | None = None
     boundary_source: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SkippedObject:
+    object_key: str
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class Discovery:
+    discovery_id: int | None = None
+    kind: str
+    occurred_at: datetime
+    discovered_count: int
+    failure: str | None = None
+    event: str | None = None

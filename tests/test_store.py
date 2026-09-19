@@ -10,6 +10,7 @@ from sermon.store import (
     Candidate,
     ChannelLevel,
     DATABASE_NAME,
+    Discovery,
     Evidence,
     Job,
     LogEntry,
@@ -18,6 +19,7 @@ from sermon.store import (
     Recording,
     PathEscapesDataRoot,
     Segment,
+    SkippedObject,
     SpeakerMatch,
     SpeakerProfile,
     Store,
@@ -36,6 +38,8 @@ IDENTITIES = {
     "notification": "notification_id",
     "speaker_profile": "speaker_profile_id",
     "log_entry": "log_entry_id",
+    "skipped_object": "object_key",
+    "discovery": "discovery_id",
 }
 
 ENTITY_TYPES = {
@@ -48,6 +52,8 @@ ENTITY_TYPES = {
     "notification": Notification,
     "speaker_profile": SpeakerProfile,
     "log_entry": LogEntry,
+    "skipped_object": SkippedObject,
+    "discovery": Discovery,
 }
 
 CLOSED_COLUMNS = [
@@ -69,7 +75,22 @@ CLOSED_COLUMNS = [
     ("notification", "state", vocabularies.NOTIFICATION_STATES),
     ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
     ("log_entry", "boundary_source", vocabularies.BOUNDARY_SOURCES),
+    ("skipped_object", "reason", vocabularies.SKIP_REASONS),
+    ("discovery", "kind", vocabularies.DISCOVERY_KINDS),
+    ("discovery", "failure", vocabularies.DISCOVERY_FAILURES),
 ]
+
+COMPANIONS = {
+    ("discovery", "kind"): {"failure": None, "event": None},
+    ("discovery", "failure"): {"kind": "scan", "discovered_count": 0, "event": None},
+}
+
+SKIPPED_OBJECTS = (
+    ("recording_19700101_000000.flac", "recorder clock not set"),
+    ("sermon-2027-01-03.flac", "key does not match the pattern"),
+    ("recordings/README.txt", "not an audio object"),
+    ("recording_20240107_101500.flac", "before the ingest cutoff"),
+)
 
 MOMENTS = [
     ("recording", "started_at"),
@@ -77,6 +98,7 @@ MOMENTS = [
     ("job", "queued_at"),
     ("notification", "created_at"),
     ("log_entry", "occurred_at"),
+    ("discovery", "occurred_at"),
 ]
 
 
@@ -107,7 +129,7 @@ def populated_recording():
         active_fraction=0.82,
         longest_active_seconds=3492.5,
         waiting_since=datetime(2026, 9, 13, 9, 30, tzinfo=UTC),
-        skip_reason="no local disk",
+        skip_reason="source no longer available",
     )
 
 
@@ -336,6 +358,38 @@ def minimal_log_entry(recording):
     )
 
 
+def received_webhook():
+    return Discovery(
+        kind="webhook",
+        occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
+        discovered_count=1,
+        event="recording.uploaded",
+    )
+
+
+def completed_scan():
+    return Discovery(
+        kind="scan",
+        occurred_at=datetime(2026, 9, 13, 3, 0, tzinfo=UTC),
+        discovered_count=2,
+    )
+
+
+def system_alert():
+    return Notification(
+        kind="scratch_exhausted",
+        recipient="reviewer",
+        summary="Scratch space is exhausted; downloads and renders are paused",
+        created_at=datetime(2026, 9, 13, 4, 15, tzinfo=UTC),
+        state="pending",
+    )
+
+
+def skipped_object():
+    key, reason = SKIPPED_OBJECTS[0]
+    return SkippedObject(object_key=key, reason=reason)
+
+
 @pytest.fixture
 def store(tmp_path):
     opened = opens_store(data_root=tmp_path)
@@ -372,6 +426,8 @@ def graph(store):
         "log_entry": store.saves(
             populated_log_entry(recording, segment, job, proposal, artifact)
         ),
+        "skipped_object": store.saves(skipped_object()),
+        "discovery": store.saves(received_webhook()),
     }
 
 
@@ -1082,6 +1138,137 @@ def test_alternative_punch_in_candidates_are_kept_in_the_order_analysis_ranked_t
     assert reloaded(store, proposal, "proposal").punch_in_candidates == ranked
 
 
+def test_the_last_webhook_and_the_last_scan_are_each_recorded_with_what_they_found(store):
+    webhook = store.saves(received_webhook())
+    scan = store.saves(completed_scan())
+    assert store.lists(Discovery) == [scan, webhook]
+    assert [(one.kind, one.discovered_count) for one in store.lists(Discovery)] == [
+        ("scan", 2),
+        ("webhook", 1),
+    ]
+
+
+def test_a_scan_that_could_not_reach_the_object_store_is_recorded_as_having_found_nothing(
+    store, graph
+):
+    failed = store.saves(
+        replace(
+            graph["discovery"],
+            kind="scan",
+            occurred_at=datetime(2026, 9, 20, 3, 0, tzinfo=UTC),
+            discovered_count=0,
+            failure="transient",
+            event=None,
+        )
+    )
+    stored = reloaded(store, failed, "discovery")
+    assert (stored.kind, stored.discovered_count, stored.failure, stored.event) == (
+        "scan",
+        0,
+        "transient",
+        None,
+    )
+    assert stored.occurred_at == datetime(2026, 9, 20, 3, 0, tzinfo=UTC)
+
+
+def test_a_credential_problem_is_distinguishable_from_a_transient_failure(store):
+    store.saves(replace(completed_scan(), discovered_count=0, failure="transient"))
+    store.saves(
+        replace(
+            completed_scan(),
+            occurred_at=datetime(2026, 9, 20, 3, 0, tzinfo=UTC),
+            discovered_count=0,
+            failure="credentials",
+        )
+    )
+    assert [one.failure for one in store.lists(Discovery)] == ["transient", "credentials"]
+
+
+def test_a_scan_that_ran_to_the_end_records_no_failure(store):
+    assert store.loads(Discovery, store.saves(completed_scan()).discovery_id).failure is None
+
+
+def test_a_webhook_the_processor_does_not_handle_records_the_event_type_it_ignored(store):
+    ignored = store.saves(
+        replace(received_webhook(), event="recording.started", discovered_count=0)
+    )
+    stored = store.loads(Discovery, ignored.discovery_id)
+    assert (stored.event, stored.discovered_count) == ("recording.started", 0)
+    assert store.lists(Recording) == []
+
+
+def test_a_scan_carries_no_event_type_because_nothing_announced_it(store):
+    assert store.loads(Discovery, store.saves(completed_scan()).discovery_id).event is None
+
+
+def test_a_webhook_does_not_carry_a_failure_only_a_scan_can_have(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(received_webhook(), failure="credentials"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_scan_does_not_carry_an_event_type_only_a_webhook_announces(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(completed_scan(), event="recording.uploaded"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_scan_that_failed_does_not_also_report_recordings_it_discovered(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(completed_scan(), failure="transient", discovered_count=99))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_an_alert_about_the_system_itself_is_raised_against_no_recording(store):
+    raised = store.saves(system_alert())
+    stored = store.loads(Notification, raised.notification_id)
+    assert (stored.recording_id, stored.segment_id) == (None, None)
+    assert store.lists(Recording) == []
+
+
+def test_an_alert_about_the_system_is_not_listed_among_a_recordings_notifications(store, graph):
+    alert = store.saves(system_alert())
+    assert store.lists(Notification, recording_id=None) == [alert]
+    listed = store.lists(Notification, recording_id=graph["recording"].recording_id)
+    assert listed == [graph["notification"]]
+
+
+def test_a_notification_about_a_segment_names_the_recording_the_segment_belongs_to(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["notification"], notification_id=None, recording_id=None))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_an_object_the_scan_skipped_is_recorded_with_its_key_and_reason(store):
+    skipped = store.saves(skipped_object())
+    assert store.loads(SkippedObject, skipped.object_key) == skipped
+
+
+def test_an_operator_can_see_every_object_the_processor_has_ever_skipped(store):
+    for key, reason in SKIPPED_OBJECTS:
+        store.saves(SkippedObject(object_key=key, reason=reason))
+    listed = store.lists(SkippedObject)
+    assert {(one.object_key, one.reason) for one in listed} == set(SKIPPED_OBJECTS)
+
+
+def test_a_key_no_recording_could_be_built_from_is_still_recorded_as_skipped(store):
+    skipped = store.saves(skipped_object())
+    assert store.lists(Recording) == []
+    assert store.loads(SkippedObject, skipped.object_key).reason == "recorder clock not set"
+
+
+def test_an_object_skipped_again_for_another_reason_is_not_listed_twice(store):
+    store.saves(skipped_object())
+    reconsidered = store.saves(replace(skipped_object(), reason="not an audio object"))
+    assert store.lists(SkippedObject) == [reconsidered]
+
+
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
     store.saves(graph["proposal"])
     store.saves(graph["block"])
@@ -1101,8 +1288,9 @@ def test_a_closed_column_refuses_a_value_the_spec_does_not_declare(
 
 @pytest.mark.parametrize("name, column, allowed", CLOSED_COLUMNS)
 def test_a_closed_column_accepts_every_value_the_spec_declares(store, graph, name, column, allowed):
+    base = replace(graph[name], **COMPANIONS.get((name, column), {}))
     for value in allowed:
-        saved = store.saves(replace(graph[name], **{column: value}))
+        saved = store.saves(replace(base, **{column: value}))
         assert getattr(reloaded(store, saved, name), column) == value
 
 
