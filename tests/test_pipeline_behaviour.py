@@ -36,7 +36,12 @@ SEARCHED = (PROJECT_ROOT / "src" / "sermon", PROJECT_ROOT / "experiments" / "src
 MOVED = ("acoustic", "audio", "blocks", "classify", "cues", "features",
          "render", "rules", "segments")
 
-INJECTED = {("classify", "DATA"), ("classify", "PROMPTS"), ("segments", "DATA_ROOT")}
+INJECTED = {
+    ("classify", "DATA"),
+    ("classify", "PROMPTS"),
+    ("classify", "ENDPOINT"),
+    ("segments", "DATA_ROOT"),
+}
 
 RECORDINGS = ("service", "class")
 
@@ -985,10 +990,21 @@ class AnswersLikeAHost:
         ).encode()
 
 
+CONFIGURED_ENDPOINT = "http://mac-m1:11434"
+HARDCODED_HOST = re.compile(r"https?://|localhost|mac-m1", re.I)
+UNANSWERED_HOST = [
+    ConnectionRefusedError(61, "Connection refused"),
+    TimeoutError("timed out"),
+    urllib.error.URLError("connection refused"),
+    OSError(65, "No route to host"),
+]
+
+
 @pytest.mark.parametrize("think", [False, True], ids=["unthinking", "thinking"])
 def test_one_generation_sends_the_body_the_fingerprint_pins(think, monkeypatch, expected):
     classify = imports_moved("classify")
     host = AnswersLikeAHost(['{"ok": 1}'])
+    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT)
     monkeypatch.setattr(classify.urllib.request, "urlopen", host)
     assert classify.ollama("a-model", "ask", think=think) == '{"ok": 1}'
     label = "thinking" if think else "unthinking"
@@ -1000,6 +1016,7 @@ def test_a_host_refusing_structured_output_is_retried_without_the_constraint(
 ):
     classify = imports_moved("classify")
     host = AnswersLikeAHost(['{"ok": 1}'], refuse_format=True)
+    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT)
     monkeypatch.setattr(classify.urllib.request, "urlopen", host)
     assert classify.ollama("a-model", "ask") == '{"ok": 1}'
     assert [("format" in body) for body in host.bodies] == [True, False]
@@ -1008,6 +1025,7 @@ def test_a_host_refusing_structured_output_is_retried_without_the_constraint(
 
 def test_a_host_failure_that_is_not_a_refused_constraint_is_raised(monkeypatch):
     classify = imports_moved("classify")
+    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT)
 
     def fails(request, timeout=None):
         raise urllib.error.HTTPError(request.full_url, 500, "boom", {}, None)
@@ -1015,16 +1033,6 @@ def test_a_host_failure_that_is_not_a_refused_constraint_is_raised(monkeypatch):
     monkeypatch.setattr(classify.urllib.request, "urlopen", fails)
     with pytest.raises(urllib.error.HTTPError):
         classify.ollama("a-model", "ask")
-
-
-CONFIGURED_ENDPOINT = "http://mac-m1:11434"
-HARDCODED_HOST = re.compile(r"https?://|localhost|mac-m1", re.I)
-UNANSWERED_HOST = [
-    ConnectionRefusedError(61, "Connection refused"),
-    TimeoutError("timed out"),
-    urllib.error.URLError("connection refused"),
-    OSError(65, "No route to host"),
-]
 
 
 def posts_one_generation(classify, monkeypatch, endpoint, host=None):

@@ -730,7 +730,6 @@
   },
   "classify": {
    "MAX_REPAIRS": "2",
-   "OLLAMA": "'http://localhost:11434/api/generate'",
    "RECORDING_BUDGET_S": "900",
    "TIMEOUT_S": "900"
   },

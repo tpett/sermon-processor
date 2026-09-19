@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import urllib.error
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -133,5 +134,7 @@ class ReachesModelEndpoint:
     def __call__(self):
         try:
             return self.over(self.endpoint)
+        except urllib.error.HTTPError:
+            raise
         except OSError as unanswered:
             raise ModelEndpointUnreachable(self.endpoint) from unanswered
