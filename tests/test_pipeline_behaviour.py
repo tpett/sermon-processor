@@ -354,6 +354,41 @@ def test_the_edge_cache_keeps_the_root_it_first_read_for_a_recording(
     assert segments.candidate_edges(doc) == [1.0, 2.0, 4.321, 9.5]
 
 
+def test_refined_derivation_does_not_call_speaker_edges_once_per_block(
+    tmp_path, monkeypatch
+):
+    segments = imports_moved("segments")
+    root = tmp_path / "data"
+    (root / "diarization").mkdir(parents=True)
+    monkeypatch.setattr(segments, "DATA_ROOT", root)
+    calls = []
+    real = segments.speaker_edges
+
+    def counting(doc):
+        calls.append(doc["recording_id"])
+        return real(doc)
+
+    monkeypatch.setattr(segments, "speaker_edges", counting)
+    doc = {
+        "recording_id": "rec1",
+        "duration": 400.0,
+        "utterances": [
+            {"start": 10.0, "end": 50.0, "text": "This is the word of the Lord."},
+            {"start": 51.0, "end": 90.0, "text": "Now look at what Paul is doing."},
+            {"start": 91.0, "end": 95.0, "text": "In Jesus' name, amen."},
+            {"start": 200.0, "end": 240.0, "text": "Good morning, grab a handout."},
+            {"start": 241.0, "end": 280.0, "text": "So the doctrine we are after is this."},
+        ],
+    }
+    blocks = [
+        {"type": "sermon", "start": 10.0, "end": 95.0, "confidence": 0.9},
+        {"type": "lesson", "start": 200.0, "end": 280.0, "confidence": 0.9},
+    ]
+    derived = segments.derive(blocks, doc, refine=True)
+    assert len(derived) == 2
+    assert len(calls) == 1
+
+
 def test_the_sermon_punch_in_waits_for_the_speaker_change_after_the_reading():
     segments = imports_moved("segments")
     utterances = [
