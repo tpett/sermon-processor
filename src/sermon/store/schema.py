@@ -238,9 +238,9 @@ def creates(name, definitions):
     return f"CREATE TABLE IF NOT EXISTS {name} (\n    {body}\n)"
 
 
-def schema_sql():
+def schema_statements():
     statements = []
     for table in TABLES.values():
         statements.append(table_ddl(table))
         statements += [collection_ddl(table, collection) for collection in table.collections]
-    return ";\n\n".join(statements) + ";\n"
+    return tuple(statements)

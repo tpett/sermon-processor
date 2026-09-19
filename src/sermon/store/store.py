@@ -9,7 +9,14 @@ from typing import get_type_hints
 
 from .artifact_paths import DEFAULT_DATA_ROOT, ResolvesArtifactPath
 from .entities import Artifact
-from .schema import TABLES, column_names, element_columns, order_by, schema_sql, unwrapped
+from .schema import (
+    TABLES,
+    column_names,
+    element_columns,
+    order_by,
+    schema_statements,
+    unwrapped,
+)
 
 DATABASE_NAME = "sermon.sqlite3"
 
@@ -56,18 +63,18 @@ class Store:
         assignments = ", ".join(
             f"{name} = excluded.{name}" for name in columns if name != table.identity
         )
-        cursor = self._connection.execute(
-            f"INSERT INTO {table.name} ({', '.join(columns)}) "
-            f"VALUES ({', '.join('?' * len(columns))}) "
-            f"ON CONFLICT({table.identity}) DO UPDATE SET {assignments}",
-            [to_column(getattr(entity, name)) for name in columns],
-        )
-        identity = getattr(entity, table.identity)
-        if identity is None:
-            identity = cursor.lastrowid
-        for collection in table.collections:
-            self._writes(collection, identity, getattr(entity, collection.field))
-        self._connection.commit()
+        with self._connection:
+            cursor = self._connection.execute(
+                f"INSERT INTO {table.name} ({', '.join(columns)}) "
+                f"VALUES ({', '.join('?' * len(columns))}) "
+                f"ON CONFLICT({table.identity}) DO UPDATE SET {assignments}",
+                [to_column(getattr(entity, name)) for name in columns],
+            )
+            identity = getattr(entity, table.identity)
+            if identity is None:
+                identity = cursor.lastrowid
+            for collection in table.collections:
+                self._writes(collection, identity, getattr(entity, collection.field))
         return replace(entity, **{table.identity: identity})
 
     def loads(self, entity_type, identity):
@@ -136,11 +143,18 @@ def values_of(collection, element):
     return tuple(to_column(getattr(element, name)) for name in element_columns(collection))
 
 
+def creates_schema(connection):
+    with connection:
+        connection.execute("BEGIN")
+        for statement in schema_statements():
+            connection.execute(statement)
+
+
 def opens_store(data_root=DEFAULT_DATA_ROOT):
     root = Path(data_root)
     root.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(root / DATABASE_NAME)
     connection.row_factory = sqlite3.Row
-    connection.executescript(schema_sql())
     connection.execute("PRAGMA foreign_keys = ON")
+    creates_schema(connection)
     return Store(connection, ResolvesArtifactPath(data_root=root))
