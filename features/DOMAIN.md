@@ -65,8 +65,8 @@ One source audio file from the recorder. The unit of ingestion.
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
-| `warnings[]` | `damaged container`, `source clipping detected`, `sidecar disagrees with the audio`, `unexpected stereo content`, `unexpected language`, `low transcript quality`. Six named conditions, several holding at once on one Recording, and none of them moving it out of the state analysis found it in (`analysis/audio_probe.feature`, `analysis/transcription.feature`, `interface/recording_detail.feature`). |
-| `skip_reason` | **Fate open; `sp-8eh` owns it.** Nothing skips a *Recording* — all four skip reasons are `SkippedObject`'s. Four scenarios do give a Recording a reason string, of two characters: a flag ("no substantive content", `interface/discarding_recordings.feature`; "source no longer available", `operations/storage_and_retention.feature`) and a failure reason (`ingestion/recording_download.feature`, `interface/recording_detail.feature`). Whether this field becomes either is for the beads owning those to settle, not for this row to assume. |
+| `warnings[]` | `damaged container`, `source clipping detected`, `sidecar disagrees with the audio`, `unexpected stereo content`, `unexpected language`, `low transcript quality`, `source no longer available`. Seven named conditions, several holding at once on one Recording, and none of them moving it out of the state analysis found it in (`analysis/audio_probe.feature`, `analysis/transcription.feature`, `operations/storage_and_retention.feature`, `interface/recording_detail.feature`). |
+| `skip_reason` | **Fate open; `sp-8eh` owns it.** Nothing skips a *Recording* — all four skip reasons are `SkippedObject`'s. The flag half of the two characters four scenarios gave this field is now `warnings[]`'s, leaving the failure reason (`ingestion/recording_download.feature`, `interface/recording_detail.feature`) for the bead owning it to settle. |
 
 **A warning is a named value, not a column each.** The probe raises its own and
 transcription later raises another on the same Recording, so the set has to hold
@@ -77,6 +77,13 @@ view explains one warning specifically — so a typo would silently disable a ga
 `Notification.kind` and `LogEntry.kind` stay open because nothing branches on
 them. `sidecar disagrees with the audio` is the one value the Gherkin describes
 without quoting, and takes the wording of its scenario's title.
+
+**A warning is not a state, and the Segment side of one is a query.** Nothing
+about `source no longer available` moves the Recording — the scenario leaves a
+`reviewed` Recording `reviewed` — and "its skipped Segments are marked as no
+longer extractable" (`operations/storage_and_retention.feature`) is the skipped
+Segments of a Recording carrying that warning. A second field on every Segment
+would have to be maintained on each one and could disagree with the Recording.
 
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth

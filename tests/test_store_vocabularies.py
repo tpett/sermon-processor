@@ -77,7 +77,7 @@ SPEC_VOCABULARIES = {
     "RECORDING_STATES": (10, lifecycle_states("Recording")),
     "SEGMENT_STATES": (7, lifecycle_states("Segment")),
     "BLOCK_TYPES": (11, vocabulary_table(BLOCK_TYPE_TABLE)),
-    "RECORDING_WARNINGS": (6, domain_field("Recording", "warnings[]")),
+    "RECORDING_WARNINGS": (7, domain_field("Recording", "warnings[]")),
     "SEGMENT_WARNINGS": (3, domain_field("Segment", "warnings[]")),
     "SEGMENT_CLASSIFICATIONS": (4, vocabulary_table(CLASSIFICATION_TABLE)),
     "RECORDING_KINDS": (7, vocabulary_table(RECORDING_KIND_TABLE)),

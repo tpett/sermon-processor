@@ -44,6 +44,7 @@ RECORDING_WARNINGS = (
     "unexpected stereo content",
     "unexpected language",
     "low transcript quality",
+    "source no longer available",
 )
 
 SEGMENT_WARNINGS = (

@@ -135,7 +135,7 @@ def populated_recording():
         longest_active_seconds=3492.5,
         waiting_since=datetime(2026, 9, 13, 9, 30, tzinfo=UTC),
         warnings=("damaged container", "unexpected stereo content"),
-        skip_reason="source no longer available",
+        skip_reason="transcription timed out",
     )
 
 
@@ -567,6 +567,33 @@ def test_a_discrepancy_between_the_sidecar_and_the_audio_is_recorded_as_a_warnin
         6268.950,
         ("sidecar disagrees with the audio",),
     )
+
+
+def test_a_recording_whose_source_vanished_is_flagged_where_review_left_it(store, graph):
+    reviewed = store.saves(replace(graph["recording"], state="reviewed"))
+    flagged = store.saves(replace(reviewed, warnings=("source no longer available",)))
+    stored = reloaded(store, flagged, "recording")
+    assert (stored.state, stored.warnings) == ("reviewed", ("source no longer available",))
+
+
+def test_the_segments_no_longer_extractable_are_the_skipped_ones_whose_source_vanished(
+    store, graph
+):
+    vanished = store.saves(replace(graph["recording"], warnings=("source no longer available",)))
+    intact = store.saves(minimal_recording())
+    orphaned = store.saves(replace(minimal_segment(vanished), state="skipped"))
+    store.saves(replace(minimal_segment(intact), state="skipped"))
+    store.saves(replace(minimal_segment(vanished), state="approved"))
+    flagged = {
+        recording.recording_id
+        for recording in store.lists(Recording)
+        if "source no longer available" in recording.warnings
+    }
+    unextractable = [
+        segment for segment in store.lists(Segment, state="skipped")
+        if segment.recording_id in flagged
+    ]
+    assert [segment.segment_id for segment in unextractable] == [orphaned.segment_id]
 
 
 def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):
