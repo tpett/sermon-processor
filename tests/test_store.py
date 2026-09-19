@@ -572,6 +572,29 @@ def test_a_segment_lists_the_renders_made_from_it(store, graph):
     assert store.lists(Artifact, segment_id=graph["segment"].segment_id) == [graph["artifact"]]
 
 
+def test_the_envelope_every_later_stage_reads_is_kept_as_an_artifact(store, graph):
+    computed = store.saves(
+        replace(
+            minimal_artifact(graph["recording"]),
+            kind="envelope",
+            path="recording_20260913_090014/envelope",
+        )
+    )
+    assert reloaded(store, computed, "artifact").kind == "envelope"
+
+
+def test_a_stage_that_reads_the_envelope_finds_the_one_already_computed(store, graph):
+    computed = store.saves(
+        replace(
+            minimal_artifact(graph["recording"]),
+            kind="envelope",
+            path="recording_20260913_090014/envelope",
+        )
+    )
+    cached = store.lists(Artifact, recording_id=graph["recording"].recording_id, kind="envelope")
+    assert cached == [computed]
+
+
 def test_a_recording_lists_every_artifact_derived_from_it(store, graph):
     source = store.saves(minimal_artifact(graph["recording"]))
     listed = store.lists(Artifact, recording_id=graph["recording"].recording_id)
