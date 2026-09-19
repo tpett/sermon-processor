@@ -5,6 +5,19 @@ import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SPEC_ROOT = PROJECT_ROOT / "features"
+STEP_ROOT = Path(__file__).parent / "steps"
+
+
+def loads_step_definitions(path):
+    location = importlib.util.spec_from_file_location(f"{STEP_ROOT.name}.{path.stem}", path)
+    module = importlib.util.module_from_spec(location)
+    location.loader.exec_module(module)
+    return module
+
+
+def pytest_configure(config):
+    for path in sorted(STEP_ROOT.glob("[!_]*.py")):
+        config.pluginmanager.register(loads_step_definitions(path), f"{STEP_ROOT.name}.{path.stem}")
 
 
 @pytest.fixture(scope="session")
