@@ -10,6 +10,7 @@ from sermon.store import (
     Candidate,
     ChannelLevel,
     DATABASE_NAME,
+    Discovery,
     Evidence,
     Job,
     LogEntry,
@@ -344,6 +345,33 @@ def minimal_log_entry(recording):
         kind="state_change",
         occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
         correlation_id="analyze-4b20e9",
+    )
+
+
+def received_webhook():
+    return Discovery(
+        kind="webhook",
+        occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
+        discovered_count=1,
+        event="recording.uploaded",
+    )
+
+
+def completed_scan():
+    return Discovery(
+        kind="scan",
+        occurred_at=datetime(2026, 9, 13, 3, 0, tzinfo=UTC),
+        discovered_count=2,
+    )
+
+
+def system_alert():
+    return Notification(
+        kind="scratch_exhausted",
+        recipient="the operator",
+        summary="Scratch space is exhausted; downloads and renders are paused",
+        created_at=datetime(2026, 9, 13, 4, 15, tzinfo=UTC),
+        state="pending",
     )
 
 
@@ -1097,6 +1125,83 @@ def test_alternative_punch_in_candidates_are_kept_in_the_order_analysis_ranked_t
     )
     proposal = store.saves(replace(graph["proposal"], punch_in_candidates=ranked))
     assert reloaded(store, proposal, "proposal").punch_in_candidates == ranked
+
+
+def test_the_last_webhook_and_the_last_scan_are_each_recorded_with_what_they_found(store):
+    webhook = store.saves(received_webhook())
+    scan = store.saves(completed_scan())
+    assert store.lists(Discovery) == [scan, webhook]
+    assert [(one.kind, one.discovered_count) for one in store.lists(Discovery)] == [
+        ("scan", 2),
+        ("webhook", 1),
+    ]
+
+
+def test_a_scan_that_could_not_reach_the_object_store_is_recorded_as_having_found_nothing(
+    store, graph
+):
+    failed = store.saves(
+        replace(
+            graph["discovery"],
+            kind="scan",
+            occurred_at=datetime(2026, 9, 20, 3, 0, tzinfo=UTC),
+            discovered_count=0,
+            failure="transient",
+            event=None,
+        )
+    )
+    stored = reloaded(store, failed, "discovery")
+    assert (stored.kind, stored.discovered_count, stored.failure, stored.event) == (
+        "scan",
+        0,
+        "transient",
+        None,
+    )
+    assert stored.occurred_at == datetime(2026, 9, 20, 3, 0, tzinfo=UTC)
+
+
+def test_a_credential_problem_is_distinguishable_from_a_transient_failure(store):
+    store.saves(replace(completed_scan(), discovered_count=0, failure="transient"))
+    store.saves(
+        replace(
+            completed_scan(),
+            occurred_at=datetime(2026, 9, 20, 3, 0, tzinfo=UTC),
+            discovered_count=0,
+            failure="credentials",
+        )
+    )
+    assert [one.failure for one in store.lists(Discovery)] == ["transient", "credentials"]
+
+
+def test_a_scan_that_ran_to_the_end_records_no_failure(store):
+    assert store.loads(Discovery, store.saves(completed_scan()).discovery_id).failure is None
+
+
+def test_a_webhook_the_processor_does_not_handle_records_the_event_type_it_ignored(store):
+    ignored = store.saves(
+        replace(received_webhook(), event="recording.started", discovered_count=0)
+    )
+    stored = store.loads(Discovery, ignored.discovery_id)
+    assert (stored.event, stored.discovered_count) == ("recording.started", 0)
+    assert store.lists(Recording) == []
+
+
+def test_a_scan_carries_no_event_type_because_nothing_announced_it(store):
+    assert store.loads(Discovery, store.saves(completed_scan()).discovery_id).event is None
+
+
+def test_an_alert_about_the_system_itself_is_raised_against_no_recording(store):
+    raised = store.saves(system_alert())
+    stored = store.loads(Notification, raised.notification_id)
+    assert (stored.recording_id, stored.segment_id) == (None, None)
+    assert store.lists(Recording) == []
+
+
+def test_an_alert_about_the_system_is_not_listed_among_a_recordings_notifications(store, graph):
+    alert = store.saves(system_alert())
+    assert store.lists(Notification, recording_id=None) == [alert]
+    listed = store.lists(Notification, recording_id=graph["recording"].recording_id)
+    assert listed == [graph["notification"]]
 
 
 def test_an_object_the_scan_skipped_is_recorded_with_its_key_and_reason(store):

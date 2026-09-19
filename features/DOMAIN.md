@@ -28,17 +28,18 @@ Recording ──1:N──▶ Block
     │
     ├────1:N────▶ Artifact       (envelope, transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
-    ├────1:N────▶ Notification   (naming its Segment too, when it concerns one)
+    ├────1:N────▶ Notification   (its Segment too, or neither when the system is the subject)
     └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
 
 SkippedObject                   (an object no Recording will ever be made of)
+Discovery                       (a webhook received or a scan run, and what it found)
 ```
 
-Five nouns the reviewer names, plus five the system needs: `Job`,
-`Notification`, `LogEntry`, `SpeakerProfile` and `SkippedObject`.
+Five nouns the reviewer names, plus six the system needs: `Job`,
+`Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject` and `Discovery`.
 
 ---
 
@@ -204,12 +205,20 @@ from raising it (`notifications/approval_notifications.feature`).
 
 | Field | Why it exists |
 | --- | --- |
-| `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns". Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
+| `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns", and neither when it is the system itself. Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
 | `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for many different reasons and declare a vocabulary for none of them, so naming one here would be inventing spec rather than recording it. |
 | `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. |
 | `summary` | What it says, in plain text. It states the recording date and the proposed length, and names each session when a Recording held more than one — so it is composed when the Notification is raised, not when a channel renders it. |
 | `created_at` | When it was raised. The reminder for a Segment left undispositioned for 3 days is measured from it. |
 | `state` | `pending`, `delivered`, `failed` or `suppressed`. A Recording that produced nothing publishable is recorded as `suppressed` rather than not recorded at all, which is what makes "why was I not told about that Sunday?" answerable without reading logs. |
+
+**A system-scoped alert names neither.** Scratch space exhausted and the array at
+90% raise an alert about the system, with no Recording to hang it on
+(`operations/storage_and_retention.feature`). Raising a record and delivering it
+are already separate here, and every other field applies unchanged, so the
+subject is nullable rather than there being a second entity that repeats all six.
+A Recording-scoped alert still names its Recording, which is what keeps "which
+Sunday was I never told about?" a query over this table.
 
 **Not stored:** delivery attempts, per-channel results, retry counts. The channel
 is undecided, the same Notification may be delivered by more than one of them,
@@ -283,6 +292,30 @@ three of the four reasons leave nothing a Recording could be built from.
 **Not stored:** when it was skipped, or which scan skipped it. "Nothing is
 dropped without being counted" asks what was dropped and why; no scenario reads
 a time off this record, and no alert is raised from it.
+
+---
+
+## Discovery
+
+One occasion on which the Processor learned what the bucket holds — a webhook it
+was sent, or a scan it ran. One entity rather than two because the health view
+renders them as one thing: when the last of each happened, and how many
+recordings each discovered (`operations/system_health.feature`).
+
+| Field | Why it exists |
+| --- | --- |
+| `kind` | `webhook` or `scan`. Which of the two the health view is showing the last of, and the reason one record serves both. |
+| `occurred_at` | "When the last webhook was received" and "when the last reconciliation scan ran". An instant, so records written in different offsets still order against each other. |
+| `discovered_count` | "How many recordings each discovered". Nothing on a Recording says which scan or webhook found it and a re-scan finds nothing new, so the count cannot be derived back. Required: a scan that found nothing discovered none, which is not the same as not being asked. |
+| `failure` | `transient` or `credentials`, null when nothing went wrong. A 403 must be surfaced as a credential problem rather than burning the retry budget as though it were transient, and then looking identical to a quiet week (`ingestion/s3_reconciliation.feature`). |
+| `event` | The webhook's own `event` field, kept because "the ignored event type is logged" for one the Processor does not handle (`ingestion/webhook_notification.feature`). Open, since the point is to record a type the Processor has no vocabulary for. Null on a scan. |
+
+**A failed scan is not an alert.** Both failure scenarios ask only that it be
+surfaced on the system health view, and the skipped-object Rule says explicitly
+that no alert is raised — so nothing here raises a `Notification`.
+
+**Not stored:** which Recordings a discovery produced. No scenario reads a
+Recording's discoverer, and the count is what the view shows.
 
 ---
 

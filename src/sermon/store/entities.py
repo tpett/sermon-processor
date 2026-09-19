@@ -185,3 +185,8 @@ class LogEntry:
 class SkippedObject:
     object_key: str
     reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class Discovery:
+    pass
