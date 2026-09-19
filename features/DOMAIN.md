@@ -22,18 +22,19 @@ Recording ──1:N──▶ Block
     │                 │
     │                 │ seeds (teaching Blocks only)
     │                 ▼
-    ├────1:N────▶ Segment ──1:1──▶ Proposal
+    ├────1:N────▶ Segment ──1:N──▶ Proposal  (a re-run adds another; the old one stays)
     │                 │
     │                 └──1:N──▶ Artifact  (a render; a re-cut adds another)
     │
     ├────1:N────▶ Artifact       (transcript, waveform, preview, source FLAC)
-    └────1:N────▶ Job
+    ├────1:N────▶ Job
+    └────1:N────▶ Notification   (naming its Segment too, when it concerns one)
 
-SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span)
+SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 ```
 
-Five nouns the reviewer names, plus two the system needs: `Job` and
-`SpeakerProfile`.
+Five nouns the reviewer names, plus three the system needs: `Job`,
+`Notification` and `SpeakerProfile`.
 
 ---
 
@@ -49,7 +50,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
 | `channels`, `sample_rate`, `bits_per_raw_sample` | Reported on the detail view. **32-bit, not 24** — the spec said 24 in five places and was wrong. |
-| `state` | One of eleven. See the lifecycle in `README.md`; every state's exits are tabulated there. |
+| `state` | One of ten. See the lifecycle in `README.md`; every state's exits are tabulated there. |
 | `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
@@ -79,6 +80,7 @@ never published alone.
 | `summary` | One line, so a Block can be judged without listening. |
 | `cue_start_seconds`, `cue_end_seconds` | The excerpt the Preview button plays. |
 | `retyped_by_human` | A reviewer can retype a Block, which re-runs Segment proposal. Must be distinguishable from a machine type, or the next re-analysis silently reverts the correction. |
+| `speaker_matches[]` | Each entry: `speaker_profile_id` and `similarity`. The reviewer is told which enrolled voice is teaching **and how confidently** (`interface/segment_review.feature`), which a bare link to a profile cannot carry. Named `similarity` rather than a confidence because it is the measured quantity — 0.92–0.95 on the preacher's teaching Block against 0.16–0.48 on music and announcements (`analysis/speaker_diarization.feature`) — and confidence in this model is always a derived level. Ordered, because the ranking is the signal and the runner-up is reliably communion. |
 
 **Ordering matters and is not incidental.** Consecutive Blocks of one type are
 one Block for seeding purposes. Storing them separately is fine; seeding over
@@ -101,15 +103,18 @@ and what renders.
 | `state` | `proposed`, `approved`, `skipped`, `processing`, `processing_failed`, `complete`, `recut`. |
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
 | `disposition_at` | When it was approved or skipped. A skipped Segment must be findable years later. |
+| `distribution_confirmed` | A Segment whose teaching voice matches no enrolled profile is confirmed as distributable before it is published, and the confirmation is recorded with the approval (`interface/segment_review.feature`). Null until the question is asked, so a confirmation nobody was asked for stays distinguishable from one that was declined. |
 | `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Already produced by the pipeline and worth keeping: it is how a regression gets attributed. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
+| `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
+| `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
 
 ---
 
 ## Proposal
 
-Why the machine thinks what it thinks. One per Segment, replaced when analysis
-re-runs.
+Why the machine thinks what it thinks. Several per Segment: a re-run adds one
+and supersedes the one before it rather than overwriting it.
 
 | Field | Why it exists |
 | --- | --- |
@@ -119,6 +124,7 @@ re-runs.
 | `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut. **Graded from the ground truth where it exists, never by the configuration being measured** — otherwise the headline can be raised by grading more cuts hard. |
 | `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null when no second opinion is configured, and the absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
+| `superseded_by` | Re-running Analysis keeps the previous Proposals in the Recording's history, and where a reviewer has already edited a Segment the fresh machine proposal is shown *alongside* their work rather than over it (`analysis/analysis_orchestration.feature`, `interface/punch_point_adjustment.feature`). Two Proposals for one Segment therefore have to exist at once, which a 1:1 cannot do, and which of them is current has to be a stored fact. Written the way `Artifact.superseded_by` already is. |
 
 ---
 
@@ -156,6 +162,33 @@ three hours of audio. That caching is not a Job; it is Artifact reuse.
 
 ---
 
+## Notification
+
+A record that something happened which a reviewer should know about. It exists
+whether or not any channel is configured, and delivering it is a separate act
+from raising it (`notifications/approval_notifications.feature`).
+
+| Field | Why it exists |
+| --- | --- |
+| `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns". Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
+| `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for many different reasons and declare a vocabulary for none of them, so naming one here would be inventing spec rather than recording it. |
+| `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. |
+| `summary` | What it says, in plain text. It states the recording date and the proposed length, and names each session when a Recording held more than one — so it is composed when the Notification is raised, not when a channel renders it. |
+| `created_at` | When it was raised. The reminder for a Segment left undispositioned for 3 days is measured from it. |
+| `state` | `pending`, `delivered`, `failed` or `suppressed`. A Recording that produced nothing publishable is recorded as `suppressed` rather than not recorded at all, which is what makes "why was I not told about that Sunday?" answerable without reading logs. |
+
+**Not stored:** delivery attempts, per-channel results, retry counts. The channel
+is undecided, the same Notification may be delivered by more than one of them,
+and no scenario gives those fields — so a retry belongs to the delivery
+behaviour rather than to this record. Nor the grouping that batches several into
+one delivered message: three Recordings finishing within five minutes reach the
+reviewer once (`approval_notifications.feature`), and each still raises its own
+record, so `recipient`, `created_at` and `state` are what a batching delivery
+reads. Nor does a reviewer's opting out live here: that is a property of the
+reviewer, and nothing yet models one.
+
+---
+
 ## SpeakerProfile
 
 | Field | Why it exists |
@@ -180,4 +213,21 @@ flagged as an open decision, not settled here.
   because that decision is open (`analysis/analysis_confidence.feature`).
 - **Whether local audio is ever reclaimed.** `local_path` is nullable and the
   object store is durable, so both answers fit. Q34 is open.
+- **Whether a Proposal carries the boundaries it proposed.** They live on the
+  Segment as `proposed_punch_in` and `proposed_punch_out`, which hold only the
+  current machine suggestion, so a superseded Proposal keeps its reasoning and
+  not its cuts. Moving them here would close that, and it is the same question
+  as the boundary history `processing/reprocessing.feature` asks for — "each set
+  of boundaries with who approved them and when" — which needs an actor and a
+  time this model has nowhere to put.
+- **The processing log.** Four feature files ask for one: each state transition
+  with its timestamp, each job attempt with its duration and error, and who
+  performed each human action against which Segment
+  (`interface/recording_detail.feature`, `operations/system_health.feature`,
+  `analysis/analysis_orchestration.feature`, `analysis/segment_proposal.feature`).
+  `Job` holds the current attempt count and the last error, never a record per
+  attempt, and nothing at all holds transitions or human actions — so this is an
+  entity the spec requires and this model does not have. It is left out
+  deliberately rather than by oversight: it also carries the boundary and
+  adjustment history above, and wants designing once for all of them.
 - **Hard delete.** The last `@needs-decision` in the spec.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -39,7 +39,7 @@ class Block:
     cue_start_seconds: float | None = None
     cue_end_seconds: float | None = None
     retyped_by_human: bool = False
-    speaker_profile_ids: tuple[int, ...] = ()
+    speaker_matches: tuple[SpeakerMatch, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -55,8 +55,11 @@ class Segment:
     proposed_punch_out: float | None = None
     intent: str | None = None
     disposition_at: datetime | None = None
+    distribution_confirmed: bool | None = None
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
+    publication_date: date | None = None
+    label: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -67,13 +70,21 @@ class Evidence:
 
 
 @dataclass(frozen=True, kw_only=True)
+class SpeakerMatch:
+    speaker_profile_id: int
+    similarity: float
+
+
+@dataclass(frozen=True, kw_only=True)
 class Proposal:
+    proposal_id: int | None = None
     segment_id: int
     classification_confidence: str
     boundary_confidence: str
     punch_in_difficulty: str
     punch_out_difficulty: str
     agreement_gap_seconds: float | None = None
+    superseded_by: int | None = None
     evidence: tuple[Evidence, ...] = ()
     missing_evidence: tuple[str, ...] = ()
 
@@ -115,3 +126,15 @@ class SpeakerProfile:
     embedding: bytes
     enrolled_from: tuple[str, ...] = ()
     confirmed_by_human: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class Notification:
+    notification_id: int | None = None
+    recording_id: str
+    segment_id: int | None = None
+    kind: str
+    recipient: str
+    summary: str
+    created_at: datetime
+    state: str

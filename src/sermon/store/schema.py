@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from datetime import datetime
+from datetime import date, datetime
 from types import UnionType
 from typing import Union, get_args, get_origin, get_type_hints
 
 from . import vocabularies
-from .entities import Artifact, Block, Evidence, Job, Proposal, Recording, Segment, SpeakerProfile
+from .entities import (
+    Artifact,
+    Block,
+    Evidence,
+    Job,
+    Notification,
+    Proposal,
+    Recording,
+    Segment,
+    SpeakerMatch,
+    SpeakerProfile,
+)
 
 COLUMN_TYPES = {
     str: "TEXT",
@@ -15,6 +26,7 @@ COLUMN_TYPES = {
     bool: "INTEGER",
     bytes: "BLOB",
     dict: "TEXT",
+    date: "TEXT",
     datetime: "TEXT",
 }
 
@@ -52,7 +64,7 @@ class Collection:
     owner: str
     element: type
     column: str | None = None
-    references: str | None = None
+    references: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -103,12 +115,11 @@ TABLES = {
                     element=Evidence,
                 ),
                 Collection(
-                    field="speaker_profile_ids",
-                    table="block_speaker_profile",
+                    field="speaker_matches",
+                    table="block_speaker_match",
                     owner="block_id",
-                    element=int,
-                    column="speaker_profile_id",
-                    references="speaker_profile(speaker_profile_id)",
+                    element=SpeakerMatch,
+                    references={"speaker_profile_id": "speaker_profile(speaker_profile_id)"},
                 ),
             ),
         ),
@@ -123,7 +134,7 @@ TABLES = {
                     owner="speaker_profile_id",
                     element=str,
                     column="recording_id",
-                    references="recording(recording_id)",
+                    references={"recording_id": "recording(recording_id)"},
                 ),
             ),
         ),
@@ -146,9 +157,11 @@ TABLES = {
         Table(
             entity=Proposal,
             name="proposal",
-            identity="segment_id",
-            generated=False,
-            references={"segment_id": "segment(segment_id)"},
+            identity="proposal_id",
+            references={
+                "segment_id": "segment(segment_id)",
+                "superseded_by": "proposal(proposal_id)",
+            },
             closed={
                 "classification_confidence": vocabularies.CONFIDENCE_LEVELS,
                 "boundary_confidence": vocabularies.CONFIDENCE_LEVELS,
@@ -159,13 +172,13 @@ TABLES = {
                 Collection(
                     field="evidence",
                     table="proposal_evidence",
-                    owner="segment_id",
+                    owner="proposal_id",
                     element=Evidence,
                 ),
                 Collection(
                     field="missing_evidence",
                     table="proposal_missing_evidence",
-                    owner="segment_id",
+                    owner="proposal_id",
                     element=str,
                     column="description",
                 ),
@@ -199,6 +212,17 @@ TABLES = {
                 "segment_id": "segment(segment_id)",
             },
             closed={"kind": vocabularies.JOB_KINDS, "state": vocabularies.JOB_STATES},
+        ),
+        Table(
+            entity=Notification,
+            name="notification",
+            identity="notification_id",
+            order=("created_at",),
+            references={
+                "recording_id": "recording(recording_id)",
+                "segment_id": "segment(segment_id)",
+            },
+            closed={"state": vocabularies.NOTIFICATION_STATES},
         ),
     )
 }
@@ -258,9 +282,24 @@ def unique_ddl(table, unique):
     )
 
 
-def element_definition(name, annotation):
+def element_definition(collection, name, annotation):
     kind, optional = unwrapped(annotation)
-    return f"{name} {column_type(kind)}" + ("" if optional else " NOT NULL")
+    parts = [name, column_type(kind)]
+    if not optional:
+        parts.append("NOT NULL")
+    if name in collection.references:
+        parts.append(f"REFERENCES {collection.references[name]}")
+    return " ".join(parts)
+
+
+def element_definitions(collection):
+    if collection.column:
+        return [element_definition(collection, collection.column, collection.element)]
+    annotations = get_type_hints(collection.element)
+    return [
+        element_definition(collection, name, annotations[name])
+        for name in element_columns(collection)
+    ]
 
 
 def collection_ddl(table, collection):
@@ -268,18 +307,9 @@ def collection_ddl(table, collection):
     definitions = [
         f"{collection.owner} {owner_type} NOT NULL REFERENCES {table.name}({table.identity})",
         "position INTEGER NOT NULL",
+        *element_definitions(collection),
+        f"PRIMARY KEY ({collection.owner}, position)",
     ]
-    if collection.column:
-        reference = f" REFERENCES {collection.references}" if collection.references else ""
-        definitions.append(
-            f"{element_definition(collection.column, collection.element)}{reference}"
-        )
-    else:
-        annotations = get_type_hints(collection.element)
-        definitions += [
-            element_definition(name, annotations[name]) for name in element_columns(collection)
-        ]
-    definitions.append(f"PRIMARY KEY ({collection.owner}, position)")
     return creates(collection.table, definitions)
 
 

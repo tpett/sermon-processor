@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -10,10 +10,12 @@ from sermon.store import (
     DATABASE_NAME,
     Evidence,
     Job,
+    Notification,
     Proposal,
     Recording,
     PathEscapesDataRoot,
     Segment,
+    SpeakerMatch,
     SpeakerProfile,
     Store,
     opens_store,
@@ -24,9 +26,10 @@ IDENTITIES = {
     "recording": "recording_id",
     "block": "block_id",
     "segment": "segment_id",
-    "proposal": "segment_id",
+    "proposal": "proposal_id",
     "artifact": "artifact_id",
     "job": "job_id",
+    "notification": "notification_id",
     "speaker_profile": "speaker_profile_id",
 }
 
@@ -37,6 +40,7 @@ ENTITY_TYPES = {
     "proposal": Proposal,
     "artifact": Artifact,
     "job": Job,
+    "notification": Notification,
     "speaker_profile": SpeakerProfile,
 }
 
@@ -56,6 +60,7 @@ CLOSED_COLUMNS = [
     ("artifact", "kind", vocabularies.ARTIFACT_KINDS),
     ("job", "kind", vocabularies.JOB_KINDS),
     ("job", "state", vocabularies.JOB_STATES),
+    ("notification", "state", vocabularies.NOTIFICATION_STATES),
 ]
 
 
@@ -139,8 +144,11 @@ def populated_segment(recording, block):
         proposed_punch_out=3499.0,
         intent="publish",
         disposition_at=datetime(2026, 9, 14, 8, 12, tzinfo=UTC),
+        distribution_confirmed=True,
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
+        publication_date=date(2026, 9, 13),
+        label="Hebrews 12.4-11",
     )
 
 
@@ -231,6 +239,29 @@ def minimal_job(recording):
     )
 
 
+def populated_notification(recording, segment):
+    return Notification(
+        recording_id=recording.recording_id,
+        segment_id=segment.segment_id,
+        kind="segment_proposed",
+        recipient="reviewer",
+        summary="A 57 minute sermon was proposed in the 2026-09-13 recording",
+        created_at=datetime(2026, 9, 13, 12, 41, tzinfo=UTC),
+        state="delivered",
+    )
+
+
+def minimal_notification(recording):
+    return Notification(
+        recording_id=recording.recording_id,
+        kind="nothing_publishable",
+        recipient="reviewer",
+        summary="Nothing publishable was found in the 2026-09-13 recording",
+        created_at=datetime(2026, 9, 13, 11, 4, tzinfo=UTC),
+        state="suppressed",
+    )
+
+
 def populated_speaker_profile(recording):
     return SpeakerProfile(
         name="Travis Pettijohn",
@@ -256,7 +287,14 @@ def graph(store):
     recording = store.saves(populated_recording())
     block = store.saves(populated_block(recording))
     profile = store.saves(populated_speaker_profile(recording))
-    block = store.saves(replace(block, speaker_profile_ids=(profile.speaker_profile_id,)))
+    block = store.saves(
+        replace(
+            block,
+            speaker_matches=(
+                SpeakerMatch(speaker_profile_id=profile.speaker_profile_id, similarity=0.94),
+            ),
+        )
+    )
     segment = store.saves(populated_segment(recording, block))
     return {
         "recording": recording,
@@ -266,6 +304,7 @@ def graph(store):
         "proposal": store.saves(populated_proposal(segment)),
         "artifact": store.saves(populated_artifact(recording, segment)),
         "job": store.saves(populated_job(recording, segment)),
+        "notification": store.saves(populated_notification(recording, segment)),
     }
 
 
@@ -336,10 +375,31 @@ def test_a_segment_grows_from_the_block_that_seeded_it(store, graph):
     assert reloaded(store, graph["segment"], "segment").seed_block_id == graph["block"].block_id
 
 
-def test_a_segment_has_one_proposal(store, graph):
+def test_correcting_a_proposal_does_not_make_it_a_second_one(store, graph):
     replacement = replace(graph["proposal"], boundary_confidence="low", missing_evidence=())
     store.saves(replacement)
     assert store.lists(Proposal, segment_id=graph["segment"].segment_id) == [replacement]
+
+
+def test_a_re_run_keeps_the_proposal_it_replaced(store, graph):
+    fresh = store.saves(
+        replace(populated_proposal(graph["segment"]), classification_confidence="low")
+    )
+    previous = store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
+    assert store.lists(Proposal, segment_id=graph["segment"].segment_id) == [previous, fresh]
+
+
+def test_the_machine_proposal_beside_a_reviewers_work_is_the_one_not_yet_superseded(store, graph):
+    adjusted = store.saves(
+        replace(graph["segment"], punch_in_seconds=5582.0, boundary_source="human")
+    )
+    reproposed = store.saves(replace(adjusted, proposed_punch_in=5590.5))
+    fresh = store.saves(populated_proposal(reproposed))
+    store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
+    stored = reloaded(store, reproposed, "segment")
+    assert (stored.punch_in_seconds, stored.boundary_source) == (5582.0, "human")
+    assert stored.proposed_punch_in == 5590.5
+    assert store.lists(Proposal, segment_id=adjusted.segment_id, superseded_by=None) == [fresh]
 
 
 def test_a_segment_lists_the_renders_made_from_it(store, graph):
@@ -380,7 +440,29 @@ def test_a_block_carries_every_piece_of_evidence_that_produced_it(store, graph):
 
 def test_a_block_lists_the_voices_recognised_in_it(store, graph):
     stored = reloaded(store, graph["block"], "block")
-    assert stored.speaker_profile_ids == (graph["speaker_profile"].speaker_profile_id,)
+    assert [match.speaker_profile_id for match in stored.speaker_matches] == [
+        graph["speaker_profile"].speaker_profile_id
+    ]
+
+
+def test_a_block_records_how_strongly_each_voice_matched_it(store, graph):
+    match = SpeakerMatch(
+        speaker_profile_id=graph["speaker_profile"].speaker_profile_id, similarity=0.94
+    )
+    saved = store.saves(replace(minimal_block(graph["recording"]), speaker_matches=(match,)))
+    assert reloaded(store, saved, "block").speaker_matches == (match,)
+
+
+def test_a_block_keeps_the_voices_it_matched_in_the_order_they_ranked(store, graph):
+    guest = store.saves(minimal_speaker_profile())
+    ranked = (
+        SpeakerMatch(
+            speaker_profile_id=graph["speaker_profile"].speaker_profile_id, similarity=0.94
+        ),
+        SpeakerMatch(speaker_profile_id=guest.speaker_profile_id, similarity=0.31),
+    )
+    saved = store.saves(replace(minimal_block(graph["recording"]), speaker_matches=ranked))
+    assert reloaded(store, saved, "block").speaker_matches == ranked
 
 
 def test_a_speaker_profile_lists_the_recordings_that_enrolled_it(store, graph):
@@ -406,6 +488,93 @@ def test_skipping_a_segment_keeps_everything_the_machine_found(store, graph):
     )
     assert reloaded(store, skipped, "segment") == skipped
     assert reloaded(store, graph["proposal"], "proposal") == graph["proposal"]
+
+
+def test_confirming_that_a_recording_may_be_distributed_is_recorded_with_the_approval(store, graph):
+    approved = store.saves(
+        replace(graph["segment"], state="approved", intent="publish", distribution_confirmed=True)
+    )
+    assert reloaded(store, approved, "segment").distribution_confirmed is True
+
+
+def test_a_declined_confirmation_is_distinguishable_from_never_having_been_asked(store, graph):
+    declined = store.saves(replace(graph["segment"], distribution_confirmed=False))
+    never_asked = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, declined, "segment").distribution_confirmed is False
+    assert reloaded(store, never_asked, "segment").distribution_confirmed is None
+
+
+def test_a_published_segment_keeps_the_date_and_label_its_filename_is_built_from(store, graph):
+    detailed = store.saves(
+        replace(graph["segment"], publication_date=date(2026, 8, 23), label="Hebrews 12.4-11")
+    )
+    stored = reloaded(store, detailed, "segment")
+    assert (stored.publication_date, stored.label) == (date(2026, 8, 23), "Hebrews 12.4-11")
+
+
+def test_a_publication_date_is_stored_as_the_calendar_date_the_filename_uses(
+    store, graph, tmp_path
+):
+    store.saves(replace(graph["segment"], publication_date=date(2026, 8, 23)))
+    assert "2026-08-23" in rows_another_connection_sees(tmp_path)["segment"][0]
+
+
+def test_a_moment_in_time_is_refused_where_a_calendar_date_belongs(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(TypeError):
+        store.saves(replace(graph["segment"], publication_date=graph["recording"].started_at))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_segment_carries_no_publication_details_until_someone_enters_them(store, graph):
+    proposed = store.saves(minimal_segment(graph["recording"]))
+    stored = reloaded(store, proposed, "segment")
+    assert (stored.publication_date, stored.label) == (None, None)
+
+
+def test_a_notification_records_what_happened_and_whether_it_was_delivered(store, graph):
+    raised = store.saves(populated_notification(graph["recording"], graph["segment"]))
+    assert store.loads(Notification, raised.notification_id) == raised
+
+
+def test_a_notification_about_a_whole_recording_names_no_segment(store, graph):
+    raised = store.saves(minimal_notification(graph["recording"]))
+    assert store.loads(Notification, raised.notification_id).segment_id is None
+
+
+def test_a_recording_lists_the_notifications_it_raised_oldest_first(store, graph):
+    earlier = store.saves(minimal_notification(graph["recording"]))
+    listed = store.lists(Notification, recording_id=graph["recording"].recording_id)
+    assert listed == [earlier, graph["notification"]]
+
+
+def test_recordings_that_finish_together_raise_one_notification_each(store, graph):
+    raised = []
+    for minute, suffix in ((41, "102900"), (43, "104900"), (45, "105100")):
+        recording = store.saves(
+            replace(
+                minimal_recording(),
+                recording_id=f"recording_20260823_{suffix}",
+                object_key=f"2026/08/23/recording_20260823_{suffix}.flac",
+            )
+        )
+        raised.append(
+            store.saves(
+                replace(
+                    minimal_notification(recording),
+                    state="pending",
+                    created_at=datetime(2026, 9, 13, 12, minute, tzinfo=UTC),
+                )
+            )
+        )
+    listed = store.lists(Notification, recipient="reviewer", state="pending")
+    assert listed == raised
+    assert len({one.recording_id for one in listed}) == 3
+
+
+def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_dropped(store, graph):
+    suppressed = store.saves(minimal_notification(graph["recording"]))
+    assert store.loads(Notification, suppressed.notification_id).state == "suppressed"
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
@@ -494,13 +663,23 @@ def test_a_segment_cannot_be_seeded_by_a_block_that_does_not_exist(store, graph,
 def test_a_block_naming_a_voice_that_does_not_exist_is_never_stored(store, graph, tmp_path):
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(minimal_block(graph["recording"]), speaker_profile_ids=(404,)))
+        store.saves(
+            replace(
+                minimal_block(graph["recording"]),
+                speaker_matches=(SpeakerMatch(speaker_profile_id=404, similarity=0.94),),
+            )
+        )
     assert everything_stored(store, tmp_path) == stored
 
 
 def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store, graph, tmp_path):
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(minimal_block(graph["recording"]), speaker_profile_ids=(404,)))
+        store.saves(
+            replace(
+                minimal_block(graph["recording"]),
+                speaker_matches=(SpeakerMatch(speaker_profile_id=404, similarity=0.94),),
+            )
+        )
     later = store.saves(minimal_block(graph["recording"]))
     seen = [row[0] for row in rows_another_connection_sees(tmp_path)["block"]]
     assert seen == [graph["block"].block_id, later.block_id]

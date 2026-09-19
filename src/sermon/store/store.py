@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import replace
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import get_type_hints
 
@@ -13,12 +13,21 @@ from .stored_paths import ResolvesStoredPath
 DATABASE_NAME = "sermon.sqlite3"
 
 
-def to_column(value):
-    if isinstance(value, bool):
+class UnstorableValue(TypeError):
+    pass
+
+
+def to_column(annotation, value):
+    if value is None:
+        return None
+    kind, _ = unwrapped(annotation)
+    if type(value) is not kind:
+        raise UnstorableValue(f"{type(value).__name__} where {kind.__name__} is declared")
+    if kind is bool:
         return int(value)
-    if isinstance(value, datetime):
+    if kind in (date, datetime):
         return value.isoformat()
-    if isinstance(value, dict):
+    if kind is dict:
         return json.dumps(value, sort_keys=True)
     return value
 
@@ -31,6 +40,8 @@ def from_column(annotation, value):
         return bool(value)
     if kind is datetime:
         return datetime.fromisoformat(value)
+    if kind is date:
+        return date.fromisoformat(value)
     if kind is dict:
         return json.loads(value)
     return value
@@ -55,6 +66,7 @@ class Store:
         table = TABLES[type(entity)]
         self._guards_paths(table, entity)
         columns = column_names(table)
+        annotations = get_type_hints(table.entity)
         assignments = ", ".join(
             f"{name} = excluded.{name}" for name in columns if name != table.identity
         )
@@ -63,7 +75,7 @@ class Store:
                 f"INSERT INTO {table.name} ({', '.join(columns)}) "
                 f"VALUES ({', '.join('?' * len(columns))}) "
                 f"ON CONFLICT({table.identity}) DO UPDATE SET {assignments}",
-                [to_column(getattr(entity, name)) for name in columns],
+                [to_column(annotations[name], getattr(entity, name)) for name in columns],
             )
             identity = getattr(entity, table.identity)
             if identity is None:
@@ -74,8 +86,10 @@ class Store:
 
     def loads(self, entity_type, identity):
         table = TABLES[entity_type]
+        annotations = get_type_hints(table.entity)
         row = self._connection.execute(
-            f"SELECT * FROM {table.name} WHERE {table.identity} = ?", (to_column(identity),)
+            f"SELECT * FROM {table.name} WHERE {table.identity} = ?",
+            (to_column(annotations[table.identity], identity),),
         ).fetchone()
         return self._entity(table, row) if row is not None else None
 
@@ -84,11 +98,12 @@ class Store:
         unknown = sorted(set(criteria) - set(column_names(table)))
         if unknown:
             raise ValueError(f"{table.entity.__name__} holds no {', '.join(unknown)}")
+        annotations = get_type_hints(table.entity)
         matching = " AND ".join(f"{name} IS ?" for name in criteria)
         rows = self._connection.execute(
             f"SELECT * FROM {table.name}{f' WHERE {matching}' if criteria else ''} "
             f"ORDER BY {', '.join(order_by(table))}",
-            [to_column(value) for value in criteria.values()],
+            [to_column(annotations[name], value) for name, value in criteria.items()],
         ).fetchall()
         return [self._entity(table, row) for row in rows]
 
@@ -140,8 +155,11 @@ class Store:
 
 def values_of(collection, element):
     if collection.column:
-        return (to_column(element),)
-    return tuple(to_column(getattr(element, name)) for name in element_columns(collection))
+        return (to_column(collection.element, element),)
+    annotations = get_type_hints(collection.element)
+    return tuple(
+        to_column(annotations[name], getattr(element, name)) for name in element_columns(collection)
+    )
 
 
 def creates_schema(connection):
