@@ -67,3 +67,5 @@ ARTIFACT_KINDS = (
 JOB_KINDS = ("download", "analyze", "render")
 
 JOB_STATES = ("queued", "running", "succeeded", "failed", "cancelled")
+
+JOB_STATES_IN_FLIGHT = ("queued", "running")

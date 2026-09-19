@@ -24,6 +24,12 @@ def unwrapped(annotation):
 
 
 @dataclass(frozen=True)
+class Uniqueness:
+    column: str
+    only_while: dict[str, tuple[str, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class Collection:
     field: str
     table: str
@@ -40,7 +46,7 @@ class Table:
     identity: str
     generated: bool = True
     order: tuple[str, ...] = ()
-    unique: tuple[str, ...] = ()
+    unique: tuple[Uniqueness, ...] = ()
     references: dict[str, str] = field(default_factory=dict)
     closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
     collections: tuple[Collection, ...] = ()
@@ -55,7 +61,7 @@ TABLES = {
             identity="recording_id",
             generated=False,
             order=("started_at",),
-            unique=("object_key",),
+            unique=(Uniqueness(column="object_key"),),
             closed={
                 "state": vocabularies.RECORDING_STATES,
                 "kind": vocabularies.RECORDING_KINDS,
@@ -157,7 +163,12 @@ TABLES = {
             name="job",
             identity="job_id",
             order=("queued_at",),
-            unique=("dedupe_key",),
+            unique=(
+                Uniqueness(
+                    column="dedupe_key",
+                    only_while={"state": vocabularies.JOB_STATES_IN_FLIGHT},
+                ),
+            ),
             references={
                 "recording_id": "recording(recording_id)",
                 "segment_id": "segment(segment_id)",
@@ -208,8 +219,18 @@ def table_ddl(table):
     definitions = [
         column_definition(table, name, annotations[name]) for name in column_names(table)
     ]
-    definitions += [f"UNIQUE ({name})" for name in table.unique]
     return creates(table.name, definitions)
+
+
+def unique_ddl(table, unique):
+    conditions = " AND ".join(
+        f"{column} IN ({quoted(values)})" for column, values in unique.only_while.items()
+    )
+    return (
+        f"CREATE UNIQUE INDEX IF NOT EXISTS unique_{table.name}_{unique.column} "
+        f"ON {table.name} ({unique.column})"
+        f"{f' WHERE {conditions}' if conditions else ''}"
+    )
 
 
 def collection_ddl(table, collection):
@@ -242,5 +263,6 @@ def schema_statements():
     statements = []
     for table in TABLES.values():
         statements.append(table_ddl(table))
+        statements += [unique_ddl(table, unique) for unique in table.unique]
         statements += [collection_ddl(table, collection) for collection in table.collections]
     return tuple(statements)
