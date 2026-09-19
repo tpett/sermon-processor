@@ -1653,6 +1653,18 @@ def test_two_identical_labelled_sermon_pairs_for_one_recording_are_not_listed_tw
     assert store.lists(CorpusPair) == [again]
 
 
+def test_a_machine_cut_and_a_labelled_sermon_for_the_same_recording_both_remain(store):
+    recording = store.saves(minimal_recording())
+    labelled = store.saves(labelled_corpus_pair(recording))
+    published = store.saves(machine_cut_corpus_pair(recording))
+    listed = store.lists(CorpusPair, recording_id=recording.recording_id)
+    assert {pair.provenance for pair in listed} == {"human", "machine"}
+    assert {pair.corpus_pair_id for pair in listed} == {
+        labelled.corpus_pair_id,
+        published.corpus_pair_id,
+    }
+
+
 def test_saving_a_corpus_pair_again_corrects_the_fit_it_already_wrote(store):
     recording = store.saves(minimal_recording())
     saved = store.saves(labelled_corpus_pair(recording))

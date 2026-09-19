@@ -419,6 +419,11 @@ Recording can yield a class and a sermon, so neither `Segment.classification`
 nor `Recording.kind` can be the join. The closed set is the one
 `Segment.classification` already uses.
 
+**A later labelling of the same standing corrects the record instead of adding
+one.** One Recording can yield a class and a sermon, and a machine cut is a
+different record from a human pair of that classification, so the pair is
+identified by recording, classification and provenance together.
+
 **Each kind of exclusion is its own field, not one flag.** Alignment failure
 drops the pair from the corpus and is reported; covering more than 95% of the
 source flags it and drops it from boundary statistics; a machine cut is

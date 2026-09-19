@@ -7,7 +7,15 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import get_type_hints
 
-from .schema import TABLES, column_names, element_columns, order_by, schema_statements, unwrapped
+from .schema import (
+    TABLES,
+    column_names,
+    element_columns,
+    order_by,
+    schema_statements,
+    unique_columns,
+    unwrapped,
+)
 from .stored_paths import ResolvesStoredPath
 
 DATABASE_NAME = "sermon.sqlite3"
@@ -78,11 +86,18 @@ class Store:
         assignments = ", ".join(
             f"{name} = excluded.{name}" for name in columns if name != table.identity
         )
+        conflicts = [f"ON CONFLICT({table.identity}) DO UPDATE SET {assignments}"]
+        if table.generated:
+            for unique in table.unique:
+                if unique.only_while:
+                    continue
+                held = ", ".join(unique_columns(unique))
+                conflicts.append(f"ON CONFLICT({held}) DO UPDATE SET {assignments}")
         with self._connection:
             cursor = self._connection.execute(
                 f"INSERT INTO {table.name} ({', '.join(columns)}) "
                 f"VALUES ({', '.join('?' * len(columns))}) "
-                f"ON CONFLICT({table.identity}) DO UPDATE SET {assignments}",
+                f"{' '.join(conflicts)}",
                 [to_column(annotations[name], getattr(entity, name)) for name in columns],
             )
             identity = getattr(entity, table.identity)
