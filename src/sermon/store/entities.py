@@ -70,6 +70,11 @@ class Evidence:
 
 
 @dataclass(frozen=True, kw_only=True)
+class SpeakerMatch:
+    pass
+
+
+@dataclass(frozen=True, kw_only=True)
 class Proposal:
     segment_id: int
     classification_confidence: str

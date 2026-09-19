@@ -7,6 +7,7 @@ from .entities import (
     Proposal,
     Recording,
     Segment,
+    SpeakerMatch,
     SpeakerProfile,
 )
 from .store import DATABASE_NAME, Store, opens_store
@@ -24,6 +25,7 @@ __all__ = [
     "Recording",
     "ResolvesStoredPath",
     "Segment",
+    "SpeakerMatch",
     "SpeakerProfile",
     "Store",
     "opens_store",

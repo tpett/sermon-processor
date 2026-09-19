@@ -15,6 +15,7 @@ from sermon.store import (
     Recording,
     PathEscapesDataRoot,
     Segment,
+    SpeakerMatch,
     SpeakerProfile,
     Store,
     opens_store,
@@ -412,6 +413,26 @@ def test_a_block_carries_every_piece_of_evidence_that_produced_it(store, graph):
 def test_a_block_lists_the_voices_recognised_in_it(store, graph):
     stored = reloaded(store, graph["block"], "block")
     assert stored.speaker_profile_ids == (graph["speaker_profile"].speaker_profile_id,)
+
+
+def test_a_block_records_how_strongly_each_voice_matched_it(store, graph):
+    match = SpeakerMatch(
+        speaker_profile_id=graph["speaker_profile"].speaker_profile_id, similarity=0.94
+    )
+    saved = store.saves(replace(minimal_block(graph["recording"]), speaker_matches=(match,)))
+    assert reloaded(store, saved, "block").speaker_matches == (match,)
+
+
+def test_a_block_keeps_the_voices_it_matched_in_the_order_they_ranked(store, graph):
+    guest = store.saves(minimal_speaker_profile())
+    ranked = (
+        SpeakerMatch(
+            speaker_profile_id=graph["speaker_profile"].speaker_profile_id, similarity=0.94
+        ),
+        SpeakerMatch(speaker_profile_id=guest.speaker_profile_id, similarity=0.31),
+    )
+    saved = store.saves(replace(minimal_block(graph["recording"]), speaker_matches=ranked))
+    assert reloaded(store, saved, "block").speaker_matches == ranked
 
 
 def test_a_speaker_profile_lists_the_recordings_that_enrolled_it(store, graph):
