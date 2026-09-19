@@ -8,6 +8,7 @@ from sermon.store import (
     Artifact,
     Block,
     Candidate,
+    ChannelLevel,
     DATABASE_NAME,
     Evidence,
     Job,
@@ -415,6 +416,35 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
         "speaker_profile": store.saves(minimal_speaker_profile()),
     }
     assert {name: reloaded(store, saved, name) for name, saved in minimal.items()} == minimal
+
+
+def test_a_recording_lists_the_level_measured_on_each_of_its_channels(store, graph):
+    measured = (ChannelLevel(channel=1, rms_db=-21.3), ChannelLevel(channel=2, rms_db=-90.4))
+    probed = store.saves(replace(graph["recording"], channel_levels=measured))
+    assert reloaded(store, probed, "recording").channel_levels == measured
+
+
+def test_a_recording_records_which_channel_or_mix_the_render_must_take(store, graph):
+    decided = store.saves(replace(graph["recording"], mono_source="channel 1 only"))
+    assert reloaded(store, decided, "recording").mono_source == "channel 1 only"
+
+
+def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_probe_decided(
+    store, graph
+):
+    answered = store.saves(
+        replace(graph["recording"], mono_source="both channels mixed", mono_source_confirmed=True)
+    )
+    decided = store.saves(
+        replace(minimal_recording(), mono_source="channel 1 only", mono_source_confirmed=None)
+    )
+    assert reloaded(store, answered, "recording").mono_source_confirmed is True
+    assert reloaded(store, decided, "recording").mono_source_confirmed is None
+
+
+def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_source_yet(store):
+    stored = reloaded(store, store.saves(minimal_recording()), "recording")
+    assert (stored.mono_source, stored.mono_source_confirmed) == (None, None)
 
 
 def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):

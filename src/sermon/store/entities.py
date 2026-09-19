@@ -74,6 +74,12 @@ class Evidence:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ChannelLevel:
+    channel: int
+    rms_db: float
+
+
+@dataclass(frozen=True, kw_only=True)
 class Candidate:
     timecode: float
     considered_because: str
