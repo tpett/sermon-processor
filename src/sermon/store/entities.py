@@ -164,3 +164,4 @@ class LogEntry:
     error: str | None = None
     punch_in_seconds: float | None = None
     punch_out_seconds: float | None = None
+    boundary_source: str | None = None

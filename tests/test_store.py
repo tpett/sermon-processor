@@ -309,6 +309,7 @@ def populated_log_entry(recording, segment, job, proposal, artifact):
         error="the transcription service was unreachable",
         punch_in_seconds=7220.0,
         punch_out_seconds=9812.0,
+        boundary_source="human",
     )
 
 

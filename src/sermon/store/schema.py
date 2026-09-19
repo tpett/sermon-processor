@@ -244,7 +244,10 @@ TABLES = {
                 "proposal_id": "proposal(proposal_id)",
                 "artifact_id": "artifact(artifact_id)",
             },
-            closed={"entered_state": vocabularies.LOGGED_STATES},
+            closed={
+                "entered_state": vocabularies.LOGGED_STATES,
+                "boundary_source": vocabularies.BOUNDARY_SOURCES,
+            },
         ),
     )
 }

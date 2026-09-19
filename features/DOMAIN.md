@@ -105,7 +105,7 @@ and what renders.
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
 | `disposition_at` | When it was approved or skipped. A skipped Segment must be findable years later. |
 | `distribution_confirmed` | A Segment whose teaching voice matches no enrolled profile is confirmed as distributable before it is published, and the confirmation is recorded with the approval (`interface/segment_review.feature`). Null until the question is asked, so a confirmation nobody was asked for stays distinguishable from one that was declined. |
-| `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Already produced by the pipeline and worth keeping: it is how a regression gets attributed. |
+| `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Where the current boundaries came from: "every Segment records whether its boundaries were proposed or refined" (`analysis/segment_proposal.feature`). Already produced by the pipeline. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
 | `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
@@ -221,6 +221,7 @@ order, and three tables cannot be ordered by one query.
 | `entered_state` | "Each state transition with its timestamp". One of the Recording's ten states or the Segment's seven; the two sets are disjoint, so one column holds either and `segment_id` says whose. |
 | `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
 | `punch_in_seconds`, `punch_out_seconds` | "Each set of boundaries with who approved them and when" (`processing/reprocessing.feature`), a discarded adjustment included. Read with `actor` and `occurred_at`, which are what make it a set of boundaries *with* an approver. |
+| `boundary_source` | Which path produced *this* set — "and that is visible in the processing log" (`analysis/segment_proposal.feature`). The same four values `Segment.boundary_source` takes, recorded per set because the Segment holds only the current one, and attributing a regression to a path means reading the cuts that came from it. |
 
 **Not stored:** `from_state`. The state a transition left is the previous entry's
 `entered_state` for the same subject, and every transition is logged, so storing
