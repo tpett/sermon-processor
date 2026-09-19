@@ -63,6 +63,10 @@ MOVED = {
 
 CLI_LEFT_BEHIND = ("render", "classify")
 
+INJECTED_SETTINGS = {"classify": ("DATA", "PROMPTS"), "segments": ("DATA_ROOT",)}
+
+INJECTING_ROOTS = (PROJECT_ROOT / "src" / "sermon", EXPERIMENTS_SRC)
+
 DRIVERS = (
     "align",
     "classify",
@@ -155,14 +159,130 @@ def test_no_moved_module_resolves_a_path_from_its_own_location():
     assert offenders == []
 
 
-def test_every_module_that_derives_segments_sets_the_data_root_it_needs():
-    offenders = sorted(
-        path.name
-        for path in EXPERIMENTS_SRC.glob("*.py")
-        if "from sermon.pipeline import segments" in path.read_text(encoding="utf-8")
-        and "DATA_ROOT" not in path.read_text(encoding="utf-8")
+def reaches_the_pipeline_module(tree, module):
+    wanted = names_pipeline_module(module)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(
+                alias.name == wanted or alias.name.startswith(f"{wanted}.")
+                for alias in node.names
+            ):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            if node.module == wanted:
+                return True
+            if node.module == "sermon.pipeline" and any(
+                alias.name == module for alias in node.names
+            ):
+                return True
+    return False
+
+
+def assigns_the_setting(node, setting):
+    if isinstance(node, ast.Assign):
+        targets = node.targets
+    elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+        targets = [node.target]
+    else:
+        return False
+    return any(
+        isinstance(named, ast.Attribute) and named.attr == setting
+        for target in targets
+        for named in ast.walk(target)
     )
-    assert offenders == []
+
+
+def calls_setattr_for_the_setting(node, setting):
+    if not isinstance(node, ast.Call):
+        return False
+    named = getattr(node.func, "attr", None) or getattr(node.func, "id", None)
+    return (
+        named == "setattr"
+        and len(node.args) >= 2
+        and isinstance(node.args[1], ast.Constant)
+        and node.args[1].value == setting
+    )
+
+
+def configures_the_setting(tree, setting):
+    return any(
+        assigns_the_setting(node, setting) or calls_setattr_for_the_setting(node, setting)
+        for node in ast.walk(tree)
+    )
+
+
+def finds_callers_that_leave_a_root_unset(roots, library=PIPELINE_ROOT):
+    offenders = []
+    for root in roots:
+        for path in sorted(Path(root).rglob("*.py")):
+            if library in path.parents:
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for module, settings in sorted(INJECTED_SETTINGS.items()):
+                if not reaches_the_pipeline_module(tree, module):
+                    continue
+                offenders += [
+                    f"{path.name} leaves {names_pipeline_module(module)}.{setting} unset"
+                    for setting in settings
+                    if not configures_the_setting(tree, setting)
+                ]
+    return sorted(offenders)
+
+
+def test_the_guard_is_not_satisfied_by_a_comment_naming_the_root():
+    tree = ast.parse(
+        "from sermon.pipeline import segments\n# DATA_ROOT deliberately not set here\n"
+    )
+    assert reaches_the_pipeline_module(tree, "segments")
+    assert not configures_the_setting(tree, "DATA_ROOT")
+
+
+def test_the_guard_is_not_satisfied_by_a_local_of_the_same_name():
+    tree = ast.parse("from sermon.pipeline import segments\nDATA_ROOT = HERE / 'data'\n")
+    assert not configures_the_setting(tree, "DATA_ROOT")
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from sermon.pipeline import segments",
+        "from sermon.pipeline import segments as SEG",
+        "from sermon.pipeline.segments import derive",
+        "import sermon.pipeline.segments",
+        "import sermon.pipeline.segments as seg",
+    ],
+)
+def test_the_guard_sees_every_way_of_reaching_the_module(source):
+    assert reaches_the_pipeline_module(ast.parse(source), "segments")
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "segments.DATA_ROOT = root",
+        "SEG.DATA_ROOT: Path = root",
+        "library.DATA_ROOT, other.THING = root, root",
+        "setattr(segments, 'DATA_ROOT', root)",
+        "monkeypatch.setattr(segments, 'DATA_ROOT', root)",
+    ],
+)
+def test_the_guard_accepts_an_assignment_that_actually_sets_the_root(source):
+    assert configures_the_setting(ast.parse(source), "DATA_ROOT")
+
+
+def test_the_guard_covers_a_caller_under_the_production_package(tmp_path):
+    caller = tmp_path / "sermon" / "jobs"
+    caller.mkdir(parents=True)
+    (caller / "finds_the_sermon.py").write_text(
+        "from sermon.pipeline.segments import derive\n# DATA_ROOT deliberately not set here\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == [
+        "finds_the_sermon.py leaves sermon.pipeline.segments.DATA_ROOT unset"
+    ]
+
+
+def test_every_caller_of_the_library_sets_the_roots_it_needs():
+    assert finds_callers_that_leave_a_root_unset(INJECTING_ROOTS) == []
 
 
 def test_speaker_edges_reads_the_diarization_under_the_data_root_it_is_given(
