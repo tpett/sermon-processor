@@ -513,6 +513,13 @@ def test_a_publication_date_is_stored_as_the_calendar_date_the_filename_uses(
     assert "2026-08-23" in rows_another_connection_sees(tmp_path)["segment"][0]
 
 
+def test_a_moment_in_time_is_refused_where_a_calendar_date_belongs(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(TypeError):
+        store.saves(replace(graph["segment"], publication_date=graph["recording"].started_at))
+    assert everything_stored(store, tmp_path) == stored
+
+
 def test_a_segment_carries_no_publication_details_until_someone_enters_them(store, graph):
     proposed = store.saves(minimal_segment(graph["recording"]))
     stored = reloaded(store, proposed, "segment")
