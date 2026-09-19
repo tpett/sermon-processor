@@ -287,7 +287,14 @@ def graph(store):
     recording = store.saves(populated_recording())
     block = store.saves(populated_block(recording))
     profile = store.saves(populated_speaker_profile(recording))
-    block = store.saves(replace(block, speaker_profile_ids=(profile.speaker_profile_id,)))
+    block = store.saves(
+        replace(
+            block,
+            speaker_matches=(
+                SpeakerMatch(speaker_profile_id=profile.speaker_profile_id, similarity=0.94),
+            ),
+        )
+    )
     segment = store.saves(populated_segment(recording, block))
     return {
         "recording": recording,
@@ -412,7 +419,9 @@ def test_a_block_carries_every_piece_of_evidence_that_produced_it(store, graph):
 
 def test_a_block_lists_the_voices_recognised_in_it(store, graph):
     stored = reloaded(store, graph["block"], "block")
-    assert stored.speaker_profile_ids == (graph["speaker_profile"].speaker_profile_id,)
+    assert [match.speaker_profile_id for match in stored.speaker_matches] == [
+        graph["speaker_profile"].speaker_profile_id
+    ]
 
 
 def test_a_block_records_how_strongly_each_voice_matched_it(store, graph):
@@ -600,13 +609,23 @@ def test_a_segment_cannot_be_seeded_by_a_block_that_does_not_exist(store, graph,
 def test_a_block_naming_a_voice_that_does_not_exist_is_never_stored(store, graph, tmp_path):
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(minimal_block(graph["recording"]), speaker_profile_ids=(404,)))
+        store.saves(
+            replace(
+                minimal_block(graph["recording"]),
+                speaker_matches=(SpeakerMatch(speaker_profile_id=404, similarity=0.94),),
+            )
+        )
     assert everything_stored(store, tmp_path) == stored
 
 
 def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store, graph, tmp_path):
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(minimal_block(graph["recording"]), speaker_profile_ids=(404,)))
+        store.saves(
+            replace(
+                minimal_block(graph["recording"]),
+                speaker_matches=(SpeakerMatch(speaker_profile_id=404, similarity=0.94),),
+            )
+        )
     later = store.saves(minimal_block(graph["recording"]))
     seen = [row[0] for row in rows_another_connection_sees(tmp_path)["block"]]
     assert seen == [graph["block"].block_id, later.block_id]

@@ -39,7 +39,7 @@ class Block:
     cue_start_seconds: float | None = None
     cue_end_seconds: float | None = None
     retyped_by_human: bool = False
-    speaker_profile_ids: tuple[int, ...] = ()
+    speaker_matches: tuple[SpeakerMatch, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -71,7 +71,8 @@ class Evidence:
 
 @dataclass(frozen=True, kw_only=True)
 class SpeakerMatch:
-    pass
+    speaker_profile_id: int
+    similarity: float
 
 
 @dataclass(frozen=True, kw_only=True)

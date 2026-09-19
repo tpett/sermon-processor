@@ -30,7 +30,7 @@ Recording ──1:N──▶ Block
     ├────1:N────▶ Job
     └────1:N────▶ Notification   (naming its Segment too, when it concerns one)
 
-SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span)
+SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 ```
 
 Five nouns the reviewer names, plus three the system needs: `Job`,
@@ -80,6 +80,7 @@ never published alone.
 | `summary` | One line, so a Block can be judged without listening. |
 | `cue_start_seconds`, `cue_end_seconds` | The excerpt the Preview button plays. |
 | `retyped_by_human` | A reviewer can retype a Block, which re-runs Segment proposal. Must be distinguishable from a machine type, or the next re-analysis silently reverts the correction. |
+| `speaker_matches[]` | Each entry: `speaker_profile_id` and `similarity`. The reviewer is told which enrolled voice is teaching **and how confidently** (`interface/segment_review.feature`), which a bare link to a profile cannot carry. Named `similarity` rather than a confidence because it is the measured quantity — 0.92–0.95 on the preacher's teaching Block against 0.16–0.48 on music and announcements (`analysis/speaker_diarization.feature`) — and confidence in this model is always a derived level. Ordered, because the ranking is the signal and the runner-up is reliably communion. |
 
 **Ordering matters and is not incidental.** Consecutive Blocks of one type are
 one Block for seeding purposes. Storing them separately is fine; seeding over
