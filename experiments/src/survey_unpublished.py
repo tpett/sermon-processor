@@ -14,8 +14,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
-import audio as A       # noqa: E402
-import classify as C    # noqa: E402
+from sermon.pipeline import audio as A       # noqa: E402
+from sermon.pipeline import classify as C    # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 WORK, DATA = HERE / "work", HERE / "data"

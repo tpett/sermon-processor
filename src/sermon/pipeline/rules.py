@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import datetime as dt
 
-import blocks as B
-import cues as C
+from . import blocks as B
+from . import cues as C
 
 # A block is teaching if it is long, dense, and confidently transcribed.
 TEACH_MIN_S = 900          # 15 minutes

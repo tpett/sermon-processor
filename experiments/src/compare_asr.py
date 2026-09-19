@@ -29,7 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import score as S      # noqa: E402
-import segments as SEG  # noqa: E402
+from sermon.pipeline import segments as SEG  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 DATA = HERE / "data"

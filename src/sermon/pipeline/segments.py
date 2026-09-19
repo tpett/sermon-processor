@@ -8,7 +8,7 @@ are actually testing: whether a technology can identify the anatomy of a service
 
 from __future__ import annotations
 
-import cues as C
+from . import cues as C
 
 
 def speaker_edges(doc: dict) -> list[float]:

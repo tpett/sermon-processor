@@ -4,7 +4,7 @@ from __future__ import annotations
 import json, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
-import classify as C  # noqa: E402
+from sermon.pipeline import classify as C  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 DATA, WORK = HERE / "data", HERE / "work"

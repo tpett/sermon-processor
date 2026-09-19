@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
-import features as F  # noqa: E402
+from sermon.pipeline import features as F  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 DATA = HERE / "data"

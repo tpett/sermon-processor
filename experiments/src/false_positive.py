@@ -12,7 +12,7 @@ import datetime as dt, json, re, sys, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-import classify as C  # noqa: E402
+from sermon.pipeline import classify as C  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 WORK, PROMPTS = HERE / "work", HERE / "prompts"

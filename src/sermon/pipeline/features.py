@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-import cues as C
+from . import cues as C
 
 # Consecutive turns by the same voice are one block however long the pause
 # between them. Turns are time-ordered, so "consecutive" already means no other
