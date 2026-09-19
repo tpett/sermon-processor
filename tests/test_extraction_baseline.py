@@ -94,7 +94,9 @@ def builds_data_root(root):
     (root / "transcripts").mkdir()
     (root / "diarization").mkdir()
     writes_json(root / "blocks" / FIRST_BLOCK, BLOCK, indent=1)
-    writes_json(root / "blocks" / SECOND_BLOCK, BLOCK | {"config_id": "t0-rules.whole.v2"}, indent=1)
+    writes_json(
+        root / "blocks" / SECOND_BLOCK, BLOCK | {"config_id": "t0-rules.whole.v2"}, indent=1
+    )
     writes_json(root / "transcripts" / TRANSCRIPT, {"segments": [{"start": 0.0, "text": "hello"}]})
     writes_json(root / "diarization" / DIARIZATION, {"turns": [{"start": 0.0, "speaker": "A"}]})
     writes_json(root / "groundtruth.json", {"recordings": [{"recording_id": "r", "true_in": 1.5}]})
@@ -189,7 +191,9 @@ def test_reordered_keys_and_a_different_indent_are_not_drift(captured, perturbed
 def test_a_rewritten_results_log_with_the_same_values_is_not_drift(captured, perturbed):
     rows = [json.loads(line) for line in (perturbed / "results.jsonl").read_text().splitlines()]
     (perturbed / "results.jsonl").write_text(
-        "".join(json.dumps(row, sort_keys=True, indent=None) + "\n" for row in reversed_fields(rows))
+        "".join(
+            json.dumps(row, sort_keys=True, indent=None) + "\n" for row in reversed_fields(rows)
+        )
     )
     assert drift(captured, perturbed) == []
 
@@ -382,3 +386,20 @@ def test_the_committed_baseline_pins_the_counts_every_stored_number_rests_on():
         "diarization_files": 14,
         "access_log_lines": 11,
     }
+
+
+def test_a_report_on_a_text_artefact_names_the_line_count_it_moved_to(captured, perturbed):
+    with (perturbed / "test_access.log").open("a") as log:
+        log.write("2026-09-19T00:00:00\tt3-qwen3.6.whole.v2\ttest\tdeadbee\n")
+    report = rendered(drift(captured, perturbed))
+    assert "lines was 1, is 2" in report
+    assert "digest was" in report
+
+
+def test_a_digest_that_moved_is_reported_even_where_a_value_line_already_named_it(
+    captured, perturbed
+):
+    moved = json.loads((perturbed / "blocks" / FIRST_BLOCK).read_text())
+    moved["derived_segments"][0]["punch_in"] = 1228.801
+    writes_json(perturbed / "blocks" / FIRST_BLOCK, moved, indent=1)
+    assert "digest was" in rendered(drift(captured, perturbed))

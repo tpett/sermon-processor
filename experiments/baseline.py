@@ -12,7 +12,7 @@ DATA = Path(__file__).resolve().parent / "data"
 BASELINE = DATA / "extraction-baseline.json"
 
 DERIVED = ("blocks", "transcripts", "diarization")
-VALUED = ("segments", "derived_segments", "block_spans")
+VALUED = ("segments", "derived_segments", "block_spans", "lines")
 CANONICAL_FILES = ("groundtruth.json",)
 LITERAL_FILES = ("bucket.txt", "test_access.log")
 SIZED = {
@@ -135,7 +135,9 @@ def validates_baseline(baseline):
     if not isinstance(baseline, dict):
         raise BaselineUnusable("the baseline is not an object")
     if baseline.get("schema") != SCHEMA:
-        raise BaselineUnusable(f"the baseline declares schema {baseline.get('schema')!r}, not {SCHEMA!r}")
+        raise BaselineUnusable(
+            f"the baseline declares schema {baseline.get('schema')!r}, not {SCHEMA!r}"
+        )
     counts = baseline.get("counts")
     if not isinstance(counts, dict):
         raise BaselineUnusable("the baseline records no counts")
@@ -197,15 +199,15 @@ def compares_values(scope, was, now):
 def compares_summary(scope, was, now):
     if was.get("digest") == now.get("digest"):
         return []
-    findings = compares_fields(f"{scope} fields", was.get("fields") or {}, now.get("fields") or {})
-    findings += compares_values(
-        scope,
-        {field: was[field] for field in VALUED if field in was},
-        {field: now[field] for field in VALUED if field in now},
-    )
-    if findings:
-        return findings
-    return [Finding(scope, "changed", f"digest was {was.get('digest')}, is {now.get('digest')}")]
+    return [
+        *compares_fields(f"{scope} fields", was.get("fields") or {}, now.get("fields") or {}),
+        *compares_values(
+            scope,
+            {field: was[field] for field in VALUED if field in was},
+            {field: now[field] for field in VALUED if field in now},
+        ),
+        Finding(scope, "changed", f"digest was {was.get('digest')}, is {now.get('digest')}"),
+    ]
 
 
 def compares_derived(scope, expected, directory, summarises):
@@ -245,7 +247,9 @@ def compares_results(expected, path):
     findings = []
     if len(found) != len(expected):
         findings.append(
-            Finding("results.jsonl", "count", f"{len(expected)} rows were stored, {len(found)} found")
+            Finding(
+                "results.jsonl", "count", f"{len(expected)} rows were stored, {len(found)} found"
+            )
         )
     for position, (was, now) in enumerate(zip(expected, found)):
         findings += compares_values(f"results.jsonl row {position}", was, now)
@@ -293,7 +297,9 @@ def reports_drift(findings, counts):
 
 
 def parses_arguments(argv):
-    parser = argparse.ArgumentParser(description="Compare the stored extraction artefacts against the committed baseline")
+    parser = argparse.ArgumentParser(
+        description="Compare the stored extraction artefacts against the committed baseline"
+    )
     parser.add_argument("--data", type=Path, default=DATA)
     parser.add_argument("--baseline", type=Path, default=BASELINE)
     parser.add_argument("--capture", action="store_true")
