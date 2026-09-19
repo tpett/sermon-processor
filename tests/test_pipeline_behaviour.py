@@ -1092,17 +1092,136 @@ def test_generation_holds_no_credentials_for_the_machine_serving_the_model(monke
     assert {key for key in headers if any(part in key for part in ("auth", "token", "key"))} == set()
 
 
-def test_classification_never_opens_a_shell_on_the_model_host():
-    source = (PROJECT_ROOT / "src" / "sermon" / "pipeline" / "classify.py").read_text(
-        encoding="utf-8"
-    )
-    imported = set()
-    for node in ast.walk(ast.parse(source)):
+SHELL_MODULES = {"subprocess", "paramiko", "pexpect", "fabric", "shlex"}
+SHELL_ATTRS = {("os", "system"), ("os", "popen"), ("posix", "system")}
+REACHES_THE_MODEL = (PROJECT_ROOT / "src" / "sermon" / "pipeline" / "classify.py",)
+
+
+def modules_bound_in(tree):
+    bound = {}
+    for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            imported.update(alias.name.split(".")[0] for alias in node.names)
+            for alias in node.names:
+                bound[alias.asname or alias.name.split(".")[0]] = (
+                    alias.name.split(".")[0],
+                    None,
+                )
         elif isinstance(node, ast.ImportFrom) and node.module:
-            imported.add(node.module.split(".")[0])
-    assert imported.isdisjoint({"subprocess", "paramiko", "pexpect", "fabric", "shlex"})
+            module = node.module.split(".")[0]
+            for alias in node.names:
+                bound[alias.asname or alias.name] = (module, alias.name)
+    return bound
+
+
+def callee_of(node, bound):
+    if isinstance(node, ast.Name):
+        return bound.get(node.id)
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        held = bound.get(node.value.id)
+        return ((held[0] if held else node.value.id), node.attr)
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "getattr"
+        and len(node.args) >= 2
+        and isinstance(node.args[1], ast.Constant)
+        and isinstance(node.args[1].value, str)
+    ):
+        held = callee_of(node.args[0], bound)
+        module = held[0] if held else (
+            node.args[0].id if isinstance(node.args[0], ast.Name) else None
+        )
+        if module:
+            return (module, node.args[1].value)
+    return None
+
+
+def is_ssh_program(value):
+    if not isinstance(value, str) or not value.strip():
+        return False
+    program = value.strip().split()[0]
+    return program == "ssh" or program.endswith("/ssh")
+
+
+def carries_ssh(node):
+    if isinstance(node, ast.Constant):
+        return is_ssh_program(node.value)
+    if isinstance(node, ast.JoinedStr):
+        return any(carries_ssh(part) for part in node.values)
+    if isinstance(node, ast.FormattedValue):
+        return carries_ssh(node.value)
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return any(carries_ssh(elt) for elt in node.elts)
+    return False
+
+
+def names_a_shell(callee):
+    return callee is not None and (callee[0] in SHELL_MODULES or callee in SHELL_ATTRS)
+
+
+def opens_a_shell_on_the_model_host(tree):
+    bound = modules_bound_in(tree)
+    offenders = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            offenders.extend(
+                f"{node.lineno}:import {alias.name.split('.')[0]}"
+                for alias in node.names
+                if alias.name.split(".")[0] in SHELL_MODULES
+            )
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            module = node.module.split(".")[0]
+            if module in SHELL_MODULES:
+                offenders.append(f"{node.lineno}:from {module}")
+            offenders.extend(
+                f"{node.lineno}:from {module} import {alias.name}"
+                for alias in node.names
+                if (module, alias.name) in SHELL_ATTRS
+            )
+        elif isinstance(node, ast.Call):
+            named = callee_of(node.func, bound)
+            if names_a_shell(named):
+                offenders.append(f"{node.lineno}:{named[0]}.{named[1]}")
+            elif any(
+                carries_ssh(arg)
+                for arg in (*node.args, *(kw.value for kw in node.keywords))
+            ):
+                offenders.append(f"{node.lineno}:ssh")
+    return offenders
+
+
+def test_classification_never_opens_a_shell_on_the_model_host():
+    offenders = []
+    for path in REACHES_THE_MODEL:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        offenders.extend(
+            f"{path.relative_to(PROJECT_ROOT)}:{found}"
+            for found in opens_a_shell_on_the_model_host(tree)
+        )
+    assert offenders == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'import os\nos.system("ssh mac-m1")\n',
+        'import os\nos.popen("ssh mac-m1")\n',
+        'import posix\nposix.system("ssh mac-m1")\n',
+        'import subprocess\nsubprocess.run(["ssh", "mac-m1"])\n',
+        'from os import system\nsystem("echo hi")\n',
+        'import os\ngetattr(os, "system")("ssh mac-m1")\n',
+        'run("/usr/bin/ssh", "mac-m1")\n',
+    ],
+)
+def test_a_shell_out_to_the_model_host_fails_the_http_only_guard(source):
+    assert opens_a_shell_on_the_model_host(ast.parse(source))
+
+
+def test_the_http_only_guard_reads_call_sites_not_just_imports():
+    source = REACHES_THE_MODEL[0].read_text(encoding="utf-8")
+    assert opens_a_shell_on_the_model_host(ast.parse(source)) == []
+    mutated = source + '\nimport os\nos.system("ssh mac-m1 ollama run")\n'
+    assert opens_a_shell_on_the_model_host(ast.parse(mutated))
 
 
 @pytest.mark.parametrize("unanswered", UNANSWERED_HOST, ids=lambda one: type(one).__name__)
