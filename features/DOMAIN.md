@@ -88,9 +88,10 @@ are not stored.** `no substantive content` and `no audio content` are what
 range (`analysis/audio_probe.feature`).
 
 **A warning is not a state, and the Segment side of one is a query.** Nothing
-about `source no longer available` moves the Recording — the scenario leaves a
-`reviewed` Recording `reviewed` — and "its skipped Segments are marked as no
-longer extractable" (`operations/storage_and_retention.feature`) is the skipped
+about `source no longer available` moves the Recording — its scenario names no
+transition and leaves the Recording's skipped Segments skipped, so a `reviewed`
+Recording is inferred to stay `reviewed` — and "its skipped Segments are marked as
+no longer extractable" (`operations/storage_and_retention.feature`) is the skipped
 Segments of a Recording carrying that warning. A second field on every Segment
 would have to be maintained on each one and could disagree with the Recording.
 
