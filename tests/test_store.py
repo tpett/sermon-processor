@@ -525,6 +525,28 @@ def test_the_store_resolves_an_artifact_under_its_data_root(store, graph, tmp_pa
     assert store.resolves(graph["artifact"]) == tmp_path / graph["artifact"].path
 
 
+def test_the_store_resolves_a_recording_under_its_data_root(store, graph, tmp_path):
+    assert store.resolves(graph["recording"]) == tmp_path / graph["recording"].local_path
+
+
+def test_a_recording_that_was_never_downloaded_resolves_to_nothing(store):
+    assert store.resolves(store.saves(minimal_recording())) is None
+
+
+def test_an_entity_that_holds_no_stored_path_cannot_be_resolved(store, graph):
+    with pytest.raises(ValueError):
+        store.resolves(graph["segment"])
+
+
+def test_a_recording_whose_local_path_escapes_the_data_root_is_never_stored(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(PathEscapesDataRoot):
+        store.saves(replace(graph["recording"], local_path="../../../etc/passwd"))
+    assert everything_stored(store, tmp_path) == stored
+
+
 def test_an_artifact_whose_path_escapes_the_data_root_is_never_stored(store, graph, tmp_path):
     stored = everything_stored(store, tmp_path)
     with pytest.raises(PathEscapesDataRoot):
