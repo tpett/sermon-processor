@@ -381,6 +381,21 @@ def test_a_segment_has_one_proposal(store, graph):
     assert store.lists(Proposal, segment_id=graph["segment"].segment_id) == [replacement]
 
 
+def test_a_re_run_keeps_the_proposal_it_replaced(store, graph):
+    fresh = store.saves(
+        replace(populated_proposal(graph["segment"]), classification_confidence="low")
+    )
+    previous = store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
+    assert store.lists(Proposal, segment_id=graph["segment"].segment_id) == [previous, fresh]
+
+
+def test_the_machine_proposal_beside_a_reviewers_work_is_the_one_not_yet_superseded(store, graph):
+    fresh = store.saves(populated_proposal(graph["segment"]))
+    store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
+    listed = store.lists(Proposal, segment_id=graph["segment"].segment_id, superseded_by=None)
+    assert listed == [fresh]
+
+
 def test_a_segment_lists_the_renders_made_from_it(store, graph):
     assert store.lists(Artifact, segment_id=graph["segment"].segment_id) == [graph["artifact"]]
 
