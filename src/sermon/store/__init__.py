@@ -1,4 +1,4 @@
-from .stored_paths import DEFAULT_DATA_ROOT, PathEscapesDataRoot, ResolvesStoredPath
+from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
 from .entities import (
     Artifact,
     Block,
@@ -15,7 +15,6 @@ __all__ = [
     "Artifact",
     "Block",
     "DATABASE_NAME",
-    "DEFAULT_DATA_ROOT",
     "Evidence",
     "Job",
     "PathEscapesDataRoot",

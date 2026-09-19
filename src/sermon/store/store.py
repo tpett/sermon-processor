@@ -15,7 +15,7 @@ from .schema import (
     schema_statements,
     unwrapped,
 )
-from .stored_paths import DEFAULT_DATA_ROOT, ResolvesStoredPath
+from .stored_paths import ResolvesStoredPath
 
 DATABASE_NAME = "sermon.sqlite3"
 
@@ -44,7 +44,7 @@ def from_column(annotation, value):
 
 
 class Store:
-    def __init__(self, connection, resolves_stored_path=ResolvesStoredPath()):
+    def __init__(self, connection, resolves_stored_path):
         self._connection = connection
         self._resolves_stored_path = resolves_stored_path
 
@@ -158,7 +158,7 @@ def creates_schema(connection):
             connection.execute(statement)
 
 
-def opens_store(data_root=DEFAULT_DATA_ROOT):
+def opens_store(data_root):
     root = Path(data_root)
     root.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(root / DATABASE_NAME)
