@@ -26,7 +26,7 @@ Recording ──1:N──▶ Block
     │                 │
     │                 └──1:N──▶ Artifact  (a render; a re-cut adds another)
     │
-    ├────1:N────▶ Artifact       (transcript, waveform, preview, source FLAC)
+    ├────1:N────▶ Artifact       (envelope, transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
     ├────1:N────▶ Notification   (naming its Segment too, when it concerns one)
     └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
@@ -165,7 +165,7 @@ two-year-old Recording still has all of these.
 | Field | Why it exists |
 | --- | --- |
 | `recording_id`, `segment_id` | Segment-scoped for a render, Recording-scoped for the rest. |
-| `kind` | `source_flac`, `rendered_mp3`, `transcript`, `waveform_peaks`, `preview`, `diarization`. |
+| `kind` | `source_flac`, `envelope`, `rendered_mp3`, `transcript`, `waveform_peaks`, `preview`, `diarization`. The envelope is the first stage's output and every later stage reads it, so keeping it is what lets a resumed run leave the cached stages alone and a false trigger cost no GPU time (`analysis/analysis_orchestration.feature`, `analysis/audio_probe.feature`). |
 | `path`, `size_bytes`, `checksum` | |
 | `render_settings` | Loudness target, true peak, LAME quality, the tail applied. Required so a previous render can be reproduced (`storage_and_retention.feature`) and so a re-render is comparable. |
 | `superseded_by` | A re-cut produces a new MP3; the old one survives until the new one succeeds. That is what makes `recut` a distinct state. |
