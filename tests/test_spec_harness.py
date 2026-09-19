@@ -9,6 +9,7 @@ from gherkin.parser import Parser
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SPEC_ROOT = PROJECT_ROOT / "features"
 SPEC_MODULE = "tests/test_spec.py"
+STEP_MODULE = "steps.discovery_steps"
 SPEC_SHAPE = "spec OK — 34 files, 460 scenarios, 142 rules"
 SPEC_TESTS = 604
 SPEC_STEPS = 1898
@@ -143,6 +144,12 @@ def test_scenarios_deferred_out_of_v1_are_skipped():
 
 def test_nothing_above_a_scenario_is_deferred():
     assert finds_deferrals_above_scenario_level() == []
+
+
+def test_a_step_module_is_the_object_the_import_system_holds(pytestconfig):
+    plugin = pytestconfig.pluginmanager.get_plugin(STEP_MODULE)
+    assert plugin is not None
+    assert plugin is sys.modules.get(STEP_MODULE)
 
 
 def test_a_scenario_with_no_step_definitions_fails_rather_than_errors(tmp_path):

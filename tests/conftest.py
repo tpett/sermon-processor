@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ STEP_ROOT = Path(__file__).parent / "steps"
 def loads_step_definitions(path):
     location = importlib.util.spec_from_file_location(f"{STEP_ROOT.name}.{path.stem}", path)
     module = importlib.util.module_from_spec(location)
+    sys.modules[location.name] = module
     location.loader.exec_module(module)
     return module
 
@@ -26,6 +28,7 @@ def spec_guardrail():
         "validate_spec", SPEC_ROOT / "validate_spec.py"
     )
     module = importlib.util.module_from_spec(location)
+    sys.modules[location.name] = module
     location.loader.exec_module(module)
     return module
 
