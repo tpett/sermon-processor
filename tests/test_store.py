@@ -58,6 +58,7 @@ ENTITY_TYPES = {
 
 CLOSED_COLUMNS = [
     ("recording", "state", vocabularies.RECORDING_STATES),
+    ("recording", "started_at_source", vocabularies.STARTED_AT_SOURCES),
     ("recording", "kind", vocabularies.RECORDING_KINDS),
     ("block", "type", vocabularies.BLOCK_TYPES),
     ("block", "classification_confidence", vocabularies.CONFIDENCE_LEVELS),
@@ -113,6 +114,7 @@ def populated_recording():
         object_key="2026/09/13/recording_20260913_090014.flac",
         state="awaiting_review",
         started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
+        started_at_source="key",
         size_bytes=1_412_230_144,
         capture_device="sanctuary-pi-01",
         kind="class",
@@ -128,6 +130,7 @@ def populated_recording():
         mono_source_confirmed=True,
         local_path="recording_20260913_090014/source.flac",
         checksum="ac5f0d2b9e1c4477",
+        sidecar_present=True,
         integrated_loudness_lufs=-24.6,
         true_peak_dbtp=0.4,
         loudness_range_lu=7.2,
@@ -146,6 +149,7 @@ def minimal_recording():
         object_key="2026/08/23/recording_20260823_102900.flac",
         state="discovered",
         started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
+        started_at_source="key",
         size_bytes=1_073_741_824,
     )
 
@@ -525,6 +529,36 @@ def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_prob
 def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_source_yet(store):
     stored = reloaded(store, store.saves(minimal_recording()), "recording")
     assert (stored.mono_source, stored.mono_source_confirmed) == (None, None)
+
+
+def test_a_start_time_taken_from_the_upload_is_distinguishable_from_one_read_off_the_key(
+    store, graph
+):
+    from_key = store.saves(minimal_recording())
+    fallen_back = store.saves(replace(from_key, started_at_source="last_modified"))
+    assert reloaded(store, fallen_back, "recording").started_at_source == "last_modified"
+    assert reloaded(store, graph["recording"], "recording").started_at_source == "key"
+
+
+def test_a_recording_cannot_leave_the_source_of_its_start_time_unsaid():
+    with pytest.raises(TypeError):
+        Recording(
+            recording_id="recording_20260823_102900",
+            object_key="2026/08/23/recording_20260823_102900.flac",
+            state="discovered",
+            started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
+            size_bytes=1_073_741_824,
+        )
+
+
+def test_a_missing_sidecar_is_noted_on_the_recording(store, graph):
+    downloaded = store.saves(replace(graph["recording"], sidecar_present=False))
+    assert reloaded(store, downloaded, "recording").sidecar_present is False
+
+
+def test_a_recording_nothing_has_looked_for_a_sidecar_for_notes_neither(store):
+    saved = store.saves(minimal_recording())
+    assert reloaded(store, saved, "recording").sidecar_present is None
 
 
 def test_a_recording_names_the_device_that_captured_it(store, graph):

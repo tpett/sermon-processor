@@ -51,7 +51,8 @@ One source audio file from the recorder. The unit of ingestion.
 | --- | --- |
 | `object_key` | The join back to the object store. Reconciliation matches on it, and matches only keys never seen before — which is what made the `discovered` deadlock possible (`ingestion/recording_download.feature`). |
 | `recording_id` | Derived from the key (`recording_20260913_090014`). Stable, and the only identifier that survives a re-download. |
-| `started_at` | Parsed from the filename, not from file mtime. Load-bearing: the 10:50–10:57 wall-clock band is a confidence input, and grouping same-day recordings needs it (`analysis/block_classification.feature`). |
+| `started_at` | Parsed from the filename wherever the key gives one, with `started_at_source` saying when it could not. Load-bearing: the 10:50–10:57 wall-clock band is a confidence input, and grouping same-day recordings needs it (`analysis/block_classification.feature`). |
+| `started_at_source` | `key` or `last_modified`. The key is the primary path and always present; the fallback is an upload time, so a Recording cannot be scored on the 10:50–10:57 band without knowing which it was (`ingestion/recording_download.feature`). Never null: unrecorded provenance is the poisoning it exists to prevent. |
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
 | `capture_device` | Which recorder produced it, shown as `Device` on the detail view (`interface/recording_detail.feature`). The host's identity rather than the ALSA device string the sidecar carries, and nullable because the recorder has no host field to send yet (`ingestion/webhook_notification.feature`). |
@@ -63,6 +64,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
+| `sidecar_present` | "The missing sidecar is noted on the Recording" (`ingestion/recording_download.feature`), which `started_at_source` does not say — the key supplies the start time whether a sidecar exists or not. Null until the download looks, and not a warning, because no object in the bucket has one. |
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |

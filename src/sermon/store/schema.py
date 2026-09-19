@@ -108,6 +108,7 @@ TABLES = {
             paths=("local_path",),
             closed={
                 "state": vocabularies.RECORDING_STATES,
+                "started_at_source": vocabularies.STARTED_AT_SOURCES,
                 "kind": vocabularies.RECORDING_KINDS,
             },
             collections=(

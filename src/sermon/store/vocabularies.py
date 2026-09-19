@@ -37,6 +37,8 @@ BLOCK_TYPES = (
     "other",
 )
 
+STARTED_AT_SOURCES = ("key", "last_modified")
+
 RECORDING_WARNINGS = (
     "damaged container",
     "source clipping detected",

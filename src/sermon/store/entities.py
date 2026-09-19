@@ -10,6 +10,7 @@ class Recording:
     object_key: str
     state: str
     started_at: datetime
+    started_at_source: str
     size_bytes: int
     capture_device: str | None = None
     kind: str | None = None
@@ -22,6 +23,7 @@ class Recording:
     mono_source_confirmed: bool | None = None
     local_path: str | None = None
     checksum: str | None = None
+    sidecar_present: bool | None = None
     integrated_loudness_lufs: float | None = None
     true_peak_dbtp: float | None = None
     loudness_range_lu: float | None = None
