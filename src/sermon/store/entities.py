@@ -28,6 +28,7 @@ class Recording:
     active_fraction: float | None = None
     longest_active_seconds: float | None = None
     waiting_since: datetime | None = None
+    warnings: tuple[str, ...] = ()
     skip_reason: str | None = None
 
 

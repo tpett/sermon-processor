@@ -37,6 +37,14 @@ BLOCK_TYPES = (
     "other",
 )
 
+RECORDING_WARNINGS = (
+    "damaged container",
+    "sidecar disagrees with the audio",
+    "unexpected stereo content",
+    "unexpected language",
+    "low transcript quality",
+)
+
 SEGMENT_CLASSIFICATIONS = ("sermon", "lesson", "seminar", "meeting")
 
 RECORDING_KINDS = (

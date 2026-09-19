@@ -77,6 +77,7 @@ class Collection:
     element: type
     column: str | None = None
     references: dict[str, str] = field(default_factory=dict)
+    closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,14 @@ TABLES = {
                     table="recording_channel_level",
                     owner="recording_id",
                     element=ChannelLevel,
+                ),
+                Collection(
+                    field="warnings",
+                    table="recording_warning",
+                    owner="recording_id",
+                    element=str,
+                    column="warning",
+                    closed={"warning": vocabularies.RECORDING_WARNINGS},
                 ),
             ),
         ),
@@ -366,6 +375,8 @@ def element_definition(collection, name, annotation):
     parts = [name, column_type(kind)]
     if not optional:
         parts.append("NOT NULL")
+    if name in collection.closed:
+        parts.append(f"CHECK ({name} IN ({listed(collection.closed[name])}))")
     if name in collection.references:
         parts.append(f"REFERENCES {collection.references[name]}")
     return " ".join(parts)

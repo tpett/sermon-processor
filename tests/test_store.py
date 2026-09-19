@@ -80,6 +80,10 @@ CLOSED_COLUMNS = [
     ("discovery", "failure", vocabularies.DISCOVERY_FAILURES),
 ]
 
+CLOSED_COLLECTIONS = [
+    ("recording", "warnings", vocabularies.RECORDING_WARNINGS),
+]
+
 COMPANIONS = {
     ("discovery", "kind"): {"failure": None, "event": None},
     ("discovery", "failure"): {"kind": "scan", "discovered_count": 0, "event": None},
@@ -129,6 +133,7 @@ def populated_recording():
         active_fraction=0.82,
         longest_active_seconds=3492.5,
         waiting_since=datetime(2026, 9, 13, 9, 30, tzinfo=UTC),
+        warnings=("damaged container", "unexpected stereo content"),
         skip_reason="source no longer available",
     )
 
@@ -516,6 +521,37 @@ def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_prob
 def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_source_yet(store):
     stored = reloaded(store, store.saves(minimal_recording()), "recording")
     assert (stored.mono_source, stored.mono_source_confirmed) == (None, None)
+
+
+def test_a_recording_lists_the_warnings_the_pipeline_raised_on_it(store, graph):
+    raised = ("damaged container", "unexpected language")
+    flagged = store.saves(replace(graph["recording"], warnings=raised))
+    assert reloaded(store, flagged, "recording").warnings == raised
+
+
+def test_a_recording_keeps_its_warnings_in_the_order_they_were_raised(store, graph):
+    raised = ("unexpected language", "damaged container")
+    flagged = store.saves(replace(graph["recording"], warnings=raised))
+    assert reloaded(store, flagged, "recording").warnings == raised
+
+
+def test_a_recording_the_pipeline_found_nothing_wrong_with_carries_no_warnings(store):
+    assert reloaded(store, store.saves(minimal_recording()), "recording").warnings == ()
+
+
+def test_a_discrepancy_between_the_sidecar_and_the_audio_is_recorded_as_a_warning(store, graph):
+    probed = store.saves(
+        replace(
+            graph["recording"],
+            duration_seconds=6268.950,
+            warnings=("sidecar disagrees with the audio",),
+        )
+    )
+    stored = reloaded(store, probed, "recording")
+    assert (stored.duration_seconds, stored.warnings) == (
+        6268.950,
+        ("sidecar disagrees with the audio",),
+    )
 
 
 def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):
@@ -1292,6 +1328,24 @@ def test_a_closed_column_accepts_every_value_the_spec_declares(store, graph, nam
     for value in allowed:
         saved = store.saves(replace(base, **{column: value}))
         assert getattr(reloaded(store, saved, name), column) == value
+
+
+@pytest.mark.parametrize("name, field, allowed", CLOSED_COLLECTIONS)
+def test_a_closed_collection_refuses_a_value_the_spec_does_not_declare(
+    store, graph, tmp_path, name, field, allowed
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph[name], **{field: ("whatever the caller felt like",)}))
+    assert everything_stored(store, tmp_path) == stored
+
+
+@pytest.mark.parametrize("name, field, allowed", CLOSED_COLLECTIONS)
+def test_a_closed_collection_holds_every_value_the_spec_declares_at_once(
+    store, graph, name, field, allowed
+):
+    saved = store.saves(replace(graph[name], **{field: allowed}))
+    assert getattr(reloaded(store, saved, name), field) == allowed
 
 
 def test_two_recordings_cannot_claim_one_object_key(store, graph, tmp_path):
