@@ -34,6 +34,8 @@ from sermon.pipeline import segments as SEG  # noqa: E402
 HERE = Path(__file__).resolve().parent.parent
 DATA = HERE / "data"
 
+SEG.DATA_ROOT = DATA
+
 
 def load(rid: str, asr: str) -> dict | None:
     p = DATA / "transcripts" / f"{rid}.{asr}.json"

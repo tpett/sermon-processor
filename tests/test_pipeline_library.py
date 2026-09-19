@@ -1,3 +1,4 @@
+import ast
 import importlib
 import importlib.util
 import json
@@ -134,13 +135,30 @@ def test_the_driver_left_in_experiments_keeps_its_main_and_imports_the_package(s
     assert "sermon.pipeline" in source
 
 
+def reads_its_own_location(source):
+    return any(
+        isinstance(node, ast.Name) and node.id == "__file__"
+        for node in ast.walk(ast.parse(source))
+    )
+
+
 def test_no_moved_module_resolves_a_path_from_its_own_location():
     modules = sorted(PIPELINE_ROOT.rglob("*.py"))
     assert modules, f"no modules found under {PIPELINE_ROOT}"
     offenders = sorted(
         str(path.relative_to(PIPELINE_ROOT))
         for path in modules
-        if "__file__" in path.read_text(encoding="utf-8")
+        if reads_its_own_location(path.read_text(encoding="utf-8"))
+    )
+    assert offenders == []
+
+
+def test_every_module_that_derives_segments_sets_the_data_root_it_needs():
+    offenders = sorted(
+        path.name
+        for path in EXPERIMENTS_SRC.glob("*.py")
+        if "from sermon.pipeline import segments" in path.read_text(encoding="utf-8")
+        and "DATA_ROOT" not in path.read_text(encoding="utf-8")
     )
     assert offenders == []
 

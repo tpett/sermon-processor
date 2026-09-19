@@ -8,11 +8,18 @@ import json
 import time
 from pathlib import Path
 
+from sermon.pipeline import classify as _library
 from sermon.pipeline import rules as RULES
+from sermon.pipeline import segments as _segments
 from sermon.pipeline.classify import hms, run_perblock, run_structured, run_whole
 
 HERE = Path(__file__).resolve().parent.parent
 DATA = HERE / "data"
+PROMPTS = HERE / "prompts"
+
+# The library halves resolve no path of their own; this driver owns the layout.
+_library.DATA, _library.PROMPTS = DATA, PROMPTS
+_segments.DATA_ROOT = DATA
 
 
 def main() -> int:

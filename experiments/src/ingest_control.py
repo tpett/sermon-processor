@@ -16,6 +16,8 @@ from sermon.pipeline import segments as SEG # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 DATA, WORK = HERE / "data", HERE / "work"
+
+SEG.DATA_ROOT = DATA
 CONFIG = "c-frontier.whole.v2"
 ASR = "whisper-large-v3-turbo+words"
 

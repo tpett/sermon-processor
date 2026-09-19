@@ -5,15 +5,17 @@ import re
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 from . import blocks as B
 from . import features as F
 from . import segments as SEG
 
-HERE = Path(__file__).resolve().parent.parent
-DATA = HERE / "data"
-PROMPTS = HERE / "prompts"
+# Injected, never derived from this module's own location, for the same reason
+# as segments.DATA_ROOT: reading either of these from __file__ made the module's
+# place on disk part of its behaviour. Both are required by the functions that
+# read a prompt template or a diarization artefact.
+DATA = None
+PROMPTS = None
 OLLAMA = "http://localhost:11434/api/generate"
 
 MAX_REPAIRS = 2
