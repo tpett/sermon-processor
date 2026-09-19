@@ -63,6 +63,7 @@ class Table:
     generated: bool = True
     order: tuple[str, ...] = ()
     unique: tuple[Uniqueness, ...] = ()
+    paths: tuple[str, ...] = ()
     references: dict[str, str] = field(default_factory=dict)
     closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
     collections: tuple[Collection, ...] = ()
@@ -78,6 +79,7 @@ TABLES = {
             generated=False,
             order=("started_at",),
             unique=(Uniqueness(column="object_key"),),
+            paths=("local_path",),
             closed={
                 "state": vocabularies.RECORDING_STATES,
                 "kind": vocabularies.RECORDING_KINDS,
@@ -179,6 +181,7 @@ TABLES = {
                 "superseded_by": "artifact(artifact_id)",
             },
             closed={"kind": vocabularies.ARTIFACT_KINDS},
+            paths=("path",),
         ),
         Table(
             entity=Job,

@@ -12,7 +12,7 @@ class PathEscapesDataRoot(ValueError):
 
 
 @dataclass(frozen=True)
-class ResolvesArtifactPath:
+class ResolvesStoredPath:
     data_root: Path = DEFAULT_DATA_ROOT
 
     def __call__(self, path):

@@ -7,8 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import get_type_hints
 
-from .artifact_paths import DEFAULT_DATA_ROOT, ResolvesArtifactPath
-from .entities import Artifact
 from .schema import (
     TABLES,
     column_names,
@@ -17,6 +15,7 @@ from .schema import (
     schema_statements,
     unwrapped,
 )
+from .stored_paths import DEFAULT_DATA_ROOT, ResolvesStoredPath
 
 DATABASE_NAME = "sermon.sqlite3"
 
@@ -45,20 +44,23 @@ def from_column(annotation, value):
 
 
 class Store:
-    def __init__(self, connection, resolves_artifact_path=ResolvesArtifactPath()):
+    def __init__(self, connection, resolves_stored_path=ResolvesStoredPath()):
         self._connection = connection
-        self._resolves_artifact_path = resolves_artifact_path
+        self._resolves_stored_path = resolves_stored_path
 
-    def resolves(self, artifact):
-        return self._resolves_artifact_path(artifact.path)
+    def resolves(self, entity):
+        table = TABLES[type(entity)]
+        if len(table.paths) != 1:
+            raise ValueError(f"{table.entity.__name__} holds no single path")
+        stored = getattr(entity, table.paths[0])
+        return self._resolves_stored_path(stored) if stored is not None else None
 
     def close(self):
         self._connection.close()
 
     def saves(self, entity):
         table = TABLES[type(entity)]
-        if isinstance(entity, Artifact):
-            self._resolves_artifact_path(entity.path)
+        self._guards_paths(table, entity)
         columns = column_names(table)
         assignments = ", ".join(
             f"{name} = excluded.{name}" for name in columns if name != table.identity
@@ -76,6 +78,12 @@ class Store:
             for collection in table.collections:
                 self._writes(collection, identity, getattr(entity, collection.field))
         return replace(entity, **{table.identity: identity})
+
+    def _guards_paths(self, table, entity):
+        for name in table.paths:
+            stored = getattr(entity, name)
+            if stored is not None:
+                self._resolves_stored_path(stored)
 
     def loads(self, entity_type, identity):
         table = TABLES[entity_type]
@@ -157,4 +165,4 @@ def opens_store(data_root=DEFAULT_DATA_ROOT):
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     creates_schema(connection)
-    return Store(connection, ResolvesArtifactPath(data_root=root))
+    return Store(connection, ResolvesStoredPath(data_root=root))

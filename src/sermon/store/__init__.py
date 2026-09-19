@@ -1,4 +1,4 @@
-from .artifact_paths import DEFAULT_DATA_ROOT, PathEscapesDataRoot, ResolvesArtifactPath
+from .stored_paths import DEFAULT_DATA_ROOT, PathEscapesDataRoot, ResolvesStoredPath
 from .entities import (
     Artifact,
     Block,
@@ -21,7 +21,7 @@ __all__ = [
     "PathEscapesDataRoot",
     "Proposal",
     "Recording",
-    "ResolvesArtifactPath",
+    "ResolvesStoredPath",
     "Segment",
     "SpeakerProfile",
     "Store",
