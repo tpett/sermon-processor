@@ -9,8 +9,12 @@ SPEC_ROOT = PROJECT_ROOT / "features"
 STEP_ROOT = Path(__file__).parent / "steps"
 
 
+def names_step_module(path):
+    return ".".join((STEP_ROOT.name, *path.relative_to(STEP_ROOT).with_suffix("").parts))
+
+
 def loads_step_definitions(path):
-    location = importlib.util.spec_from_file_location(f"{STEP_ROOT.name}.{path.stem}", path)
+    location = importlib.util.spec_from_file_location(names_step_module(path), path)
     module = importlib.util.module_from_spec(location)
     sys.modules[location.name] = module
     try:
@@ -33,10 +37,10 @@ def refuses_hooks(manager, module, path):
 
 
 def pytest_configure(config):
-    for path in sorted(STEP_ROOT.glob("[!_]*.py")):
+    for path in sorted(STEP_ROOT.rglob("[!_]*.py")):
         module = loads_step_definitions(path)
         refuses_hooks(config.pluginmanager, module, path)
-        config.pluginmanager.register(module, f"{STEP_ROOT.name}.{path.stem}")
+        config.pluginmanager.register(module, names_step_module(path))
 
 
 @pytest.fixture(scope="session")
