@@ -174,6 +174,7 @@ def populated_block(recording):
         cue_start_seconds=120.0,
         cue_end_seconds=132.0,
         retyped_by_human=True,
+        possibly_multiple_types=True,
     )
 
 
@@ -789,6 +790,17 @@ def test_a_block_carries_every_piece_of_evidence_that_produced_it(store, graph):
         replace(minimal_block(graph["recording"]), type="sermon", evidence=evidence)
     )
     assert reloaded(store, saved, "block").evidence == evidence
+
+
+def test_a_block_that_may_contain_more_than_one_type_is_flagged_for_splitting(store, graph):
+    unflagged = store.saves(minimal_block(graph["recording"]))
+    flagged = store.saves(replace(unflagged, possibly_multiple_types=True))
+    assert reloaded(store, flagged, "block").possibly_multiple_types is True
+
+
+def test_a_block_the_classifier_read_as_one_thing_is_not_offered_for_splitting(store, graph):
+    saved = store.saves(minimal_block(graph["recording"]))
+    assert reloaded(store, saved, "block").possibly_multiple_types is False
 
 
 def test_a_block_lists_the_voices_recognised_in_it(store, graph):

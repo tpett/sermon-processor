@@ -47,6 +47,7 @@ class Block:
     cue_start_seconds: float | None = None
     cue_end_seconds: float | None = None
     retyped_by_human: bool = False
+    possibly_multiple_types: bool = False
     speaker_matches: tuple[SpeakerMatch, ...] = ()
 
 
