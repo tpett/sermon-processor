@@ -19,6 +19,7 @@ from sermon.store import (
     Proposal,
     Recording,
     PathEscapesDataRoot,
+    Reviewer,
     Segment,
     SkippedObject,
     SpeakerMatch,
@@ -327,6 +328,10 @@ def minimal_job(recording):
         dedupe_key="download:recording_20260913_090014",
         queued_at=datetime(2026, 9, 13, 12, 30, tzinfo=UTC),
     )
+
+
+def configured_reviewer():
+    return Reviewer(actor="reviewer", receives_notifications=True)
 
 
 def populated_notification(recording, segment):
@@ -1128,6 +1133,41 @@ def test_recordings_that_finish_together_raise_one_notification_each(store, grap
 def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_dropped(store, graph):
     suppressed = store.saves(minimal_notification(graph["recording"]))
     assert store.loads(Notification, suppressed.notification_id).state == "suppressed"
+
+
+def test_a_reviewer_configured_to_receive_notifications_is_stored(store):
+    saved = store.saves(configured_reviewer())
+    assert store.loads(Reviewer, saved.actor) == saved
+    assert saved.receives_notifications is True
+    assert saved.actor == "reviewer"
+
+
+def test_disabling_notifications_updates_the_stored_preference(store):
+    reviewer = store.saves(configured_reviewer())
+    opted_out = store.saves(replace(reviewer, receives_notifications=False))
+    stored = store.loads(Reviewer, reviewer.actor)
+    assert stored.receives_notifications is False
+    assert store.lists(Reviewer) == [opted_out]
+
+
+def test_opting_out_does_not_stop_a_notification_being_recorded(store):
+    store.saves(replace(store.saves(configured_reviewer()), receives_notifications=False))
+    recording = store.saves(minimal_recording())
+    raised = store.saves(minimal_notification(recording))
+    assert store.loads(Notification, raised.notification_id) == raised
+
+
+def test_opting_out_does_not_hide_recordings(store):
+    recording = store.saves(minimal_recording())
+    store.saves(replace(store.saves(configured_reviewer()), receives_notifications=False))
+    assert store.lists(Recording) == [recording]
+
+
+def test_a_notification_does_not_have_to_name_a_stored_reviewer(store):
+    recording = store.saves(minimal_recording())
+    raised = store.saves(minimal_notification(recording))
+    assert store.loads(Notification, raised.notification_id).recipient == "reviewer"
+    assert store.lists(Reviewer) == []
 
 
 def test_a_recording_lists_every_entry_in_its_processing_log_oldest_first(store, graph):

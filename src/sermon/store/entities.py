@@ -156,6 +156,11 @@ class SpeakerProfile:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Reviewer:
+    pass
+
+
+@dataclass(frozen=True, kw_only=True)
 class Notification:
     notification_id: int | None = None
     recording_id: str | None = None
