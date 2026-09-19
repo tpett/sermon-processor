@@ -152,7 +152,7 @@ class SpeakerProfile:
 @dataclass(frozen=True, kw_only=True)
 class Notification:
     notification_id: int | None = None
-    recording_id: str
+    recording_id: str | None = None
     segment_id: int | None = None
     kind: str
     recipient: str
@@ -189,4 +189,9 @@ class SkippedObject:
 
 @dataclass(frozen=True, kw_only=True)
 class Discovery:
-    pass
+    discovery_id: int | None = None
+    kind: str
+    occurred_at: datetime
+    discovered_count: int
+    failure: str | None = None
+    event: str | None = None

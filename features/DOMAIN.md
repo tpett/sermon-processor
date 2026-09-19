@@ -306,9 +306,9 @@ recordings each discovered (`operations/system_health.feature`).
 | --- | --- |
 | `kind` | `webhook` or `scan`. Which of the two the health view is showing the last of, and the reason one record serves both. |
 | `occurred_at` | "When the last webhook was received" and "when the last reconciliation scan ran". An instant, so records written in different offsets still order against each other. |
-| `discovered_count` | "How many recordings each discovered". Nothing on a Recording says which scan or webhook found it and a re-scan finds nothing new, so the count cannot be derived back. Required: a scan that found nothing discovered none, which is not the same as not being asked. |
-| `failure` | `transient` or `credentials`, null when nothing went wrong. A 403 must be surfaced as a credential problem rather than burning the retry budget as though it were transient, and then looking identical to a quiet week (`ingestion/s3_reconciliation.feature`). |
-| `event` | The webhook's own `event` field, kept because "the ignored event type is logged" for one the Processor does not handle (`ingestion/webhook_notification.feature`). Open, since the point is to record a type the Processor has no vocabulary for. Null on a scan. |
+| `discovered_count` | "How many recordings each discovered". Nothing on a Recording names its discoverer and a re-scan finds nothing new, so the count cannot be derived back. |
+| `failure` | `transient` or `credentials`, null when nothing went wrong. A 403 is surfaced as a credential problem rather than burning the retry budget as though it were transient (`ingestion/s3_reconciliation.feature`). |
+| `event` | The webhook's own `event` field: "the ignored event type is logged" for one the Processor does not handle (`ingestion/webhook_notification.feature`). Open, since the point is a type it has no vocabulary for. Null on a scan. |
 
 **A failed scan is not an alert.** Both failure scenarios ask only that it be
 surfaced on the system health view, and the skipped-object Rule says explicitly

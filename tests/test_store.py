@@ -39,6 +39,7 @@ IDENTITIES = {
     "speaker_profile": "speaker_profile_id",
     "log_entry": "log_entry_id",
     "skipped_object": "object_key",
+    "discovery": "discovery_id",
 }
 
 ENTITY_TYPES = {
@@ -52,6 +53,7 @@ ENTITY_TYPES = {
     "speaker_profile": SpeakerProfile,
     "log_entry": LogEntry,
     "skipped_object": SkippedObject,
+    "discovery": Discovery,
 }
 
 CLOSED_COLUMNS = [
@@ -74,6 +76,8 @@ CLOSED_COLUMNS = [
     ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
     ("log_entry", "boundary_source", vocabularies.BOUNDARY_SOURCES),
     ("skipped_object", "reason", vocabularies.SKIP_REASONS),
+    ("discovery", "kind", vocabularies.DISCOVERY_KINDS),
+    ("discovery", "failure", vocabularies.DISCOVERY_FAILURES),
 ]
 
 SKIPPED_OBJECTS = (
@@ -89,6 +93,7 @@ MOMENTS = [
     ("job", "queued_at"),
     ("notification", "created_at"),
     ("log_entry", "occurred_at"),
+    ("discovery", "occurred_at"),
 ]
 
 
@@ -417,6 +422,7 @@ def graph(store):
             populated_log_entry(recording, segment, job, proposal, artifact)
         ),
         "skipped_object": store.saves(skipped_object()),
+        "discovery": store.saves(received_webhook()),
     }
 
 

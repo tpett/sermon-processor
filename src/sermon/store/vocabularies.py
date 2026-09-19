@@ -81,3 +81,7 @@ SKIP_REASONS = (
     "not an audio object",
     "before the ingest cutoff",
 )
+
+DISCOVERY_KINDS = ("webhook", "scan")
+
+DISCOVERY_FAILURES = ("transient", "credentials")

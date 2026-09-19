@@ -11,6 +11,7 @@ from .entities import (
     Block,
     Candidate,
     ChannelLevel,
+    Discovery,
     Evidence,
     Job,
     LogEntry,
@@ -249,6 +250,16 @@ TABLES = {
             identity="object_key",
             generated=False,
             closed={"reason": vocabularies.SKIP_REASONS},
+        ),
+        Table(
+            entity=Discovery,
+            name="discovery",
+            identity="discovery_id",
+            order=("occurred_at",),
+            closed={
+                "kind": vocabularies.DISCOVERY_KINDS,
+                "failure": vocabularies.DISCOVERY_FAILURES,
+            },
         ),
         Table(
             entity=LogEntry,
