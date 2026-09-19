@@ -67,6 +67,7 @@ CLOSED_COLUMNS = [
     ("job", "state", vocabularies.JOB_STATES),
     ("notification", "state", vocabularies.NOTIFICATION_STATES),
     ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
+    ("log_entry", "boundary_source", vocabularies.BOUNDARY_SOURCES),
 ]
 
 MOMENTS = [
@@ -805,6 +806,37 @@ def test_a_superseded_proposal_keeps_the_cuts_it_proposed(store, graph):
     logged = store.lists(LogEntry, proposal_id=proposed.proposal_id)
     assert [(entry.punch_in_seconds, entry.punch_out_seconds) for entry in logged] == [
         (7220.0, 9812.0)
+    ]
+
+
+def test_each_logged_set_of_boundaries_records_whether_it_was_proposed_or_refined(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    proposed = store.saves(minimal_proposal(segment))
+    boundaries = replace(
+        minimal_log_entry(graph["recording"]),
+        kind="boundaries_proposed",
+        segment_id=segment.segment_id,
+        proposal_id=proposed.proposal_id,
+        punch_in_seconds=7220.0,
+        punch_out_seconds=9812.0,
+        boundary_source="model",
+    )
+    store.saves(boundaries)
+    store.saves(
+        replace(
+            boundaries,
+            log_entry_id=None,
+            kind="boundaries_refined",
+            occurred_at=datetime(2026, 9, 13, 9, 3, tzinfo=UTC),
+            punch_in_seconds=7216.5,
+            boundary_source="model-in/refined-out",
+        )
+    )
+    store.saves(replace(segment, punch_in_seconds=7210.0, boundary_source="human"))
+    logged = store.lists(LogEntry, segment_id=segment.segment_id)
+    assert [(entry.punch_in_seconds, entry.boundary_source) for entry in logged] == [
+        (7220.0, "model"),
+        (7216.5, "model-in/refined-out"),
     ]
 
 
