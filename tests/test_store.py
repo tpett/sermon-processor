@@ -352,11 +352,10 @@ def minimal_notification(recording):
     )
 
 
-def populated_speaker_profile(recording):
+def populated_speaker_profile():
     return SpeakerProfile(
         name="Travis Pettijohn",
         embedding=bytes(range(32)),
-        enrolled_from=(recording.recording_id,),
         confirmed_by_human=True,
     )
 
@@ -460,7 +459,7 @@ def store(tmp_path):
 def graph(store):
     recording = store.saves(populated_recording())
     block = store.saves(populated_block(recording))
-    profile = store.saves(populated_speaker_profile(recording))
+    profile = store.saves(populated_speaker_profile())
     block = store.saves(
         replace(
             block,
@@ -470,6 +469,7 @@ def graph(store):
         )
     )
     segment = store.saves(populated_segment(recording, block, profile))
+    profile = store.saves(replace(profile, enrolled_from=(segment.segment_id,)))
     proposal = store.saves(populated_proposal(segment))
     artifact = store.saves(populated_artifact(recording, segment))
     job = store.saves(populated_job(recording, segment))
