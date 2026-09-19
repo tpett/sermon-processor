@@ -26,7 +26,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "pipeline"
 FINGERPRINT = Path(__file__).parent / "pipeline_behaviour_fingerprint.json"
 PROMPTS = PROJECT_ROOT / "experiments" / "prompts"
-SEARCHED = (PROJECT_ROOT / "src" / "sermon", PROJECT_ROOT / "experiments")
+SEARCHED = (PROJECT_ROOT / "src" / "sermon", PROJECT_ROOT / "experiments" / "src",
+            PROJECT_ROOT / "experiments" / "baseline.py")
 
 MOVED = ("acoustic", "audio", "blocks", "classify", "cues", "features",
          "render", "rules", "segments")
@@ -1125,10 +1126,27 @@ def test_every_constant_in_the_moved_library_reproduces_the_fingerprint(expected
     )
 
 
+def is_not_first_party(directory):
+    return (
+        directory.name in ("__pycache__", "site-packages", "node_modules")
+        or directory.name.endswith(".egg-info")
+        or (directory / "pyvenv.cfg").is_file()
+    )
+
+
+def first_party_sources(path):
+    if path.is_file():
+        if path.suffix == ".py":
+            yield path
+    elif path.is_dir() and not is_not_first_party(path):
+        for held in sorted(path.iterdir()):
+            yield from first_party_sources(held)
+
+
 def names_read_anywhere():
     read = set()
     for root in SEARCHED:
-        for path in sorted(root.rglob("*.py")):
+        for path in first_party_sources(root):
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
                 if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
                     read.add(node.id)
