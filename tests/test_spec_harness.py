@@ -11,6 +11,7 @@ SPEC_ROOT = PROJECT_ROOT / "features"
 SPEC_MODULE = "tests/test_spec.py"
 SPEC_SHAPE = "spec OK — 34 files, 460 scenarios, 142 rules"
 SPEC_TESTS = 604
+SPEC_STEPS = 1898
 DEFERRED_TESTS = 7
 SUMMARY_LINE = re.compile(r"^[= ]*(?:no tests ran|\d+ [a-z]+).* in \d+\.\d+s[= ]*$")
 
@@ -68,6 +69,22 @@ def finds_deferrals_above_scenario_level():
     return sorted(offenders)
 
 
+def counts_steps_in(children):
+    total = 0
+    for child in children:
+        for block in child.values():
+            total += len(block.get("steps") or [])
+            total += counts_steps_in(block.get("children") or [])
+    return total
+
+
+def counts_declared_steps():
+    return sum(
+        counts_steps_in(Parser().parse(spec_file.read_text())["feature"]["children"])
+        for spec_file in sorted(SPEC_ROOT.rglob("*.feature"))
+    )
+
+
 def declared_scenarios(tag=None):
     total = 0
     for spec_file in sorted(SPEC_ROOT.rglob("*.feature")):
@@ -82,6 +99,10 @@ def test_the_spec_is_the_size_this_harness_was_built_for(spec_guardrail, capsys)
     report = runs_pytest("--collect-only", "-q", SPEC_MODULE)[1]
     assert SPEC_SHAPE in summary, summary
     assert counted("tests collected", report) == SPEC_TESTS, report
+
+
+def test_the_spec_declares_the_step_count_this_harness_was_built_for():
+    assert counts_declared_steps() == SPEC_STEPS
 
 
 def test_the_spec_module_collects_every_declared_scenario():
