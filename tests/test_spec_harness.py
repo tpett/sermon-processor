@@ -104,7 +104,7 @@ def test_a_scenario_with_no_step_definitions_fails_rather_than_errors(tmp_path):
 
 
 def test_running_the_spec_reports_no_errors():
-    returncode, report = runs_pytest("-q", "--maxfail=1", SPEC_MODULE)
+    returncode, report = runs_pytest("-q", SPEC_MODULE)
     assert counted("error", report) == 0, report
     assert "INTERNALERROR" not in report, report
     assert returncode in (0, 1), report
