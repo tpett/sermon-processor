@@ -180,8 +180,12 @@ from raising it (`notifications/approval_notifications.feature`).
 **Not stored:** delivery attempts, per-channel results, retry counts. The channel
 is undecided, the same Notification may be delivered by more than one of them,
 and no scenario gives those fields — so a retry belongs to the delivery
-behaviour rather than to this record. Nor does a reviewer's opting out live here:
-that is a property of the reviewer, and nothing yet models one.
+behaviour rather than to this record. Nor the grouping that batches several into
+one delivered message: three Recordings finishing within five minutes reach the
+reviewer once (`approval_notifications.feature`), and each still raises its own
+record, so `recipient`, `created_at` and `state` are what a batching delivery
+reads. Nor does a reviewer's opting out live here: that is a property of the
+reviewer, and nothing yet models one.
 
 ---
 

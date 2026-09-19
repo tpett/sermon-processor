@@ -548,6 +548,30 @@ def test_a_recording_lists_the_notifications_it_raised_oldest_first(store, graph
     assert listed == [earlier, graph["notification"]]
 
 
+def test_recordings_that_finish_together_raise_one_notification_each(store, graph):
+    raised = []
+    for minute, suffix in ((41, "102900"), (43, "104900"), (45, "105100")):
+        recording = store.saves(
+            replace(
+                minimal_recording(),
+                recording_id=f"recording_20260823_{suffix}",
+                object_key=f"2026/08/23/recording_20260823_{suffix}.flac",
+            )
+        )
+        raised.append(
+            store.saves(
+                replace(
+                    minimal_notification(recording),
+                    state="pending",
+                    created_at=datetime(2026, 9, 13, 12, minute, tzinfo=UTC),
+                )
+            )
+        )
+    listed = store.lists(Notification, recipient="reviewer", state="pending")
+    assert listed == raised
+    assert len({one.recording_id for one in listed}) == 3
+
+
 def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_dropped(store, graph):
     suppressed = store.saves(minimal_notification(graph["recording"]))
     assert store.loads(Notification, suppressed.notification_id).state == "suppressed"
