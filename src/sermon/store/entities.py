@@ -146,6 +146,8 @@ class LogEntry:
     recording_id: str
     segment_id: int | None = None
     job_id: int | None = None
+    proposal_id: int | None = None
+    artifact_id: int | None = None
     kind: str
     occurred_at: datetime
     correlation_id: str
@@ -153,3 +155,5 @@ class LogEntry:
     entered_state: str | None = None
     duration_seconds: float | None = None
     error: str | None = None
+    punch_in_seconds: float | None = None
+    punch_out_seconds: float | None = None

@@ -127,6 +127,11 @@ and supersedes the one before it rather than overwriting it.
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
 | `superseded_by` | Re-running Analysis keeps the previous Proposals in the Recording's history, and where a reviewer has already edited a Segment the fresh machine proposal is shown *alongside* their work rather than over it (`analysis/analysis_orchestration.feature`, `interface/punch_point_adjustment.feature`). Two Proposals for one Segment therefore have to exist at once, which a 1:1 cannot do, and which of them is current has to be a stored fact. Written the way `Artifact.superseded_by` already is. |
 
+**Its cuts are not here.** A `LogEntry` naming this Proposal carries them, so the
+machine's boundary sets and the reviewer's sit in one ordered history instead of
+two (`processing/reprocessing.feature`). `Segment.proposed_punch_in` still holds
+the current machine suggestion, because reverting to it must not read the log.
+
 ---
 
 ## Artifact
@@ -202,12 +207,15 @@ order, and three tables cannot be ordered by one query.
 | `recording_id` | Whose log it is: "I open **its** processing log" (`operations/system_health.feature`). |
 | `segment_id` | "Who performed each human action, **against which Segment**". Null for an entry about the whole Recording, written the way `Artifact` and `Notification` write it. |
 | `job_id` | Which job an attempt was of, so the entry does not repeat what `Job.kind` already says. |
+| `proposal_id` | Which Proposal the machine's cuts belonged to. Without it a superseded Proposal keeps its reasoning and not its cuts, and re-running Analysis "keeps the previous Proposals in the Recording's history". |
+| `artifact_id` | Which render a set of boundaries produced. "Any past render could be reproduced from that record and the source" needs the cuts paired to the render's settings, not two lists assumed to be in step. |
 | `kind` | What happened. Deliberately not a closed set: the scenarios log transitions, attempts, approvals, adjustments and reverts and declare a vocabulary for none of them — `Notification.kind` is open for the same reason. |
 | `occurred_at` | "Each state transition **with its timestamp**". The log's order, so entries are ordered on it rather than on the identity. |
 | `correlation_id` | "I can correlate an entry to the application logs". Required on every entry: an identifier that may be absent is the same as no identifier. |
 | `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` names — there are no accounts (`interface/authentication.feature`). |
 | `entered_state` | "Each state transition with its timestamp". One of the Recording's ten states or the Segment's seven; the two sets are disjoint, so one column holds either and `segment_id` says whose. |
 | `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
+| `punch_in_seconds`, `punch_out_seconds` | "Each set of boundaries with who approved them and when" (`processing/reprocessing.feature`), a discarded adjustment included. Read with `actor` and `occurred_at`, which are what make it a set of boundaries *with* an approver. |
 
 **Not stored:** `from_state`. The state a transition left is the previous entry's
 `entered_state` for the same subject, and every transition is logged, so storing
@@ -241,11 +249,4 @@ flagged as an open decision, not settled here.
   because that decision is open (`analysis/analysis_confidence.feature`).
 - **Whether local audio is ever reclaimed.** `local_path` is nullable and the
   object store is durable, so both answers fit. Q34 is open.
-- **Whether a Proposal carries the boundaries it proposed.** They live on the
-  Segment as `proposed_punch_in` and `proposed_punch_out`, which hold only the
-  current machine suggestion, so a superseded Proposal keeps its reasoning and
-  not its cuts. Moving them here would close that, and it is the same question
-  as the boundary history `processing/reprocessing.feature` asks for — "each set
-  of boundaries with who approved them and when" — which needs an actor and a
-  time this model has nowhere to put.
 - **Hard delete.** The last `@needs-decision` in the spec.

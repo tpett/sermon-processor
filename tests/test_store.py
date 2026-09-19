@@ -279,11 +279,13 @@ def minimal_speaker_profile():
     return SpeakerProfile(name="not a known voice", embedding=b"\x00\x01")
 
 
-def populated_log_entry(recording, segment, job):
+def populated_log_entry(recording, segment, job, proposal, artifact):
     return LogEntry(
         recording_id=recording.recording_id,
         segment_id=segment.segment_id,
         job_id=job.job_id,
+        proposal_id=proposal.proposal_id,
+        artifact_id=artifact.artifact_id,
         kind="approved",
         occurred_at=datetime(2026, 9, 13, 8, 55, tzinfo=UTC),
         correlation_id="ingest-7f3a1c",
@@ -291,6 +293,8 @@ def populated_log_entry(recording, segment, job):
         entered_state="approved",
         duration_seconds=812.4,
         error="the transcription service was unreachable",
+        punch_in_seconds=7220.0,
+        punch_out_seconds=9812.0,
     )
 
 
@@ -336,7 +340,9 @@ def graph(store):
         "artifact": artifact,
         "job": job,
         "notification": store.saves(populated_notification(recording, segment)),
-        "log_entry": store.saves(populated_log_entry(recording, segment, job)),
+        "log_entry": store.saves(
+            populated_log_entry(recording, segment, job, proposal, artifact)
+        ),
     }
 
 

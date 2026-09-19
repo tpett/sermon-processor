@@ -234,6 +234,8 @@ TABLES = {
                 "recording_id": "recording(recording_id)",
                 "segment_id": "segment(segment_id)",
                 "job_id": "job(job_id)",
+                "proposal_id": "proposal(proposal_id)",
+                "artifact_id": "artifact(artifact_id)",
             },
             closed={"entered_state": vocabularies.LOGGED_STATES},
         ),
