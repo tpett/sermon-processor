@@ -58,6 +58,7 @@ class Segment:
     distribution_confirmed: bool | None = None
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
+    summary: str | None = None
     publication_date: date | None = None
     label: str | None = None
 

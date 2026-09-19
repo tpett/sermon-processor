@@ -162,6 +162,7 @@ def populated_segment(recording, block):
         distribution_confirmed=True,
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
+        summary="A class on Hebrews 12, taught by one voice",
         publication_date=date(2026, 9, 13),
         label="Hebrews 12.4-11",
     )
