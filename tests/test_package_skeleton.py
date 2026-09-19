@@ -1,9 +1,11 @@
+import importlib.util
 import shutil
 import subprocess
 import sys
 import zipfile
 from importlib import import_module
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -25,6 +27,43 @@ PACKAGES = [
 def loaded_from_experiments(module):
     location = getattr(module, "__file__", None)
     return bool(location) and EXPERIMENTS_ROOT in Path(location).resolve().parents
+
+
+def modules_reached_through(packages):
+    pending = [import_module(name) for name in packages]
+    seen = set()
+    found = {}
+    while pending:
+        module = pending.pop()
+        if not isinstance(module, ModuleType):
+            continue
+        marker = id(module)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        name = getattr(module, "__name__", None)
+        if name:
+            found[name] = module
+        try:
+            values = vars(module).values()
+        except TypeError:
+            continue
+        for value in values:
+            if isinstance(value, ModuleType):
+                pending.append(value)
+                continue
+            origin = getattr(value, "__module__", None)
+            if origin and (other := sys.modules.get(origin)) is not None:
+                pending.append(other)
+    return found
+
+
+def experiments_modules_reached_through(packages):
+    return sorted(
+        name
+        for name, module in modules_reached_through(packages).items()
+        if loaded_from_experiments(module)
+    )
 
 
 @pytest.mark.parametrize("package", PACKAGES)
@@ -60,14 +99,31 @@ def test_no_module_mentions_experiments():
 
 
 def test_no_package_loads_a_module_from_experiments():
-    for package in PACKAGES:
-        import_module(package)
-    offenders = sorted(
-        name
-        for name, module in list(sys.modules.items())
-        if module is not None and loaded_from_experiments(module)
+    assert experiments_modules_reached_through(PACKAGES) == []
+
+
+def test_hygiene_guard_ignores_experiments_modules_loaded_elsewhere():
+    location = importlib.util.spec_from_file_location(
+        "experiments_baseline_probe", EXPERIMENTS_ROOT / "baseline.py"
     )
-    assert offenders == []
+    module = importlib.util.module_from_spec(location)
+    sys.modules[location.name] = module
+    try:
+        location.loader.exec_module(module)
+        assert experiments_modules_reached_through(PACKAGES) == []
+    finally:
+        sys.modules.pop(location.name, None)
+
+
+def test_the_import_hygiene_guard_fails_when_a_package_imports_from_experiments():
+    package = import_module("sermon")
+    planted = ModuleType("planted_experiments")
+    planted.__file__ = str(EXPERIMENTS_ROOT / "baseline.py")
+    package.planted_experiments = planted
+    try:
+        assert experiments_modules_reached_through(PACKAGES) == ["planted_experiments"]
+    finally:
+        delattr(package, "planted_experiments")
 
 
 def plants_web_assets(root):
