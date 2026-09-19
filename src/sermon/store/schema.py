@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
 from datetime import datetime
-from typing import get_args, get_type_hints
+from types import UnionType
+from typing import Union, get_args, get_origin, get_type_hints
 
 from . import vocabularies
 from .entities import Artifact, Block, Evidence, Job, Proposal, Recording, Segment, SpeakerProfile
@@ -18,9 +19,24 @@ COLUMN_TYPES = {
 }
 
 
+class UnsupportedAnnotation(TypeError):
+    pass
+
+
 def unwrapped(annotation):
-    arguments = [argument for argument in get_args(annotation) if argument is not type(None)]
-    return (arguments[0], True) if arguments else (annotation, False)
+    arguments = get_args(annotation)
+    if not arguments:
+        return (annotation, False)
+    admitted = [argument for argument in arguments if argument is not type(None)]
+    if get_origin(annotation) in (Union, UnionType) and len(admitted) == 1:
+        return (admitted[0], True)
+    raise UnsupportedAnnotation(annotation)
+
+
+def column_type(kind):
+    if kind not in COLUMN_TYPES:
+        raise UnsupportedAnnotation(kind)
+    return COLUMN_TYPES[kind]
 
 
 @dataclass(frozen=True)
@@ -206,7 +222,7 @@ def quoted(values):
 
 def column_definition(table, name, annotation):
     kind, optional = unwrapped(annotation)
-    parts = [name, COLUMN_TYPES[kind]]
+    parts = [name, column_type(kind)]
     if name == table.identity:
         parts.append("PRIMARY KEY" if table.generated else "NOT NULL PRIMARY KEY")
     elif not optional:
@@ -239,8 +255,13 @@ def unique_ddl(table, unique):
     )
 
 
+def element_definition(name, annotation):
+    kind, optional = unwrapped(annotation)
+    return f"{name} {column_type(kind)}" + ("" if optional else " NOT NULL")
+
+
 def collection_ddl(table, collection):
-    owner_type = COLUMN_TYPES[unwrapped(get_type_hints(table.entity)[table.identity])[0]]
+    owner_type = column_type(unwrapped(get_type_hints(table.entity)[table.identity])[0])
     definitions = [
         f"{collection.owner} {owner_type} NOT NULL REFERENCES {table.name}({table.identity})",
         "position INTEGER NOT NULL",
@@ -248,13 +269,12 @@ def collection_ddl(table, collection):
     if collection.column:
         reference = f" REFERENCES {collection.references}" if collection.references else ""
         definitions.append(
-            f"{collection.column} {COLUMN_TYPES[collection.element]} NOT NULL{reference}"
+            f"{element_definition(collection.column, collection.element)}{reference}"
         )
     else:
         annotations = get_type_hints(collection.element)
         definitions += [
-            f"{name} {COLUMN_TYPES[unwrapped(annotations[name])[0]]} NOT NULL"
-            for name in element_columns(collection)
+            element_definition(name, annotations[name]) for name in element_columns(collection)
         ]
     definitions.append(f"PRIMARY KEY ({collection.owner}, position)")
     return creates(collection.table, definitions)
