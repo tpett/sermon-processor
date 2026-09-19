@@ -1094,7 +1094,10 @@ def test_generation_holds_no_credentials_for_the_machine_serving_the_model(monke
 
 SHELL_MODULES = {"subprocess", "paramiko", "pexpect", "fabric", "shlex"}
 SHELL_ATTRS = {("os", "system"), ("os", "popen"), ("posix", "system")}
-REACHES_THE_MODEL = (PROJECT_ROOT / "src" / "sermon" / "pipeline" / "classify.py",)
+REACHES_THE_MODEL = (
+    PROJECT_ROOT / "src" / "sermon" / "pipeline" / "classify.py",
+    PROJECT_ROOT / "src" / "sermon" / "binds_model_endpoint.py",
+)
 
 
 def modules_bound_in(tree):
@@ -1217,8 +1220,9 @@ def test_a_shell_out_to_the_model_host_fails_the_http_only_guard(source):
     assert opens_a_shell_on_the_model_host(ast.parse(source))
 
 
-def test_the_http_only_guard_reads_call_sites_not_just_imports():
-    source = REACHES_THE_MODEL[0].read_text(encoding="utf-8")
+@pytest.mark.parametrize("path", REACHES_THE_MODEL, ids=lambda path: path.name)
+def test_the_http_only_guard_reads_call_sites_not_just_imports(path):
+    source = path.read_text(encoding="utf-8")
     assert opens_a_shell_on_the_model_host(ast.parse(source)) == []
     mutated = source + '\nimport os\nos.system("ssh mac-m1 ollama run")\n'
     assert opens_a_shell_on_the_model_host(ast.parse(mutated))
