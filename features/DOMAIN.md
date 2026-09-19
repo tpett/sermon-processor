@@ -34,6 +34,7 @@ Recording ──1:N──▶ Block
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
+SpeakerProfile ──N:M──▶ Segment (the Segments that enrolled the voice)
 
 SkippedObject                   (an object the reconciliation scan did not ingest)
 Discovery                       (a webhook received or a scan run, and what it found)
@@ -329,7 +330,7 @@ budget is read before the attempt it authorises is logged.
 | --- | --- |
 | `name` | Shown before publishing, which is the only defence against publishing a guest who asked not to be. |
 | `embedding` | Enrolled from already-published sermons — no separate enrolment session. |
-| `enrolled_from[]` | Which Recordings contributed. Needed to un-enrol. |
+| `enrolled_from[]` | Which Segments contributed. Needed to un-enrol. |
 | `confirmed_by_human` | An unrecognised voice requires confirmation before publishing, and confirming enrols. A profile built by confirmation is not the same as one guessed. Which Segment's voice a human attested to is `Segment.confirmed_speaker_profile_id`. |
 
 **This entity is the one place the system stores something about a person.** It

@@ -352,11 +352,10 @@ def minimal_notification(recording):
     )
 
 
-def populated_speaker_profile(recording):
+def populated_speaker_profile():
     return SpeakerProfile(
         name="Travis Pettijohn",
         embedding=bytes(range(32)),
-        enrolled_from=(recording.recording_id,),
         confirmed_by_human=True,
     )
 
@@ -460,7 +459,7 @@ def store(tmp_path):
 def graph(store):
     recording = store.saves(populated_recording())
     block = store.saves(populated_block(recording))
-    profile = store.saves(populated_speaker_profile(recording))
+    profile = store.saves(populated_speaker_profile())
     block = store.saves(
         replace(
             block,
@@ -470,6 +469,7 @@ def graph(store):
         )
     )
     segment = store.saves(populated_segment(recording, block, profile))
+    profile = store.saves(replace(profile, enrolled_from=(segment.segment_id,)))
     proposal = store.saves(populated_proposal(segment))
     artifact = store.saves(populated_artifact(recording, segment))
     job = store.saves(populated_job(recording, segment))
@@ -918,9 +918,67 @@ def test_a_block_keeps_the_voices_it_matched_in_the_order_they_ranked(store, gra
     assert reloaded(store, saved, "block").speaker_matches == ranked
 
 
-def test_a_speaker_profile_lists_the_recordings_that_enrolled_it(store, graph):
+def test_a_speaker_profile_lists_the_segments_that_enrolled_it(store, graph):
     stored = reloaded(store, graph["speaker_profile"], "speaker_profile")
-    assert stored.enrolled_from == (graph["recording"].recording_id,)
+    assert stored.enrolled_from == (graph["segment"].segment_id,)
+
+
+def test_a_profile_is_enrolled_from_a_segment_only_after_that_segment_exists(store, graph):
+    profile = store.saves(minimal_speaker_profile())
+    assert reloaded(store, profile, "speaker_profile").enrolled_from == ()
+    segment = store.saves(minimal_segment(graph["recording"]))
+    enrolled = store.saves(replace(profile, enrolled_from=(segment.segment_id,)))
+    assert reloaded(store, enrolled, "speaker_profile").enrolled_from == (segment.segment_id,)
+
+
+def test_a_lesson_and_a_sermon_on_one_recording_enrol_independently(store, graph):
+    lesson = graph["segment"]
+    sermon = store.saves(
+        replace(
+            minimal_segment(graph["recording"]),
+            classification="sermon",
+            state="approved",
+            span_start_seconds=3600.0,
+            span_end_seconds=7200.0,
+            punch_in_seconds=3600.0,
+            punch_out_seconds=7200.0,
+        )
+    )
+    enrolled = store.saves(
+        replace(
+            graph["speaker_profile"],
+            enrolled_from=(lesson.segment_id, sermon.segment_id),
+        )
+    )
+    assert reloaded(store, enrolled, "speaker_profile").enrolled_from == (
+        lesson.segment_id,
+        sermon.segment_id,
+    )
+    remaining = store.saves(replace(enrolled, enrolled_from=(sermon.segment_id,)))
+    assert reloaded(store, remaining, "speaker_profile").enrolled_from == (sermon.segment_id,)
+
+
+def test_enrolment_refuses_a_recording_id_where_a_segment_id_is_declared(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(UnstorableValue):
+        store.saves(
+            replace(graph["speaker_profile"], enrolled_from=(graph["recording"].recording_id,))
+        )
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_profile_naming_a_segment_that_does_not_exist_is_never_stored(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["speaker_profile"], enrolled_from=(404,)))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_new_profile_cannot_enrol_from_a_segment_that_does_not_exist(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(minimal_speaker_profile(), enrolled_from=(404,)))
+    assert everything_stored(store, tmp_path) == stored
 
 
 def test_a_recut_keeps_the_previous_render_until_the_new_one_succeeds(store, graph):

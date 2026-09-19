@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Optional
+from typing import get_type_hints, Literal, Optional
 
 import pytest
 
-from sermon.store import Block, LogEntry, schema
+from sermon.store import Block, LogEntry, SpeakerProfile, schema
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -60,3 +60,23 @@ def test_an_element_column_the_entity_leaves_optional_is_nullable():
 
 def test_entries_sharing_an_instant_are_ordered_by_the_identity_behind_it():
     assert schema.order_by(schema.TABLES[LogEntry]) == ("occurred_at", "log_entry_id")
+
+
+def enrolment():
+    return schema.TABLES[SpeakerProfile].collections[0]
+
+
+def test_enrolment_is_a_list_of_segment_ids():
+    assert get_type_hints(SpeakerProfile)["enrolled_from"] == tuple[int, ...]
+    assert enrolment().element is int
+
+
+def test_enrolment_names_the_segment_that_contributed():
+    collection = enrolment()
+    assert collection.field == "enrolled_from"
+    assert collection.table == "speaker_profile_enrolment"
+    assert collection.column == "segment_id"
+    assert collection.references == {"segment_id": "segment(segment_id)"}
+    ddl = schema.collection_ddl(schema.TABLES[SpeakerProfile], collection)
+    assert "segment_id INTEGER NOT NULL REFERENCES segment(segment_id)" in ddl
+    assert "recording_id" not in ddl

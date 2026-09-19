@@ -151,7 +151,7 @@ class SpeakerProfile:
     speaker_profile_id: int | None = None
     name: str
     embedding: bytes
-    enrolled_from: tuple[str, ...] = ()
+    enrolled_from: tuple[int, ...] = ()
     confirmed_by_human: bool = False
 
 
