@@ -126,3 +126,13 @@ def test_the_reviewer_is_identified_by_the_actor_seam():
     assert "recipient" in stated
     recipient = why("Notification", "recipient").lower()
     assert "not a reference" in recipient
+
+
+def test_the_reviewer_is_not_drawn_as_a_foreign_key():
+    reviewer_lines = "\n".join(line for line in glance().splitlines() if "Reviewer" in line)
+    assert "──" not in reviewer_lines
+
+
+def test_speaker_profile_is_still_the_one_place_a_person_is_stored():
+    assert "something about a person" in section("SpeakerProfile").lower()
+    assert "person the system stores" in section("Reviewer").lower()

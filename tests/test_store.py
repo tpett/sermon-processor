@@ -1174,6 +1174,13 @@ def test_a_notification_does_not_have_to_name_a_stored_reviewer(store):
     assert store.lists(Reviewer) == []
 
 
+def test_a_notification_recipient_joins_the_reviewer_on_the_actor_seam(store):
+    reviewer = store.saves(configured_reviewer())
+    raised = store.saves(system_alert())
+    assert store.loads(Reviewer, raised.recipient) == reviewer
+    assert raised.recipient == reviewer.actor
+
+
 def test_a_recording_lists_every_entry_in_its_processing_log_oldest_first(store, graph):
     recording = graph["recording"]
     transition = store.saves(replace(minimal_log_entry(recording), entered_state="analyzing"))

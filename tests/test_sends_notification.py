@@ -42,6 +42,18 @@ def test_no_further_notifications_are_sent_after_opting_out(store):
     assert sent == [first]
 
 
+def test_a_notification_already_pending_is_not_sent_after_opt_out(store):
+    store.saves(configured_reviewer())
+    pending = store.saves(
+        replace(minimal_notification(store.saves(minimal_recording())), state="pending")
+    )
+    store.saves(replace(configured_reviewer(), receives_notifications=False))
+    sent = []
+    SendsNotification(store=store, sends=sent.append)(pending)
+    assert sent == []
+    assert pending.state == "pending"
+
+
 def test_opting_out_does_not_hide_recordings_from_the_list(store):
     recording = store.saves(minimal_recording())
     store.saves(replace(store.saves(configured_reviewer()), receives_notifications=False))

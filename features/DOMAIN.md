@@ -38,11 +38,12 @@ SpeakerProfile ──N:M──▶ Segment (the Segments that enrolled the voice)
 
 SkippedObject                   (an object the reconciliation scan did not ingest)
 Discovery                       (a webhook received or a scan run, and what it found)
+Reviewer                        (the actor seam; whether they receive notifications)
 ```
 
-Five nouns the reviewer names, plus seven the system needs: `Job`,
-`Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject`, `Discovery`
-and `CorpusPair`.
+Five nouns the reviewer names, plus eight the system needs: `Job`,
+`Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject`, `Discovery`,
+`CorpusPair` and `Reviewer`.
 
 ---
 
@@ -264,7 +265,7 @@ from raising it (`notifications/approval_notifications.feature`).
 | --- | --- |
 | `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns", and neither when it is the system itself. Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
 | `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for many different reasons and declare a vocabulary for none of them, so naming one here would be inventing spec rather than recording it. |
-| `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. |
+| `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. `Reviewer` is identified by this string and looked up on it at send time; it is not a foreign key. |
 | `summary` | What it says, in plain text. It states the recording date and the proposed length, and names each session when a Recording held more than one — so it is composed when the Notification is raised, not when a channel renders it. |
 | `created_at` | When it was raised. The reminder for a Segment left undispositioned for 3 days is measured from it. |
 | `state` | `pending`, `delivered`, `failed` or `suppressed`. A Recording that produced nothing publishable is recorded as `suppressed` rather than not recorded at all, which is what makes "why was I not told about that Sunday?" answerable without reading logs. |
@@ -288,8 +289,28 @@ behaviour rather than to this record. Nor the grouping that batches several into
 one delivered message: three Recordings finishing within five minutes reach the
 reviewer once (`approval_notifications.feature`), and each still raises its own
 record, so `recipient`, `created_at` and `state` are what a batching delivery
-reads. Nor does a reviewer's opting out live here: that is a property of the
-reviewer, and nothing yet models one.
+reads. Nor does a reviewer's opting out live here: that is
+`Reviewer.receives_notifications`, honoured when a Notification is sent rather
+than when it is created.
+
+---
+
+## Reviewer
+
+The actor the system notifies. There is one, and there are no accounts
+(`interface/authentication.feature`). The identity is the actor seam, not a
+generated key: adding real accounts changes who that actor is and does not
+change what is recorded against it. It is not a person the system stores —
+`SpeakerProfile` remains the one place that does.
+
+| Field | Why it exists |
+| --- | --- |
+| `actor` | The seam `Notification.recipient` and `LogEntry.actor` name. `"reviewer"` until there are accounts. Identity, so a Notification does not hold a foreign key to a person the system stores. |
+| `receives_notifications` | "a reviewer is configured to receive notifications" and "When a reviewer disables notifications" (`notifications/approval_notifications.feature`). Honouring it is send-time behaviour: opting out does not stop a Notification being created, and recordings still appear in the list. |
+
+**Opting out is not a Notification state.** `suppressed` is "nothing publishable";
+a reviewer who has turned notifications off still has records created, they are
+just not sent.
 
 ---
 
@@ -310,7 +331,7 @@ order, and three tables cannot be ordered by one query.
 | `kind` | What happened. Deliberately not a closed set: the scenarios log transitions, attempts, approvals, adjustments and reverts and declare a vocabulary for none of them — `Notification.kind` is open for the same reason. |
 | `occurred_at` | "Each state transition **with its timestamp**". The log's order, so entries are ordered on it rather than on the identity, which only breaks a tie. An instant, not a local reading: two entries written in different offsets still order against each other, so a moment without one is refused rather than stored. |
 | `correlation_id` | "I can correlate an entry to the application logs". Required on every entry: an identifier that may be absent is the same as no identifier. |
-| `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` names — there are no accounts (`interface/authentication.feature`). |
+| `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` and `Reviewer.actor` name — there are no accounts (`interface/authentication.feature`). |
 | `entered_state` | "Each state transition with its timestamp". One of the Recording's ten states or the Segment's seven; the two sets are disjoint, so one column holds either and `segment_id` says whose. |
 | `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
 | `punch_in_seconds`, `punch_out_seconds` | "Each set of boundaries with who approved them and when" (`processing/reprocessing.feature`), a discarded adjustment included. Read with `actor` and `occurred_at`, which are what make it a set of boundaries *with* an approver. |
