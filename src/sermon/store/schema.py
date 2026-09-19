@@ -184,6 +184,16 @@ TABLES = {
                 "intent": vocabularies.SEGMENT_INTENTS,
                 "boundary_source": vocabularies.BOUNDARY_SOURCES,
             },
+            collections=(
+                Collection(
+                    field="warnings",
+                    table="segment_warning",
+                    owner="segment_id",
+                    element=str,
+                    column="warning",
+                    closed={"warning": vocabularies.SEGMENT_WARNINGS},
+                ),
+            ),
         ),
         Table(
             entity=Proposal,

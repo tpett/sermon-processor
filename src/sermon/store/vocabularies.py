@@ -46,6 +46,12 @@ RECORDING_WARNINGS = (
     "low transcript quality",
 )
 
+SEGMENT_WARNINGS = (
+    "check the opening",
+    "boundary is not acceptable",
+    "source was very quiet",
+)
+
 SEGMENT_CLASSIFICATIONS = ("sermon", "lesson", "seminar", "meeting")
 
 RECORDING_KINDS = (

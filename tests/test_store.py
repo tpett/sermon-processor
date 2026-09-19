@@ -82,6 +82,7 @@ CLOSED_COLUMNS = [
 
 CLOSED_COLLECTIONS = [
     ("recording", "warnings", vocabularies.RECORDING_WARNINGS),
+    ("segment", "warnings", vocabularies.SEGMENT_WARNINGS),
 ]
 
 COMPANIONS = {
@@ -201,6 +202,7 @@ def populated_segment(recording, block, profile):
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
         summary="A class on Hebrews 12, taught by one voice",
+        warnings=("check the opening", "source was very quiet"),
         publication_date=date(2026, 9, 13),
         label="Hebrews 12.4-11",
     )
@@ -631,6 +633,26 @@ def test_a_segment_no_block_seeded_holds_a_span_of_its_own(store, graph):
     stored = reloaded(store, drawn, "segment")
     assert stored.seed_block_id is None
     assert (stored.span_start_seconds, stored.span_end_seconds) == (0.0, 11520.0)
+
+
+def test_a_segment_lists_the_warnings_its_analysis_raised(store, graph):
+    raised = ("boundary is not acceptable", "check the opening")
+    flagged = store.saves(replace(graph["segment"], warnings=raised))
+    assert reloaded(store, flagged, "segment").warnings == raised
+
+
+def test_a_segment_nothing_went_wrong_with_carries_no_warnings(store, graph):
+    saved = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, saved, "segment").warnings == ()
+
+
+def test_a_boundary_that_cannot_satisfy_the_cut_rules_is_flagged_rather_than_moved(store, graph):
+    flagged = store.saves(replace(graph["segment"], warnings=("boundary is not acceptable",)))
+    stored = reloaded(store, flagged, "segment")
+    assert (stored.punch_in_seconds, stored.warnings) == (
+        graph["segment"].punch_in_seconds,
+        ("boundary is not acceptable",),
+    )
 
 
 def test_a_proposed_segment_carries_a_summary_of_its_own(store, graph):

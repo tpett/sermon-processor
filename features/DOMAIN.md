@@ -128,8 +128,20 @@ and what renders.
 | `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Where the current boundaries came from: "every Segment records whether its boundaries were proposed or refined" (`analysis/segment_proposal.feature`). Already produced by the pipeline. |
 | `summary` | Its own one line, shown beside it in review and again in the notification (`analysis/summarization.feature`). `Notification.summary` is composed delivery text, and the Block summaries beneath a Segment do not compose into one. Null until summarization runs. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
+| `warnings[]` | `check the opening`, `boundary is not acceptable`, `source was very quiet`. Three named conditions, held the way `Recording.warnings[]` is and for the same reasons (`analysis/punch_in_detection.feature`, `analysis/segment_proposal.feature`, `processing/audio_rendering.feature`). |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
 | `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
+
+**Most of the conditions a scenario flags on a Segment are derivable, and are not
+stored.** `no clean cut point found` is the Proposal's `hard` difficulty,
+`length outside expected range` is the distance between the boundaries,
+`recording may have started late` and `stopped early` are a boundary at 0 or at
+the Recording's duration, and "the source was clipped"
+(`processing/audio_rendering.feature`) is `source clipping detected` on the
+Segment's Recording. The three that are stored are not: a false start was
+detected, an invariant could not be satisfied, and the source was quiet enough to
+need saying. `boundary is not acceptable` is the one value the Gherkin describes
+without quoting.
 
 **A span is not a second name for the punch points.** A proposed Segment's span
 is detected and normally wider than its cuts (`interface/recording_detail.feature`).
