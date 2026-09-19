@@ -34,7 +34,7 @@ Recording ──1:N──▶ Block
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
 
-SkippedObject                   (an object no Recording will ever be made of)
+SkippedObject                   (an object the reconciliation scan did not ingest)
 Discovery                       (a webhook received or a scan run, and what it found)
 ```
 
@@ -292,6 +292,13 @@ three of the four reasons leave nothing a Recording could be built from.
 | --- | --- |
 | `object_key` | What was skipped, and the identity. An operator sees every object ever skipped, which is a list of objects rather than one of scans, so a later scan corrects the record instead of adding one. |
 | `reason` | `recorder clock not set`, `key does not match the pattern`, `not an audio object`, `before the ingest cutoff` — the four the outline names (`ingestion/s3_reconciliation.feature`). |
+
+**A manually ingested object keeps its row.** `before the ingest cutoff` is the
+one reason a Recording can still be made from the key, on demand, which is how the
+accuracy corpus is loaded (`s3_reconciliation.feature`). Nothing clears the row,
+and that is accepted: the list answers what the *scan* dropped, no scenario reads
+it to decide anything, and the operator reading it is the one who forced the
+ingestion.
 
 **Not stored:** when it was skipped, or which scan skipped it. "Nothing is
 dropped without being counted" asks what was dropped and why; no scenario reads
