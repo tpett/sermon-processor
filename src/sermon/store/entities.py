@@ -118,3 +118,8 @@ class SpeakerProfile:
     embedding: bytes
     enrolled_from: tuple[str, ...] = ()
     confirmed_by_human: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class Notification:
+    pass

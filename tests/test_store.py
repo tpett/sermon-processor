@@ -10,6 +10,7 @@ from sermon.store import (
     DATABASE_NAME,
     Evidence,
     Job,
+    Notification,
     Proposal,
     Recording,
     PathEscapesDataRoot,
@@ -234,6 +235,29 @@ def minimal_job(recording):
     )
 
 
+def populated_notification(recording, segment):
+    return Notification(
+        recording_id=recording.recording_id,
+        segment_id=segment.segment_id,
+        kind="segment_proposed",
+        recipient="reviewer",
+        summary="A 57 minute sermon was proposed in the 2026-09-13 recording",
+        created_at=datetime(2026, 9, 13, 12, 41, tzinfo=UTC),
+        state="delivered",
+    )
+
+
+def minimal_notification(recording):
+    return Notification(
+        recording_id=recording.recording_id,
+        kind="nothing_publishable",
+        recipient="reviewer",
+        summary="Nothing publishable was found in the 2026-09-13 recording",
+        created_at=datetime(2026, 9, 13, 11, 4, tzinfo=UTC),
+        state="suppressed",
+    )
+
+
 def populated_speaker_profile(recording):
     return SpeakerProfile(
         name="Travis Pettijohn",
@@ -442,6 +466,28 @@ def test_a_segment_carries_no_publication_details_until_someone_enters_them(stor
     proposed = store.saves(minimal_segment(graph["recording"]))
     stored = reloaded(store, proposed, "segment")
     assert (stored.publication_date, stored.label) == (None, None)
+
+
+def test_a_notification_records_what_happened_and_whether_it_was_delivered(store, graph):
+    raised = store.saves(populated_notification(graph["recording"], graph["segment"]))
+    assert store.loads(Notification, raised.notification_id) == raised
+
+
+def test_a_notification_about_a_whole_recording_names_no_segment(store, graph):
+    raised = store.saves(minimal_notification(graph["recording"]))
+    assert store.loads(Notification, raised.notification_id).segment_id is None
+
+
+def test_a_recording_lists_the_notifications_it_raised_oldest_first(store, graph):
+    later = store.saves(populated_notification(graph["recording"], graph["segment"]))
+    earlier = store.saves(minimal_notification(graph["recording"]))
+    listed = store.lists(Notification, recording_id=graph["recording"].recording_id)
+    assert listed == [earlier, later]
+
+
+def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_dropped(store, graph):
+    suppressed = store.saves(minimal_notification(graph["recording"]))
+    assert store.loads(Notification, suppressed.notification_id).state == "suppressed"
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):

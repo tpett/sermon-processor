@@ -27,13 +27,14 @@ Recording ──1:N──▶ Block
     │                 └──1:N──▶ Artifact  (a render; a re-cut adds another)
     │
     ├────1:N────▶ Artifact       (transcript, waveform, preview, source FLAC)
-    └────1:N────▶ Job
+    ├────1:N────▶ Job
+    └────1:N────▶ Notification   (naming its Segment too, when it concerns one)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span)
 ```
 
-Five nouns the reviewer names, plus two the system needs: `Job` and
-`SpeakerProfile`.
+Five nouns the reviewer names, plus three the system needs: `Job`,
+`Notification` and `SpeakerProfile`.
 
 ---
 
@@ -156,6 +157,29 @@ two-year-old Recording still has all of these.
 **Stages within analysis are cached individually**, keyed on the Recording and
 the stage's own inputs, so a failure late in the pipeline does not re-transcribe
 three hours of audio. That caching is not a Job; it is Artifact reuse.
+
+---
+
+## Notification
+
+A record that something happened which a reviewer should know about. It exists
+whether or not any channel is configured, and delivering it is a separate act
+from raising it (`notifications/approval_notifications.feature`).
+
+| Field | Why it exists |
+| --- | --- |
+| `recording_id`, `segment_id` | The subject — "the Recording or Segment it concerns". Written the way `Artifact` writes it, Segment-scoped when the notification links to a Segment and Recording-scoped otherwise, rather than as one polymorphic reference: every Segment has a Recording, and "which Sunday was I never told about?" is the question this record exists to answer. |
+| `kind` | Why it was raised. Deliberately not a closed set — the scenarios raise notifications for eight different reasons without ever declaring the vocabulary, and naming one here would be inventing spec rather than recording it. |
+| `recipient` | Who it is for. There is one reviewer and no accounts (`interface/authentication.feature`), so this is the same actor seam every human action is recorded against, not a reference to a person the system stores. |
+| `summary` | What it says, in plain text. It states the recording date and the proposed length, and names each session when a Recording held more than one — so it is composed when the Notification is raised, not when a channel renders it. |
+| `created_at` | When it was raised. The reminder for a Segment left undispositioned for 3 days is measured from it. |
+| `state` | `pending`, `delivered`, `failed` or `suppressed`. A Recording that produced nothing publishable is recorded as `suppressed` rather than not recorded at all, which is what makes "why was I not told about that Sunday?" answerable without reading logs. |
+
+**Not stored:** delivery attempts, per-channel results, retry counts. The channel
+is undecided, the same Notification may be delivered by more than one of them,
+and no scenario gives those fields — so a retry belongs to the delivery
+behaviour rather than to this record. Nor does a reviewer's opting out live here:
+that is a property of the reviewer, and nothing yet models one.
 
 ---
 

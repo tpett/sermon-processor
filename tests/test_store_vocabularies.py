@@ -59,6 +59,7 @@ SPEC_VOCABULARIES = {
     "ARTIFACT_KINDS": (6, domain_field("Artifact", "kind")),
     "JOB_KINDS": (3, domain_field("Job", "kind")),
     "JOB_STATES": (5, domain_field("Job", "state")),
+    "NOTIFICATION_STATES": (4, domain_field("Notification", "state")),
 }
 
 
