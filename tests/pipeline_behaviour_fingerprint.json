@@ -88,6 +88,25 @@
    "t": 2995.2
   }
  ],
+ "audio.decode": [
+  [
+   "ffmpeg",
+   "-v",
+   "error",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0",
+   "-ar",
+   "16000",
+   "-ac",
+   "1",
+   "-f",
+   "s16le",
+   "-y",
+   "TMP/raw/a.partial"
+  ]
+ ],
  "audio.envelope": {
   "frames": 324000,
   "head": [

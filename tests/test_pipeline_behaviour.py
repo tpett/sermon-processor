@@ -641,6 +641,46 @@ def test_a_quiet_span_shorter_than_the_minimum_is_not_a_place_to_cut():
     ]
 
 
+class DecodesLikeFfmpeg:
+    def __init__(self, samples=b"\x01\x00\x02\x00"):
+        self.samples = samples
+        self.commands = []
+
+    def __call__(self, command, **options):
+        self.commands.append(list(command))
+        Path(command[-1]).write_bytes(self.samples)
+        return subprocess.CompletedProcess(command, 0)
+
+
+def test_decoding_builds_the_command_the_fingerprint_pins(
+    tmp_path, monkeypatch, expected
+):
+    audio = imports_moved("audio")
+    decoder = DecodesLikeFfmpeg()
+    monkeypatch.setattr(audio.subprocess, "run", decoder)
+    produced = audio.decode(Path("/src/a.flac"), tmp_path / "raw" / "a.raw")
+    assert produced.read_bytes() == decoder.samples
+    matches_the_fingerprint(expected, "audio.decode", [
+        [part.replace(str(tmp_path), "TMP") for part in command]
+        for command in decoder.commands
+    ])
+
+
+def test_an_uncached_envelope_is_decoded_once_and_kept_for_the_next_call(
+    tmp_path, monkeypatch
+):
+    audio = imports_moved("audio")
+    decoder = DecodesLikeFfmpeg(np.arange(1_600, dtype=np.int16).tobytes())
+    monkeypatch.setattr(audio.subprocess, "run", decoder)
+    work = tmp_path / "work"
+    first = audio.cached_envelope(Path("/src/a.flac"), work, 100, "tag")
+    assert len(decoder.commands) == 1
+    assert (work / "env" / "tag.100hz.npy").exists()
+    second = audio.cached_envelope(Path("/src/a.flac"), work, 100, "tag")
+    assert len(decoder.commands) == 1
+    assert second.tolist() == first.tolist()
+
+
 def test_decoding_reuses_an_output_that_is_already_there(tmp_path):
     audio = imports_moved("audio")
     already = tmp_path / "already.raw"
