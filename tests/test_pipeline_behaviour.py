@@ -68,6 +68,14 @@ def expected():
     return json.loads(FINGERPRINT.read_text())
 
 
+@pytest.fixture(autouse=True)
+def forgets_cached_edges():
+    cache = imports_moved("segments")._EDGE_CACHE
+    cache.clear()
+    yield
+    cache.clear()
+
+
 def matches_the_fingerprint(expected, key, found):
     assert key in expected, f"{key} is not in the fingerprint"
     assert renders_canonically(rounds(found)) == renders_canonically(rounds(expected[key]))
@@ -106,7 +114,6 @@ def undiarized(tmp_path):
 def rooted_segments(diarized, monkeypatch):
     segments = imports_moved("segments")
     monkeypatch.setattr(segments, "DATA_ROOT", diarized)
-    segments._EDGE_CACHE.clear()
     return segments
 
 
@@ -290,7 +297,6 @@ def test_candidate_edges_carry_the_union_of_transcript_and_speaker_edges(
         json.dumps({"turns": [{"start": 4.321, "end": 9.5}]})
     )
     monkeypatch.setattr(segments, "DATA_ROOT", root)
-    segments._EDGE_CACHE.clear()
     doc = {"recording_id": "rec1", "duration": 20.0,
            "utterances": [{"start": 1.0, "end": 2.0}]}
     assert segments.candidate_edges(doc) == [1.0, 2.0, 4.321, 9.5]
@@ -331,7 +337,6 @@ def test_the_edge_cache_keeps_the_root_it_first_read_for_a_recording(
     doc = {"recording_id": "rec1", "duration": 20.0,
            "utterances": [{"start": 1.0, "end": 2.0}]}
     monkeypatch.setattr(segments, "DATA_ROOT", root)
-    segments._EDGE_CACHE.clear()
     assert segments.candidate_edges(doc) == [1.0, 2.0, 4.321, 9.5]
     bare = tmp_path / "bare"
     (bare / "diarization").mkdir(parents=True)
@@ -970,7 +975,6 @@ def prompted(monkeypatch, diarized):
     monkeypatch.setattr(classify, "PROMPTS", PROMPTS)
     monkeypatch.setattr(classify, "DATA", diarized)
     monkeypatch.setattr(segments, "DATA_ROOT", diarized)
-    segments._EDGE_CACHE.clear()
     return classify
 
 
