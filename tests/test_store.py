@@ -129,7 +129,7 @@ def populated_recording():
         active_fraction=0.82,
         longest_active_seconds=3492.5,
         waiting_since=datetime(2026, 9, 13, 9, 30, tzinfo=UTC),
-        skip_reason="no local disk",
+        skip_reason="source no longer available",
     )
 
 

@@ -65,7 +65,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
-| `skip_reason` | Why a Recording that exists was not ingested. An object no Recording could be built for is a `SkippedObject` instead (`s3_reconciliation.feature`). |
+| `skip_reason` | **Fate open; `sp-8eh` owns it.** Nothing skips a *Recording* — all four skip reasons are `SkippedObject`'s. Four scenarios do give a Recording a reason string, of two characters: a flag ("no substantive content", `interface/discarding_recordings.feature`; "source no longer available", `operations/storage_and_retention.feature`) and a failure reason (`ingestion/recording_download.feature`, `interface/recording_detail.feature`). Whether this field becomes either is for the beads owning those to settle, not for this row to assume. |
 
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth
