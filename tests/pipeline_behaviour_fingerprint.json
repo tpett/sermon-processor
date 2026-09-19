@@ -1,0 +1,1478 @@
+{
+ "acoustic.find_pauses": [
+  {
+   "depth_db": 8.2,
+   "duration": 3.82,
+   "end": 2920.0,
+   "score": 64.75,
+   "start": 2916.18,
+   "step_db": 37.7
+  },
+  {
+   "depth_db": 5.3,
+   "duration": 3.44,
+   "end": 2720.0,
+   "score": 62.0,
+   "start": 2716.56,
+   "step_db": 37.8
+  },
+  {
+   "depth_db": 43.1,
+   "duration": 3.32,
+   "end": 2898.92,
+   "score": 43.1,
+   "start": 2895.6,
+   "step_db": -34.6
+  },
+  {
+   "depth_db": 40.4,
+   "duration": 2.67,
+   "end": 2538.27,
+   "score": 40.4,
+   "start": 2535.6,
+   "step_db": -35.9
+  }
+ ],
+ "acoustic.level_rise": {
+  "count": 60000,
+  "top": [
+   {
+    "step": 26.706,
+    "t": 2720.0
+   },
+   {
+    "step": 26.702,
+    "t": 2720.01
+   },
+   {
+    "step": 26.699,
+    "t": 2720.02
+   },
+   {
+    "step": 26.695,
+    "t": 2720.03
+   },
+   {
+    "step": 26.694,
+    "t": 2719.99
+   }
+  ]
+ },
+ "acoustic.punch_out_candidates": [
+  {
+   "depth_db": 43.1,
+   "rise_db": 19.9,
+   "rise_t": 2920.0,
+   "score": 32.85,
+   "t": 2898.92
+  },
+  {
+   "depth_db": 5.3,
+   "rise_db": 26.7,
+   "rise_t": 2720.0,
+   "score": 28.3,
+   "t": 2720.0
+  },
+  {
+   "depth_db": 0.0,
+   "rise_db": 10.4,
+   "rise_t": 2595.6,
+   "score": 10.44,
+   "t": 2595.6
+  },
+  {
+   "depth_db": 0.0,
+   "rise_db": 0.3,
+   "rise_t": 2995.2,
+   "score": 0.33,
+   "t": 2995.2
+  }
+ ],
+ "audio.decode": [
+  [
+   "ffmpeg",
+   "-v",
+   "error",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0",
+   "-ar",
+   "16000",
+   "-ac",
+   "1",
+   "-f",
+   "s16le",
+   "-y",
+   "TMP/raw/a.partial"
+  ]
+ ],
+ "audio.envelope": {
+  "frames": 324000,
+  "head": [
+   26.0,
+   26.0,
+   27.0,
+   27.0,
+   27.0,
+   28.0,
+   28.0,
+   28.0
+  ],
+  "percentiles": [
+   25.0,
+   2991.0,
+   3564.0,
+   3985.0,
+   6979.0
+  ]
+ },
+ "audio.ncc": {
+  "best": 1.0,
+  "length": 114001,
+  "offset": 61000,
+  "ratio_exceeds": true
+ },
+ "audio.quiet": {
+  "quiet_frames": 56399,
+  "runs": [
+   {
+    "end": 4.0,
+    "start": 0.0
+   },
+   {
+    "end": 190.0,
+    "start": 166.4
+   },
+   {
+    "end": 440.0,
+    "start": 418.4
+   },
+   {
+    "end": 600.0,
+    "start": 567.2
+   },
+   {
+    "end": 2560.0,
+    "start": 2535.6
+   },
+   {
+    "end": 2720.0,
+    "start": 2696.0
+   },
+   {
+    "end": 2920.0,
+    "start": 2895.6
+   },
+   {
+    "end": 3240.0,
+    "start": 3095.6
+   }
+  ],
+  "threshold": -38.299
+ },
+ "blocks.candidates.class": [
+  {
+   "end": 98.6,
+   "speech_end": 87.2,
+   "speech_start": 4.0,
+   "start": 0.0,
+   "stats": {
+    "avg_logprob": -0.21,
+    "duration": 98.6,
+    "no_speech_prob": 0.01,
+    "speech_frac": 0.771,
+    "words": 209,
+    "words_per_min": 127.181
+   },
+   "text": "dbbb7cf9d492fbf12b3949572db9db3a",
+   "utterances": 19
+  },
+  {
+   "end": 208.8,
+   "speech_end": 197.6,
+   "speech_start": 110.0,
+   "start": 98.6,
+   "stats": {
+    "avg_logprob": -0.24,
+    "duration": 110.2,
+    "no_speech_prob": 0.02,
+    "speech_frac": 0.726,
+    "words": 160,
+    "words_per_min": 87.114
+   },
+   "text": "c757b47acad898564c153329c53ed160",
+   "utterances": 20
+  },
+  {
+   "end": 1908.0,
+   "speech_end": 1896.0,
+   "speech_start": 220.0,
+   "start": 208.8,
+   "stats": {
+    "avg_logprob": -0.19,
+    "duration": 1699.2,
+    "no_speech_prob": 0.01,
+    "speech_frac": 0.897,
+    "words": 3048,
+    "words_per_min": 107.627
+   },
+   "text": "6afd28844443af8a6faecb68559445b6",
+   "utterances": 381
+  },
+  {
+   "end": 2400.0,
+   "speech_end": 2298.0,
+   "speech_start": 1920.0,
+   "start": 1908.0,
+   "stats": {
+    "avg_logprob": -0.26,
+    "duration": 492.0,
+    "no_speech_prob": 0.03,
+    "speech_frac": 0.699,
+    "words": 774,
+    "words_per_min": 94.39
+   },
+   "text": "72c6e75634bbb9a64d9034405289fee2",
+   "utterances": 86
+  }
+ ],
+ "blocks.candidates.service": [
+  {
+   "end": 178.2,
+   "speech_end": 166.4,
+   "speech_start": 4.0,
+   "start": 0.0,
+   "stats": {
+    "avg_logprob": -0.2,
+    "duration": 178.2,
+    "no_speech_prob": 0.01,
+    "speech_frac": 0.831,
+    "words": 407,
+    "words_per_min": 137.037
+   },
+   "text": "bb8b8911d9aec7fe944f2580c88f6a47",
+   "utterances": 37
+  },
+  {
+   "end": 429.2,
+   "speech_end": 418.4,
+   "speech_start": 190.0,
+   "start": 178.2,
+   "stats": {
+    "avg_logprob": -0.8,
+    "duration": 251.0,
+    "no_speech_prob": 0.5,
+    "speech_frac": 0.829,
+    "words": 104,
+    "words_per_min": 24.861
+   },
+   "text": "9fa5f58d6fe3a5a2572fe1f47c313265",
+   "utterances": 52
+  },
+  {
+   "end": 583.6,
+   "speech_end": 567.2,
+   "speech_start": 440.0,
+   "start": 429.2,
+   "stats": {
+    "avg_logprob": -0.22,
+    "duration": 154.4,
+    "no_speech_prob": 0.02,
+    "speech_frac": 0.751,
+    "words": 290,
+    "words_per_min": 112.694
+   },
+   "text": "e7f148b820c935e6abf2a6a38788fdd8",
+   "utterances": 29
+  },
+  {
+   "end": 2547.8,
+   "speech_end": 2535.6,
+   "speech_start": 600.0,
+   "start": 583.6,
+   "stats": {
+    "avg_logprob": -0.18,
+    "duration": 1964.2,
+    "no_speech_prob": 0.01,
+    "speech_frac": 0.896,
+    "words": 3960,
+    "words_per_min": 120.965
+   },
+   "text": "3ad3a30dd3b2c536a74fe8e2a9963281",
+   "utterances": 440
+  },
+  {
+   "end": 2708.0,
+   "speech_end": 2696.0,
+   "speech_start": 2560.0,
+   "start": 2547.8,
+   "stats": {
+    "avg_logprob": -0.25,
+    "duration": 160.2,
+    "no_speech_prob": 0.02,
+    "speech_frac": 0.774,
+    "words": 248,
+    "words_per_min": 92.884
+   },
+   "text": "377d8b55d5003ac28b8fcb6406280039",
+   "utterances": 31
+  },
+  {
+   "end": 2907.8,
+   "speech_end": 2895.6,
+   "speech_start": 2720.0,
+   "start": 2708.0,
+   "stats": {
+    "avg_logprob": -0.22,
+    "duration": 199.8,
+    "no_speech_prob": 0.02,
+    "speech_frac": 0.801,
+    "words": 400,
+    "words_per_min": 120.12
+   },
+   "text": "f29a5eaa0bba7a225b8bfe5fb06fa75d",
+   "utterances": 40
+  },
+  {
+   "end": 3240.0,
+   "speech_end": 3095.6,
+   "speech_start": 2920.0,
+   "start": 2907.8,
+   "stats": {
+    "avg_logprob": -0.82,
+    "duration": 332.2,
+    "no_speech_prob": 0.55,
+    "speech_frac": 0.482,
+    "words": 80,
+    "words_per_min": 14.449
+   },
+   "text": "60c6df3652fa0b7c95c39e3cfc926905",
+   "utterances": 40
+  }
+ ],
+ "classify.coerce_blocks": [
+  {
+   "confidence": 0.9,
+   "end": 200.0,
+   "evidence": "runs off the front of the recording",
+   "start": 0.0,
+   "type": "announcements"
+  },
+  {
+   "confidence": 0.5,
+   "end": 430.0,
+   "evidence": "overlaps the block before it",
+   "start": 200.0,
+   "type": "music"
+  },
+  {
+   "confidence": 0.95,
+   "end": 2550.0,
+   "evidence": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "start": 588.0,
+   "type": "sermon"
+  },
+  {
+   "confidence": 0.7,
+   "end": 3240.0,
+   "evidence": "runs off the end of the recording",
+   "start": 3000.0,
+   "type": "music"
+  }
+ ],
+ "classify.ollama.thinking": [
+  {
+   "model": "a-model",
+   "options": {
+    "num_ctx": 40960,
+    "num_predict": 16384,
+    "seed": 0,
+    "temperature": 0
+   },
+   "prompt": "ask",
+   "stream": false,
+   "think": true
+  }
+ ],
+ "classify.ollama.unthinking": [
+  {
+   "format": "json",
+   "model": "a-model",
+   "options": {
+    "num_ctx": 40960,
+    "num_predict": 8192,
+    "seed": 0,
+    "temperature": 0
+   },
+   "prompt": "ask",
+   "stream": false,
+   "think": false
+  }
+ ],
+ "classify.render_transcript.class": {
+  "digest": "aa0880de8d44609b26a5343eb87f02ff",
+  "head": [
+   "[4.0] Good morning, we are going to get started in about a",
+   "[8.4] As you take your seats, grab a handout from the stack",
+   "[12.8] This is week four of the theological equipping class. This is"
+  ],
+  "lines": 509,
+  "silences": 3
+ },
+ "classify.render_transcript.service": {
+  "digest": "b0d194c4f2f5985de745cffff3856fb1",
+  "head": [
+   "[4.0] Good morning and welcome to Reformation Church. Next Sunday the elders",
+   "[8.4] We have a few announcements before we begin our service together.",
+   "[12.8] Next Sunday the elders will host a members meeting after the"
+  ],
+  "lines": 675,
+  "silences": 6
+ },
+ "classify.run_perblock": {
+  "produced": {
+   "blocks": [
+    {
+     "confidence": 0.8,
+     "end": 178.2,
+     "evidence": "teaching",
+     "start": 0.0,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 429.2,
+     "evidence": "teaching",
+     "start": 178.2,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 583.6,
+     "evidence": "teaching",
+     "start": 429.2,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 2547.8,
+     "evidence": "teaching",
+     "start": 583.6,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 2708.0,
+     "evidence": "teaching",
+     "start": 2547.8,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 2907.8,
+     "evidence": "teaching",
+     "start": 2708.0,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 3240.0,
+     "evidence": "teaching",
+     "start": 2907.8,
+     "type": "sermon"
+    }
+   ],
+   "repairs": 0,
+   "segments": [
+    {
+     "classification": "sermon",
+     "confidence": 0.8,
+     "punch_in": 4.0,
+     "punch_out": 2687.2
+    }
+   ],
+   "status": "ok"
+  },
+  "prompts": [
+   {
+    "characters": 4015,
+    "digest": "209962acd77549a494238eb4408286c9",
+    "model": "a-model",
+    "think": false
+   },
+   {
+    "characters": 2259,
+    "digest": "fc6d29e38067d25e971b8eb5f0f82814",
+    "model": "a-model",
+    "think": false
+   },
+   {
+    "characters": 3071,
+    "digest": "bf9cb9018d4d3499051589649da21a7f",
+    "model": "a-model",
+    "think": false
+   },
+   {
+    "characters": 13747,
+    "digest": "9a6d5a6ad6ff2b95ac362dfdcd98d876",
+    "model": "a-model",
+    "think": false
+   },
+   {
+    "characters": 3000,
+    "digest": "22c2c5e69fba119126e11ca3ea267dab",
+    "model": "a-model",
+    "think": false
+   },
+   {
+    "characters": 3869,
+    "digest": "7ae46ef2eaa4d676b10b9c0dc5dbdf3b",
+    "model": "a-model",
+    "think": false
+   },
+   {
+    "characters": 2191,
+    "digest": "f92fdb74f66ad0933f9fa664fe5e7888",
+    "model": "a-model",
+    "think": false
+   }
+  ]
+ },
+ "classify.run_structured": {
+  "produced": {
+   "blocks": [
+    {
+     "confidence": 0.5,
+     "end": 190.0,
+     "evidence": "",
+     "speaker": "S0",
+     "start": 0.0,
+     "type": "other"
+    },
+    {
+     "confidence": 0.5,
+     "end": 440.0,
+     "evidence": "",
+     "speaker": "S1",
+     "start": 190.0,
+     "type": "other"
+    },
+    {
+     "confidence": 0.5,
+     "end": 600.0,
+     "evidence": "",
+     "speaker": "S2",
+     "start": 440.0,
+     "type": "other"
+    },
+    {
+     "confidence": 0.95,
+     "end": 2720.0,
+     "evidence": "the teaching",
+     "speaker": "S3",
+     "start": 600.0,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.5,
+     "end": 2920.0,
+     "evidence": "",
+     "speaker": "S4",
+     "start": 2720.0,
+     "type": "other"
+    },
+    {
+     "confidence": 0.5,
+     "end": 3240.0,
+     "evidence": "",
+     "speaker": "S1",
+     "start": 2920.0,
+     "type": "other"
+    }
+   ],
+   "model_segments": [
+    {
+     "punch_in": 600.0,
+     "punch_out": 2700.0
+    }
+   ],
+   "repairs": 0,
+   "segments": [
+    {
+     "classification": "sermon",
+     "confidence": 0.95,
+     "punch_in": 815.6,
+     "punch_out": 2687.2
+    }
+   ],
+   "status": "ok"
+  },
+  "prompts": [
+   {
+    "characters": 6528,
+    "digest": "8b2f972ad59aebf6ab2dfd0bffdef9c2",
+    "model": "a-model",
+    "think": false
+   }
+  ]
+ },
+ "classify.run_whole": {
+  "produced": {
+   "blocks": [
+    {
+     "confidence": 0.9,
+     "end": 180.0,
+     "evidence": "welcome and notices",
+     "start": 0.0,
+     "type": "announcements"
+    },
+    {
+     "confidence": 0.8,
+     "end": 430.0,
+     "evidence": "congregational singing",
+     "start": 180.0,
+     "type": "music"
+    },
+    {
+     "confidence": 0.85,
+     "end": 588.0,
+     "evidence": "the reading from Romans",
+     "start": 430.0,
+     "type": "scripture_reading"
+    },
+    {
+     "confidence": 0.95,
+     "end": 1200.0,
+     "evidence": "teaching, first half",
+     "start": 588.0,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.9,
+     "end": 2550.0,
+     "evidence": "teaching, second half",
+     "start": 1200.0,
+     "type": "sermon"
+    },
+    {
+     "confidence": 0.8,
+     "end": 2710.0,
+     "evidence": "the closing prayer",
+     "start": 2550.0,
+     "type": "prayer"
+    },
+    {
+     "confidence": 0.85,
+     "end": 2910.0,
+     "evidence": "the invitation to the table",
+     "start": 2710.0,
+     "type": "communion"
+    },
+    {
+     "confidence": 0.7,
+     "end": 3240.0,
+     "evidence": "the closing song",
+     "start": 2910.0,
+     "type": "music"
+    }
+   ],
+   "derived_segments": [
+    {
+     "classification": "sermon",
+     "confidence": 0.95,
+     "punch_in": 815.6,
+     "punch_out": 2687.2
+    }
+   ],
+   "model_segments": [
+    {
+     "punch_in": 590.0,
+     "punch_out": 2700.0
+    }
+   ],
+   "repairs": 0,
+   "segments": [
+    {
+     "boundary_source": "model-in/refined-out",
+     "classification": "sermon",
+     "confidence": 0.95,
+     "punch_in": 590.0,
+     "punch_out": 2687.2
+    }
+   ],
+   "status": "ok"
+  },
+  "prompts": [
+   {
+    "characters": 37023,
+    "digest": "88be7046e284bb39ea06d323e73bb8f7",
+    "model": "a-model",
+    "think": false
+   }
+  ]
+ },
+ "constants": {
+  "acoustic": {
+   "CONTEXT_S": "25.0",
+   "HZ": "100",
+   "LONG_W_S": "60.0",
+   "MIN_DIP_DB": "15.0",
+   "MIN_PAUSE_S": "0.6",
+   "SNAP_W_S": "25.0"
+  },
+  "audio": {
+   "SR": "16000"
+  },
+  "blocks": {
+   "GAP_S": "12.0",
+   "MIN_BLOCK_S": "60.0"
+  },
+  "classify": {
+   "MAX_REPAIRS": "2",
+   "OLLAMA": "'http://localhost:11434/api/generate'",
+   "RECORDING_BUDGET_S": "900",
+   "TIMEOUT_S": "900"
+  },
+  "cues": {
+   "ANNOUNCEMENTS": "['good morning and welcome', 'welcome to', 'a few announcements', 'couple of announcements', 'this week', 'next sunday', 'sign up', \"if you're new\", 'if you are new', 'guest table']",
+   "COMMUNION": "['invite you to join us', 'visitor with us', 'guest with us', 'come to the table', \"the lord's supper\", 'lords supper', 'serve communion', 'take communion', 'communion', 'elders will be coming', 'bread and the cup']",
+   "COMMUNION_INVITATION": "['visitor with us', 'guest with us', 'visitors with us', 'visiting with us', \"if you're visiting\", 'if you are visiting', 'invite you to partake', 'invite you to join us', 'if you have trusted christ', \"if you've trusted christ\", 'obedient to his command to be baptized']",
+   "GREETING_OPENERS": "['good morning', 'if you have your bible', 'turn with me', 'pick up where we left off', 'let me pray for us']",
+   "PRAYER": "['let us pray', \"let's pray\", 'would you pray with me', 'pray with me', 'father we thank you', 'father, we thank you', 'heavenly father', 'in jesus name', \"in jesus' name\", 'amen']",
+   "PREAMBLE": "['good morning', 'good evening', 'morning everyone', 'hey everyone', \"we're going to get started\", 'we are going to get started', \"we'll get started\", 'we will get started', 'going to get going', 'in about a minute', 'in about two minutes', 'in a minute or two', 'as you take your seats', \"if you'll take your seats\", 'grab a seat', \"let's go ahead and get started\", \"why don't we get started\"]",
+   "QA": "['any questions', 'are there any questions', 'questions before we', 'what questions', \"let's have some questions\", 'lets have some questions', 'raise your hand', 'yes, in the back']",
+   "SCRIPTURE": "['scripture reading', 'our reading', 'the reading this morning', 'turn with me', 'turn in your bible', 'open your bible', 'hear now the word', 'this is the word of the lord', 'reading comes from', 'comes from the book of', 'beginning at verse', 'follow along as i read', 'listen to the word']",
+   "VERSION": "'cues.v4'"
+  },
+  "features": {
+   "MIN_BLOCK_S": "45.0",
+   "SNAP_WINDOW_S": "20.0"
+  },
+  "render": {
+   "FADE_S": "0.02",
+   "LAME_Q": "3",
+   "TARGET_I": "-16.0",
+   "TARGET_LRA": "11.0",
+   "TARGET_TP": "-1.5"
+  },
+  "rules": {
+   "MUSIC_MAX_LOGPROB": "-0.55",
+   "MUSIC_MAX_WPM": "55",
+   "TEACH_MIN_S": "900",
+   "TEACH_MIN_WPM": "90"
+  },
+  "segments": {
+   "AMEN_FALLBACK_MAX_S": "120.0",
+   "AMEN_LOOKBACK_S": "150.0",
+   "CUE_WINDOW_S": "240.0",
+   "LESSON_LEAD_IN": "{'announcements', 'other', 'prayer'}",
+   "LOOKAHEAD_S": "420.0",
+   "LOOKBACK_S": "0.0",
+   "PLAUSIBLE_MAX_S": "4500",
+   "PLAUSIBLE_MIN_S": "1800",
+   "PREAMBLE_GAP_S": "20.0",
+   "PREAMBLE_MAX_WORDS": "8",
+   "SPEAKER_SNAP_S": "4.0",
+   "TAIL_GUARD_S": "0.4",
+   "TAIL_S": "1.5"
+  }
+ },
+ "constants.unread": [
+  "cues.GREETING_OPENERS",
+  "cues.PREAMBLE",
+  "cues.VERSION",
+  "segments.PREAMBLE_GAP_S",
+  "segments.PREAMBLE_MAX_WORDS",
+  "segments.SPEAKER_SNAP_S"
+ ],
+ "cues.lists": {
+  "ANNOUNCEMENTS": [
+   "good morning and welcome",
+   "welcome to",
+   "a few announcements",
+   "couple of announcements",
+   "this week",
+   "next sunday",
+   "sign up",
+   "if you're new",
+   "if you are new",
+   "guest table"
+  ],
+  "COMMUNION": [
+   "invite you to join us",
+   "visitor with us",
+   "guest with us",
+   "come to the table",
+   "the lord's supper",
+   "lords supper",
+   "serve communion",
+   "take communion",
+   "communion",
+   "elders will be coming",
+   "bread and the cup"
+  ],
+  "COMMUNION_INVITATION": [
+   "visitor with us",
+   "guest with us",
+   "visitors with us",
+   "visiting with us",
+   "if you're visiting",
+   "if you are visiting",
+   "invite you to partake",
+   "invite you to join us",
+   "if you have trusted christ",
+   "if you've trusted christ",
+   "obedient to his command to be baptized"
+  ],
+  "GREETING_OPENERS": [
+   "good morning",
+   "if you have your bible",
+   "turn with me",
+   "pick up where we left off",
+   "let me pray for us"
+  ],
+  "PRAYER": [
+   "let us pray",
+   "let's pray",
+   "would you pray with me",
+   "pray with me",
+   "father we thank you",
+   "father, we thank you",
+   "heavenly father",
+   "in jesus name",
+   "in jesus' name",
+   "amen"
+  ],
+  "PREAMBLE": [
+   "good morning",
+   "good evening",
+   "morning everyone",
+   "hey everyone",
+   "we're going to get started",
+   "we are going to get started",
+   "we'll get started",
+   "we will get started",
+   "going to get going",
+   "in about a minute",
+   "in about two minutes",
+   "in a minute or two",
+   "as you take your seats",
+   "if you'll take your seats",
+   "grab a seat",
+   "let's go ahead and get started",
+   "why don't we get started"
+  ],
+  "QA": [
+   "any questions",
+   "are there any questions",
+   "questions before we",
+   "what questions",
+   "let's have some questions",
+   "lets have some questions",
+   "raise your hand",
+   "yes, in the back"
+  ],
+  "SCRIPTURE": [
+   "scripture reading",
+   "our reading",
+   "the reading this morning",
+   "turn with me",
+   "turn in your bible",
+   "open your bible",
+   "hear now the word",
+   "this is the word of the lord",
+   "reading comes from",
+   "comes from the book of",
+   "beginning at verse",
+   "follow along as i read",
+   "listen to the word"
+  ],
+  "version": "cues.v4"
+ },
+ "features.table.class": {
+  "blocks": [
+   {
+    "end": 220.0,
+    "speaker": "S0",
+    "start": 0.0,
+    "utterances": 39
+   },
+   {
+    "end": 1920.0,
+    "speaker": "S1",
+    "start": 220.0,
+    "utterances": 381
+   },
+   {
+    "end": 2400.0,
+    "speaker": "S2",
+    "start": 1920.0,
+    "utterances": 86
+   }
+  ],
+  "described": [
+   {
+    "closes": " begin the lesson Father, we thank you for the chance to Heavenly Father, give us clear minds for this Let us pray before we begin the lesson Father, we thank you for the chance to",
+    "communion": 0,
+    "duration": 220.0,
+    "end": 220.0,
+    "likely_music": false,
+    "logprob": -0.225,
+    "no_speech": 0.015,
+    "opens": "Good morning, we are going to get started in about a As you take your seats, grab a handout from the stack This is week four of the theological equipping class. This is Good mornin",
+    "prayer": 3,
+    "qa": 0,
+    "scripture": 0,
+    "speaker": "S0",
+    "start": 0.0,
+    "wall": "9:00 AM",
+    "words": 369,
+    "wpm": 100.636
+   },
+   {
+    "closes": "aks by negation first, saying He is not composed of parts, because anything He is not in time the way we And he is not changed by what he Hold those three together and a great deal",
+    "communion": 0,
+    "duration": 1700.0,
+    "end": 1920.0,
+    "likely_music": false,
+    "logprob": -0.19,
+    "no_speech": 0.01,
+    "opens": "Last week we finished the section on the The doctrine we are after this morning is God is not one being among others, he Every category you bring to him is a So the tradition speak",
+    "prayer": 0,
+    "qa": 0,
+    "scripture": 0,
+    "speaker": "S1",
+    "start": 220.0,
+    "wall": "9:03 AM",
+    "words": 3048,
+    "wpm": 107.576
+   },
+   {
+    "closes": " Raise your hand if you want me to go Let's have some questions on the reading for next Alright, are there any questions before we close for Yes, in the back, go ahead. Yes, in the",
+    "communion": 0,
+    "duration": 480.0,
+    "end": 2400.0,
+    "likely_music": false,
+    "logprob": -0.26,
+    "no_speech": 0.03,
+    "opens": "Alright, are there any questions before we close for Yes, in the back, go ahead. Yes, in the That is a good question, and the short answer What questions do the rest of you have ab",
+    "prayer": 0,
+    "qa": 7,
+    "scripture": 0,
+    "speaker": "S2",
+    "start": 1920.0,
+    "wall": "9:32 AM",
+    "words": 774,
+    "wpm": 96.75
+   }
+  ],
+  "table": {
+   "characters": 1560,
+   "digest": "f57e3b0ce7b583e7c4218ee6f748f5d2"
+  }
+ },
+ "features.table.service": {
+  "blocks": [
+   {
+    "end": 190.0,
+    "speaker": "S0",
+    "start": 0.0,
+    "utterances": 37
+   },
+   {
+    "end": 440.0,
+    "speaker": "S1",
+    "start": 190.0,
+    "utterances": 52
+   },
+   {
+    "end": 600.0,
+    "speaker": "S2",
+    "start": 440.0,
+    "utterances": 29
+   },
+   {
+    "end": 2720.0,
+    "speaker": "S3",
+    "start": 600.0,
+    "utterances": 471
+   },
+   {
+    "end": 2920.0,
+    "speaker": "S4",
+    "start": 2720.0,
+    "utterances": 40
+   },
+   {
+    "end": 3240.0,
+    "speaker": "S1",
+    "start": 2920.0,
+    "utterances": 40
+   }
+  ],
+  "described": [
+   {
+    "closes": " in the lobby for the spring service day on Good morning and welcome to Reformation Church. Next Sunday the elders We have a few announcements before we begin our service together.",
+    "communion": 0,
+    "duration": 190.0,
+    "end": 190.0,
+    "likely_music": false,
+    "logprob": -0.2,
+    "no_speech": 0.01,
+    "opens": "Good morning and welcome to Reformation Church. Next Sunday the elders We have a few announcements before we begin our service together. Next Sunday the elders will host a members ",
+    "prayer": 0,
+    "qa": 0,
+    "scripture": 0,
+    "speaker": "S0",
+    "start": 0.0,
+    "wall": "10:00 AM",
+    "words": 407,
+    "wpm": 128.526
+   },
+   {
+    "closes": " Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy",
+    "communion": 0,
+    "duration": 250.0,
+    "end": 440.0,
+    "likely_music": true,
+    "logprob": -0.8,
+    "no_speech": 0.5,
+    "opens": "Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in Holy holy Early in Perfect in ",
+    "prayer": 0,
+    "qa": 0,
+    "scripture": 0,
+    "speaker": "S1",
+    "start": 190.0,
+    "wall": "10:03 AM",
+    "words": 104,
+    "wpm": 24.96
+   },
+   {
+    "closes": "with me in your Bible to the book of Our reading this morning comes from the book of Romans Hear now the word of the Lord as I read Follow along as I read beginning at verse one of",
+    "communion": 0,
+    "duration": 160.0,
+    "end": 600.0,
+    "likely_music": false,
+    "logprob": -0.22,
+    "no_speech": 0.02,
+    "opens": "Turn with me in your Bible to the book of Our reading this morning comes from the book of Romans Hear now the word of the Lord as I read Follow along as I read beginning at verse o",
+    "prayer": 0,
+    "qa": 0,
+    "scripture": 7,
+    "speaker": "S2",
+    "start": 440.0,
+    "wall": "10:07 AM",
+    "words": 290,
+    "wpm": 108.75
+   },
+   {
+    "closes": " out this week in In Jesus' name, amen. In Jesus' name, amen. Let us pray. In Jesus' name, amen. In Father, we thank you for this word and Heavenly Father, send us out this week in",
+    "communion": 0,
+    "duration": 2120.0,
+    "end": 2720.0,
+    "likely_music": false,
+    "logprob": -0.185,
+    "no_speech": 0.011,
+    "opens": "So turn with me again and look at what The whole weight of the passage rests on a He has spent seven chapters building a case, and There is no condemnation, and that is not a A ver",
+    "prayer": 5,
+    "qa": 0,
+    "scripture": 1,
+    "speaker": "S3",
+    "start": 600.0,
+    "wall": "10:10 AM",
+    "words": 4208,
+    "wpm": 119.094
+   },
+   {
+    "closes": "s this morning, we The elders will be coming forward in a moment with If you have trusted Christ and been baptized, come to This is the Lord's Supper and we take communion together",
+    "communion": 5,
+    "duration": 200.0,
+    "end": 2920.0,
+    "likely_music": false,
+    "logprob": -0.22,
+    "no_speech": 0.02,
+    "opens": "Well, if you're a visitor with us this morning, we The elders will be coming forward in a moment with If you have trusted Christ and been baptized, come to This is the Lord's Suppe",
+    "prayer": 0,
+    "qa": 0,
+    "scripture": 0,
+    "speaker": "S4",
+    "start": 2720.0,
+    "wall": "10:45 AM",
+    "words": 400,
+    "wpm": 120.0
+   },
+   {
+    "closes": " him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him",
+    "communion": 0,
+    "duration": 320.0,
+    "end": 3240.0,
+    "likely_music": true,
+    "logprob": -0.82,
+    "no_speech": 0.55,
+    "opens": "Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Praise God Praise him Prai",
+    "prayer": 0,
+    "qa": 0,
+    "scripture": 0,
+    "speaker": "S1",
+    "start": 2920.0,
+    "wall": "10:48 AM",
+    "words": 80,
+    "wpm": 15.0
+   }
+  ],
+  "table": {
+   "characters": 3271,
+   "digest": "40df5acc51a5a7ffeadc735e4a82e6c7"
+  }
+ },
+ "render.measure": [
+  [
+   "ffmpeg",
+   "-v",
+   "info",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0,loudnorm=I=-16.0:TP=-1.5:LRA=11.0:print_format=json",
+   "-f",
+   "null",
+   "-"
+  ]
+ ],
+ "render.probe_format": {
+  "command": null,
+  "probed": {
+   "channels": 1,
+   "duration": 3600.123,
+   "kbps": 101,
+   "mb": 45.679,
+   "sr": "44100"
+  }
+ },
+ "render.probe_loudness": {
+  "I": -16.1,
+  "LRA": 7.3,
+  "Peak": -1.6
+ },
+ "render.render.flat-faded": [
+  [
+   "ffmpeg",
+   "-v",
+   "error",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0,afade=t=in:st=0:d=0.02,afade=t=out:st=3599.980:d=0.02",
+   "-c:a",
+   "libmp3lame",
+   "-q:a",
+   "3",
+   "-ar",
+   "44100",
+   "-ac",
+   "1",
+   "-y",
+   "TMP/out/a.mp3"
+  ]
+ ],
+ "render.render.flat-hard": [
+  [
+   "ffmpeg",
+   "-v",
+   "error",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0",
+   "-c:a",
+   "libmp3lame",
+   "-q:a",
+   "3",
+   "-ar",
+   "44100",
+   "-ac",
+   "1",
+   "-y",
+   "TMP/out/a.mp3"
+  ]
+ ],
+ "render.render.loud-faded": [
+  [
+   "ffmpeg",
+   "-v",
+   "info",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0,loudnorm=I=-16.0:TP=-1.5:LRA=11.0:print_format=json",
+   "-f",
+   "null",
+   "-"
+  ],
+  [
+   "ffmpeg",
+   "-v",
+   "error",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0,loudnorm=I=-16.0:TP=-1.5:LRA=11.0:measured_I=-23.10:measured_TP=-6.20:measured_LRA=9.40:measured_thresh=-33.30:offset=0.30:linear=true:print_format=summary,afade=t=in:st=0:d=0.02,afade=t=out:st=3599.980:d=0.02",
+   "-c:a",
+   "libmp3lame",
+   "-q:a",
+   "3",
+   "-ar",
+   "44100",
+   "-ac",
+   "1",
+   "-y",
+   "TMP/out/a.mp3"
+  ]
+ ],
+ "render.render.loud-hard": [
+  [
+   "ffmpeg",
+   "-v",
+   "info",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0,loudnorm=I=-16.0:TP=-1.5:LRA=11.0:print_format=json",
+   "-f",
+   "null",
+   "-"
+  ],
+  [
+   "ffmpeg",
+   "-v",
+   "error",
+   "-nostats",
+   "-ss",
+   "12.500",
+   "-t",
+   "3600.000",
+   "-i",
+   "/src/a.flac",
+   "-af",
+   "pan=mono|c0=c0,loudnorm=I=-16.0:TP=-1.5:LRA=11.0:measured_I=-23.10:measured_TP=-6.20:measured_LRA=9.40:measured_thresh=-33.30:offset=0.30:linear=true:print_format=summary",
+   "-c:a",
+   "libmp3lame",
+   "-q:a",
+   "3",
+   "-ar",
+   "44100",
+   "-ac",
+   "1",
+   "-y",
+   "TMP/out/a.mp3"
+  ]
+ ],
+ "rules.run.class": {
+  "blocks": [
+   {
+    "confidence": 0.3,
+    "end": 98.6,
+    "evidence": "2 min, 127 wpm, no clear cue",
+    "start": 0.0,
+    "type": "other"
+   },
+   {
+    "confidence": 0.5,
+    "end": 208.8,
+    "evidence": "prayer phrasing",
+    "start": 98.6,
+    "type": "prayer"
+   },
+   {
+    "confidence": 0.6,
+    "end": 1908.0,
+    "evidence": "sustained teaching, 28 min at 108 wpm; followed by questions",
+    "start": 208.8,
+    "type": "lesson"
+   },
+   {
+    "confidence": 0.5,
+    "end": 2400.0,
+    "evidence": "question-and-answer phrasing",
+    "start": 1908.0,
+    "type": "qa"
+   }
+  ],
+  "segments": [
+   {
+    "classification": "lesson",
+    "confidence": 0.6,
+    "punch_in": 220.0,
+    "punch_out": 1896.0
+   }
+  ]
+ },
+ "rules.run.service": {
+  "blocks": [
+   {
+    "confidence": 0.5,
+    "end": 178.2,
+    "evidence": "welcome and notices phrasing",
+    "start": 0.0,
+    "type": "announcements"
+   },
+   {
+    "confidence": 0.6,
+    "end": 429.2,
+    "evidence": "sparse or low-confidence speech (25 wpm)",
+    "start": 178.2,
+    "type": "music"
+   },
+   {
+    "confidence": 0.5,
+    "end": 583.6,
+    "evidence": "scripture reading phrasing",
+    "start": 429.2,
+    "type": "scripture_reading"
+   },
+   {
+    "confidence": 0.6,
+    "end": 2547.8,
+    "evidence": "sustained teaching, 33 min at 121 wpm",
+    "start": 583.6,
+    "type": "sermon"
+   },
+   {
+    "confidence": 0.5,
+    "end": 2708.0,
+    "evidence": "prayer phrasing",
+    "start": 2547.8,
+    "type": "prayer"
+   },
+   {
+    "confidence": 0.6,
+    "end": 2907.8,
+    "evidence": "communion invitation phrasing",
+    "start": 2708.0,
+    "type": "communion"
+   },
+   {
+    "confidence": 0.6,
+    "end": 3240.0,
+    "evidence": "sparse or low-confidence speech (14 wpm)",
+    "start": 2907.8,
+    "type": "music"
+   }
+  ],
+  "segments": [
+   {
+    "classification": "sermon",
+    "confidence": 0.6,
+    "punch_in": 956.4,
+    "punch_out": 2687.2
+   }
+  ]
+ },
+ "segments.derive.refined.class": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.92,
+    "punch_in": 0.0,
+    "punch_out": 1897.5
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.92,
+    "punch_in": 4.0,
+    "punch_out": 1897.5
+   }
+  ]
+ },
+ "segments.derive.refined.service": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 590.0,
+    "punch_out": 2687.2
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 815.6,
+    "punch_out": 2687.2
+   }
+  ]
+ },
+ "segments.derive.unrefined.class": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "lesson",
+    "confidence": 0.92,
+    "punch_in": 0.0,
+    "punch_out": 1918.912
+   }
+  ],
+  "derived": [
+   {
+    "classification": "lesson",
+    "confidence": 0.92,
+    "punch_in": 2.669,
+    "punch_out": 1918.912
+   }
+  ]
+ },
+ "segments.derive.unrefined.service": {
+  "chosen": [
+   {
+    "boundary_source": "model-in/refined-out",
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 590.0,
+    "punch_out": 2701.288
+   }
+  ],
+  "derived": [
+   {
+    "classification": "sermon",
+    "confidence": 0.95,
+    "punch_in": 598.095,
+    "punch_out": 2701.288
+   }
+  ]
+ }
+}

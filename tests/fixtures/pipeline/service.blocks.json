@@ -1,0 +1,66 @@
+{
+ "blocks": [
+  {
+   "confidence": 0.9,
+   "end": 180.0,
+   "evidence": "welcome and notices",
+   "start": 0.0,
+   "type": "announcements"
+  },
+  {
+   "confidence": 0.8,
+   "end": 430.0,
+   "evidence": "congregational singing",
+   "start": 180.0,
+   "type": "music"
+  },
+  {
+   "confidence": 0.85,
+   "end": 588.0,
+   "evidence": "the reading from Romans",
+   "start": 430.0,
+   "type": "scripture_reading"
+  },
+  {
+   "confidence": 0.95,
+   "end": 1200.0,
+   "evidence": "teaching, first half",
+   "start": 588.0,
+   "type": "sermon"
+  },
+  {
+   "confidence": 0.9,
+   "end": 2550.0,
+   "evidence": "teaching, second half",
+   "start": 1200.0,
+   "type": "sermon"
+  },
+  {
+   "confidence": 0.8,
+   "end": 2710.0,
+   "evidence": "the closing prayer",
+   "start": 2550.0,
+   "type": "prayer"
+  },
+  {
+   "confidence": 0.85,
+   "end": 2910.0,
+   "evidence": "the invitation to the table",
+   "start": 2710.0,
+   "type": "communion"
+  },
+  {
+   "confidence": 0.7,
+   "end": 3240.0,
+   "evidence": "the closing song",
+   "start": 2910.0,
+   "type": "music"
+  }
+ ],
+ "model_segments": [
+  {
+   "punch_in": 590.0,
+   "punch_out": 2700.0
+  }
+ ]
+}
