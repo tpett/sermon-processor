@@ -45,14 +45,7 @@ def spec_guardrail():
         "validate_spec", SPEC_ROOT / "validate_spec.py"
     )
     module = importlib.util.module_from_spec(location)
-    sys.modules[location.name] = module
-    try:
-        location.loader.exec_module(module)
-    except Exception as failure:
-        raise pytest.UsageError(
-            f"{path.relative_to(PROJECT_ROOT)} could not be imported: "
-            f"{type(failure).__name__}: {failure}"
-        ) from failure
+    location.loader.exec_module(module)
     return module
 
 
