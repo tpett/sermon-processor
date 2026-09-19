@@ -86,6 +86,12 @@ longer extractable" (`operations/storage_and_retention.feature`) is the skipped
 Segments of a Recording carrying that warning. A second field on every Segment
 would have to be maintained on each one and could disagree with the Recording.
 
+**The probed codec is not stored.** `analysis/audio_probe.feature` lists it among
+the probe's outputs and the detail view's `Format` line reads it, but it is `flac`
+on all 85 objects in the bucket, the key's extension already carries it, and
+`Artifact.kind` names the retained source `source_flac`. A second copy of the
+container's own name could only ever disagree with the file.
+
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth
 for the one thing the reviewer looks at first.

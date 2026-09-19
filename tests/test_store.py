@@ -1537,6 +1537,11 @@ def test_reverting_to_the_machine_proposal_reads_the_cuts_that_proposal_carries(
     )
 
 
+def test_a_recording_keeps_no_copy_of_the_codec_its_key_already_names(store):
+    with pytest.raises(ValueError):
+        store.lists(Recording, codec="flac")
+
+
 def test_a_segment_keeps_no_second_copy_of_the_cuts_the_machine_proposed(store):
     with pytest.raises(ValueError):
         store.lists(Segment, proposed_punch_in=63.125)
