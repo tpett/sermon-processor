@@ -11,6 +11,7 @@ class Recording:
     state: str
     started_at: datetime
     size_bytes: int
+    capture_device: str | None = None
     kind: str | None = None
     duration_seconds: float | None = None
     channels: int | None = None

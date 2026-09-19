@@ -114,6 +114,7 @@ def populated_recording():
         state="awaiting_review",
         started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
         size_bytes=1_412_230_144,
+        capture_device="sanctuary-pi-01",
         kind="class",
         duration_seconds=11520.0,
         channels=2,
@@ -523,6 +524,16 @@ def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_prob
 def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_source_yet(store):
     stored = reloaded(store, store.saves(minimal_recording()), "recording")
     assert (stored.mono_source, stored.mono_source_confirmed) == (None, None)
+
+
+def test_a_recording_names_the_device_that_captured_it(store, graph):
+    moved = store.saves(replace(graph["recording"], capture_device="sanctuary-pi-02"))
+    assert reloaded(store, moved, "recording").capture_device == "sanctuary-pi-02"
+
+
+def test_a_recording_the_recorder_announced_no_host_for_names_no_device(store):
+    saved = store.saves(minimal_recording())
+    assert reloaded(store, saved, "recording").capture_device is None
 
 
 def test_a_recording_lists_the_warnings_the_pipeline_raised_on_it(store, graph):

@@ -54,6 +54,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `started_at` | Parsed from the filename, not from file mtime. Load-bearing: the 10:50–10:57 wall-clock band is a confidence input, and grouping same-day recordings needs it (`analysis/block_classification.feature`). |
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
+| `capture_device` | Which recorder produced it, shown as `Device` on the detail view (`interface/recording_detail.feature`). The host's identity rather than the ALSA device string the sidecar carries, and nullable because the recorder has no host field to send yet (`ingestion/webhook_notification.feature`). |
 | `channels`, `sample_rate`, `bits_per_raw_sample` | Reported on the detail view. **32-bit, not 24** — the spec said 24 in five places and was wrong. |
 | `channel_levels[]` | Each entry: `channel` and `rms_db`. "The Recording records a per-channel RMS level" — channel 1 at −21.3 dB against channel 2 at the −90.4 dB noise floor is what identifies the dead channel, and both are needed to tell that case from two channels carrying signal (`analysis/audio_probe.feature`). |
 | `mono_source` | Which channel or mix the render must take: "the Recording records that the render should use channel 1 only" (`analysis/audio_probe.feature`). Deliberately not a closed set — the scenarios name that one value and declare no vocabulary for the reviewer's answer when both channels carry signal. |
