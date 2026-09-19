@@ -29,6 +29,22 @@ def test_a_publication_label_is_suggested_from_the_summary():
     assert "reviewer can correct" in stated
 
 
+def test_the_machines_grade_of_its_cut_and_the_ground_truth_difficulty_are_separately_named():
+    proposal = DOMAIN.read_text().split("\n## Proposal\n", 1)[1].split("\n## ")[0]
+    corpus = DOMAIN.read_text().split("\n## CorpusPair\n", 1)[1].split("\n## ")[0]
+    assert "`punch_in_grade`" in proposal
+    assert "`punch_out_grade`" in proposal
+    assert "`punch_in_difficulty`" not in proposal
+    assert "`punch_out_difficulty`" not in proposal
+    assert "`punch_in_difficulty`" in corpus
+    assert "`punch_out_difficulty`" in corpus
+    assert "`punch_in_grade`" not in corpus
+    assert "`punch_out_grade`" not in corpus
+    stated = why("CorpusPair", "punch_in_difficulty").lower()
+    assert "human cut" in stated
+    assert "configuration cannot change" in stated
+
+
 def test_agreement_gap_seconds_is_still_a_proposal_field():
     section = DOMAIN.read_text().split("\n## Proposal\n", 1)[1].split("\n## ")[0]
     assert "`agreement_gap_seconds`" in section

@@ -1,5 +1,5 @@
 import sqlite3
-from dataclasses import replace
+from dataclasses import fields, replace
 from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
@@ -1580,6 +1580,15 @@ def test_the_corpus_includes_sermons_and_class_sessions(store):
     listed = store.lists(CorpusPair, recording_id=recording.recording_id)
     assert {pair.classification for pair in listed} == {"sermon", "lesson"}
     assert {pair.corpus_pair_id for pair in listed} == {sermon.corpus_pair_id, lesson.corpus_pair_id}
+
+
+def test_the_machines_grade_of_its_cut_and_the_ground_truth_difficulty_are_separately_named():
+    proposal = {field.name for field in fields(Proposal)}
+    corpus = {field.name for field in fields(CorpusPair)}
+    assert {"punch_in_grade", "punch_out_grade"} <= proposal
+    assert {"punch_in_difficulty", "punch_out_difficulty"} <= corpus
+    assert proposal.isdisjoint({"punch_in_difficulty", "punch_out_difficulty"})
+    assert corpus.isdisjoint({"punch_in_grade", "punch_out_grade"})
 
 
 def test_each_pair_is_graded_against_the_difficulty_of_its_own_transition(store):
