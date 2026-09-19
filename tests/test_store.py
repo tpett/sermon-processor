@@ -414,6 +414,33 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
     assert {name: reloaded(store, saved, name) for name, saved in minimal.items()} == minimal
 
 
+def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):
+    probed = store.saves(
+        replace(
+            graph["recording"],
+            integrated_loudness_lufs=-24.6,
+            true_peak_dbtp=0.4,
+            loudness_range_lu=7.2,
+        )
+    )
+    stored = reloaded(store, probed, "recording")
+    assert (stored.integrated_loudness_lufs, stored.true_peak_dbtp, stored.loudness_range_lu) == (
+        -24.6,
+        0.4,
+        7.2,
+    )
+    assert stored.dynamic_range_db == 63.4
+
+
+def test_a_recording_holds_no_loudness_until_the_probe_measures_it(store):
+    stored = reloaded(store, store.saves(minimal_recording()), "recording")
+    assert (stored.integrated_loudness_lufs, stored.true_peak_dbtp, stored.loudness_range_lu) == (
+        None,
+        None,
+        None,
+    )
+
+
 def test_a_recording_lists_its_blocks_in_the_order_they_cover_it(store, graph):
     later = store.saves(
         replace(graph["block"], block_id=None, start_seconds=3600.0, end_seconds=7200.0)
