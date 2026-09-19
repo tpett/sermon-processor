@@ -11,6 +11,23 @@ LIFECYCLE_TABLE = "| State | Of | Exits |"
 BLOCK_TYPE_TABLE = "| Block type | Teaching? | Meaning |"
 CLASSIFICATION_TABLE = "| Segment classification | Where it comes from |"
 RECORDING_KIND_TABLE = "| Recording kind | Meaning |"
+COUNT_WORDS = {
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+}
+COUNTED_SETS = [
+    ("Recording", "state", "RECORDING_STATES"),
+    ("Block", "type", "BLOCK_TYPES"),
+]
 
 
 def first_backticked(row):
@@ -37,13 +54,21 @@ def vocabulary_table(heading):
     return tuple(name for name in map(first_backticked, readme_rows(heading)) if name)
 
 
-def domain_field(entity, field):
+def domain_row(entity, field):
     text = (SPEC_ROOT / "DOMAIN.md").read_text()
     section = text.split(f"\n## {entity}\n", 1)[1].split("\n## ")[0]
     rows = [row for row in section.splitlines() if row.strip().startswith("|")]
-    row = next(row for row in rows if f"`{field}`" in row.split("|")[1])
-    stated = re.split(r"\. |\*\*|—", row.split("|")[2].strip())[0]
+    return next(row for row in rows if f"`{field}`" in row.split("|")[1])
+
+
+def domain_field(entity, field):
+    stated = re.split(r"\. |\*\*|—", domain_row(entity, field).split("|")[2].strip())[0]
     return tuple(re.findall(r"`([^`]+)`", stated))
+
+
+def counted_in_words(entity, field):
+    words = re.findall(r"[a-z]+", domain_row(entity, field).split("|")[2].lower())
+    return next(COUNT_WORDS[word] for word in words if word in COUNT_WORDS)
 
 
 SPEC_VOCABULARIES = {
@@ -80,3 +105,10 @@ def test_the_states_in_which_a_job_still_holds_its_work_are_the_unfinished_ones(
 
 def test_the_difficulty_of_both_cuts_comes_from_one_vocabulary():
     assert domain_field("Proposal", "punch_out_difficulty") == vocabularies.CUT_DIFFICULTIES
+
+
+@pytest.mark.parametrize("entity, field, name", COUNTED_SETS)
+def test_a_closed_set_the_domain_model_counts_holds_as_many_values_as_it_claims(
+    entity, field, name
+):
+    assert counted_in_words(entity, field) == len(getattr(vocabularies, name))
