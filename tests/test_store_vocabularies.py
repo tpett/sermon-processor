@@ -93,6 +93,8 @@ SPEC_VOCABULARIES = {
     "SKIP_REASONS": (4, domain_field("SkippedObject", "reason")),
     "DISCOVERY_KINDS": (2, domain_field("Discovery", "kind")),
     "DISCOVERY_FAILURES": (2, domain_field("Discovery", "failure")),
+    "CORPUS_ALIGNMENTS": (3, domain_field("CorpusPair", "alignment")),
+    "CORPUS_PROVENANCES": (2, domain_field("CorpusPair", "provenance")),
 }
 
 
@@ -124,6 +126,15 @@ def test_the_states_a_logged_transition_can_enter_belong_to_exactly_one_lifecycl
 
 def test_the_difficulty_of_both_cuts_comes_from_one_vocabulary():
     assert domain_field("Proposal", "punch_out_difficulty") == vocabularies.CUT_DIFFICULTIES
+
+
+def test_a_corpus_pair_grades_its_cuts_from_the_same_vocabulary_as_a_proposal():
+    assert domain_field("CorpusPair", "punch_in_difficulty") == vocabularies.CUT_DIFFICULTIES
+    assert domain_field("CorpusPair", "punch_out_difficulty") == vocabularies.CUT_DIFFICULTIES
+
+
+def test_a_corpus_pair_uses_the_segment_classification_vocabulary():
+    assert domain_field("CorpusPair", "classification") == vocabularies.SEGMENT_CLASSIFICATIONS
 
 
 @pytest.mark.parametrize("entity, field, name", COUNTED_SETS)

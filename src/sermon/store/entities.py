@@ -201,3 +201,18 @@ class Discovery:
     discovered_count: int
     failure: str | None = None
     event: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CorpusPair:
+    corpus_pair_id: int | None = None
+    recording_id: str
+    classification: str
+    provenance: str
+    alignment: str | None = None
+    punch_in_seconds: float | None = None
+    punch_out_seconds: float | None = None
+    drift_ppm: float | None = None
+    punch_in_difficulty: str | None = None
+    punch_out_difficulty: str | None = None
+    covers_more_than_95_percent: bool = False

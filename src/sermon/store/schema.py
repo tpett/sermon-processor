@@ -11,6 +11,7 @@ from .entities import (
     Block,
     Candidate,
     ChannelLevel,
+    CorpusPair,
     Discovery,
     Evidence,
     Job,
@@ -58,7 +59,7 @@ def column_type(kind):
 
 @dataclass(frozen=True)
 class Uniqueness:
-    column: str
+    column: str | tuple[str, ...]
     only_while: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
@@ -301,6 +302,50 @@ TABLES = {
             },
         ),
         Table(
+            entity=CorpusPair,
+            name="corpus_pair",
+            identity="corpus_pair_id",
+            order=("punch_in_seconds",),
+            unique=(
+                Uniqueness(column=("recording_id", "classification", "provenance")),
+            ),
+            references={"recording_id": "recording(recording_id)"},
+            presence=(
+                Presence(column="alignment", only_while={"provenance": ("human",)}),
+                Presence(
+                    column="punch_in_seconds",
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="punch_out_seconds",
+                    requires=("punch_in_seconds",),
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="drift_ppm",
+                    requires=("punch_in_seconds", "punch_out_seconds"),
+                    only_while={"alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="punch_in_difficulty",
+                    requires=("punch_in_seconds",),
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="punch_out_difficulty",
+                    requires=("punch_out_seconds",),
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+            ),
+            closed={
+                "classification": vocabularies.SEGMENT_CLASSIFICATIONS,
+                "alignment": vocabularies.CORPUS_ALIGNMENTS,
+                "punch_in_difficulty": vocabularies.CUT_DIFFICULTIES,
+                "punch_out_difficulty": vocabularies.CUT_DIFFICULTIES,
+                "provenance": vocabularies.CORPUS_PROVENANCES,
+            },
+        ),
+        Table(
             entity=LogEntry,
             name="log_entry",
             identity="log_entry_id",
@@ -373,14 +418,21 @@ def presence_check(presence):
     return f"CHECK ({presence.column} IS NULL OR ({' AND '.join(conditions)}))"
 
 
+def unique_columns(unique):
+    if isinstance(unique.column, tuple):
+        return unique.column
+    return (unique.column,)
+
+
 def unique_ddl(table, unique):
+    columns = unique_columns(unique)
     conditions = " AND ".join(
         f"{column} IN ({listed(values)})" for column, values in unique.only_while.items()
     )
     scope = f" WHERE {conditions}" if conditions else ""
     return (
-        f"CREATE UNIQUE INDEX IF NOT EXISTS unique_{table.name}_{unique.column} "
-        f"ON {table.name} ({unique.column}){scope}"
+        f"CREATE UNIQUE INDEX IF NOT EXISTS unique_{table.name}_{'_'.join(columns)} "
+        f"ON {table.name} ({', '.join(columns)}){scope}"
     )
 
 

@@ -105,3 +105,7 @@ SKIP_REASONS = (
 DISCOVERY_KINDS = ("webhook", "scan")
 
 DISCOVERY_FAILURES = ("transient", "credentials")
+
+CORPUS_ALIGNMENTS = ("aligned", "cannot be aligned", "not a contiguous excerpt")
+
+CORPUS_PROVENANCES = ("human", "machine")
