@@ -18,6 +18,7 @@ from .entities import (
     Proposal,
     Recording,
     Segment,
+    SkippedObject,
     SpeakerMatch,
     SpeakerProfile,
 )
@@ -241,6 +242,13 @@ TABLES = {
                 "segment_id": "segment(segment_id)",
             },
             closed={"state": vocabularies.NOTIFICATION_STATES},
+        ),
+        Table(
+            entity=SkippedObject,
+            name="skipped_object",
+            identity="object_key",
+            generated=False,
+            closed={"reason": vocabularies.SKIP_REASONS},
         ),
         Table(
             entity=LogEntry,

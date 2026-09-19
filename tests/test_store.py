@@ -37,6 +37,7 @@ IDENTITIES = {
     "notification": "notification_id",
     "speaker_profile": "speaker_profile_id",
     "log_entry": "log_entry_id",
+    "skipped_object": "object_key",
 }
 
 ENTITY_TYPES = {
@@ -49,6 +50,7 @@ ENTITY_TYPES = {
     "notification": Notification,
     "speaker_profile": SpeakerProfile,
     "log_entry": LogEntry,
+    "skipped_object": SkippedObject,
 }
 
 CLOSED_COLUMNS = [
@@ -70,6 +72,7 @@ CLOSED_COLUMNS = [
     ("notification", "state", vocabularies.NOTIFICATION_STATES),
     ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
     ("log_entry", "boundary_source", vocabularies.BOUNDARY_SOURCES),
+    ("skipped_object", "reason", vocabularies.SKIP_REASONS),
 ]
 
 SKIPPED_OBJECTS = (
@@ -385,6 +388,7 @@ def graph(store):
         "log_entry": store.saves(
             populated_log_entry(recording, segment, job, proposal, artifact)
         ),
+        "skipped_object": store.saves(skipped_object()),
     }
 
 
