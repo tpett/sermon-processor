@@ -9,6 +9,8 @@ from gherkin.parser import Parser
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SPEC_ROOT = PROJECT_ROOT / "features"
 SPEC_MODULE = "tests/test_spec.py"
+SPEC_SHAPE = "spec OK — 34 files, 460 scenarios, 142 rules"
+SPEC_TESTS = 604
 
 
 def runs_pytest(*arguments, cwd=PROJECT_ROOT):
@@ -52,6 +54,14 @@ def declared_scenarios(tag=None):
         feature = Parser().parse(spec_file.read_text())["feature"]
         total += expanded_scenarios(feature["children"], tag_names(feature), tag)
     return total
+
+
+def test_the_spec_is_the_size_this_harness_was_built_for(spec_guardrail, capsys):
+    spec_guardrail.main()
+    summary = capsys.readouterr().out
+    report = runs_pytest("--collect-only", "-q", SPEC_MODULE)[1]
+    assert SPEC_SHAPE in summary, summary
+    assert counted("tests collected", report) == SPEC_TESTS, report
 
 
 def test_the_spec_module_collects_every_declared_scenario():
