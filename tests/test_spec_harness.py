@@ -43,7 +43,8 @@ def plants_step_module(root, name, source):
     steps = root / "tests" / "steps"
     steps.mkdir(parents=True)
     (steps / name).write_text(source)
-    (root / "tests" / "conftest.py").write_text((PROJECT_ROOT / "tests" / "conftest.py").read_text())
+    conftest = root / "tests" / "conftest.py"
+    conftest.write_text((PROJECT_ROOT / "tests" / "conftest.py").read_text())
     (root / "tests" / "test_nothing.py").write_text("def test_nothing():\n    assert True\n")
 
 
@@ -157,7 +158,9 @@ def test_nothing_above_a_scenario_is_deferred():
 
 def test_a_step_module_that_defines_a_hook_is_refused(tmp_path):
     plants_step_module(
-        tmp_path, "hooked_steps.py", "def pytest_collection_modifyitems(items):\n    items.clear()\n"
+        tmp_path,
+        "hooked_steps.py",
+        "def pytest_collection_modifyitems(items):\n    items.clear()\n",
     )
     returncode, report = runs_pytest("-q", cwd=tmp_path)
     assert "INTERNALERROR" not in report, report
