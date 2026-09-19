@@ -55,6 +55,7 @@ class Segment:
     proposed_punch_out: float | None = None
     intent: str | None = None
     disposition_at: datetime | None = None
+    distribution_confirmed: bool | None = None
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
 

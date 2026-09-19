@@ -139,6 +139,7 @@ def populated_segment(recording, block):
         proposed_punch_out=3499.0,
         intent="publish",
         disposition_at=datetime(2026, 9, 14, 8, 12, tzinfo=UTC),
+        distribution_confirmed=True,
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
     )
