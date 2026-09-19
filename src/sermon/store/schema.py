@@ -265,6 +265,13 @@ TABLES = {
             name="discovery",
             identity="discovery_id",
             order=("occurred_at",),
+            presence=(
+                Presence(
+                    column="failure",
+                    only_while={"kind": ("scan",), "discovered_count": (0,)},
+                ),
+                Presence(column="event", only_while={"kind": ("webhook",)}),
+            ),
             closed={
                 "kind": vocabularies.DISCOVERY_KINDS,
                 "failure": vocabularies.DISCOVERY_FAILURES,

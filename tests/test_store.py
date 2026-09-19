@@ -80,6 +80,11 @@ CLOSED_COLUMNS = [
     ("discovery", "failure", vocabularies.DISCOVERY_FAILURES),
 ]
 
+COMPANIONS = {
+    ("discovery", "kind"): {"failure": None, "event": None},
+    ("discovery", "failure"): {"kind": "scan", "discovered_count": 0, "event": None},
+}
+
 SKIPPED_OBJECTS = (
     ("recording_19700101_000000.flac", "recorder clock not set"),
     ("sermon-2027-01-03.flac", "key does not match the pattern"),
@@ -1283,8 +1288,9 @@ def test_a_closed_column_refuses_a_value_the_spec_does_not_declare(
 
 @pytest.mark.parametrize("name, column, allowed", CLOSED_COLUMNS)
 def test_a_closed_column_accepts_every_value_the_spec_declares(store, graph, name, column, allowed):
+    base = replace(graph[name], **COMPANIONS.get((name, column), {}))
     for value in allowed:
-        saved = store.saves(replace(graph[name], **{column: value}))
+        saved = store.saves(replace(base, **{column: value}))
         assert getattr(reloaded(store, saved, name), column) == value
 
 
