@@ -51,6 +51,8 @@ RECORDING_WARNINGS = (
 
 SEGMENT_WARNINGS = (
     "check the opening",
+    "no clean cut point found at punch-in",
+    "no clean cut point found at punch-out",
     "boundary is not acceptable",
     "source was very quiet",
 )

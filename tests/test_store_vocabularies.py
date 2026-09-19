@@ -79,7 +79,7 @@ SPEC_VOCABULARIES = {
     "BLOCK_TYPES": (11, vocabulary_table(BLOCK_TYPE_TABLE)),
     "RECORDING_WARNINGS": (7, domain_field("Recording", "warnings[]")),
     "STARTED_AT_SOURCES": (2, domain_field("Recording", "started_at_source")),
-    "SEGMENT_WARNINGS": (3, domain_field("Segment", "warnings[]")),
+    "SEGMENT_WARNINGS": (5, domain_field("Segment", "warnings[]")),
     "SEGMENT_CLASSIFICATIONS": (4, vocabulary_table(CLASSIFICATION_TABLE)),
     "RECORDING_KINDS": (7, vocabulary_table(RECORDING_KIND_TABLE)),
     "SEGMENT_INTENTS": (2, domain_field("Segment", "intent")),

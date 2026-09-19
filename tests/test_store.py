@@ -714,6 +714,12 @@ def test_a_segment_lists_the_warnings_its_analysis_raised(store, graph):
     assert reloaded(store, flagged, "segment").warnings == raised
 
 
+def test_a_cut_with_no_quiet_margin_is_flagged_at_the_end_it_was_found(store, graph):
+    raised = ("no clean cut point found at punch-in", "no clean cut point found at punch-out")
+    flagged = store.saves(replace(graph["segment"], warnings=raised))
+    assert reloaded(store, flagged, "segment").warnings == raised
+
+
 def test_a_segment_nothing_went_wrong_with_carries_no_warnings(store, graph):
     saved = store.saves(minimal_segment(graph["recording"]))
     assert reloaded(store, saved, "segment").warnings == ()
