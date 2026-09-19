@@ -426,24 +426,26 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
 
 
 def test_a_recording_lists_the_level_measured_on_each_of_its_channels(store, graph):
-    measured = (ChannelLevel(channel=1, rms_db=-21.3), ChannelLevel(channel=2, rms_db=-90.4))
-    probed = store.saves(replace(graph["recording"], channel_levels=measured))
-    assert reloaded(store, probed, "recording").channel_levels == measured
+    remeasured = (ChannelLevel(channel=1, rms_db=-18.7), ChannelLevel(channel=2, rms_db=-88.1))
+    reprobed = store.saves(replace(graph["recording"], channel_levels=remeasured))
+    assert reloaded(store, reprobed, "recording").channel_levels == remeasured
 
 
 def test_a_recording_records_which_channel_or_mix_the_render_must_take(store, graph):
-    decided = store.saves(replace(graph["recording"], mono_source="channel 1 only"))
-    assert reloaded(store, decided, "recording").mono_source == "channel 1 only"
+    decided = store.saves(replace(graph["recording"], mono_source="both channels mixed"))
+    assert reloaded(store, decided, "recording").mono_source == "both channels mixed"
 
 
-def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_probe_decided(
-    store, graph
-):
-    answered = store.saves(
-        replace(graph["recording"], mono_source="both channels mixed", mono_source_confirmed=True)
-    )
+def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_probe_decided(store):
+    asked = store.saves(replace(minimal_recording(), mono_source="both channels mixed"))
+    answered = store.saves(replace(asked, mono_source_confirmed=True))
     decided = store.saves(
-        replace(minimal_recording(), mono_source="channel 1 only", mono_source_confirmed=None)
+        replace(
+            minimal_recording(),
+            recording_id="recording_20260830_102900",
+            object_key="2026/08/30/recording_20260830_102900.flac",
+            mono_source="channel 1 only",
+        )
     )
     assert reloaded(store, answered, "recording").mono_source_confirmed is True
     assert reloaded(store, decided, "recording").mono_source_confirmed is None
@@ -455,19 +457,19 @@ def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_sour
 
 
 def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):
-    probed = store.saves(
+    reprobed = store.saves(
         replace(
             graph["recording"],
-            integrated_loudness_lufs=-24.6,
-            true_peak_dbtp=0.4,
-            loudness_range_lu=7.2,
+            integrated_loudness_lufs=-19.8,
+            true_peak_dbtp=-1.2,
+            loudness_range_lu=9.4,
         )
     )
-    stored = reloaded(store, probed, "recording")
+    stored = reloaded(store, reprobed, "recording")
     assert (stored.integrated_loudness_lufs, stored.true_peak_dbtp, stored.loudness_range_lu) == (
-        -24.6,
-        0.4,
-        7.2,
+        -19.8,
+        -1.2,
+        9.4,
     )
     assert stored.dynamic_range_db == 63.4
 
@@ -505,9 +507,11 @@ def test_a_segment_holds_an_outer_span_its_punch_points_sit_inside(store, graph)
 
 
 def test_extending_a_segments_span_leaves_its_punch_points_where_they_were(store, graph):
-    extended = store.saves(replace(graph["segment"], span_start_seconds=5.0))
+    extended = store.saves(
+        replace(graph["segment"], span_start_seconds=5.0, span_end_seconds=3900.0)
+    )
     stored = reloaded(store, extended, "segment")
-    assert (stored.span_start_seconds, stored.span_end_seconds) == (5.0, 3600.0)
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (5.0, 3900.0)
     assert (stored.punch_in_seconds, stored.punch_out_seconds) == (61.5, 3497.25)
 
 
