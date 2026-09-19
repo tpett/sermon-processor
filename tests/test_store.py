@@ -11,6 +11,7 @@ from sermon.store import (
     Job,
     Proposal,
     Recording,
+    PathEscapesDataRoot,
     Segment,
     SpeakerProfile,
     opens_store,
@@ -404,3 +405,15 @@ def test_reopening_the_data_root_finds_what_was_stored(tmp_path):
         assert second.loads(Recording, saved.recording_id) == saved
     finally:
         second.close()
+
+
+def test_the_store_resolves_an_artifact_under_its_data_root(store, graph, tmp_path):
+    assert store.resolves(graph["artifact"]) == tmp_path / graph["artifact"].path
+
+
+def test_an_artifact_whose_path_escapes_the_data_root_is_never_stored(store, graph):
+    with pytest.raises(PathEscapesDataRoot):
+        store.saves(replace(graph["artifact"], artifact_id=None, path="../../escaped.mp3"))
+    assert store.lists(Artifact, recording_id=graph["recording"].recording_id) == [
+        graph["artifact"]
+    ]

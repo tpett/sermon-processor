@@ -1,3 +1,4 @@
+from .artifact_paths import DEFAULT_DATA_ROOT, PathEscapesDataRoot, ResolvesArtifactPath
 from .entities import (
     Artifact,
     Block,
@@ -8,7 +9,7 @@ from .entities import (
     Segment,
     SpeakerProfile,
 )
-from .store import DATABASE_NAME, DEFAULT_DATA_ROOT, Store, opens_store
+from .store import DATABASE_NAME, Store, opens_store
 
 __all__ = [
     "Artifact",
@@ -17,8 +18,10 @@ __all__ = [
     "DEFAULT_DATA_ROOT",
     "Evidence",
     "Job",
+    "PathEscapesDataRoot",
     "Proposal",
     "Recording",
+    "ResolvesArtifactPath",
     "Segment",
     "SpeakerProfile",
     "Store",

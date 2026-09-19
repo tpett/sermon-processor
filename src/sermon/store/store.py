@@ -7,9 +7,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import get_type_hints
 
+from .artifact_paths import DEFAULT_DATA_ROOT, ResolvesArtifactPath
 from .schema import TABLES, column_names, element_columns, order_by, schema_sql, unwrapped
 
-DEFAULT_DATA_ROOT = Path("data")
 DATABASE_NAME = "sermon.sqlite3"
 
 
@@ -37,8 +37,12 @@ def from_column(annotation, value):
 
 
 class Store:
-    def __init__(self, connection):
+    def __init__(self, connection, resolves_artifact_path=ResolvesArtifactPath()):
         self._connection = connection
+        self._resolves_artifact_path = resolves_artifact_path
+
+    def resolves(self, artifact):
+        return None
 
     def close(self):
         self._connection.close()
@@ -136,4 +140,4 @@ def opens_store(data_root=DEFAULT_DATA_ROOT):
     connection.row_factory = sqlite3.Row
     connection.executescript(schema_sql())
     connection.execute("PRAGMA foreign_keys = ON")
-    return Store(connection)
+    return Store(connection, ResolvesArtifactPath(data_root=root))
