@@ -7,6 +7,7 @@ from sermon.extends_segment_span import (
     ReadsTimecode,
     SpanWouldOverlapNeighbour,
 )
+from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Recording, Segment, opens_store
 
 READS = ReadsTimecode()
@@ -92,8 +93,10 @@ def test_a_punch_in_may_sit_at_a_time_the_old_span_did_not_cover(store):
     grown = ExtendsSegmentSpan(store=store)(segment, start_seconds=READS("1:26:00"))
     earlier = READS("1:27:00")
     assert not (segment.span_start_seconds <= earlier <= segment.span_end_seconds)
-    assert grown.span_start_seconds <= earlier <= grown.span_end_seconds
-    assert grown.span_start_seconds <= grown.punch_in_seconds <= grown.span_end_seconds
+    placed = PlacesPunchIn(store=store)(grown, punch_in_seconds=earlier)
+    assert placed.punch_in_seconds == earlier
+    stored = store.loads(Segment, grown.segment_id)
+    assert stored.punch_in_seconds == earlier
 
 
 def test_extending_into_a_neighbouring_segment_is_refused(store):

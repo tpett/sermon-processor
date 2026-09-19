@@ -9,6 +9,7 @@ from sermon.extends_segment_span import (
     ReadsTimecode,
     SpanWouldOverlapNeighbour,
 )
+from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Recording, Segment, opens_store
 
 READS = ReadsTimecode()
@@ -89,19 +90,13 @@ def _(segment, extended_segment):
 
 
 @then("the punch-in may now be placed anywhere within the new span")
-def _(segment, extended_segment):
-    assert (extended_segment.punch_in_seconds, extended_segment.punch_out_seconds) == (
-        segment.punch_in_seconds,
-        segment.punch_out_seconds,
+def _(store, extended_segment):
+    placed = PlacesPunchIn(store=store)(
+        extended_segment, punch_in_seconds=READS("1:27:00")
     )
-    assert (
-        extended_segment.span_start_seconds
-        <= extended_segment.punch_in_seconds
-        <= extended_segment.span_end_seconds
-    )
-    earlier = READS("1:27:00")
-    assert not (segment.span_start_seconds <= earlier <= segment.span_end_seconds)
-    assert extended_segment.span_start_seconds <= earlier <= extended_segment.span_end_seconds
+    assert placed.punch_in_seconds == READS("1:27:00")
+    stored = store.loads(Segment, extended_segment.segment_id)
+    assert stored.punch_in_seconds == READS("1:27:00")
 
 
 @then("the change is rejected if it would overlap the neighbouring Segment")
