@@ -1,8 +1,10 @@
 from .entities import (
     Artifact,
     Block,
+    Candidate,
     Evidence,
     Job,
+    LogEntry,
     Notification,
     Proposal,
     Recording,
@@ -10,15 +12,17 @@ from .entities import (
     SpeakerMatch,
     SpeakerProfile,
 )
-from .store import DATABASE_NAME, Store, opens_store
+from .store import DATABASE_NAME, Store, UnstorableValue, opens_store
 from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
 
 __all__ = [
     "Artifact",
     "Block",
+    "Candidate",
     "DATABASE_NAME",
     "Evidence",
     "Job",
+    "LogEntry",
     "Notification",
     "PathEscapesDataRoot",
     "Proposal",
@@ -28,5 +32,6 @@ __all__ = [
     "SpeakerMatch",
     "SpeakerProfile",
     "Store",
+    "UnstorableValue",
     "opens_store",
 ]

@@ -103,6 +103,17 @@ def test_the_states_in_which_a_job_still_holds_its_work_are_the_unfinished_ones(
     }
 
 
+def test_a_logged_transition_can_enter_any_state_either_lifecycle_declares():
+    assert vocabularies.LOGGED_STATES == (
+        vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES
+    )
+
+
+def test_the_states_a_logged_transition_can_enter_belong_to_exactly_one_lifecycle():
+    assert set(vocabularies.RECORDING_STATES) & set(vocabularies.SEGMENT_STATES) == set()
+    assert len(set(vocabularies.LOGGED_STATES)) == len(vocabularies.LOGGED_STATES)
+
+
 def test_the_difficulty_of_both_cuts_comes_from_one_vocabulary():
     assert domain_field("Proposal", "punch_out_difficulty") == vocabularies.CUT_DIFFICULTIES
 

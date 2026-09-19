@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 import pytest
 
-from sermon.store import Block, schema
+from sermon.store import Block, LogEntry, schema
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -56,3 +56,7 @@ def test_an_element_column_the_entity_leaves_optional_is_nullable():
     assert "timecode REAL NOT NULL" in definitions
     assert "note TEXT" in definitions
     assert "note TEXT NOT NULL" not in definitions
+
+
+def test_entries_sharing_an_instant_are_ordered_by_the_identity_behind_it():
+    assert schema.order_by(schema.TABLES[LogEntry]) == ("occurred_at", "log_entry_id")

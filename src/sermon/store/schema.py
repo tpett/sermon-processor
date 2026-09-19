@@ -9,8 +9,10 @@ from . import vocabularies
 from .entities import (
     Artifact,
     Block,
+    Candidate,
     Evidence,
     Job,
+    LogEntry,
     Notification,
     Proposal,
     Recording,
@@ -182,6 +184,12 @@ TABLES = {
                     element=str,
                     column="description",
                 ),
+                Collection(
+                    field="punch_in_candidates",
+                    table="proposal_punch_in_candidate",
+                    owner="proposal_id",
+                    element=Candidate,
+                ),
             ),
         ),
         Table(
@@ -224,6 +232,23 @@ TABLES = {
             },
             closed={"state": vocabularies.NOTIFICATION_STATES},
         ),
+        Table(
+            entity=LogEntry,
+            name="log_entry",
+            identity="log_entry_id",
+            order=("occurred_at",),
+            references={
+                "recording_id": "recording(recording_id)",
+                "segment_id": "segment(segment_id)",
+                "job_id": "job(job_id)",
+                "proposal_id": "proposal(proposal_id)",
+                "artifact_id": "artifact(artifact_id)",
+            },
+            closed={
+                "entered_state": vocabularies.LOGGED_STATES,
+                "boundary_source": vocabularies.BOUNDARY_SOURCES,
+            },
+        ),
     )
 }
 
@@ -240,7 +265,7 @@ def element_columns(collection):
 
 
 def order_by(table):
-    return table.order or (table.identity,)
+    return (*table.order, table.identity)
 
 
 def quoted(values):

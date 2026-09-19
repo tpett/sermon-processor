@@ -1,15 +1,17 @@
 import sqlite3
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 
 from sermon.store import (
     Artifact,
     Block,
+    Candidate,
     DATABASE_NAME,
     Evidence,
     Job,
+    LogEntry,
     Notification,
     Proposal,
     Recording,
@@ -18,6 +20,7 @@ from sermon.store import (
     SpeakerMatch,
     SpeakerProfile,
     Store,
+    UnstorableValue,
     opens_store,
     vocabularies,
 )
@@ -31,6 +34,7 @@ IDENTITIES = {
     "job": "job_id",
     "notification": "notification_id",
     "speaker_profile": "speaker_profile_id",
+    "log_entry": "log_entry_id",
 }
 
 ENTITY_TYPES = {
@@ -42,6 +46,7 @@ ENTITY_TYPES = {
     "job": Job,
     "notification": Notification,
     "speaker_profile": SpeakerProfile,
+    "log_entry": LogEntry,
 }
 
 CLOSED_COLUMNS = [
@@ -61,6 +66,16 @@ CLOSED_COLUMNS = [
     ("job", "kind", vocabularies.JOB_KINDS),
     ("job", "state", vocabularies.JOB_STATES),
     ("notification", "state", vocabularies.NOTIFICATION_STATES),
+    ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
+    ("log_entry", "boundary_source", vocabularies.BOUNDARY_SOURCES),
+]
+
+MOMENTS = [
+    ("recording", "started_at"),
+    ("segment", "disposition_at"),
+    ("job", "queued_at"),
+    ("notification", "created_at"),
+    ("log_entry", "occurred_at"),
 ]
 
 
@@ -140,8 +155,6 @@ def populated_segment(recording, block):
         state="approved",
         punch_in_seconds=61.5,
         punch_out_seconds=3497.25,
-        proposed_punch_in=63.125,
-        proposed_punch_out=3499.0,
         intent="publish",
         disposition_at=datetime(2026, 9, 14, 8, 12, tzinfo=UTC),
         distribution_confirmed=True,
@@ -175,6 +188,9 @@ def populated_proposal(segment):
             Evidence(timecode=3497.25, finding="amen", implies="the closing prayer ends"),
         ),
         missing_evidence=("no diarization for the final 4 minutes",),
+        punch_in_candidates=(
+            Candidate(timecode=6890.0, considered_because="4.2 s of quiet before a greeting"),
+        ),
     )
 
 
@@ -275,6 +291,35 @@ def minimal_speaker_profile():
     return SpeakerProfile(name="not a known voice", embedding=b"\x00\x01")
 
 
+def populated_log_entry(recording, segment, job, proposal, artifact):
+    return LogEntry(
+        recording_id=recording.recording_id,
+        segment_id=segment.segment_id,
+        job_id=job.job_id,
+        proposal_id=proposal.proposal_id,
+        artifact_id=artifact.artifact_id,
+        kind="approved",
+        occurred_at=datetime(2026, 9, 13, 8, 55, tzinfo=UTC),
+        correlation_id="ingest-7f3a1c",
+        actor="the reviewer",
+        entered_state="approved",
+        duration_seconds=812.4,
+        error="the transcription service was unreachable",
+        punch_in_seconds=7220.0,
+        punch_out_seconds=9812.0,
+        boundary_source="human",
+    )
+
+
+def minimal_log_entry(recording):
+    return LogEntry(
+        recording_id=recording.recording_id,
+        kind="state_change",
+        occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
+        correlation_id="analyze-4b20e9",
+    )
+
+
 @pytest.fixture
 def store(tmp_path):
     opened = opens_store(data_root=tmp_path)
@@ -296,15 +341,21 @@ def graph(store):
         )
     )
     segment = store.saves(populated_segment(recording, block))
+    proposal = store.saves(populated_proposal(segment))
+    artifact = store.saves(populated_artifact(recording, segment))
+    job = store.saves(populated_job(recording, segment))
     return {
         "recording": recording,
         "block": block,
         "speaker_profile": profile,
         "segment": segment,
-        "proposal": store.saves(populated_proposal(segment)),
-        "artifact": store.saves(populated_artifact(recording, segment)),
-        "job": store.saves(populated_job(recording, segment)),
+        "proposal": proposal,
+        "artifact": artifact,
+        "job": job,
         "notification": store.saves(populated_notification(recording, segment)),
+        "log_entry": store.saves(
+            populated_log_entry(recording, segment, job, proposal, artifact)
+        ),
     }
 
 
@@ -393,13 +444,23 @@ def test_the_machine_proposal_beside_a_reviewers_work_is_the_one_not_yet_superse
     adjusted = store.saves(
         replace(graph["segment"], punch_in_seconds=5582.0, boundary_source="human")
     )
-    reproposed = store.saves(replace(adjusted, proposed_punch_in=5590.5))
-    fresh = store.saves(populated_proposal(reproposed))
+    fresh = store.saves(populated_proposal(adjusted))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="boundaries_proposed",
+            segment_id=adjusted.segment_id,
+            proposal_id=fresh.proposal_id,
+            punch_in_seconds=5590.5,
+            boundary_source="model",
+        )
+    )
     store.saves(replace(graph["proposal"], superseded_by=fresh.proposal_id))
-    stored = reloaded(store, reproposed, "segment")
+    stored = reloaded(store, adjusted, "segment")
     assert (stored.punch_in_seconds, stored.boundary_source) == (5582.0, "human")
-    assert stored.proposed_punch_in == 5590.5
     assert store.lists(Proposal, segment_id=adjusted.segment_id, superseded_by=None) == [fresh]
+    logged = store.lists(LogEntry, proposal_id=fresh.proposal_id)
+    assert [entry.punch_in_seconds for entry in logged] == [5590.5]
 
 
 def test_a_segment_lists_the_renders_made_from_it(store, graph):
@@ -577,6 +638,281 @@ def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_drop
     assert store.loads(Notification, suppressed.notification_id).state == "suppressed"
 
 
+def test_a_recording_lists_every_entry_in_its_processing_log_oldest_first(store, graph):
+    recording = graph["recording"]
+    transition = store.saves(replace(minimal_log_entry(recording), entered_state="analyzing"))
+    attempt = store.saves(
+        replace(
+            minimal_log_entry(recording),
+            kind="analyze_attempt",
+            occurred_at=datetime(2026, 9, 13, 9, 15, 30, tzinfo=UTC),
+            job_id=graph["job"].job_id,
+            duration_seconds=812.4,
+            error="the transcription service was unreachable",
+        )
+    )
+    action = store.saves(
+        replace(
+            minimal_log_entry(recording),
+            kind="approved",
+            occurred_at=datetime(2026, 9, 13, 11, 4, 9, tzinfo=UTC),
+            segment_id=graph["segment"].segment_id,
+            actor="the reviewer",
+        )
+    )
+    assert store.lists(LogEntry, recording_id=recording.recording_id) == [
+        graph["log_entry"],
+        transition,
+        attempt,
+        action,
+    ]
+
+
+def test_the_processing_log_is_in_time_order_whatever_offset_its_entries_were_written_with(store):
+    recording = store.saves(minimal_recording())
+    for written in (
+        datetime(2026, 9, 13, 10, 0, tzinfo=timezone(timedelta(hours=2))),
+        datetime(2026, 9, 13, 9, 0, tzinfo=UTC),
+        datetime(2026, 9, 13, 9, 0, tzinfo=timezone(timedelta(hours=-5))),
+    ):
+        store.saves(replace(minimal_log_entry(recording), occurred_at=written))
+    logged = store.lists(LogEntry, recording_id=recording.recording_id)
+    assert [entry.occurred_at for entry in logged] == [
+        datetime(2026, 9, 13, 8, 0, tzinfo=UTC),
+        datetime(2026, 9, 13, 9, 0, tzinfo=UTC),
+        datetime(2026, 9, 13, 14, 0, tzinfo=UTC),
+    ]
+
+
+@pytest.mark.parametrize("name, column", MOMENTS)
+def test_a_moment_that_carries_no_offset_is_never_stored(store, graph, tmp_path, name, column):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(UnstorableValue):
+        store.saves(replace(graph[name], **{column: datetime(2026, 9, 13, 9, 2)}))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_state_transition_records_the_state_it_entered_and_when(store, graph):
+    entered = store.saves(replace(minimal_log_entry(graph["recording"]), entered_state="analyzing"))
+    stored = reloaded(store, entered, "log_entry")
+    assert (stored.entered_state, stored.occurred_at) == ("analyzing", entered.occurred_at)
+
+
+def test_the_log_records_a_segments_transitions_beside_the_recordings(store, graph):
+    store.saves(replace(minimal_log_entry(graph["recording"]), entered_state="awaiting_review"))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            entered_state="recut",
+            segment_id=graph["segment"].segment_id,
+            occurred_at=datetime(2026, 9, 14, 8, 0, tzinfo=UTC),
+        )
+    )
+    logged = store.lists(LogEntry, recording_id=graph["recording"].recording_id)
+    assert [(entry.entered_state, entry.segment_id) for entry in logged] == [
+        ("approved", graph["segment"].segment_id),
+        ("awaiting_review", None),
+        ("recut", graph["segment"].segment_id),
+    ]
+
+
+def test_every_job_attempt_is_recorded_with_its_timestamp_duration_and_error(store, graph):
+    job = store.saves(minimal_job(graph["recording"]))
+    attempt = replace(
+        minimal_log_entry(graph["recording"]),
+        kind="analyze_attempt",
+        job_id=job.job_id,
+        duration_seconds=44.5,
+        error="the transcription service was unreachable",
+    )
+    first = store.saves(attempt)
+    second = store.saves(
+        replace(
+            attempt,
+            occurred_at=datetime(2026, 9, 13, 9, 20, tzinfo=UTC),
+            duration_seconds=2841.0,
+            error=None,
+        )
+    )
+    logged = store.lists(LogEntry, job_id=job.job_id)
+    assert [(entry.occurred_at, entry.duration_seconds, entry.error) for entry in logged] == [
+        (first.occurred_at, 44.5, "the transcription service was unreachable"),
+        (second.occurred_at, 2841.0, None),
+    ]
+
+
+def test_an_entry_that_cannot_be_correlated_to_the_application_logs_is_never_stored(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(minimal_log_entry(graph["recording"]), correlation_id=None))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_human_action_records_who_performed_it_and_against_which_segment(store, graph):
+    adjustment = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="punch_in_adjusted",
+            actor="the reviewer",
+            segment_id=graph["segment"].segment_id,
+        )
+    )
+    stored = reloaded(store, adjustment, "log_entry")
+    assert (stored.kind, stored.actor, stored.segment_id) == (
+        "punch_in_adjusted",
+        "the reviewer",
+        graph["segment"].segment_id,
+    )
+
+
+def test_each_set_of_boundaries_is_kept_with_who_approved_it_and_when(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    first = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="approved",
+            segment_id=segment.segment_id,
+            actor="the reviewer",
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    second = store.saves(
+        replace(
+            first,
+            log_entry_id=None,
+            occurred_at=datetime(2026, 9, 20, 10, 0, tzinfo=UTC),
+            punch_out_seconds=9850.0,
+        )
+    )
+    logged = store.lists(LogEntry, segment_id=segment.segment_id)
+    assert [
+        (entry.punch_in_seconds, entry.punch_out_seconds, entry.actor, entry.occurred_at)
+        for entry in logged
+    ] == [
+        (7220.0, 9812.0, "the reviewer", first.occurred_at),
+        (7220.0, 9850.0, "the reviewer", second.occurred_at),
+    ]
+
+
+def test_a_superseded_proposal_keeps_the_cuts_it_proposed(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    proposed = store.saves(minimal_proposal(segment))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="boundaries_proposed",
+            segment_id=segment.segment_id,
+            proposal_id=proposed.proposal_id,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    fresh = store.saves(minimal_proposal(segment))
+    store.saves(replace(proposed, superseded_by=fresh.proposal_id))
+    logged = store.lists(LogEntry, proposal_id=proposed.proposal_id)
+    assert [(entry.punch_in_seconds, entry.punch_out_seconds) for entry in logged] == [
+        (7220.0, 9812.0)
+    ]
+
+
+def test_each_logged_set_of_boundaries_records_whether_it_was_proposed_or_refined(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    proposed = store.saves(minimal_proposal(segment))
+    boundaries = replace(
+        minimal_log_entry(graph["recording"]),
+        kind="boundaries_proposed",
+        segment_id=segment.segment_id,
+        proposal_id=proposed.proposal_id,
+        punch_in_seconds=7220.0,
+        punch_out_seconds=9812.0,
+        boundary_source="model",
+    )
+    store.saves(boundaries)
+    store.saves(
+        replace(
+            boundaries,
+            log_entry_id=None,
+            kind="boundaries_refined",
+            occurred_at=datetime(2026, 9, 13, 9, 3, tzinfo=UTC),
+            punch_in_seconds=7216.5,
+            boundary_source="model-in/refined-out",
+        )
+    )
+    store.saves(replace(segment, punch_in_seconds=7210.0, boundary_source="human"))
+    logged = store.lists(LogEntry, segment_id=segment.segment_id)
+    assert [(entry.punch_in_seconds, entry.boundary_source) for entry in logged] == [
+        (7220.0, "model"),
+        (7216.5, "model-in/refined-out"),
+    ]
+
+
+def test_a_discarded_adjustment_is_kept_in_the_history(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    adjusted = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="punch_in_adjusted",
+            segment_id=segment.segment_id,
+            actor="the reviewer",
+            punch_in_seconds=7216.5,
+        )
+    )
+    store.saves(
+        replace(
+            adjusted,
+            log_entry_id=None,
+            kind="adjustment_discarded",
+            occurred_at=datetime(2026, 9, 13, 11, 6, tzinfo=UTC),
+            punch_in_seconds=7220.0,
+        )
+    )
+    logged = store.lists(LogEntry, segment_id=segment.segment_id)
+    assert [(entry.kind, entry.punch_in_seconds) for entry in logged] == [
+        ("punch_in_adjusted", 7216.5),
+        ("adjustment_discarded", 7220.0),
+    ]
+
+
+def test_a_past_render_is_reproducible_from_the_boundaries_and_settings_it_used(store, graph):
+    rendered = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="rendered",
+            segment_id=graph["segment"].segment_id,
+            artifact_id=graph["artifact"].artifact_id,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    stored = reloaded(store, rendered, "log_entry")
+    render = store.loads(Artifact, stored.artifact_id)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds, render.render_settings) == (
+        7220.0,
+        9812.0,
+        graph["artifact"].render_settings,
+    )
+
+
+def test_analysis_records_an_alternative_punch_in_candidate_and_why_it_was_considered(store, graph):
+    alternative = Candidate(
+        timecode=6890.0, considered_because="4.2 s of quiet before “good morning”"
+    )
+    proposal = store.saves(replace(graph["proposal"], punch_in_candidates=(alternative,)))
+    assert reloaded(store, proposal, "proposal").punch_in_candidates == (alternative,)
+
+
+def test_alternative_punch_in_candidates_are_kept_in_the_order_analysis_ranked_them(store, graph):
+    ranked = (
+        Candidate(timecode=6890.0, considered_because="4.2 s of quiet before “good morning”"),
+        Candidate(timecode=6842.0, considered_because="the end of the preceding prayer"),
+    )
+    proposal = store.saves(replace(graph["proposal"], punch_in_candidates=ranked))
+    assert reloaded(store, proposal, "proposal").punch_in_candidates == ranked
+
+
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
     store.saves(graph["proposal"])
     store.saves(graph["block"])
@@ -683,6 +1019,43 @@ def test_a_refused_write_does_not_become_durable_when_a_later_one_commits(store,
     later = store.saves(minimal_block(graph["recording"]))
     seen = [row[0] for row in rows_another_connection_sees(tmp_path)["block"]]
     assert seen == [graph["block"].block_id, later.block_id]
+
+
+def test_reverting_to_the_machine_proposal_reads_the_cuts_that_proposal_carries(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    proposed = store.saves(minimal_proposal(segment))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="boundaries_proposed",
+            segment_id=segment.segment_id,
+            proposal_id=proposed.proposal_id,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+            boundary_source="model",
+        )
+    )
+    adjusted = store.saves(replace(segment, punch_in_seconds=7216.5, boundary_source="human"))
+    current = store.lists(Proposal, segment_id=adjusted.segment_id, superseded_by=None)
+    machine = store.lists(LogEntry, proposal_id=current[-1].proposal_id)[-1]
+    reverted = store.saves(
+        replace(
+            adjusted,
+            punch_in_seconds=machine.punch_in_seconds,
+            punch_out_seconds=machine.punch_out_seconds,
+            boundary_source=machine.boundary_source,
+        )
+    )
+    assert (reverted.punch_in_seconds, reverted.punch_out_seconds, reverted.boundary_source) == (
+        7220.0,
+        9812.0,
+        "model",
+    )
+
+
+def test_a_segment_keeps_no_second_copy_of_the_cuts_the_machine_proposed(store):
+    with pytest.raises(ValueError):
+        store.lists(Segment, proposed_punch_in=63.125)
 
 
 def test_listing_by_something_no_entity_holds_is_refused(store):

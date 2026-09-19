@@ -51,8 +51,6 @@ class Segment:
     state: str
     punch_in_seconds: float
     punch_out_seconds: float
-    proposed_punch_in: float | None = None
-    proposed_punch_out: float | None = None
     intent: str | None = None
     disposition_at: datetime | None = None
     distribution_confirmed: bool | None = None
@@ -67,6 +65,12 @@ class Evidence:
     timecode: float
     finding: str
     implies: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class Candidate:
+    timecode: float
+    considered_because: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -87,6 +91,7 @@ class Proposal:
     superseded_by: int | None = None
     evidence: tuple[Evidence, ...] = ()
     missing_evidence: tuple[str, ...] = ()
+    punch_in_candidates: tuple[Candidate, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -138,3 +143,23 @@ class Notification:
     summary: str
     created_at: datetime
     state: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class LogEntry:
+    log_entry_id: int | None = None
+    recording_id: str
+    segment_id: int | None = None
+    job_id: int | None = None
+    proposal_id: int | None = None
+    artifact_id: int | None = None
+    kind: str
+    occurred_at: datetime
+    correlation_id: str
+    actor: str | None = None
+    entered_state: str | None = None
+    duration_seconds: float | None = None
+    error: str | None = None
+    punch_in_seconds: float | None = None
+    punch_out_seconds: float | None = None
+    boundary_source: str | None = None

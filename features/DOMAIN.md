@@ -28,13 +28,14 @@ Recording ──1:N──▶ Block
     │
     ├────1:N────▶ Artifact       (transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
-    └────1:N────▶ Notification   (naming its Segment too, when it concerns one)
+    ├────1:N────▶ Notification   (naming its Segment too, when it concerns one)
+    └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 ```
 
-Five nouns the reviewer names, plus three the system needs: `Job`,
-`Notification` and `SpeakerProfile`.
+Five nouns the reviewer names, plus four the system needs: `Job`,
+`Notification`, `LogEntry` and `SpeakerProfile`.
 
 ---
 
@@ -98,13 +99,12 @@ and what renders.
 | `recording_id` | |
 | `seed_block_id` | Which teaching Block it grew from. Null only for a `meeting` Segment, which a human creates by archiving a whole Recording. |
 | `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. **Not the Block vocabulary.** |
-| `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. |
-| `proposed_punch_in`, `proposed_punch_out` | The machine's original. Required: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`), which is impossible if adjustment overwrites. |
+| `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. The machine's original is not a second pair here: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`) by reading the cuts the `LogEntry` naming that Proposal carries. |
 | `state` | `proposed`, `approved`, `skipped`, `processing`, `processing_failed`, `complete`, `recut`. |
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
 | `disposition_at` | When it was approved or skipped. A skipped Segment must be findable years later. |
 | `distribution_confirmed` | A Segment whose teaching voice matches no enrolled profile is confirmed as distributable before it is published, and the confirmation is recorded with the approval (`interface/segment_review.feature`). Null until the question is asked, so a confirmation nobody was asked for stays distinguishable from one that was declined. |
-| `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Already produced by the pipeline and worth keeping: it is how a regression gets attributed. |
+| `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Where the current boundaries came from: "every Segment records whether its boundaries were proposed or refined" (`analysis/segment_proposal.feature`). Already produced by the pipeline. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
 | `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
@@ -124,7 +124,19 @@ and supersedes the one before it rather than overwriting it.
 | `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut. **Graded from the ground truth where it exists, never by the configuration being measured** — otherwise the headline can be raised by grading more cuts hard. |
 | `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null when no second opinion is configured, and the absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
+| `punch_in_candidates[]` | Each entry: `timecode` and `considered_because`. "Analysis recorded an alternative punch-in candidate" whose evidence panel "shows why that candidate was considered" (`interface/punch_point_adjustment.feature`) — a bare timecode cannot. Ordered by rank. |
 | `superseded_by` | Re-running Analysis keeps the previous Proposals in the Recording's history, and where a reviewer has already edited a Segment the fresh machine proposal is shown *alongside* their work rather than over it (`analysis/analysis_orchestration.feature`, `interface/punch_point_adjustment.feature`). Two Proposals for one Segment therefore have to exist at once, which a 1:1 cannot do, and which of them is current has to be a stored fact. Written the way `Artifact.superseded_by` already is. |
+
+**A candidate is not an `evidence[]` entry**, though it borrows the shape: most
+evidence is not a boundary, and `implies` has nothing to say about a candidate.
+Only punch-in has one, because only punch-in has a scenario.
+
+**Its cuts are not here.** A `LogEntry` naming this Proposal carries them, so the
+machine's boundary sets and the reviewer's sit in one ordered history instead of
+two (`processing/reprocessing.feature`). Nor are they copied onto the Segment:
+reverting reads the entries naming the Proposal that is not yet superseded, which
+is one query rather than a second copy of the cuts that can drift from the
+history and that nothing would detect had drifted.
 
 ---
 
@@ -189,6 +201,37 @@ reviewer, and nothing yet models one.
 
 ---
 
+## LogEntry
+
+One thing that happened to a Recording, in the order it happened. This is one
+entity rather than three because `interface/recording_detail.feature` renders
+state transitions, job attempts and human actions as a single list in time
+order, and three tables cannot be ordered by one query.
+
+| Field | Why it exists |
+| --- | --- |
+| `recording_id` | Whose log it is: "I open **its** processing log" (`operations/system_health.feature`). |
+| `segment_id` | "Who performed each human action, **against which Segment**". Null for an entry about the whole Recording, written the way `Artifact` and `Notification` write it. |
+| `job_id` | Which job an attempt was of, so the entry does not repeat what `Job.kind` already says. |
+| `proposal_id` | Which Proposal the machine's cuts belonged to. Without it a superseded Proposal keeps its reasoning and not its cuts, and re-running Analysis "keeps the previous Proposals in the Recording's history". |
+| `artifact_id` | Which render a set of boundaries produced. "Any past render could be reproduced from that record and the source" needs the cuts paired to the render's settings, not two lists assumed to be in step. |
+| `kind` | What happened. Deliberately not a closed set: the scenarios log transitions, attempts, approvals, adjustments and reverts and declare a vocabulary for none of them — `Notification.kind` is open for the same reason. |
+| `occurred_at` | "Each state transition **with its timestamp**". The log's order, so entries are ordered on it rather than on the identity, which only breaks a tie. An instant, not a local reading: two entries written in different offsets still order against each other, so a moment without one is refused rather than stored. |
+| `correlation_id` | "I can correlate an entry to the application logs". Required on every entry: an identifier that may be absent is the same as no identifier. |
+| `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` names — there are no accounts (`interface/authentication.feature`). |
+| `entered_state` | "Each state transition with its timestamp". One of the Recording's ten states or the Segment's seven; the two sets are disjoint, so one column holds either and `segment_id` says whose. |
+| `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
+| `punch_in_seconds`, `punch_out_seconds` | "Each set of boundaries with who approved them and when" (`processing/reprocessing.feature`), a discarded adjustment included. Read with `actor` and `occurred_at`, which are what make it a set of boundaries *with* an approver. |
+| `boundary_source` | Which path produced *this* set — "and that is visible in the processing log" (`analysis/segment_proposal.feature`). The same four values `Segment.boundary_source` takes, recorded per set because the Segment holds only the current one, and attributing a regression to a path means reading the cuts that came from it. |
+
+**Not stored:** `from_state`. The state a transition left is the previous entry's
+`entered_state` for the same subject, and every transition is logged, so storing
+it would be a second source of truth. Nor the attempt ordinal, which is the
+position of that job's attempt entries. `Job.attempts` stays, because the retry
+budget is read before the attempt it authorises is logged.
+
+---
+
 ## SpeakerProfile
 
 | Field | Why it exists |
@@ -213,21 +256,4 @@ flagged as an open decision, not settled here.
   because that decision is open (`analysis/analysis_confidence.feature`).
 - **Whether local audio is ever reclaimed.** `local_path` is nullable and the
   object store is durable, so both answers fit. Q34 is open.
-- **Whether a Proposal carries the boundaries it proposed.** They live on the
-  Segment as `proposed_punch_in` and `proposed_punch_out`, which hold only the
-  current machine suggestion, so a superseded Proposal keeps its reasoning and
-  not its cuts. Moving them here would close that, and it is the same question
-  as the boundary history `processing/reprocessing.feature` asks for — "each set
-  of boundaries with who approved them and when" — which needs an actor and a
-  time this model has nowhere to put.
-- **The processing log.** Four feature files ask for one: each state transition
-  with its timestamp, each job attempt with its duration and error, and who
-  performed each human action against which Segment
-  (`interface/recording_detail.feature`, `operations/system_health.feature`,
-  `analysis/analysis_orchestration.feature`, `analysis/segment_proposal.feature`).
-  `Job` holds the current attempt count and the last error, never a record per
-  attempt, and nothing at all holds transitions or human actions — so this is an
-  entity the spec requires and this model does not have. It is left out
-  deliberately rather than by oversight: it also carries the boundary and
-  adjustment history above, and wants designing once for all of them.
 - **Hard delete.** The last `@needs-decision` in the spec.
