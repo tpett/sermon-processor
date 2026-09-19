@@ -714,6 +714,104 @@ def test_a_human_action_records_who_performed_it_and_against_which_segment(store
     )
 
 
+def test_each_set_of_boundaries_is_kept_with_who_approved_it_and_when(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    first = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="approved",
+            segment_id=segment.segment_id,
+            actor="the reviewer",
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    second = store.saves(
+        replace(
+            first,
+            log_entry_id=None,
+            occurred_at=datetime(2026, 9, 20, 10, 0, tzinfo=UTC),
+            punch_out_seconds=9850.0,
+        )
+    )
+    logged = store.lists(LogEntry, segment_id=segment.segment_id)
+    assert [
+        (entry.punch_in_seconds, entry.punch_out_seconds, entry.actor, entry.occurred_at)
+        for entry in logged
+    ] == [
+        (7220.0, 9812.0, "the reviewer", first.occurred_at),
+        (7220.0, 9850.0, "the reviewer", second.occurred_at),
+    ]
+
+
+def test_a_superseded_proposal_keeps_the_cuts_it_proposed(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    proposed = store.saves(minimal_proposal(segment))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="boundaries_proposed",
+            segment_id=segment.segment_id,
+            proposal_id=proposed.proposal_id,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    fresh = store.saves(minimal_proposal(segment))
+    store.saves(replace(proposed, superseded_by=fresh.proposal_id))
+    logged = store.lists(LogEntry, proposal_id=proposed.proposal_id)
+    assert [(entry.punch_in_seconds, entry.punch_out_seconds) for entry in logged] == [
+        (7220.0, 9812.0)
+    ]
+
+
+def test_a_discarded_adjustment_is_kept_in_the_history(store, graph):
+    segment = store.saves(minimal_segment(graph["recording"]))
+    adjusted = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="punch_in_adjusted",
+            segment_id=segment.segment_id,
+            actor="the reviewer",
+            punch_in_seconds=7216.5,
+        )
+    )
+    store.saves(
+        replace(
+            adjusted,
+            log_entry_id=None,
+            kind="adjustment_discarded",
+            occurred_at=datetime(2026, 9, 13, 11, 6, tzinfo=UTC),
+            punch_in_seconds=7220.0,
+        )
+    )
+    logged = store.lists(LogEntry, segment_id=segment.segment_id)
+    assert [(entry.kind, entry.punch_in_seconds) for entry in logged] == [
+        ("punch_in_adjusted", 7216.5),
+        ("adjustment_discarded", 7220.0),
+    ]
+
+
+def test_a_past_render_is_reproducible_from_the_boundaries_and_settings_it_used(store, graph):
+    rendered = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="rendered",
+            segment_id=graph["segment"].segment_id,
+            artifact_id=graph["artifact"].artifact_id,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    stored = reloaded(store, rendered, "log_entry")
+    render = store.loads(Artifact, stored.artifact_id)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds, render.render_settings) == (
+        7220.0,
+        9812.0,
+        graph["artifact"].render_settings,
+    )
+
+
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
     store.saves(graph["proposal"])
     store.saves(graph["block"])
