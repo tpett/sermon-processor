@@ -59,6 +59,7 @@ CUT_DIFFICULTIES = ("easy", "moderate", "hard")
 
 ARTIFACT_KINDS = (
     "source_flac",
+    "envelope",
     "rendered_mp3",
     "transcript",
     "waveform_peaks",

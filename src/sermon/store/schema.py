@@ -10,6 +10,7 @@ from .entities import (
     Artifact,
     Block,
     Candidate,
+    ChannelLevel,
     Evidence,
     Job,
     LogEntry,
@@ -98,6 +99,14 @@ TABLES = {
                 "state": vocabularies.RECORDING_STATES,
                 "kind": vocabularies.RECORDING_KINDS,
             },
+            collections=(
+                Collection(
+                    field="channel_levels",
+                    table="recording_channel_level",
+                    owner="recording_id",
+                    element=ChannelLevel,
+                ),
+            ),
         ),
         Table(
             entity=Block,
@@ -148,6 +157,7 @@ TABLES = {
             references={
                 "recording_id": "recording(recording_id)",
                 "seed_block_id": "block(block_id)",
+                "confirmed_speaker_profile_id": "speaker_profile(speaker_profile_id)",
             },
             closed={
                 "classification": vocabularies.SEGMENT_CLASSIFICATIONS,

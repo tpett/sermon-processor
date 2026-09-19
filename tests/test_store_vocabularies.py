@@ -81,7 +81,7 @@ SPEC_VOCABULARIES = {
     "BOUNDARY_SOURCES": (4, domain_field("Segment", "boundary_source")),
     "CONFIDENCE_LEVELS": (3, domain_field("Block", "classification_confidence")),
     "CUT_DIFFICULTIES": (3, domain_field("Proposal", "punch_in_difficulty")),
-    "ARTIFACT_KINDS": (6, domain_field("Artifact", "kind")),
+    "ARTIFACT_KINDS": (7, domain_field("Artifact", "kind")),
     "JOB_KINDS": (3, domain_field("Job", "kind")),
     "JOB_STATES": (5, domain_field("Job", "state")),
     "NOTIFICATION_STATES": (4, domain_field("Notification", "state")),

@@ -8,6 +8,7 @@ from sermon.store import (
     Artifact,
     Block,
     Candidate,
+    ChannelLevel,
     DATABASE_NAME,
     Evidence,
     Job,
@@ -91,8 +92,17 @@ def populated_recording():
         channels=2,
         sample_rate=44100,
         bits_per_raw_sample=32,
+        channel_levels=(
+            ChannelLevel(channel=1, rms_db=-21.3),
+            ChannelLevel(channel=2, rms_db=-90.4),
+        ),
+        mono_source="channel 1 only",
+        mono_source_confirmed=True,
         local_path="recording_20260913_090014/source.flac",
         checksum="ac5f0d2b9e1c4477",
+        integrated_loudness_lufs=-24.6,
+        true_peak_dbtp=0.4,
+        loudness_range_lu=7.2,
         dynamic_range_db=63.4,
         active_fraction=0.82,
         longest_active_seconds=3492.5,
@@ -147,19 +157,23 @@ def minimal_block(recording):
     )
 
 
-def populated_segment(recording, block):
+def populated_segment(recording, block, profile):
     return Segment(
         recording_id=recording.recording_id,
         seed_block_id=block.block_id,
         classification="lesson",
         state="approved",
+        span_start_seconds=61.0,
+        span_end_seconds=3600.0,
         punch_in_seconds=61.5,
         punch_out_seconds=3497.25,
         intent="publish",
         disposition_at=datetime(2026, 9, 14, 8, 12, tzinfo=UTC),
         distribution_confirmed=True,
+        confirmed_speaker_profile_id=profile.speaker_profile_id,
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
+        summary="A class on Hebrews 12, taught by one voice",
         publication_date=date(2026, 9, 13),
         label="Hebrews 12.4-11",
     )
@@ -170,6 +184,8 @@ def minimal_segment(recording):
         recording_id=recording.recording_id,
         classification="meeting",
         state="proposed",
+        span_start_seconds=0.0,
+        span_end_seconds=11520.0,
         punch_in_seconds=0.0,
         punch_out_seconds=11520.0,
     )
@@ -340,7 +356,7 @@ def graph(store):
             ),
         )
     )
-    segment = store.saves(populated_segment(recording, block))
+    segment = store.saves(populated_segment(recording, block, profile))
     proposal = store.saves(populated_proposal(segment))
     artifact = store.saves(populated_artifact(recording, segment))
     job = store.saves(populated_job(recording, segment))
@@ -409,6 +425,70 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
     assert {name: reloaded(store, saved, name) for name, saved in minimal.items()} == minimal
 
 
+def test_a_recording_lists_the_level_measured_on_each_of_its_channels(store, graph):
+    remeasured = (ChannelLevel(channel=1, rms_db=-18.7), ChannelLevel(channel=2, rms_db=-88.1))
+    reprobed = store.saves(replace(graph["recording"], channel_levels=remeasured))
+    assert reloaded(store, reprobed, "recording").channel_levels == remeasured
+
+
+def test_a_recording_keeps_its_channel_levels_in_the_order_the_probe_reported_them(store, graph):
+    reported = (ChannelLevel(channel=2, rms_db=-90.4), ChannelLevel(channel=1, rms_db=-21.3))
+    reprobed = store.saves(replace(graph["recording"], channel_levels=reported))
+    assert reloaded(store, reprobed, "recording").channel_levels == reported
+
+
+def test_a_recording_records_which_channel_or_mix_the_render_must_take(store, graph):
+    decided = store.saves(replace(graph["recording"], mono_source="both channels mixed"))
+    assert reloaded(store, decided, "recording").mono_source == "both channels mixed"
+
+
+def test_a_mono_source_a_human_answered_for_is_distinguishable_from_one_the_probe_decided(store):
+    asked = store.saves(replace(minimal_recording(), mono_source="both channels mixed"))
+    answered = store.saves(replace(asked, mono_source_confirmed=True))
+    decided = store.saves(
+        replace(
+            minimal_recording(),
+            recording_id="recording_20260830_102900",
+            object_key="2026/08/30/recording_20260830_102900.flac",
+            mono_source="channel 1 only",
+        )
+    )
+    assert reloaded(store, answered, "recording").mono_source_confirmed is True
+    assert reloaded(store, decided, "recording").mono_source_confirmed is None
+
+
+def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_source_yet(store):
+    stored = reloaded(store, store.saves(minimal_recording()), "recording")
+    assert (stored.mono_source, stored.mono_source_confirmed) == (None, None)
+
+
+def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):
+    reprobed = store.saves(
+        replace(
+            graph["recording"],
+            integrated_loudness_lufs=-19.8,
+            true_peak_dbtp=-1.2,
+            loudness_range_lu=9.4,
+        )
+    )
+    stored = reloaded(store, reprobed, "recording")
+    assert (stored.integrated_loudness_lufs, stored.true_peak_dbtp, stored.loudness_range_lu) == (
+        -19.8,
+        -1.2,
+        9.4,
+    )
+    assert stored.dynamic_range_db == 63.4
+
+
+def test_a_recording_holds_no_loudness_until_the_probe_measures_it(store):
+    stored = reloaded(store, store.saves(minimal_recording()), "recording")
+    assert (stored.integrated_loudness_lufs, stored.true_peak_dbtp, stored.loudness_range_lu) == (
+        None,
+        None,
+        None,
+    )
+
+
 def test_a_recording_lists_its_blocks_in_the_order_they_cover_it(store, graph):
     later = store.saves(
         replace(graph["block"], block_id=None, start_seconds=3600.0, end_seconds=7200.0)
@@ -424,6 +504,41 @@ def test_a_recording_lists_its_blocks_in_the_order_they_cover_it(store, graph):
 
 def test_a_segment_grows_from_the_block_that_seeded_it(store, graph):
     assert reloaded(store, graph["segment"], "segment").seed_block_id == graph["block"].block_id
+
+
+def test_a_segment_holds_an_outer_span_its_punch_points_sit_inside(store, graph):
+    stored = reloaded(store, graph["segment"], "segment")
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (61.0, 3600.0)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (61.5, 3497.25)
+
+
+def test_extending_a_segments_span_leaves_its_punch_points_where_they_were(store, graph):
+    extended = store.saves(
+        replace(graph["segment"], span_start_seconds=5.0, span_end_seconds=3900.0)
+    )
+    stored = reloaded(store, extended, "segment")
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (5.0, 3900.0)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (61.5, 3497.25)
+
+
+def test_a_segment_no_block_seeded_holds_a_span_of_its_own(store, graph):
+    drawn = store.saves(minimal_segment(graph["recording"]))
+    stored = reloaded(store, drawn, "segment")
+    assert stored.seed_block_id is None
+    assert (stored.span_start_seconds, stored.span_end_seconds) == (0.0, 11520.0)
+
+
+def test_a_proposed_segment_carries_a_summary_of_its_own(store, graph):
+    summarised = store.saves(
+        replace(graph["segment"], summary="On enduring hardship as discipline, from Hebrews 12")
+    )
+    stored = reloaded(store, summarised, "segment")
+    assert stored.summary == "On enduring hardship as discipline, from Hebrews 12"
+
+
+def test_a_segment_carries_no_summary_until_summarization_runs(store, graph):
+    drawn = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, drawn, "segment").summary is None
 
 
 def test_correcting_a_proposal_does_not_make_it_a_second_one(store, graph):
@@ -465,6 +580,18 @@ def test_the_machine_proposal_beside_a_reviewers_work_is_the_one_not_yet_superse
 
 def test_a_segment_lists_the_renders_made_from_it(store, graph):
     assert store.lists(Artifact, segment_id=graph["segment"].segment_id) == [graph["artifact"]]
+
+
+def test_a_stage_that_reads_the_envelope_finds_the_one_already_computed(store, graph):
+    computed = store.saves(
+        replace(
+            minimal_artifact(graph["recording"]),
+            kind="envelope",
+            path="recording_20260913_090014/envelope",
+        )
+    )
+    cached = store.lists(Artifact, recording_id=graph["recording"].recording_id, kind="envelope")
+    assert cached == [computed]
 
 
 def test_a_recording_lists_every_artifact_derived_from_it(store, graph):
@@ -556,6 +683,48 @@ def test_confirming_that_a_recording_may_be_distributed_is_recorded_with_the_app
         replace(graph["segment"], state="approved", intent="publish", distribution_confirmed=True)
     )
     assert reloaded(store, approved, "segment").distribution_confirmed is True
+
+
+def test_a_human_confirming_who_preached_is_recorded_against_the_segment(store, graph):
+    confirmed = store.saves(
+        replace(
+            graph["segment"],
+            confirmed_speaker_profile_id=graph["speaker_profile"].speaker_profile_id,
+        )
+    )
+    stored = reloaded(store, confirmed, "segment")
+    assert stored.confirmed_speaker_profile_id == graph["speaker_profile"].speaker_profile_id
+
+
+def test_a_corrected_speaker_outlives_a_re_analysis_that_re_ranks_the_machine_matches(store, graph):
+    guest = store.saves(minimal_speaker_profile())
+    corrected = store.saves(
+        replace(graph["segment"], confirmed_speaker_profile_id=guest.speaker_profile_id)
+    )
+    store.saves(
+        replace(
+            graph["block"],
+            speaker_matches=(
+                SpeakerMatch(
+                    speaker_profile_id=graph["speaker_profile"].speaker_profile_id, similarity=0.97
+                ),
+            ),
+        )
+    )
+    stored = reloaded(store, corrected, "segment")
+    assert stored.confirmed_speaker_profile_id == guest.speaker_profile_id
+
+
+def test_a_segment_confirming_a_voice_that_does_not_exist_is_never_stored(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["segment"], confirmed_speaker_profile_id=404))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_segment_nobody_has_confirmed_a_voice_for_names_none(store, graph):
+    drawn = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, drawn, "segment").confirmed_speaker_profile_id is None
 
 
 def test_a_declined_confirmation_is_distinguishable_from_never_having_been_asked(store, graph):

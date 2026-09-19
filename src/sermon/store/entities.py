@@ -16,8 +16,14 @@ class Recording:
     channels: int | None = None
     sample_rate: int | None = None
     bits_per_raw_sample: int | None = None
+    channel_levels: tuple[ChannelLevel, ...] = ()
+    mono_source: str | None = None
+    mono_source_confirmed: bool | None = None
     local_path: str | None = None
     checksum: str | None = None
+    integrated_loudness_lufs: float | None = None
+    true_peak_dbtp: float | None = None
+    loudness_range_lu: float | None = None
     dynamic_range_db: float | None = None
     active_fraction: float | None = None
     longest_active_seconds: float | None = None
@@ -49,13 +55,17 @@ class Segment:
     seed_block_id: int | None = None
     classification: str
     state: str
+    span_start_seconds: float
+    span_end_seconds: float
     punch_in_seconds: float
     punch_out_seconds: float
     intent: str | None = None
     disposition_at: datetime | None = None
     distribution_confirmed: bool | None = None
+    confirmed_speaker_profile_id: int | None = None
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
+    summary: str | None = None
     publication_date: date | None = None
     label: str | None = None
 
@@ -65,6 +75,12 @@ class Evidence:
     timecode: float
     finding: str
     implies: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class ChannelLevel:
+    channel: int
+    rms_db: float
 
 
 @dataclass(frozen=True, kw_only=True)

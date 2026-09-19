@@ -26,12 +26,13 @@ Recording ──1:N──▶ Block
     │                 │
     │                 └──1:N──▶ Artifact  (a render; a re-cut adds another)
     │
-    ├────1:N────▶ Artifact       (transcript, waveform, preview, source FLAC)
+    ├────1:N────▶ Artifact       (envelope, transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
     ├────1:N────▶ Notification   (naming its Segment too, when it concerns one)
     └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
+SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
 ```
 
 Five nouns the reviewer names, plus four the system needs: `Job`,
@@ -51,10 +52,14 @@ One source audio file from the recorder. The unit of ingestion.
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
 | `channels`, `sample_rate`, `bits_per_raw_sample` | Reported on the detail view. **32-bit, not 24** — the spec said 24 in five places and was wrong. |
+| `channel_levels[]` | Each entry: `channel` and `rms_db`. "The Recording records a per-channel RMS level" — channel 1 at −21.3 dB against channel 2 at the −90.4 dB noise floor is what identifies the dead channel, and both are needed to tell that case from two channels carrying signal (`analysis/audio_probe.feature`). |
+| `mono_source` | Which channel or mix the render must take: "the Recording records that the render should use channel 1 only" (`analysis/audio_probe.feature`). Deliberately not a closed set — the scenarios name that one value and declare no vocabulary for the reviewer's answer when both channels carry signal. |
+| `mono_source_confirmed` | A Recording flagged "unexpected stereo content" does not render until a human answers how to mix it (`processing/audio_rendering.feature`), and that answer has to outlive a re-probe which would otherwise recompute `mono_source` over it. Null until the question is asked, written the way `Segment.distribution_confirmed` is. |
 | `state` | One of ten. See the lifecycle in `README.md`; every state's exits are tabulated there. |
 | `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
+| `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
 | `skip_reason` | Why an object was not ingested at all, when that happens. Must be visible rather than silent (`s3_reconciliation.feature`). |
@@ -99,15 +104,30 @@ and what renders.
 | `recording_id` | |
 | `seed_block_id` | Which teaching Block it grew from. Null only for a `meeting` Segment, which a human creates by archiving a whole Recording. |
 | `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. **Not the Block vocabulary.** |
+| `span_start_seconds`, `span_end_seconds` | The Segment's own outer bounds, which the punch points sit inside: a reviewer extends the start, "the Segment's span grows", and the punch-in may sit anywhere in the new span (`interface/punch_point_adjustment.feature`), and the detail view lists a span and a pair of boundaries per Segment (`interface/recording_detail.feature`). Not derivable from `seed_block_id`: extending would rewrite a machine-produced Block, and a `meeting` or hand-drawn Segment has no seed Block. |
 | `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. The machine's original is not a second pair here: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`) by reading the cuts the `LogEntry` naming that Proposal carries. |
 | `state` | `proposed`, `approved`, `skipped`, `processing`, `processing_failed`, `complete`, `recut`. |
 | `intent` | `publish` or `archive`. Always confirmed by a human, never assumed. |
 | `disposition_at` | When it was approved or skipped. A skipped Segment must be findable years later. |
 | `distribution_confirmed` | A Segment whose teaching voice matches no enrolled profile is confirmed as distributable before it is published, and the confirmation is recorded with the approval (`interface/segment_review.feature`). Null until the question is asked, so a confirmation nobody was asked for stays distinguishable from one that was declined. |
+| `confirmed_speaker_profile_id` | Who a human said was preaching, confirming the machine's match or correcting it (`interface/segment_review.feature`). Only `similarity` on the seeding Block is stored otherwise, so without this the next re-analysis reverts the correction — the failure `Block.retyped_by_human` exists to prevent — and the confirmation that enrols the voice has nothing to enrol from. `distribution_confirmed` is the consent half of the same rule; this is the identity half. |
 | `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Where the current boundaries came from: "every Segment records whether its boundaries were proposed or refined" (`analysis/segment_proposal.feature`). Already produced by the pipeline. |
+| `summary` | Its own one line, shown beside it in review and again in the notification (`analysis/summarization.feature`). `Notification.summary` is composed delivery text, and the Block summaries beneath a Segment do not compose into one. Null until summarization runs. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
 | `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
+
+**A span is not a second name for the punch points.** A proposed Segment's span
+is detected and normally wider than its cuts (`interface/recording_detail.feature`).
+A merge and a hand-drawn Segment start coincident — one "spanning from the first
+punch-in to the last punch-out" (`analysis/segment_proposal.feature`) — and part
+as soon as a reviewer extends the span or moves a boundary inside it.
+
+**Neither rejection is stored as a constraint.** "The boundary must fall within
+the Segment" compares two of a Segment's own values and is the kind of sanity
+constraint the store still owes everything else it holds; "rejected if it would
+overlap the neighbouring Segment" compares two Segments, so it can only belong to
+the adjustment behaviour, next to the message the reviewer is shown.
 
 ---
 
@@ -148,7 +168,7 @@ two-year-old Recording still has all of these.
 | Field | Why it exists |
 | --- | --- |
 | `recording_id`, `segment_id` | Segment-scoped for a render, Recording-scoped for the rest. |
-| `kind` | `source_flac`, `rendered_mp3`, `transcript`, `waveform_peaks`, `preview`, `diarization`. |
+| `kind` | `source_flac`, `envelope`, `rendered_mp3`, `transcript`, `waveform_peaks`, `preview`, `diarization`. The envelope is the first stage's output and every later stage reads it, so keeping it is what lets a resumed run leave the cached stages alone and a false trigger cost no GPU time (`analysis/analysis_orchestration.feature`, `analysis/audio_probe.feature`). |
 | `path`, `size_bytes`, `checksum` | |
 | `render_settings` | Loudness target, true peak, LAME quality, the tail applied. Required so a previous render can be reproduced (`storage_and_retention.feature`) and so a re-render is comparable. |
 | `superseded_by` | A re-cut produces a new MP3; the old one survives until the new one succeeds. That is what makes `recut` a distinct state. |
@@ -239,7 +259,7 @@ budget is read before the attempt it authorises is logged.
 | `name` | Shown before publishing, which is the only defence against publishing a guest who asked not to be. |
 | `embedding` | Enrolled from already-published sermons — no separate enrolment session. |
 | `enrolled_from[]` | Which Recordings contributed. Needed to un-enrol. |
-| `confirmed_by_human` | An unrecognised voice requires confirmation before publishing, and confirming enrols. A profile built by confirmation is not the same as one guessed. |
+| `confirmed_by_human` | An unrecognised voice requires confirmation before publishing, and confirming enrols. A profile built by confirmation is not the same as one guessed. Which Segment's voice a human attested to is `Segment.confirmed_speaker_profile_id`. |
 
 **This entity is the one place the system stores something about a person.** It
 exists deliberately and narrowly, and it reopens "nothing more is collected" —
