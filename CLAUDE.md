@@ -77,6 +77,35 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 bd ready                                            # what to work on next
 ```
 
+## Where the work is now, and what that means for choices
+
+The foundations are done: the harness over all 604 scenarios, the store, config,
+and the validated pipeline extracted and provably unchanged. **Almost nothing is
+implemented** — the spec is still overwhelmingly Red, and turning it green is the
+only work that now matters.
+
+Four rules follow from that, and they override the instinct to be thorough:
+
+**Scenarios pull the model, not the other way round.** An exhaustive audit of all
+460 scenarios already listed every gap between the spec and `features/DOMAIN.md`,
+so the unknowns are known and finite. Closing the rest speculatively is the wrong
+order. Add a field when a scenario being implemented needs it.
+
+**No more machinery.** The store already has generated DDL, a `Presence`
+primitive, closed vocabularies and canonical digests — for 39 recordings at about
+one a week, with one reviewer. That is paid for and it caught two data-corruption
+bugs, so it stays. But every *new* abstraction has to justify itself against
+"39 recordings, ~1/week", and most cannot.
+
+**The target is the three-click week**, the thing the spec itself names: a
+recording appears, the pipeline analyses it, a reviewer previews punch-in and
+punch-out, approves, an MP3 lands. One path through ingestion, analysis, review
+and processing. It tells you which open beads actually matter; until it exists,
+none of them provably do.
+
+**142 Rules is not a plan.** One bead per Rule is roughly 142 beads and more
+tokens than any single budget. Implement the vertical slice, then widen.
+
 ## Architecture
 
 `ARCHITECTURE.md` is authoritative. In one line: Python throughout, the validated
@@ -134,6 +163,36 @@ One operation per unit, named as a third-person singular verb phrase —
 not a module of loose functions. Dependencies injected with defaults so a test can
 substitute the model host or the clock without patching globals.
 
+### Beads: depend on children, never on an epic
+
+A bead that depends on an **epic** is hostage to that epic's least related child.
+The P0 pipeline extraction sat invisible to `bd ready` for nine iterations because
+it depended on the Foundations epic, which stayed open for a Dockerfile bead and
+two P3 nitpicks it did not need. Depend on the specific beads whose output you
+consume.
+
+The same rule in reverse: **`bd ready` is not the whole picture.** It shows
+unblocked leaves, so higher-priority work can be hidden behind bookkeeping.
+Inspect the blocked set periodically for work whose blocker is not substance.
+
+### A Minor finding is not automatically a bead
+
+Filing every review nitpick produced a 66-item P3 queue nobody will work, which
+obscures the path rather than protecting it. File a Minor finding only if it
+**blocks something, will cost real time later, or is a correctness risk someone
+could trip over.** A redundant subprocess, a noun-phrase helper name, a duplicated
+constant: note it in the close reason and move on. Beads are for work that will
+actually be done.
+
+### DOMAIN.md cites what the Gherkin says, never an inference
+
+Three times this document attributed a conclusion to a scenario that the scenario
+did not state — "they coincide when a Segment is first made", "the scenario leaves
+a `reviewed` Recording `reviewed`", and a citation that no longer supported its
+field. Each inference was sound; the phrasing claimed it was quoted. Cite the
+clause, and mark reasoning as reasoning. This document is what a rewrite in
+another language would lean on.
+
 ### Worktrees (ADR-LS-002)
 
 Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
@@ -148,9 +207,24 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
 - **No audio leaves the machine.** Ever, to anything.
 - **`experiments/` is frozen.** It is the record of how the numbers were made. Do
   not refactor it or hold it to the TDD cycle retroactively.
-- **Extracting `experiments/src` must be provably behaviour-preserving.** Re-derive
-  and re-score against a frozen baseline; identical or revert. Never combine that
-  move with refactoring or comment cleanup.
+- **The pipeline is extracted and guarded by three instruments. Run all three
+  before and after touching `src/sermon/pipeline/`:** `experiments/baseline.py`
+  (stored-artefact drift, exit 0/1/2), `tests/test_pipeline_library.py` (re-derives
+  all 181 stored block files; needs primary data via `SERMON_SPIKE_DATA`), and
+  `tests/test_pipeline_behaviour.py` (the other seven modules). Each is needed:
+  the first never executes the pipeline, and before the third existed, gutting
+  `blocks.speech_runs` to `raise` left the whole suite green.
+- **Never run `rederive.py` against `experiments/data`.** It rewrites
+  `blocks/` in place, and those 181 files *are* the extraction baseline.
+- **A `__file__`-relative path is how a verbatim move stops preserving behaviour.**
+  The pipeline's data roots are injected — `segments.DATA_ROOT`, `classify.DATA`,
+  `classify.PROMPTS` — and an unset one fails loudly naming module and setting.
+- **After any change to `pyproject.toml` dependencies, run
+  `uv pip install -e ".[dev]"` in the root venv before trusting the suite.** A
+  stale venv once read as a merge regression (598 failed rather than 597).
+- **Sweeping `experiments/` wholesale reads the spike's own venv.** Scan
+  first-party source only; `experiments/.venv` holds a Python 2 file that
+  `ast.parse` rejects, and `experiments/work/models/` holds downloaded scripts.
 - **Never send `format: json` to an MLX-backed ollama model.** 0.34.0 answers
   HTTP 501 `structured output is unavailable`. Unconstrained also scores better.
 - **`experiments/data/test_access.log` records every held-out scoring run.** One

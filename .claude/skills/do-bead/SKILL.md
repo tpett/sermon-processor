@@ -6,8 +6,9 @@ argument-hint: "[bead id, or omit to take the first from bd ready]"
 
 # Do Bead
 
-Take one bead from open to closed, with the implementation and the review each
-done by subagents so neither is marking its own homework.
+Take a bead — or a batch of beads that are one change — from open to closed, with
+the implementation and the review each done by subagents so neither is marking its
+own homework.
 
 The conventions this enforces live in `CLAUDE.md` and `CONVENTIONS.md`. **Do not
 restate them to subagents from memory — read them and pass them.** That is the
@@ -17,6 +18,26 @@ whole reason they are written down.
 
 A bead id, or nothing. With nothing, take the highest-priority item from
 `bd ready` and say which one you took before starting.
+
+## 0. Batch first — this is the largest lever there is
+
+**Take several beads in one pass when they are one change.** Beads that touch the
+same files are cheaper *and safer* together: run separately, each cycle
+invalidates the next one's edits, and you pay a full implement-review-fix round
+every time. Measured on this project: eight beads in one batch cost about what one
+bead cost unbatched.
+
+Batch when the beads share files, share a design decision, or would conflict.
+Six domain-model gaps, five "X is flagged with a condition" beads, two new
+entities — each was one coherent change. **Do not batch** work with genuinely
+independent designs, or a high-risk bead with anything else.
+
+When you batch, say so and say why, and give the reviewer the whole set.
+
+**One review round is the default.** Spend a second round only on work with a
+multiplier — the harness every later bead builds on, the extraction every number
+rests on. The store got one round and that was right; the harness got two and that
+was also right.
 
 ## 1. Read the bead and claim it
 
@@ -35,6 +56,13 @@ carries the phase context the child assumes.
 
 **Refuse to start if the bead is blocked.** `bd ready` will not offer it, but an
 explicitly named id can be. Say what blocks it.
+
+**But check whether the block is real.** If the blocker is an *epic* rather than a
+specific bead, the dependency is probably wrong: an epic stays open for its least
+related child. A P0 epic here was invisible for nine iterations that way. Repoint
+the edge at the beads whose output is actually needed (`bd dep remove`,
+`bd dep add`), record why, and proceed. Do not `--force` close an epic whose
+children are genuinely open — that erases the record of what is undone.
 
 ## 2. Locate the governing spec
 
@@ -105,6 +133,20 @@ Handle it:
 **Never implement the bead yourself.** If the subagent cannot, that is a finding
 about the bead, not an invitation to take over.
 
+### Verify the claims yourself, by mutation
+
+A subagent's report is a claim. Before accepting one, **break the thing the test
+says it covers and confirm the test fails.** Reading a test is not enough: three
+times on this project a test that read correctly did not bite — six columns with no
+UPDATE-path coverage, a refusal test that never checked nothing was stored, a guard
+a comment satisfied. Each read fine.
+
+Two practical notes. Give your own scratch scripts **unique filenames** — a
+subagent writing its proof to the same scratchpad path once made me re-run its
+script and report it as my own check. And mutate the real mechanism, not a string
+that looks like it: an `ON CONFLICT DO UPDATE` list generated from table metadata
+is not patched by editing a literal.
+
 ## 5. Review it
 
 Invoke `review-bead-changes` over `$BASE_SHA..$HEAD_SHA`, passing the bead and the
@@ -117,9 +159,12 @@ It returns a verdict of `green` or `changes_requested`, plus any Minor findings.
 Run the suite and the guardrail before closing anything:
 
 ```bash
-pytest
-python3 features/validate_spec.py
+.venv/bin/python -m pytest                      # a bare pytest/python3 is 3.14 and wrong
+.venv/bin/python features/validate_spec.py
 ```
+
+If the change touched `src/sermon/pipeline/`, also run the three pipeline
+instruments named in `CLAUDE.md`'s "Things that will bite you".
 
 **Verdict `green`, suite passing:**
 
@@ -134,7 +179,11 @@ bd remember "<a durable fact this work established>"
 bd create "<follow-up>" --type=task --priority=3 --deps="discovered-from:<id>"
 ```
 
-Minor findings become follow-up beads, not silent debt and not fixes.
+Minor findings are **not** automatically beads. File one only if it blocks
+something, will cost real time later, or is a correctness risk someone could trip
+over. Otherwise name it in the close reason and let it go — filing every nitpick
+built a 66-item P3 queue that nobody will work and that hides the real path. Never
+*fix* a Minor here.
 
 **Verdict `changes_requested`, or the suite failing:** leave the bead open and
 claimed, append what remains, and report. Do not close a bead whose acceptance

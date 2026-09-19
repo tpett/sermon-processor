@@ -84,7 +84,14 @@ Three instructions that materially improve what comes back — include them:
   it.** Line numbers invented from diff hunk headers are the most common false
   finding.
 - **Try to falsify the change, not to confirm it works.** Run the tests. Weight an
-  executed experiment far above a plausible reading.
+  executed experiment far above a plausible reading. **Mutate the mechanism the test
+  claims to cover and confirm the test fails** — every guard this project trusted on
+  a reading alone turned out not to bite. Mutate the real mechanism, not a literal
+  that resembles it, and confirm your copy is the one being imported before
+  believing a mutation result.
+- **Use unique filenames for scratch scripts**, and leave the worktree clean. Two
+  agents writing a proof to the same scratchpad path have already caused one false
+  verification here.
 - **Work the checklist in order and do not stop early.** Later concerns are the
   ones a single reviewer under-reports; budget attention for them.
 
@@ -96,14 +103,28 @@ past failure`.
 ## 3. Classify
 
 - **Critical** — data loss, a corrupted corpus, a wrong published cut, a broken
-  build, ground truth contaminated by machine output.
+  build, ground truth contaminated by machine output, **or a safeguard the spec
+  requires being silently defeatable**.
 - **Important** — incorrect behaviour, a scenario passing without testing what it
-  says, missing tests for new code, a convention broken, acceptance criteria unmet.
+  says, missing tests for new code, a convention broken, acceptance criteria unmet,
+  **a guard that does not bite**, **a citation that does not support its field**, or
+  **a previously enforced guarantee now resting on caller discipline**.
 - **Minor** — style, naming, nitpicks, optional improvements.
+
+**Most Minor findings should not become beads.** Report them, but say which are
+worth filing: one that blocks something, costs real time later, or is a correctness
+risk someone could trip over. The rest are noted and dropped. Volume here is not a
+sign of rigour — filing every nitpick built a 66-item P3 queue nobody will work.
 
 **A scenario that passes while asserting something weaker than its Gherkin is
 Important, not Minor.** It is the failure mode this whole approach exists to
 prevent: the suite goes green and the spec stops meaning anything.
+
+**Two Important classes this project keeps producing, so look for them by name.**
+A test that only exercises the INSERT path where production writes an UPDATE —
+prove coverage by removing the column from the update and watching a test fail. And
+a constraint relaxed to admit a new case that silently dropped what it was *also*
+guaranteeing: when a `NOT NULL` or a unique goes, ask what else it enforced.
 
 Trust the reviewer's severities only as a starting point — reclassify anything
 clearly mislabelled, in either direction.
