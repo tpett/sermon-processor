@@ -12,6 +12,7 @@ SPEC_MODULE = "tests/test_spec.py"
 SPEC_SHAPE = "spec OK — 34 files, 460 scenarios, 142 rules"
 SPEC_TESTS = 604
 DEFERRED_TESTS = 7
+SUMMARY_LINE = re.compile(r"^[= ]*(?:no tests ran|\d+ [a-z]+).* in \d+\.\d+s[= ]*$")
 
 
 def runs_pytest(*arguments, cwd=PROJECT_ROOT):
@@ -24,9 +25,14 @@ def runs_pytest(*arguments, cwd=PROJECT_ROOT):
     return finished.returncode, finished.stdout + finished.stderr
 
 
+def finds_summary(report):
+    summaries = [line for line in report.splitlines() if SUMMARY_LINE.match(line.strip())]
+    assert summaries, report
+    return summaries[-1]
+
+
 def counted(outcome, report):
-    summary = [line for line in report.splitlines() if line.strip()][-1]
-    found = re.search(rf"(\d+) {outcome}", summary)
+    found = re.search(rf"(\d+) {outcome}", finds_summary(report))
     return int(found.group(1)) if found else 0
 
 
