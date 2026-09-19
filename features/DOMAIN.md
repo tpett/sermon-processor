@@ -76,7 +76,8 @@ transcription later raises another on the same Recording, so the set has to hold
 several and each new condition must not be a new column. It is closed rather than
 open because later behaviour reads the names — the render refuses to run on
 `unexpected stereo content` (`processing/audio_rendering.feature`) and the detail
-view explains one warning specifically — so a typo would silently disable a gate.
+view explains `source clipping detected` specifically
+(`interface/recording_detail.feature`) — so a typo would silently disable a gate.
 `Notification.kind` and `LogEntry.kind` stay open because nothing branches on
 them. `sidecar disagrees with the audio` is the one value the Gherkin describes
 without quoting, and takes the wording of its scenario's title.
