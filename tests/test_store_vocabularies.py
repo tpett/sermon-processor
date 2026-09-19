@@ -69,5 +69,13 @@ def test_the_closed_set_is_the_one_the_spec_declares(name):
     assert getattr(vocabularies, name) == declared
 
 
+def test_the_states_in_which_a_job_still_holds_its_work_are_the_unfinished_ones():
+    assert set(vocabularies.JOB_STATES) - set(vocabularies.JOB_STATES_IN_FLIGHT) == {
+        "succeeded",
+        "failed",
+        "cancelled",
+    }
+
+
 def test_the_difficulty_of_both_cuts_comes_from_one_vocabulary():
     assert domain_field("Proposal", "punch_out_difficulty") == vocabularies.CUT_DIFFICULTIES

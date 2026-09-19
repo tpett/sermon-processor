@@ -408,11 +408,38 @@ def test_two_recordings_cannot_claim_one_object_key(store, graph, tmp_path):
     assert everything_stored(store, tmp_path) == stored
 
 
-def test_one_recording_cannot_have_the_same_work_enqueued_twice(store, graph, tmp_path):
+def test_one_recording_cannot_have_the_same_work_queued_twice(store, graph, tmp_path):
+    queued = store.saves(minimal_job(graph["recording"]))
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(graph["job"], job_id=None))
+        store.saves(replace(queued, job_id=None))
     assert everything_stored(store, tmp_path) == stored
+
+
+def test_work_that_is_already_running_is_not_queued_a_second_time(store, graph, tmp_path):
+    running = store.saves(replace(minimal_job(graph["recording"]), state="running"))
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(running, job_id=None, state="queued"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+@pytest.mark.parametrize("finished", ["succeeded", "failed", "cancelled"])
+def test_the_same_work_is_enqueued_again_once_the_earlier_job_finished(store, graph, finished):
+    earlier = store.saves(replace(graph["job"], state=finished))
+    again = store.saves(
+        replace(
+            earlier,
+            job_id=None,
+            state="queued",
+            attempts=0,
+            last_error=None,
+            failed_permanently=False,
+            started_at=None,
+            queued_at=datetime(2026, 9, 14, 9, 0, tzinfo=UTC),
+        )
+    )
+    assert store.lists(Job, dedupe_key=earlier.dedupe_key) == [earlier, again]
 
 
 def test_an_artifact_cannot_belong_to_a_recording_that_does_not_exist(store, graph, tmp_path):
