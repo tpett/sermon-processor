@@ -431,6 +431,12 @@ def test_a_recording_lists_the_level_measured_on_each_of_its_channels(store, gra
     assert reloaded(store, reprobed, "recording").channel_levels == remeasured
 
 
+def test_a_recording_keeps_its_channel_levels_in_the_order_the_probe_reported_them(store, graph):
+    reported = (ChannelLevel(channel=2, rms_db=-90.4), ChannelLevel(channel=1, rms_db=-21.3))
+    reprobed = store.saves(replace(graph["recording"], channel_levels=reported))
+    assert reloaded(store, reprobed, "recording").channel_levels == reported
+
+
 def test_a_recording_records_which_channel_or_mix_the_render_must_take(store, graph):
     decided = store.saves(replace(graph["recording"], mono_source="both channels mixed"))
     assert reloaded(store, decided, "recording").mono_source == "both channels mixed"
