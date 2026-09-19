@@ -16,3 +16,7 @@ __pycache__/
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# Local virtualenvs and editable-install metadata
+.venv/
+*.egg-info/
