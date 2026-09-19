@@ -218,8 +218,7 @@ def test_an_http_error_is_an_answer_not_an_unreachable_endpoint():
     def answers_with_error(endpoint):
         raise refused
 
-    with pytest.raises(Exception) as raised:
+    with pytest.raises(urllib.error.HTTPError) as raised:
         ReachesModelEndpoint(endpoint=MODEL_ENDPOINT, over=answers_with_error)()
-    assert raised.type is urllib.error.HTTPError
     assert raised.value is refused
     assert not isinstance(raised.value, ModelEndpointUnreachable)

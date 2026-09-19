@@ -20,6 +20,7 @@ from .roots import requires_directory_under_root, requires_root
 # read a prompt template or a diarization artefact.
 DATA = None
 PROMPTS = None
+
 ENDPOINT = None
 
 MAX_REPAIRS = 2
