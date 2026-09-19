@@ -308,11 +308,31 @@ TABLES = {
             order=("punch_in_seconds",),
             references={"recording_id": "recording(recording_id)"},
             presence=(
-                Presence(column="punch_in_seconds", only_while={"provenance": ("human",)}),
-                Presence(column="punch_out_seconds", only_while={"provenance": ("human",)}),
-                Presence(column="drift_ppm", only_while={"alignment": ("aligned",)}),
-                Presence(column="punch_in_difficulty", only_while={"provenance": ("human",)}),
-                Presence(column="punch_out_difficulty", only_while={"provenance": ("human",)}),
+                Presence(column="alignment", only_while={"provenance": ("human",)}),
+                Presence(
+                    column="punch_in_seconds",
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="punch_out_seconds",
+                    requires=("punch_in_seconds",),
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="drift_ppm",
+                    requires=("punch_in_seconds", "punch_out_seconds"),
+                    only_while={"alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="punch_in_difficulty",
+                    requires=("punch_in_seconds",),
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
+                Presence(
+                    column="punch_out_difficulty",
+                    requires=("punch_out_seconds",),
+                    only_while={"provenance": ("human",), "alignment": ("aligned",)},
+                ),
             ),
             closed={
                 "classification": vocabularies.SEGMENT_CLASSIFICATIONS,
