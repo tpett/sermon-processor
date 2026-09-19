@@ -297,7 +297,6 @@ def derive(blocks: list[dict], doc: dict, refine: bool = True,
         if nxt and nxt.get("type") == "prayer":
             pout = float(nxt["end"])
         if refine:
-            edges = speaker_edges(doc)
             # Refinement looks a little outside the block. A model that starts
             # its sermon block a few seconds late would otherwise cap the
             # achievable punch-in at its own error, and the whole point of a
