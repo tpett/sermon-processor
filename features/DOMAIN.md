@@ -81,6 +81,12 @@ view explains one warning specifically — so a typo would silently disable a ga
 them. `sidecar disagrees with the audio` is the one value the Gherkin describes
 without quoting, and takes the wording of its scenario's title.
 
+**Four more of the conditions a scenario flags on a Recording are derivable, and
+are not stored.** `no substantive content` and `no audio content` are what
+`dynamic_range_db` and `active_fraction` already say, and `suspiciously short` and
+`suspiciously long` are `duration_seconds` against the observed 37–203 minute
+range (`analysis/audio_probe.feature`).
+
 **A warning is not a state, and the Segment side of one is a query.** Nothing
 about `source no longer available` moves the Recording — the scenario leaves a
 `reviewed` Recording `reviewed` — and "its skipped Segments are marked as no
