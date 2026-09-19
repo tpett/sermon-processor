@@ -70,11 +70,11 @@ number in `FINDINGS.md` traces to the code there.
 ## Build & Test
 
 ```bash
-uv venv --python 3.13 && uv pip install -e ".[dev]"   # python3 on PATH is out of range
-pytest                                  # the suite is features/, via pytest-bdd
-pytest --collect-only -q tests/test_spec.py           # 604 spec tests (Outlines expand)
-python3 features/validate_spec.py       # spec portability guardrail — also runs as a test
-bd ready                                # what to work on next
+uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of range
+.venv/bin/python -m pytest                          # the suite is features/, via pytest-bdd
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 604 tests (Outlines expand)
+.venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
+bd ready                                            # what to work on next
 ```
 
 ## Architecture
