@@ -22,9 +22,11 @@ def test_a_hand_drawn_segment_has_no_seed_block():
 
 
 def test_a_publication_label_is_suggested_from_the_summary():
-    stated = why("Segment", "label")
+    stated = why("Segment", "label").lower()
     assert "the only part a human writes" not in stated
-    assert "suggest" in stated.lower()
+    assert "suggest" in stated
+    assert "from the summary" in stated
+    assert "reviewer can correct" in stated
 
 
 def test_agreement_gap_seconds_is_still_a_proposal_field():
