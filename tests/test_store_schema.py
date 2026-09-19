@@ -4,7 +4,7 @@ from typing import get_type_hints, Literal, Optional
 
 import pytest
 
-from sermon.store import Block, LogEntry, SpeakerProfile, schema
+from sermon.store import Block, LogEntry, Notification, Reviewer, SpeakerProfile, schema
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -80,3 +80,16 @@ def test_enrolment_names_the_segment_that_contributed():
     ddl = schema.collection_ddl(schema.TABLES[SpeakerProfile], collection)
     assert "segment_id INTEGER NOT NULL REFERENCES segment(segment_id)" in ddl
     assert "recording_id" not in ddl
+
+
+def test_the_reviewer_is_identified_by_the_actor_seam():
+    table = schema.TABLES[Reviewer]
+    assert table.identity == "actor"
+    assert table.generated is False
+    assert table.references == {}
+    assert "actor TEXT NOT NULL PRIMARY KEY" in schema.table_ddl(table)
+
+
+def test_a_notification_recipient_is_not_a_foreign_key_to_a_reviewer():
+    assert "reviewer" not in schema.TABLES[Notification].references.get("recipient", "")
+    assert "REFERENCES reviewer" not in schema.table_ddl(schema.TABLES[Notification])

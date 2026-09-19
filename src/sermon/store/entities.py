@@ -157,7 +157,8 @@ class SpeakerProfile:
 
 @dataclass(frozen=True, kw_only=True)
 class Reviewer:
-    pass
+    actor: str
+    receives_notifications: bool = True
 
 
 @dataclass(frozen=True, kw_only=True)

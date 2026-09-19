@@ -43,6 +43,7 @@ IDENTITIES = {
     "skipped_object": "object_key",
     "discovery": "discovery_id",
     "corpus_pair": "corpus_pair_id",
+    "reviewer": "actor",
 }
 
 ENTITY_TYPES = {
@@ -58,6 +59,7 @@ ENTITY_TYPES = {
     "skipped_object": SkippedObject,
     "discovery": Discovery,
     "corpus_pair": CorpusPair,
+    "reviewer": Reviewer,
 }
 
 CLOSED_COLUMNS = [
@@ -493,6 +495,7 @@ def graph(store):
         "skipped_object": store.saves(skipped_object()),
         "discovery": store.saves(received_webhook()),
         "corpus_pair": store.saves(labelled_corpus_pair(recording, classification="lesson")),
+        "reviewer": store.saves(configured_reviewer()),
     }
 
 
@@ -543,6 +546,7 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
         "job": store.saves(minimal_job(recording)),
         "speaker_profile": store.saves(minimal_speaker_profile()),
         "corpus_pair": store.saves(machine_cut_corpus_pair(recording)),
+        "reviewer": store.saves(Reviewer(actor="reviewer")),
     }
     assert {name: reloaded(store, saved, name) for name, saved in minimal.items()} == minimal
 

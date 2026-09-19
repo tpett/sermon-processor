@@ -19,6 +19,7 @@ from .entities import (
     Notification,
     Proposal,
     Recording,
+    Reviewer,
     Segment,
     SkippedObject,
     SpeakerMatch,
@@ -264,6 +265,12 @@ TABLES = {
                 "segment_id": "segment(segment_id)",
             },
             closed={"kind": vocabularies.JOB_KINDS, "state": vocabularies.JOB_STATES},
+        ),
+        Table(
+            entity=Reviewer,
+            name="reviewer",
+            identity="actor",
+            generated=False,
         ),
         Table(
             entity=Notification,
