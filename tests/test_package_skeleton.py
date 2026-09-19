@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from importlib import import_module
 from pathlib import Path
@@ -25,6 +26,22 @@ def loaded_from_experiments(module):
 @pytest.mark.parametrize("package", PACKAGES)
 def test_package_imports(package):
     assert import_module(package).__name__ == package
+
+
+@pytest.mark.parametrize(
+    "stray",
+    [
+        "sermon.sqlite3",
+        "data/sermon.sqlite3",
+        "data/sermon.sqlite3-wal",
+        "src/sermon/store/sermon.sqlite3",
+    ],
+)
+def test_the_repository_ignores_a_database_wherever_one_lands(stray):
+    ignored = subprocess.run(
+        ["git", "check-ignore", "-q", stray], cwd=PROJECT_ROOT, check=False
+    )
+    assert ignored.returncode == 0
 
 
 def test_no_module_mentions_experiments():

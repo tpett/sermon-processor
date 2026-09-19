@@ -11,6 +11,9 @@ __pycache__/
 *.pyc
 .DS_Store
 
+# A store's database and its journals, wherever the data root is put
+*.sqlite3*
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
