@@ -9,6 +9,7 @@ from sermon.store import (
     Block,
     Candidate,
     ChannelLevel,
+    CorpusPair,
     DATABASE_NAME,
     Discovery,
     Evidence,
@@ -401,6 +402,28 @@ def system_alert():
 def skipped_object():
     key, reason = SKIPPED_OBJECTS[0]
     return SkippedObject(object_key=key, reason=reason)
+
+
+def labelled_corpus_pair(recording, classification="sermon"):
+    return CorpusPair(
+        recording_id=recording.recording_id,
+        classification=classification,
+        alignment="aligned",
+        punch_in_seconds=1000.0,
+        punch_out_seconds=3999.61,
+        drift_ppm=-130.0,
+        punch_in_difficulty="easy",
+        punch_out_difficulty="hard",
+        provenance="human",
+    )
+
+
+def machine_cut_corpus_pair(recording):
+    return CorpusPair(
+        recording_id=recording.recording_id,
+        classification="sermon",
+        provenance="machine",
+    )
 
 
 @pytest.fixture
@@ -1428,6 +1451,182 @@ def test_an_object_skipped_again_for_another_reason_is_not_listed_twice(store):
     store.saves(skipped_object())
     reconsidered = store.saves(replace(skipped_object(), reason="not an audio object"))
     assert store.lists(SkippedObject) == [reconsidered]
+
+
+def test_the_derived_boundaries_are_stored_as_the_expected_answer_for_that_pair(store):
+    recording = store.saves(minimal_recording())
+    saved = store.saves(labelled_corpus_pair(recording))
+    stored = store.loads(CorpusPair, saved.corpus_pair_id)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (1000.0, 3999.61)
+
+
+def test_a_pair_that_cannot_be_aligned_is_excluded_from_the_corpus_and_the_exclusion_is_reported(
+    store,
+):
+    recording = store.saves(minimal_recording())
+    excluded = store.saves(
+        CorpusPair(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            alignment="cannot be aligned",
+            provenance="human",
+        )
+    )
+    stored = store.loads(CorpusPair, excluded.corpus_pair_id)
+    assert stored.alignment == "cannot be aligned"
+    assert (stored.punch_in_seconds, stored.punch_out_seconds, stored.drift_ppm) == (None, None, None)
+    assert store.lists(CorpusPair) == [excluded]
+
+
+def test_the_drift_is_measured_rather_than_averaged_away(store):
+    recording = store.saves(minimal_recording())
+    saved = store.saves(labelled_corpus_pair(recording))
+    stored = store.loads(CorpusPair, saved.corpus_pair_id)
+    assert stored.drift_ppm == -130.0
+    assert stored.punch_in_seconds == 1000.0
+    assert stored.punch_out_seconds == 3999.61
+    assert stored.punch_out_seconds != stored.punch_in_seconds + 3000.0
+
+
+def test_a_pair_whose_probes_do_not_fall_on_a_straight_line_is_excluded_as_not_a_contiguous_excerpt(
+    store,
+):
+    recording = store.saves(minimal_recording())
+    excluded = store.saves(
+        CorpusPair(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            alignment="not a contiguous excerpt",
+            provenance="human",
+        )
+    )
+    stored = store.loads(CorpusPair, excluded.corpus_pair_id)
+    assert stored.alignment == "not a contiguous excerpt"
+    assert (stored.punch_in_seconds, stored.punch_out_seconds, stored.drift_ppm) == (None, None, None)
+    assert store.lists(CorpusPair) == [excluded]
+
+
+def test_a_published_output_that_covers_more_than_95_percent_of_its_source_is_flagged_rather_than_silently_accepted(
+    store,
+):
+    recording = store.saves(minimal_recording())
+    flagged = store.saves(
+        replace(labelled_corpus_pair(recording), covers_more_than_95_percent=True)
+    )
+    stored = store.loads(CorpusPair, flagged.corpus_pair_id)
+    assert stored.covers_more_than_95_percent is True
+    labelled = [
+        pair
+        for pair in store.lists(CorpusPair)
+        if pair.alignment == "aligned"
+        and pair.provenance == "human"
+        and not pair.covers_more_than_95_percent
+    ]
+    assert labelled == []
+
+
+def test_a_published_output_the_system_produced_itself_stores_its_provenance_and_is_excluded_from_ground_truth(
+    store,
+):
+    recording = store.saves(minimal_recording())
+    published = store.saves(machine_cut_corpus_pair(recording))
+    stored = store.loads(CorpusPair, published.corpus_pair_id)
+    assert stored.provenance == "machine"
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (None, None)
+    assert (stored.punch_in_difficulty, stored.punch_out_difficulty) == (None, None)
+    labelled = [
+        pair
+        for pair in store.lists(CorpusPair)
+        if pair.provenance == "human" and pair.alignment == "aligned"
+    ]
+    assert labelled == []
+    assert store.lists(CorpusPair) == [published]
+
+
+def test_the_corpus_includes_sermons_and_class_sessions(store):
+    recording = store.saves(minimal_recording())
+    sermon = store.saves(labelled_corpus_pair(recording, classification="sermon"))
+    lesson = store.saves(
+        replace(
+            labelled_corpus_pair(recording, classification="lesson"),
+            punch_in_seconds=61.5,
+            punch_out_seconds=3497.25,
+        )
+    )
+    listed = store.lists(CorpusPair, recording_id=recording.recording_id)
+    assert {pair.classification for pair in listed} == {"sermon", "lesson"}
+    assert {pair.corpus_pair_id for pair in listed} == {sermon.corpus_pair_id, lesson.corpus_pair_id}
+
+
+def test_each_pair_is_graded_against_the_difficulty_of_its_own_transition(store):
+    recording = store.saves(minimal_recording())
+    saved = store.saves(
+        replace(
+            labelled_corpus_pair(recording),
+            punch_in_difficulty="easy",
+            punch_out_difficulty="hard",
+        )
+    )
+    stored = store.loads(CorpusPair, saved.corpus_pair_id)
+    assert (stored.punch_in_difficulty, stored.punch_out_difficulty) == ("easy", "hard")
+
+
+def test_a_recording_and_the_approved_boundaries_can_be_added_to_the_corpus(store, graph):
+    saved = store.saves(
+        CorpusPair(
+            recording_id=graph["recording"].recording_id,
+            classification=graph["segment"].classification,
+            punch_in_seconds=graph["segment"].punch_in_seconds,
+            punch_out_seconds=graph["segment"].punch_out_seconds,
+            punch_in_difficulty="easy",
+            punch_out_difficulty="hard",
+            provenance="human",
+        )
+    )
+    stored = store.loads(CorpusPair, saved.corpus_pair_id)
+    assert stored.recording_id == graph["recording"].recording_id
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (
+        graph["segment"].punch_in_seconds,
+        graph["segment"].punch_out_seconds,
+    )
+
+
+def test_an_untouched_approval_does_not_become_a_labelled_example(store, graph):
+    published = store.saves(machine_cut_corpus_pair(graph["recording"]))
+    stored = store.loads(CorpusPair, published.corpus_pair_id)
+    assert stored.provenance == "machine"
+    labelled = [
+        pair
+        for pair in store.lists(CorpusPair)
+        if pair.provenance == "human"
+        and pair.punch_in_seconds is not None
+        and pair.punch_in_difficulty is not None
+    ]
+    assert labelled == []
+
+
+def test_one_recording_can_yield_two_published_outputs(store):
+    recording = store.saves(minimal_recording())
+    lesson = store.saves(labelled_corpus_pair(recording, classification="lesson"))
+    sermon = store.saves(
+        replace(
+            labelled_corpus_pair(recording, classification="sermon"),
+            punch_in_seconds=3600.0,
+            punch_out_seconds=7200.0,
+        )
+    )
+    listed = store.lists(CorpusPair, recording_id=recording.recording_id)
+    assert [pair.classification for pair in listed] == ["lesson", "sermon"]
+    assert {pair.corpus_pair_id for pair in listed} == {lesson.corpus_pair_id, sermon.corpus_pair_id}
+
+
+def test_saving_a_corpus_pair_again_corrects_the_fit_it_already_wrote(store):
+    recording = store.saves(minimal_recording())
+    saved = store.saves(labelled_corpus_pair(recording))
+    corrected = store.saves(replace(saved, drift_ppm=-131.6, punch_in_seconds=1228.788))
+    assert store.lists(CorpusPair) == [corrected]
+    stored = store.loads(CorpusPair, saved.corpus_pair_id)
+    assert (stored.drift_ppm, stored.punch_in_seconds) == (-131.6, 1228.788)
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):

@@ -201,3 +201,8 @@ class Discovery:
     discovered_count: int
     failure: str | None = None
     event: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CorpusPair:
+    pass

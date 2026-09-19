@@ -29,7 +29,8 @@ Recording ──1:N──▶ Block
     ├────1:N────▶ Artifact       (envelope, transcript, waveform, preview, source FLAC)
     ├────1:N────▶ Job
     ├────1:N────▶ Notification   (its Segment too, or neither when the system is the subject)
-    └────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
+    ├────1:N────▶ LogEntry       (the processing log, one entry per thing that happened)
+    └────1:N────▶ CorpusPair     (a source paired with one published edit)
 
 SpeakerProfile ──N:M──▶ Block   (a voice recognised in a span, and how strongly)
 SpeakerProfile ──1:N──▶ Segment (the voice a human confirmed was preaching)
@@ -38,8 +39,9 @@ SkippedObject                   (an object the reconciliation scan did not inges
 Discovery                       (a webhook received or a scan run, and what it found)
 ```
 
-Five nouns the reviewer names, plus six the system needs: `Job`,
-`Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject` and `Discovery`.
+Five nouns the reviewer names, plus seven the system needs: `Job`,
+`Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject`, `Discovery`
+and `CorpusPair`.
 
 ---
 
@@ -198,7 +200,7 @@ and supersedes the one before it rather than overwriting it.
 | `segment_id` | |
 | `classification_confidence`, `boundary_confidence` | Separate, because a Segment can be confidently a sermon with badly guessed boundaries. Both derived. |
 | `evidence[]` | Each entry: `timecode`, `finding`, `implies`. Rendered as a table for the reviewer. |
-| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut. **Graded from the ground truth where it exists, never by the configuration being measured** — otherwise the headline can be raised by grading more cuts hard. |
+| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut the machine proposed. The grade of the ground-truth cut lives on `CorpusPair`, so a configuration cannot raise the headline by grading more of its own cuts hard (`analysis/detection_accuracy.feature`). |
 | `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null when no second opinion is configured, and the absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
 | `punch_in_candidates[]` | Each entry: `timecode` and `considered_because`. "Analysis recorded an alternative punch-in candidate" whose evidence panel "shows why that candidate was considered" (`interface/punch_point_adjustment.feature`) — a bare timecode cannot. Ordered by rank. |
@@ -388,6 +390,47 @@ that no alert is raised — so nothing here raises a `Notification`.
 
 **Not stored:** which Recordings a discovery produced. No scenario reads a
 Recording's discoverer, and the count is what the view shows.
+
+---
+
+## CorpusPair
+
+One source recording paired with one published edit, and the ground truth
+derived from that pair. An application record, not an experiments artefact:
+`experiments/` is frozen, a reviewer-adjusted Segment becomes a labelled pair
+in ordinary use, and a hardcoded filename set in spike code is the standing
+trap where the corpus starts grading itself
+(`analysis/detection_accuracy.feature`).
+
+| Field | Why it exists |
+| --- | --- |
+| `recording_id` | The source. One Recording can yield two published outputs, so the pair is not identified by this alone (`analysis/detection_accuracy.feature`). |
+| `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. The corpus includes sermons and class sessions, and accuracy is reported separately for each classification (`analysis/detection_accuracy.feature`). |
+| `alignment` | `aligned`, `cannot be aligned`, or `not a contiguous excerpt`, null when extraction has not run. A pair that cannot be aligned is excluded from the corpus and the exclusion is reported rather than silently dropped (`analysis/detection_accuracy.feature`). |
+| `punch_in_seconds`, `punch_out_seconds` | The derived boundaries, stored as the expected answer for that pair. Punch-in is the intercept of the fit, not the middle of it; punch-out accounts for the drift across the segment (`analysis/detection_accuracy.feature`). |
+| `drift_ppm` | The slope of the fit, in parts per million. Measured rather than averaged away (`analysis/detection_accuracy.feature`). |
+| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, graded from the audio around the human cut. A configuration cannot change the difficulty of anything it is scored on (`analysis/detection_accuracy.feature`). |
+| `covers_more_than_95_percent` | A published output covering more than 95% of its source is flagged rather than silently accepted, and excluded from boundary statistics; a legitimate untrimmed archive is flagged the same way (`analysis/detection_accuracy.feature`). |
+| `provenance` | `human` or `machine`. Whether the published output is a human edit or one the system produced itself. Stored, not inferred later from the audio (`analysis/detection_accuracy.feature`). |
+
+**Classification is stored because a pair can exist without a Segment.** The
+historical source/edit files join the corpus without a review, and one
+Recording can yield a class and a sermon, so neither `Segment.classification`
+nor `Recording.kind` can be the join. The closed set is the one
+`Segment.classification` already uses.
+
+**Each kind of exclusion is its own field, not one flag.** Alignment failure
+drops the pair from the corpus and is reported; covering more than 95% of the
+source flags it and drops it from boundary statistics; a machine cut is
+recorded as published, dropped from ground truth, and identified by
+`provenance`.
+
+**Not stored:** whether the pair is "in the corpus", "in ground truth" or "in
+boundary statistics" as flags of their own — those are `alignment`,
+`provenance` and `covers_more_than_95_percent`. Nor the intercept as a second
+copy of punch-in, nor an averaged offset in place of the fit. Nor the published
+output's path: the expected answer is the boundaries. Nor the suite's median
+and worst-case error; this is the corpus, not a run of it.
 
 ---
 
