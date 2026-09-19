@@ -107,7 +107,7 @@ def test_a_variable_set_to_nothing_is_as_absent_as_one_never_set(name):
 def test_a_data_root_that_depends_on_the_working_directory_is_refused(root):
     with pytest.raises(UnusableConfiguration) as refused:
         configured(SERMON_DATA_ROOT=root)
-    assert root in str(refused.value)
+    assert str(Path(root)) in str(refused.value)
 
 
 def test_a_data_root_that_is_not_a_path_is_refused():
