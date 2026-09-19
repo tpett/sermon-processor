@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -421,6 +421,25 @@ def test_a_declined_confirmation_is_distinguishable_from_never_having_been_asked
     never_asked = store.saves(minimal_segment(graph["recording"]))
     assert reloaded(store, declined, "segment").distribution_confirmed is False
     assert reloaded(store, never_asked, "segment").distribution_confirmed is None
+
+
+def test_a_published_segment_keeps_the_date_and_label_its_filename_is_built_from(store, graph):
+    detailed = store.saves(
+        replace(graph["segment"], publication_date=date(2026, 8, 23), label="Hebrews 12.4-11")
+    )
+    stored = reloaded(store, detailed, "segment")
+    assert (stored.publication_date, stored.label) == (date(2026, 8, 23), "Hebrews 12.4-11")
+
+
+def test_a_publication_date_is_stored_as_the_calendar_date_the_filename_uses(store, graph, tmp_path):
+    store.saves(replace(graph["segment"], publication_date=date(2026, 8, 23)))
+    assert "2026-08-23" in rows_another_connection_sees(tmp_path)["segment"][0]
+
+
+def test_a_segment_carries_no_publication_details_until_someone_enters_them(store, graph):
+    proposed = store.saves(minimal_segment(graph["recording"]))
+    stored = reloaded(store, proposed, "segment")
+    assert (stored.publication_date, stored.label) == (None, None)
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
