@@ -13,6 +13,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PIPELINE_ROOT = PROJECT_ROOT / "src" / "sermon" / "pipeline"
 EXPERIMENTS_SRC = PROJECT_ROOT / "experiments" / "src"
 FINGERPRINT = Path(__file__).parent / "pipeline_boundary_fingerprint.json"
+LADDER = PROJECT_ROOT / "experiments" / "run_ladder.sh"
+SELECTS_LADDER_PYTHON = PROJECT_ROOT / "experiments" / "ladder_python.sh"
 SPIKE_DATA = Path(
     os.environ.get("SERMON_SPIKE_DATA") or PROJECT_ROOT / "experiments" / "data"
 )
@@ -225,10 +227,50 @@ def test_deriving_every_stored_block_reproduces_the_boundaries_measured_before_t
     assert drifted == []
 
 
+def selects_the_ladder_interpreter(**overrides):
+    return subprocess.run(
+        ["/bin/bash", str(SELECTS_LADDER_PYTHON)],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        env={**os.environ, **overrides},
+    )
+
+
+def names_an_interpreter_without_the_package():
+    return str(Path(sys.base_prefix) / "bin" / "python3")
+
+
+def test_the_documented_entry_point_delegates_its_interpreter_choice():
+    source = LADDER.read_text(encoding="utf-8")
+    assert SELECTS_LADDER_PYTHON.name in source
+    assert ".venv/bin/python" not in source
+
+
+def test_the_ladder_interpreter_imports_the_pipeline_package():
+    chosen = selects_the_ladder_interpreter()
+    assert chosen.returncode == 0, chosen.stdout + chosen.stderr
+    imported = subprocess.run(
+        [chosen.stdout.strip(), "-c", "import sermon.pipeline.classify"],
+        capture_output=True,
+        text=True,
+    )
+    assert imported.returncode == 0, imported.stdout + imported.stderr
+
+
+def test_the_ladder_refuses_an_interpreter_that_cannot_import_the_pipeline_package():
+    bare = names_an_interpreter_without_the_package()
+    refused = selects_the_ladder_interpreter(LADDER_PYTHON=bare)
+    assert refused.returncode != 0, refused.stdout
+    assert bare in refused.stderr, refused.stderr
+
+
 @pytest.mark.parametrize("driver", DRIVERS)
 def test_the_frozen_driver_still_runs(driver):
+    chosen = selects_the_ladder_interpreter()
+    assert chosen.returncode == 0, chosen.stdout + chosen.stderr
     finished = subprocess.run(
-        [sys.executable, str(EXPERIMENTS_SRC / f"{driver}.py"), "--help"],
+        [chosen.stdout.strip(), str(EXPERIMENTS_SRC / f"{driver}.py"), "--help"],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
