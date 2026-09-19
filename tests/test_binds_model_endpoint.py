@@ -17,9 +17,11 @@ class AnswersLikeAHost:
     def __init__(self, replies):
         self.replies = list(replies)
         self.urls = []
+        self.requests = []
 
     def __call__(self, request, timeout=None):
         self.urls.append(request.full_url)
+        self.requests.append(request)
         return self
 
     def __enter__(self):
@@ -44,6 +46,13 @@ def test_a_substituted_model_endpoint_is_the_host_the_pipeline_posts_to(monkeypa
         assert classify.ENDPOINT == substitute
         assert classify.ollama("a-model", "ask") == '{"ok": 1}'
         assert host.urls == ["http://127.0.0.1:1/api/generate"]
+        headers = {
+            key.lower(): value for key, value in host.requests[0].header_items()
+        }
+        assert "authorization" not in headers
+        assert {
+            key for key in headers if any(part in key for part in ("auth", "token", "key"))
+        } == set()
         assert "SERMON_MODEL_ENDPOINT" not in os.environ
     finally:
         classify.ENDPOINT = None
