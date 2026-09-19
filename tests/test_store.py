@@ -539,6 +539,19 @@ def test_a_recording_the_pipeline_found_nothing_wrong_with_carries_no_warnings(s
     assert reloaded(store, store.saves(minimal_recording()), "recording").warnings == ()
 
 
+def test_a_recording_whose_source_clips_is_flagged_beside_its_other_warnings(store, graph):
+    raised = ("damaged container", "source clipping detected")
+    flagged = store.saves(replace(graph["recording"], warnings=raised))
+    assert reloaded(store, flagged, "recording").warnings == raised
+
+
+def test_a_clipping_flag_leaves_the_recording_where_analysis_found_it(store, graph):
+    analysing = store.saves(replace(graph["recording"], state="analyzing"))
+    flagged = store.saves(replace(analysing, warnings=("source clipping detected",)))
+    stored = reloaded(store, flagged, "recording")
+    assert (stored.state, stored.warnings) == ("analyzing", ("source clipping detected",))
+
+
 def test_a_discrepancy_between_the_sidecar_and_the_audio_is_recorded_as_a_warning(store, graph):
     probed = store.saves(
         replace(

@@ -39,6 +39,7 @@ BLOCK_TYPES = (
 
 RECORDING_WARNINGS = (
     "damaged container",
+    "source clipping detected",
     "sidecar disagrees with the audio",
     "unexpected stereo content",
     "unexpected language",
