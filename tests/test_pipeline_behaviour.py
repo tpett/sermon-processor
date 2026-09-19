@@ -17,6 +17,7 @@ import math
 import subprocess
 import urllib.error
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 import pytest
@@ -25,6 +26,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "pipeline"
 FINGERPRINT = Path(__file__).parent / "pipeline_behaviour_fingerprint.json"
 PROMPTS = PROJECT_ROOT / "experiments" / "prompts"
+SEARCHED = (PROJECT_ROOT / "src" / "sermon", PROJECT_ROOT / "experiments")
+
+MOVED = ("acoustic", "audio", "blocks", "classify", "cues", "features",
+         "render", "rules", "segments")
+
+INJECTED = {("classify", "DATA"), ("classify", "PROMPTS"), ("segments", "DATA_ROOT")}
+
 RECORDINGS = ("service", "class")
 
 
@@ -1039,3 +1047,58 @@ def test_a_recording_that_exhausts_its_budget_reports_the_blocks_never_reached(
     produced = prompted.run_perblock("a-model", reads_recording("service"))
     assert produced["status"].startswith("budget-exhausted:")
     assert all(block["confidence"] == 0.0 for block in produced["blocks"])
+
+
+
+
+def renders_constant(value):
+    if isinstance(value, (set, frozenset)):
+        return f"{{{', '.join(sorted(repr(held) for held in value))}}}"
+    return repr(value)
+
+
+def is_a_constant(module, name, value):
+    return (
+        name.isupper()
+        and not name.startswith("_")
+        and not isinstance(value, ModuleType)
+        and (module, name) not in INJECTED
+    )
+
+
+def constants_of(module):
+    carried = imports_moved(module)
+    return {
+        name: renders_constant(getattr(carried, name))
+        for name in sorted(vars(carried))
+        if is_a_constant(module, name, getattr(carried, name))
+    }
+
+
+def test_every_constant_in_the_moved_library_reproduces_the_fingerprint(expected):
+    matches_the_fingerprint(
+        expected, "constants", {module: constants_of(module) for module in MOVED}
+    )
+
+
+def names_read_anywhere():
+    read = set()
+    for root in SEARCHED:
+        for path in sorted(root.rglob("*.py")):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                    read.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    read.add(node.attr)
+    return read
+
+
+def test_the_constants_no_code_reads_are_the_ones_the_fingerprint_names(expected):
+    read = names_read_anywhere()
+    unread = sorted(
+        f"{module}.{name}"
+        for module in MOVED
+        for name in constants_of(module)
+        if name not in read
+    )
+    matches_the_fingerprint(expected, "constants.unread", unread)

@@ -693,6 +693,80 @@
    }
   ]
  },
+ "constants": {
+  "acoustic": {
+   "CONTEXT_S": "25.0",
+   "HZ": "100",
+   "LONG_W_S": "60.0",
+   "MIN_DIP_DB": "15.0",
+   "MIN_PAUSE_S": "0.6",
+   "SNAP_W_S": "25.0"
+  },
+  "audio": {
+   "SR": "16000"
+  },
+  "blocks": {
+   "GAP_S": "12.0",
+   "MIN_BLOCK_S": "60.0"
+  },
+  "classify": {
+   "MAX_REPAIRS": "2",
+   "OLLAMA": "'http://localhost:11434/api/generate'",
+   "RECORDING_BUDGET_S": "900",
+   "TIMEOUT_S": "900"
+  },
+  "cues": {
+   "ANNOUNCEMENTS": "['good morning and welcome', 'welcome to', 'a few announcements', 'couple of announcements', 'this week', 'next sunday', 'sign up', \"if you're new\", 'if you are new', 'guest table']",
+   "COMMUNION": "['invite you to join us', 'visitor with us', 'guest with us', 'come to the table', \"the lord's supper\", 'lords supper', 'serve communion', 'take communion', 'communion', 'elders will be coming', 'bread and the cup']",
+   "COMMUNION_INVITATION": "['visitor with us', 'guest with us', 'visitors with us', 'visiting with us', \"if you're visiting\", 'if you are visiting', 'invite you to partake', 'invite you to join us', 'if you have trusted christ', \"if you've trusted christ\", 'obedient to his command to be baptized']",
+   "GREETING_OPENERS": "['good morning', 'if you have your bible', 'turn with me', 'pick up where we left off', 'let me pray for us']",
+   "PRAYER": "['let us pray', \"let's pray\", 'would you pray with me', 'pray with me', 'father we thank you', 'father, we thank you', 'heavenly father', 'in jesus name', \"in jesus' name\", 'amen']",
+   "PREAMBLE": "['good morning', 'good evening', 'morning everyone', 'hey everyone', \"we're going to get started\", 'we are going to get started', \"we'll get started\", 'we will get started', 'going to get going', 'in about a minute', 'in about two minutes', 'in a minute or two', 'as you take your seats', \"if you'll take your seats\", 'grab a seat', \"let's go ahead and get started\", \"why don't we get started\"]",
+   "QA": "['any questions', 'are there any questions', 'questions before we', 'what questions', \"let's have some questions\", 'lets have some questions', 'raise your hand', 'yes, in the back']",
+   "SCRIPTURE": "['scripture reading', 'our reading', 'the reading this morning', 'turn with me', 'turn in your bible', 'open your bible', 'hear now the word', 'this is the word of the lord', 'reading comes from', 'comes from the book of', 'beginning at verse', 'follow along as i read', 'listen to the word']",
+   "VERSION": "'cues.v4'"
+  },
+  "features": {
+   "MIN_BLOCK_S": "45.0",
+   "SNAP_WINDOW_S": "20.0"
+  },
+  "render": {
+   "FADE_S": "0.02",
+   "LAME_Q": "3",
+   "TARGET_I": "-16.0",
+   "TARGET_LRA": "11.0",
+   "TARGET_TP": "-1.5"
+  },
+  "rules": {
+   "MUSIC_MAX_LOGPROB": "-0.55",
+   "MUSIC_MAX_WPM": "55",
+   "TEACH_MIN_S": "900",
+   "TEACH_MIN_WPM": "90"
+  },
+  "segments": {
+   "AMEN_FALLBACK_MAX_S": "120.0",
+   "AMEN_LOOKBACK_S": "150.0",
+   "CUE_WINDOW_S": "240.0",
+   "LESSON_LEAD_IN": "{'announcements', 'other', 'prayer'}",
+   "LOOKAHEAD_S": "420.0",
+   "LOOKBACK_S": "0.0",
+   "PLAUSIBLE_MAX_S": "4500",
+   "PLAUSIBLE_MIN_S": "1800",
+   "PREAMBLE_GAP_S": "20.0",
+   "PREAMBLE_MAX_WORDS": "8",
+   "SPEAKER_SNAP_S": "4.0",
+   "TAIL_GUARD_S": "0.4",
+   "TAIL_S": "1.5"
+  }
+ },
+ "constants.unread": [
+  "cues.GREETING_OPENERS",
+  "cues.PREAMBLE",
+  "cues.VERSION",
+  "segments.PREAMBLE_GAP_S",
+  "segments.PREAMBLE_MAX_WORDS",
+  "segments.SPEAKER_SNAP_S"
+ ],
  "cues.lists": {
   "ANNOUNCEMENTS": [
    "good morning and welcome",
