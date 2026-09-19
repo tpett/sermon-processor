@@ -15,3 +15,11 @@ def spec_guardrail():
     module = importlib.util.module_from_spec(location)
     location.loader.exec_module(module)
     return module
+
+
+def pytest_bdd_apply_tag(tag, function):
+    if tag != "deferred":
+        return None
+    pytest.mark.deferred(function)
+    pytest.mark.skip(reason="Not in v1")(function)
+    return True
