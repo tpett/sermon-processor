@@ -14,6 +14,8 @@ import hashlib
 import importlib
 import json
 import math
+import os
+import re
 import subprocess
 import urllib.error
 from pathlib import Path
@@ -21,6 +23,8 @@ from types import ModuleType
 
 import numpy as np
 import pytest
+
+from sermon.config import ModelEndpointUnreachable, UnusableConfiguration
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "pipeline"
@@ -955,10 +959,14 @@ class AnswersLikeAHost:
         self.replies = list(replies)
         self.refuse_format = refuse_format
         self.bodies = []
+        self.urls = []
+        self.requests = []
 
     def __call__(self, request, timeout=None):
         body = json.loads(request.data)
         self.bodies.append(body)
+        self.urls.append(request.full_url)
+        self.requests.append(request)
         if self.refuse_format and "format" in body:
             raise urllib.error.HTTPError(
                 request.full_url, 501, "structured output is unavailable", {}, None
@@ -1007,6 +1015,125 @@ def test_a_host_failure_that_is_not_a_refused_constraint_is_raised(monkeypatch):
     monkeypatch.setattr(classify.urllib.request, "urlopen", fails)
     with pytest.raises(urllib.error.HTTPError):
         classify.ollama("a-model", "ask")
+
+
+CONFIGURED_ENDPOINT = "http://mac-m1:11434"
+HARDCODED_HOST = re.compile(r"https?://|localhost|mac-m1", re.I)
+UNANSWERED_HOST = [
+    ConnectionRefusedError(61, "Connection refused"),
+    TimeoutError("timed out"),
+    urllib.error.URLError("connection refused"),
+    OSError(65, "No route to host"),
+]
+
+
+def posts_one_generation(classify, monkeypatch, endpoint, host=None):
+    host = host or AnswersLikeAHost(['{"ok": 1}'])
+    monkeypatch.setattr(classify, "ENDPOINT", endpoint, raising=False)
+    monkeypatch.setattr(classify.urllib.request, "urlopen", host)
+    assert classify.ollama("a-model", "ask") == '{"ok": 1}'
+    return host
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "posted"),
+    [
+        ("http://mac-m1:11434", "http://mac-m1:11434/api/generate"),
+        ("http://mac-m1:11434/", "http://mac-m1:11434/api/generate"),
+        ("https://mac-m1:11434/v1", "https://mac-m1:11434/api/generate"),
+    ],
+)
+def test_one_generation_posts_to_api_generate_on_the_configured_host(
+    endpoint, posted, monkeypatch
+):
+    classify = imports_moved("classify")
+    host = posts_one_generation(classify, monkeypatch, endpoint)
+    assert host.urls == [posted]
+    assert all("localhost" not in url for url in host.urls)
+
+
+def test_a_substituted_model_endpoint_needs_no_change_to_the_process_environment(monkeypatch):
+    classify = imports_moved("classify")
+    substitute = "http://127.0.0.1:1"
+    host = posts_one_generation(classify, monkeypatch, substitute)
+    assert host.urls == ["http://127.0.0.1:1/api/generate"]
+    assert "SERMON_MODEL_ENDPOINT" not in os.environ
+
+
+def test_nothing_in_the_pipeline_hardcodes_a_host():
+    pipeline = PROJECT_ROOT / "src" / "sermon" / "pipeline"
+    offenders = []
+    for path in sorted(pipeline.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if HARDCODED_HOST.search(node.value):
+                    offenders.append(
+                        f"{path.relative_to(PROJECT_ROOT)}:{node.lineno}:{node.value}"
+                    )
+    assert offenders == []
+
+
+def test_generation_holds_no_credentials_for_the_machine_serving_the_model(monkeypatch):
+    classify = imports_moved("classify")
+    host = posts_one_generation(classify, monkeypatch, CONFIGURED_ENDPOINT)
+    headers = {
+        key.lower(): value for key, value in host.requests[0].header_items()
+    }
+    assert "authorization" not in headers
+    assert {key for key in headers if any(part in key for part in ("auth", "token", "key"))} == set()
+
+
+def test_classification_never_opens_a_shell_on_the_model_host():
+    source = (PROJECT_ROOT / "src" / "sermon" / "pipeline" / "classify.py").read_text(
+        encoding="utf-8"
+    )
+    imported = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module.split(".")[0])
+    assert imported.isdisjoint({"subprocess", "paramiko", "pexpect", "fabric", "shlex"})
+
+
+@pytest.mark.parametrize("unanswered", UNANSWERED_HOST, ids=lambda one: type(one).__name__)
+def test_an_unanswered_model_endpoint_is_named_rather_than_a_generic_model_error(
+    unanswered, monkeypatch
+):
+    classify = imports_moved("classify")
+    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT, raising=False)
+
+    def does_not_answer(request, timeout=None):
+        raise unanswered
+
+    monkeypatch.setattr(classify.urllib.request, "urlopen", does_not_answer)
+    with pytest.raises(ModelEndpointUnreachable) as unreachable:
+        classify.ollama("a-model", "ask")
+    assert CONFIGURED_ENDPOINT in str(unreachable.value)
+    assert unreachable.value.endpoint == CONFIGURED_ENDPOINT
+    assert unreachable.value.__cause__ is unanswered
+
+
+def test_an_unset_endpoint_is_named_rather_than_posted_to_a_hardcoded_host(monkeypatch):
+    classify = imports_moved("classify")
+    host = AnswersLikeAHost(['{"ok": 1}'])
+    monkeypatch.setattr(classify.urllib.request, "urlopen", host)
+    with pytest.raises(UnusableConfiguration) as refused:
+        classify.ollama("a-model", "ask")
+    assert "ENDPOINT" in str(refused.value)
+    assert host.bodies == []
+
+
+@pytest.mark.parametrize("endpoint", ["ssh://mac-m1", "mac-m1:11434", "file:///models"])
+def test_generation_refuses_an_endpoint_reached_over_anything_but_http(endpoint, monkeypatch):
+    classify = imports_moved("classify")
+    host = AnswersLikeAHost(['{"ok": 1}'])
+    monkeypatch.setattr(classify, "ENDPOINT", endpoint, raising=False)
+    monkeypatch.setattr(classify.urllib.request, "urlopen", host)
+    with pytest.raises(UnusableConfiguration):
+        classify.ollama("a-model", "ask")
+    assert host.bodies == []
 
 
 @pytest.fixture

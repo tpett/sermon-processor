@@ -1,6 +1,7 @@
 import logging
 import os
 import socket
+import urllib.error
 from dataclasses import fields
 from pathlib import Path
 
@@ -207,3 +208,26 @@ def test_an_answer_from_the_endpoint_is_returned_as_it_came():
 def test_the_model_endpoint_cannot_be_reached_over_anything_but_http(endpoint):
     with pytest.raises(UnusableConfiguration):
         ReachesModelEndpoint(endpoint=endpoint, over=lambda reached: None)
+
+
+def test_an_http_error_is_an_answer_not_an_unreachable_endpoint():
+    def answers_with_http_error(endpoint):
+        raise urllib.error.HTTPError(endpoint, 501, "structured output is unavailable", {}, None)
+
+    with pytest.raises(Exception) as raised:
+        ReachesModelEndpoint(endpoint=MODEL_ENDPOINT, over=answers_with_http_error)()
+    assert raised.type is urllib.error.HTTPError
+    assert not isinstance(raised.value, ModelEndpointUnreachable)
+
+
+def test_an_http_error_is_an_answer_not_an_unreachable_endpoint():
+    refused = urllib.error.HTTPError(
+        MODEL_ENDPOINT, 501, "structured output is unavailable", {}, None
+    )
+
+    def answers_with_error(endpoint):
+        raise refused
+
+    with pytest.raises(urllib.error.HTTPError) as raised:
+        ReachesModelEndpoint(endpoint=MODEL_ENDPOINT, over=answers_with_error)()
+    assert raised.value is refused
