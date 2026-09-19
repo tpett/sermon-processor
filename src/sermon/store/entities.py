@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -58,6 +58,8 @@ class Segment:
     distribution_confirmed: bool | None = None
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
+    publication_date: date | None = None
+    label: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

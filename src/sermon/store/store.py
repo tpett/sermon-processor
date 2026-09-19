@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import replace
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import get_type_hints
 
@@ -16,7 +16,7 @@ DATABASE_NAME = "sermon.sqlite3"
 def to_column(value):
     if isinstance(value, bool):
         return int(value)
-    if isinstance(value, datetime):
+    if isinstance(value, (date, datetime)):
         return value.isoformat()
     if isinstance(value, dict):
         return json.dumps(value, sort_keys=True)
@@ -31,6 +31,8 @@ def from_column(annotation, value):
         return bool(value)
     if kind is datetime:
         return datetime.fromisoformat(value)
+    if kind is date:
+        return date.fromisoformat(value)
     if kind is dict:
         return json.loads(value)
     return value

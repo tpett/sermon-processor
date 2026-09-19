@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from datetime import datetime
+from datetime import date, datetime
 from types import UnionType
 from typing import Union, get_args, get_origin, get_type_hints
 
@@ -15,6 +15,7 @@ COLUMN_TYPES = {
     bool: "INTEGER",
     bytes: "BLOB",
     dict: "TEXT",
+    date: "TEXT",
     datetime: "TEXT",
 }
 
