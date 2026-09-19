@@ -1646,6 +1646,13 @@ def test_one_recording_can_yield_two_published_outputs(store):
     assert {pair.corpus_pair_id for pair in listed} == {lesson.corpus_pair_id, sermon.corpus_pair_id}
 
 
+def test_two_identical_labelled_sermon_pairs_for_one_recording_are_not_listed_twice(store):
+    recording = store.saves(minimal_recording())
+    store.saves(labelled_corpus_pair(recording))
+    again = store.saves(labelled_corpus_pair(recording))
+    assert store.lists(CorpusPair) == [again]
+
+
 def test_saving_a_corpus_pair_again_corrects_the_fit_it_already_wrote(store):
     recording = store.saves(minimal_recording())
     saved = store.saves(labelled_corpus_pair(recording))
