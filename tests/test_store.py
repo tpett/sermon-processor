@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 
@@ -20,6 +20,7 @@ from sermon.store import (
     SpeakerMatch,
     SpeakerProfile,
     Store,
+    UnstorableValue,
     opens_store,
     vocabularies,
 )
@@ -66,6 +67,14 @@ CLOSED_COLUMNS = [
     ("job", "state", vocabularies.JOB_STATES),
     ("notification", "state", vocabularies.NOTIFICATION_STATES),
     ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
+]
+
+MOMENTS = [
+    ("recording", "started_at"),
+    ("segment", "disposition_at"),
+    ("job", "queued_at"),
+    ("notification", "created_at"),
+    ("log_entry", "occurred_at"),
 ]
 
 
@@ -647,6 +656,30 @@ def test_a_recording_lists_every_entry_in_its_processing_log_oldest_first(store,
         attempt,
         action,
     ]
+
+
+def test_the_processing_log_is_in_time_order_whatever_offset_its_entries_were_written_with(store):
+    recording = store.saves(minimal_recording())
+    for written in (
+        datetime(2026, 9, 13, 10, 0, tzinfo=timezone(timedelta(hours=2))),
+        datetime(2026, 9, 13, 9, 0, tzinfo=UTC),
+        datetime(2026, 9, 13, 9, 0, tzinfo=timezone(timedelta(hours=-5))),
+    ):
+        store.saves(replace(minimal_log_entry(recording), occurred_at=written))
+    logged = store.lists(LogEntry, recording_id=recording.recording_id)
+    assert [entry.occurred_at for entry in logged] == [
+        datetime(2026, 9, 13, 8, 0, tzinfo=UTC),
+        datetime(2026, 9, 13, 9, 0, tzinfo=UTC),
+        datetime(2026, 9, 13, 14, 0, tzinfo=UTC),
+    ]
+
+
+@pytest.mark.parametrize("name, column", MOMENTS)
+def test_a_moment_that_carries_no_offset_is_never_stored(store, graph, tmp_path, name, column):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(UnstorableValue):
+        store.saves(replace(graph[name], **{column: datetime(2026, 9, 13, 9, 2)}))
+    assert everything_stored(store, tmp_path) == stored
 
 
 def test_a_state_transition_records_the_state_it_entered_and_when(store, graph):
