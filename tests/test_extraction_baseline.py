@@ -77,7 +77,10 @@ def loads_instrument():
     location = importlib.util.spec_from_file_location("experiments_baseline", INSTRUMENT)
     module = importlib.util.module_from_spec(location)
     sys.modules[location.name] = module
-    location.loader.exec_module(module)
+    try:
+        location.loader.exec_module(module)
+    finally:
+        sys.modules.pop(location.name, None)
     return module
 
 
