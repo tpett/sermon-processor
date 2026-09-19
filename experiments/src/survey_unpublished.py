@@ -18,7 +18,8 @@ from sermon.pipeline import audio as A       # noqa: E402
 from sermon.pipeline import classify as C    # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
-WORK, DATA = HERE / "work", HERE / "data"
+WORK, DATA, PROMPTS = HERE / "work", HERE / "data", HERE / "prompts"
+C.DATA, C.PROMPTS = DATA, PROMPTS
 BUCKET = WORK / "bucket"
 MODEL = "qwen3.6:35b-mlx"
 

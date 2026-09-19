@@ -15,8 +15,9 @@ from sermon.pipeline import classify as C   # noqa: E402
 from sermon.pipeline import segments as SEG # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
-DATA, WORK = HERE / "data", HERE / "work"
+DATA, WORK, PROMPTS = HERE / "data", HERE / "work", HERE / "prompts"
 
+C.DATA, C.PROMPTS = DATA, PROMPTS
 SEG.DATA_ROOT = DATA
 CONFIG = "c-frontier.whole.v2"
 ASR = "whisper-large-v3-turbo+words"

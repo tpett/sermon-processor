@@ -17,6 +17,7 @@ from sermon.pipeline import classify as C  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 DATA, WORK, PROMPTS = HERE / "data", HERE / "work", HERE / "prompts"
+C.DATA, C.PROMPTS = DATA, PROMPTS
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--split", default="dev")

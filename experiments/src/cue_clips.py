@@ -7,7 +7,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from sermon.pipeline import classify as C  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
-DATA, WORK = HERE / "data", HERE / "work"
+DATA, WORK, PROMPTS = HERE / "data", HERE / "work", HERE / "prompts"
+C.DATA, C.PROMPTS = DATA, PROMPTS
 OUT = WORK / "cues"
 PAD = 0.4
 MIN_S, MAX_S = 4.0, 12.0

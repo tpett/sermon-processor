@@ -21,6 +21,7 @@ from sermon.pipeline import features as F   # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 DATA, WORK, PROMPTS = HERE / "data", HERE / "work", HERE / "prompts"
+C.DATA, C.PROMPTS = DATA, PROMPTS
 ASR = "whisper-large-v3-turbo+words"
 
 
