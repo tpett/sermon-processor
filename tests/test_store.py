@@ -97,10 +97,18 @@ CLOSED_COLLECTIONS = [
 COMPANIONS = {
     ("discovery", "kind"): {"failure": None, "event": None},
     ("discovery", "failure"): {"kind": "scan", "discovered_count": 0, "event": None},
-    ("corpus_pair", "alignment"): {"drift_ppm": None},
-    ("corpus_pair", "provenance"): {
+    ("corpus_pair", "alignment"): {
         "punch_in_seconds": None,
         "punch_out_seconds": None,
+        "drift_ppm": None,
+        "punch_in_difficulty": None,
+        "punch_out_difficulty": None,
+    },
+    ("corpus_pair", "provenance"): {
+        "alignment": None,
+        "punch_in_seconds": None,
+        "punch_out_seconds": None,
+        "drift_ppm": None,
         "punch_in_difficulty": None,
         "punch_out_difficulty": None,
     },
@@ -1501,8 +1509,7 @@ def test_the_drift_is_measured_rather_than_averaged_away(store):
     stored = store.loads(CorpusPair, saved.corpus_pair_id)
     assert stored.drift_ppm == -130.0
     assert stored.punch_in_seconds == 1000.0
-    assert stored.punch_out_seconds == 3999.61
-    assert stored.punch_out_seconds != stored.punch_in_seconds + 3000.0
+    assert stored.punch_out_seconds == 1000.0 + 3000.0 * (1 + stored.drift_ppm / 1_000_000)
 
 
 def test_a_pair_whose_probes_do_not_fall_on_a_straight_line_is_excluded_as_not_a_contiguous_excerpt(
@@ -1593,6 +1600,7 @@ def test_a_recording_and_the_approved_boundaries_can_be_added_to_the_corpus(stor
         CorpusPair(
             recording_id=graph["recording"].recording_id,
             classification=graph["segment"].classification,
+            alignment="aligned",
             punch_in_seconds=graph["segment"].punch_in_seconds,
             punch_out_seconds=graph["segment"].punch_out_seconds,
             punch_in_difficulty="easy",
@@ -1641,25 +1649,71 @@ def test_one_recording_can_yield_two_published_outputs(store):
 def test_saving_a_corpus_pair_again_corrects_the_fit_it_already_wrote(store):
     recording = store.saves(minimal_recording())
     saved = store.saves(labelled_corpus_pair(recording))
-    corrected = store.saves(replace(saved, drift_ppm=-131.6, punch_in_seconds=1228.788))
+    corrected = store.saves(
+        replace(
+            saved,
+            drift_ppm=-131.6,
+            punch_in_seconds=1228.788,
+            punch_out_seconds=4228.393,
+            punch_in_difficulty="hard",
+            covers_more_than_95_percent=True,
+        )
+    )
     assert store.lists(CorpusPair) == [corrected]
     stored = store.loads(CorpusPair, saved.corpus_pair_id)
-    assert (stored.drift_ppm, stored.punch_in_seconds) == (-131.6, 1228.788)
+    assert (stored.drift_ppm, stored.punch_in_seconds, stored.punch_out_seconds) == (
+        -131.6,
+        1228.788,
+        4228.393,
+    )
+    assert (stored.punch_in_difficulty, stored.covers_more_than_95_percent) == ("hard", True)
 
 
-def test_a_machine_cut_does_not_carry_boundaries_only_a_human_edit_can_have(
-    store, graph, tmp_path
-):
+def test_a_pair_that_cannot_be_aligned_does_not_carry_derived_boundaries(store, tmp_path):
+    recording = store.saves(minimal_recording())
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(graph["corpus_pair"], provenance="machine"))
+        store.saves(
+            replace(
+                labelled_corpus_pair(recording),
+                alignment="cannot be aligned",
+                drift_ppm=None,
+            )
+        )
     assert everything_stored(store, tmp_path) == stored
 
 
-def test_a_drift_fit_does_not_belong_to_a_pair_that_was_not_aligned(store, graph, tmp_path):
+def test_a_pair_that_is_not_a_contiguous_excerpt_does_not_carry_derived_boundaries(
+    store, tmp_path
+):
+    recording = store.saves(minimal_recording())
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
-        store.saves(replace(graph["corpus_pair"], alignment="cannot be aligned"))
+        store.saves(
+            replace(
+                labelled_corpus_pair(recording),
+                alignment="not a contiguous excerpt",
+                drift_ppm=None,
+            )
+        )
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_published_output_the_system_produced_does_not_carry_an_expected_answer(
+    store, tmp_path
+):
+    recording = store.saves(minimal_recording())
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(labelled_corpus_pair(recording), provenance="machine"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_machine_cut_does_not_carry_an_alignment_only_a_human_edit_has(store, tmp_path):
+    recording = store.saves(minimal_recording())
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(machine_cut_corpus_pair(recording), alignment="aligned"))
     assert everything_stored(store, tmp_path) == stored
 
 
@@ -1673,6 +1727,24 @@ def test_a_corpus_pair_cannot_belong_to_a_recording_that_does_not_exist(store, g
                 recording_id="recording_20000101_000000",
             )
         )
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_labelled_pair_cannot_be_rewritten_as_a_machine_cut_that_keeps_its_expected_answer(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["corpus_pair"], provenance="machine"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_labelled_pair_cannot_be_rewritten_as_unaligned_while_keeping_its_boundaries(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["corpus_pair"], alignment="cannot be aligned"))
     assert everything_stored(store, tmp_path) == stored
 
 

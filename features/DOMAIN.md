@@ -406,10 +406,10 @@ trap where the corpus starts grading itself
 | --- | --- |
 | `recording_id` | The source. One Recording can yield two published outputs, so the pair is not identified by this alone (`analysis/detection_accuracy.feature`). |
 | `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. The corpus includes sermons and class sessions, and accuracy is reported separately for each classification (`analysis/detection_accuracy.feature`). |
-| `alignment` | `aligned`, `cannot be aligned`, or `not a contiguous excerpt`, null when extraction has not run. A pair that cannot be aligned is excluded from the corpus and the exclusion is reported rather than silently dropped (`analysis/detection_accuracy.feature`). |
-| `punch_in_seconds`, `punch_out_seconds` | The derived boundaries, stored as the expected answer for that pair. Punch-in is the intercept of the fit, not the middle of it; punch-out accounts for the drift across the segment (`analysis/detection_accuracy.feature`). |
-| `drift_ppm` | The slope of the fit, in parts per million. Measured rather than averaged away (`analysis/detection_accuracy.feature`). |
-| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, graded from the audio around the human cut. A configuration cannot change the difficulty of anything it is scored on (`analysis/detection_accuracy.feature`). |
+| `alignment` | `aligned`, `cannot be aligned`, or `not a contiguous excerpt`, null when the published output is one the system produced itself. A pair that cannot be aligned is excluded from the corpus and the exclusion is reported rather than silently dropped (`analysis/detection_accuracy.feature`). |
+| `punch_in_seconds`, `punch_out_seconds` | The derived boundaries, stored as the expected answer for that pair. Punch-in is the intercept of the fit, not the middle of it; punch-out accounts for the drift across the segment (`analysis/detection_accuracy.feature`). Only an `aligned` human pair has them. |
+| `drift_ppm` | The slope of the fit, in parts per million. Measured rather than averaged away (`analysis/detection_accuracy.feature`). Null when there are no boundaries. |
+| `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, graded from the audio around the human cut. A configuration cannot change the difficulty of anything it is scored on (`analysis/detection_accuracy.feature`). Null when there are no boundaries. |
 | `covers_more_than_95_percent` | A published output covering more than 95% of its source is flagged rather than silently accepted, and excluded from boundary statistics; a legitimate untrimmed archive is flagged the same way (`analysis/detection_accuracy.feature`). |
 | `provenance` | `human` or `machine`. Whether the published output is a human edit or one the system produced itself. Stored, not inferred later from the audio (`analysis/detection_accuracy.feature`). |
 
@@ -425,12 +425,20 @@ source flags it and drops it from boundary statistics; a machine cut is
 recorded as published, dropped from ground truth, and identified by
 `provenance`.
 
+**An aligned pair admits the expected answer, and the table says so.**
+Boundaries, the drift fit and the difficulties are an `aligned` human pair's;
+`alignment` is a human edit's. A machine cut carries none of them — its
+provenance is stored so it is not inferred later from the audio.
+
 **Not stored:** whether the pair is "in the corpus", "in ground truth" or "in
 boundary statistics" as flags of their own — those are `alignment`,
 `provenance` and `covers_more_than_95_percent`. Nor the intercept as a second
 copy of punch-in, nor an averaged offset in place of the fit. Nor the published
-output's path: the expected answer is the boundaries. Nor the suite's median
-and worst-case error; this is the corpus, not a run of it.
+output's path: the expected answer is the boundaries. Nor the filenames in
+`align.MACHINE_CUT_MP3S` (the entity can hold provenance; copying those three
+into production is a later bead). Nor which Segment a new pair was copied from.
+Nor the suite's median and worst-case error; this is the corpus, not a run of
+it. An untouched approval is a `machine` pair, not a labelled example.
 
 ---
 
