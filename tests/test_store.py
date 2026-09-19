@@ -450,6 +450,20 @@ def test_a_segment_no_block_seeded_holds_a_span_of_its_own(store, graph):
     assert (stored.span_start_seconds, stored.span_end_seconds) == (0.0, 11520.0)
 
 
+def test_a_proposed_segment_carries_a_summary_of_its_own(store, graph):
+    summarised = store.saves(
+        replace(graph["segment"], summary="On enduring hardship as discipline, from Hebrews 12")
+    )
+    stored = reloaded(store, summarised, "segment")
+    assert stored.summary == "On enduring hardship as discipline, from Hebrews 12"
+    assert stored.summary != graph["notification"].summary
+
+
+def test_a_segment_carries_no_summary_until_summarization_runs(store, graph):
+    drawn = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, drawn, "segment").summary is None
+
+
 def test_correcting_a_proposal_does_not_make_it_a_second_one(store, graph):
     replacement = replace(graph["proposal"], boundary_confidence="low", missing_evidence=())
     store.saves(replacement)
