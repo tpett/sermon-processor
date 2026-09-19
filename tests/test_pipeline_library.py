@@ -178,10 +178,92 @@ def test_speaker_edges_reads_the_diarization_under_the_data_root_it_is_given(
     assert segments.speaker_edges({"recording_id": "rec1"}) == [1.0, 2.5, 9.877]
 
 
-def test_speaker_edges_finds_nothing_when_no_data_root_is_set(monkeypatch):
-    segments = imports_pipeline_module("segments")
-    monkeypatch.setattr(segments, "DATA_ROOT", None)
-    assert segments.speaker_edges({"recording_id": "rec1"}) == []
+def reaches_a_diarization_artefact(segments):
+    return segments.speaker_edges({"recording_id": "rec1"})
+
+
+def reaches_a_diarization_artefact_through_classify(classify):
+    return classify.load_diarization("rec1")
+
+
+def reaches_a_prompt_template(classify):
+    return classify.run_whole("a-model", {"started_at": "", "duration": 0.0, "utterances": []})
+
+
+INJECTED_ROOTS = (
+    ("segments", "DATA_ROOT", reaches_a_diarization_artefact),
+    ("classify", "DATA", reaches_a_diarization_artefact_through_classify),
+    ("classify", "PROMPTS", reaches_a_prompt_template),
+)
+
+injected_root = pytest.mark.parametrize(
+    ("module", "setting", "reaches_it"),
+    INJECTED_ROOTS,
+    ids=[f"{module}.{setting}" for module, setting, _ in INJECTED_ROOTS],
+)
+
+
+def refuses_the_root(module, setting, reaches_it, root, monkeypatch):
+    roots = importlib.import_module("sermon.pipeline.roots")
+    carried = imports_pipeline_module(module)
+    monkeypatch.setattr(carried, setting, root)
+    with pytest.raises(roots.RootNotConfigured) as refused:
+        reaches_it(carried)
+    return str(refused.value)
+
+
+@injected_root
+def test_an_unset_root_names_the_module_and_the_setting(
+    module, setting, reaches_it, monkeypatch
+):
+    complaint = refuses_the_root(module, setting, reaches_it, None, monkeypatch)
+    assert names_pipeline_module(module) in complaint
+    assert setting in complaint
+
+
+@injected_root
+def test_a_root_that_is_not_a_path_names_the_module_and_the_setting(
+    module, setting, reaches_it, tmp_path, monkeypatch
+):
+    complaint = refuses_the_root(module, setting, reaches_it, str(tmp_path), monkeypatch)
+    assert names_pipeline_module(module) in complaint
+    assert setting in complaint
+    assert "str" in complaint
+
+
+@injected_root
+def test_a_root_that_is_not_a_directory_names_the_module_and_the_setting(
+    module, setting, reaches_it, tmp_path, monkeypatch
+):
+    plain = tmp_path / "not-a-directory"
+    plain.write_text("")
+    complaint = refuses_the_root(module, setting, reaches_it, plain, monkeypatch)
+    assert names_pipeline_module(module) in complaint
+    assert setting in complaint
+    assert str(plain) in complaint
+
+
+@pytest.mark.parametrize(
+    ("module", "setting", "reaches_it"),
+    [entry for entry in INJECTED_ROOTS if entry[1] != "PROMPTS"],
+    ids=["segments.DATA_ROOT", "classify.DATA"],
+)
+def test_a_root_holding_no_diarization_at_all_names_the_module_and_the_setting(
+    module, setting, reaches_it, tmp_path, monkeypatch
+):
+    complaint = refuses_the_root(module, setting, reaches_it, tmp_path, monkeypatch)
+    assert names_pipeline_module(module) in complaint
+    assert setting in complaint
+    assert "diarization" in complaint
+
+
+def test_load_diarization_finds_nothing_when_the_recording_was_not_diarized(
+    tmp_path, monkeypatch
+):
+    classify = imports_pipeline_module("classify")
+    (tmp_path / "diarization").mkdir()
+    monkeypatch.setattr(classify, "DATA", tmp_path)
+    assert classify.load_diarization("never-diarized") is None
 
 
 def test_speaker_edges_finds_nothing_when_the_recording_was_not_diarized(tmp_path, monkeypatch):
