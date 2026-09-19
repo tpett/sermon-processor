@@ -11,6 +11,7 @@ SPEC_ROOT = PROJECT_ROOT / "features"
 SPEC_MODULE = "tests/test_spec.py"
 SPEC_SHAPE = "spec OK — 34 files, 460 scenarios, 142 rules"
 SPEC_TESTS = 604
+DEFERRED_TESTS = 7
 
 
 def runs_pytest(*arguments, cwd=PROJECT_ROOT):
@@ -46,6 +47,19 @@ def expanded_scenarios(children, inherited, tag):
             examples = scenario.get("examples") or []
             total += sum(len(one.get("tableBody") or []) for one in examples) if examples else 1
     return total
+
+
+def finds_deferrals_above_scenario_level():
+    offenders = []
+    for spec_file in sorted(SPEC_ROOT.rglob("*.feature")):
+        feature = Parser().parse(spec_file.read_text())["feature"]
+        blocks = [feature] + [child["rule"] for child in feature["children"] if "rule" in child]
+        offenders += [
+            f"{spec_file.relative_to(SPEC_ROOT)}:{block['location']['line']}"
+            for block in blocks
+            if "deferred" in tag_names(block)
+        ]
+    return sorted(offenders)
 
 
 def declared_scenarios(tag=None):
@@ -96,7 +110,12 @@ def test_the_registered_markers_are_the_tags_the_spec_declares(spec_guardrail):
 
 def test_scenarios_deferred_out_of_v1_are_skipped():
     returncode, report = runs_pytest("-q", "-m", "deferred", SPEC_MODULE)
-    assert (returncode, counted("skipped", report)) == (0, declared_scenarios("deferred")), report
+    assert (returncode, counted("skipped", report)) == (0, DEFERRED_TESTS), report
+    assert declared_scenarios("deferred") == DEFERRED_TESTS
+
+
+def test_nothing_above_a_scenario_is_deferred():
+    assert finds_deferrals_above_scenario_level() == []
 
 
 def test_a_scenario_with_no_step_definitions_fails_rather_than_errors(tmp_path):
