@@ -41,6 +41,7 @@ IDENTITIES = {
     "log_entry": "log_entry_id",
     "skipped_object": "object_key",
     "discovery": "discovery_id",
+    "corpus_pair": "corpus_pair_id",
 }
 
 ENTITY_TYPES = {
@@ -55,6 +56,7 @@ ENTITY_TYPES = {
     "log_entry": LogEntry,
     "skipped_object": SkippedObject,
     "discovery": Discovery,
+    "corpus_pair": CorpusPair,
 }
 
 CLOSED_COLUMNS = [
@@ -80,6 +82,11 @@ CLOSED_COLUMNS = [
     ("skipped_object", "reason", vocabularies.SKIP_REASONS),
     ("discovery", "kind", vocabularies.DISCOVERY_KINDS),
     ("discovery", "failure", vocabularies.DISCOVERY_FAILURES),
+    ("corpus_pair", "classification", vocabularies.SEGMENT_CLASSIFICATIONS),
+    ("corpus_pair", "alignment", vocabularies.CORPUS_ALIGNMENTS),
+    ("corpus_pair", "punch_in_difficulty", vocabularies.CUT_DIFFICULTIES),
+    ("corpus_pair", "punch_out_difficulty", vocabularies.CUT_DIFFICULTIES),
+    ("corpus_pair", "provenance", vocabularies.CORPUS_PROVENANCES),
 ]
 
 CLOSED_COLLECTIONS = [
@@ -90,6 +97,13 @@ CLOSED_COLLECTIONS = [
 COMPANIONS = {
     ("discovery", "kind"): {"failure": None, "event": None},
     ("discovery", "failure"): {"kind": "scan", "discovered_count": 0, "event": None},
+    ("corpus_pair", "alignment"): {"drift_ppm": None},
+    ("corpus_pair", "provenance"): {
+        "punch_in_seconds": None,
+        "punch_out_seconds": None,
+        "punch_in_difficulty": None,
+        "punch_out_difficulty": None,
+    },
 }
 
 SKIPPED_OBJECTS = (
@@ -414,6 +428,7 @@ def labelled_corpus_pair(recording, classification="sermon"):
         drift_ppm=-130.0,
         punch_in_difficulty="easy",
         punch_out_difficulty="hard",
+        covers_more_than_95_percent=False,
         provenance="human",
     )
 
@@ -464,6 +479,7 @@ def graph(store):
         ),
         "skipped_object": store.saves(skipped_object()),
         "discovery": store.saves(received_webhook()),
+        "corpus_pair": store.saves(labelled_corpus_pair(recording, classification="lesson")),
     }
 
 
@@ -513,6 +529,7 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
         "artifact": store.saves(minimal_artifact(recording)),
         "job": store.saves(minimal_job(recording)),
         "speaker_profile": store.saves(minimal_speaker_profile()),
+        "corpus_pair": store.saves(machine_cut_corpus_pair(recording)),
     }
     assert {name: reloaded(store, saved, name) for name, saved in minimal.items()} == minimal
 
@@ -1591,8 +1608,9 @@ def test_a_recording_and_the_approved_boundaries_can_be_added_to_the_corpus(stor
     )
 
 
-def test_an_untouched_approval_does_not_become_a_labelled_example(store, graph):
-    published = store.saves(machine_cut_corpus_pair(graph["recording"]))
+def test_an_untouched_approval_does_not_become_a_labelled_example(store):
+    recording = store.saves(minimal_recording())
+    published = store.saves(machine_cut_corpus_pair(recording))
     stored = store.loads(CorpusPair, published.corpus_pair_id)
     assert stored.provenance == "machine"
     labelled = [
@@ -1627,6 +1645,35 @@ def test_saving_a_corpus_pair_again_corrects_the_fit_it_already_wrote(store):
     assert store.lists(CorpusPair) == [corrected]
     stored = store.loads(CorpusPair, saved.corpus_pair_id)
     assert (stored.drift_ppm, stored.punch_in_seconds) == (-131.6, 1228.788)
+
+
+def test_a_machine_cut_does_not_carry_boundaries_only_a_human_edit_can_have(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["corpus_pair"], provenance="machine"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_drift_fit_does_not_belong_to_a_pair_that_was_not_aligned(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph["corpus_pair"], alignment="cannot be aligned"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_corpus_pair_cannot_belong_to_a_recording_that_does_not_exist(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(
+            replace(
+                graph["corpus_pair"],
+                corpus_pair_id=None,
+                recording_id="recording_20000101_000000",
+            )
+        )
+    assert everything_stored(store, tmp_path) == stored
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):

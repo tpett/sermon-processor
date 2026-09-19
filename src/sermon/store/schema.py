@@ -11,6 +11,7 @@ from .entities import (
     Block,
     Candidate,
     ChannelLevel,
+    CorpusPair,
     Discovery,
     Evidence,
     Job,
@@ -298,6 +299,27 @@ TABLES = {
             closed={
                 "kind": vocabularies.DISCOVERY_KINDS,
                 "failure": vocabularies.DISCOVERY_FAILURES,
+            },
+        ),
+        Table(
+            entity=CorpusPair,
+            name="corpus_pair",
+            identity="corpus_pair_id",
+            order=("punch_in_seconds",),
+            references={"recording_id": "recording(recording_id)"},
+            presence=(
+                Presence(column="punch_in_seconds", only_while={"provenance": ("human",)}),
+                Presence(column="punch_out_seconds", only_while={"provenance": ("human",)}),
+                Presence(column="drift_ppm", only_while={"alignment": ("aligned",)}),
+                Presence(column="punch_in_difficulty", only_while={"provenance": ("human",)}),
+                Presence(column="punch_out_difficulty", only_while={"provenance": ("human",)}),
+            ),
+            closed={
+                "classification": vocabularies.SEGMENT_CLASSIFICATIONS,
+                "alignment": vocabularies.CORPUS_ALIGNMENTS,
+                "punch_in_difficulty": vocabularies.CUT_DIFFICULTIES,
+                "punch_out_difficulty": vocabularies.CUT_DIFFICULTIES,
+                "provenance": vocabularies.CORPUS_PROVENANCES,
             },
         ),
         Table(
