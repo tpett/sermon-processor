@@ -31,12 +31,12 @@ def tag_names(node):
     return {tag["name"].lstrip("@") for tag in node.get("tags", [])}
 
 
-def expanded(children, inherited, tag):
+def expanded_scenarios(children, inherited, tag):
     total = 0
     for child in children:
         if "rule" in child:
             rule = child["rule"]
-            total += expanded(rule["children"], inherited | tag_names(rule), tag)
+            total += expanded_scenarios(rule["children"], inherited | tag_names(rule), tag)
         elif "scenario" in child:
             scenario = child["scenario"]
             if tag is not None and tag not in inherited | tag_names(scenario):
@@ -50,7 +50,7 @@ def declared_scenarios(tag=None):
     total = 0
     for spec_file in sorted(SPEC_ROOT.rglob("*.feature")):
         feature = Parser().parse(spec_file.read_text())["feature"]
-        total += expanded(feature["children"], tag_names(feature), tag)
+        total += expanded_scenarios(feature["children"], tag_names(feature), tag)
     return total
 
 
@@ -59,10 +59,13 @@ def test_the_spec_module_collects_every_declared_scenario():
     assert (returncode, counted("tests collected", report)) == (0, declared_scenarios()), report
 
 
-def test_the_whole_suite_collects_without_errors():
+def test_the_whole_suite_collects_the_spec_and_its_own_tests():
     returncode, report = runs_pytest("--collect-only", "-q")
-    assert returncode == 0, report
-    assert counted("tests collected", report) > declared_scenarios(), report
+    beside_the_spec = runs_pytest("--collect-only", "-q", f"--ignore={SPEC_MODULE}")[1]
+    assert (returncode, counted("tests collected", report)) == (
+        0,
+        declared_scenarios() + counted("tests collected", beside_the_spec),
+    ), report
 
 
 def test_no_tag_the_spec_uses_is_an_unknown_mark():
