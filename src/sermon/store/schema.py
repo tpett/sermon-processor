@@ -11,6 +11,7 @@ from .entities import (
     Block,
     Evidence,
     Job,
+    LogEntry,
     Notification,
     Proposal,
     Recording,
@@ -223,6 +224,13 @@ TABLES = {
                 "segment_id": "segment(segment_id)",
             },
             closed={"state": vocabularies.NOTIFICATION_STATES},
+        ),
+        Table(
+            entity=LogEntry,
+            name="log_entry",
+            identity="log_entry_id",
+            order=("occurred_at",),
+            references={"recording_id": "recording(recording_id)"},
         ),
     )
 }

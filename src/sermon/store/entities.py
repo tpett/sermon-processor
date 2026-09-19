@@ -138,3 +138,11 @@ class Notification:
     summary: str
     created_at: datetime
     state: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class LogEntry:
+    log_entry_id: int | None = None
+    recording_id: str
+    kind: str
+    occurred_at: datetime

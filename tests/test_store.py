@@ -10,6 +10,7 @@ from sermon.store import (
     DATABASE_NAME,
     Evidence,
     Job,
+    LogEntry,
     Notification,
     Proposal,
     Recording,
@@ -31,6 +32,7 @@ IDENTITIES = {
     "job": "job_id",
     "notification": "notification_id",
     "speaker_profile": "speaker_profile_id",
+    "log_entry": "log_entry_id",
 }
 
 ENTITY_TYPES = {
@@ -42,6 +44,7 @@ ENTITY_TYPES = {
     "job": Job,
     "notification": Notification,
     "speaker_profile": SpeakerProfile,
+    "log_entry": LogEntry,
 }
 
 CLOSED_COLUMNS = [
@@ -61,6 +64,7 @@ CLOSED_COLUMNS = [
     ("job", "kind", vocabularies.JOB_KINDS),
     ("job", "state", vocabularies.JOB_STATES),
     ("notification", "state", vocabularies.NOTIFICATION_STATES),
+    ("log_entry", "entered_state", vocabularies.RECORDING_STATES + vocabularies.SEGMENT_STATES),
 ]
 
 
@@ -275,6 +279,22 @@ def minimal_speaker_profile():
     return SpeakerProfile(name="not a known voice", embedding=b"\x00\x01")
 
 
+def populated_log_entry(recording):
+    return LogEntry(
+        recording_id=recording.recording_id,
+        kind="approved",
+        occurred_at=datetime(2026, 9, 13, 11, 4, 9, tzinfo=UTC),
+    )
+
+
+def minimal_log_entry(recording):
+    return LogEntry(
+        recording_id=recording.recording_id,
+        kind="entered_analyzing",
+        occurred_at=datetime(2026, 9, 13, 9, 2, tzinfo=UTC),
+    )
+
+
 @pytest.fixture
 def store(tmp_path):
     opened = opens_store(data_root=tmp_path)
@@ -305,6 +325,7 @@ def graph(store):
         "artifact": store.saves(populated_artifact(recording, segment)),
         "job": store.saves(populated_job(recording, segment)),
         "notification": store.saves(populated_notification(recording, segment)),
+        "log_entry": store.saves(populated_log_entry(recording)),
     }
 
 
@@ -575,6 +596,111 @@ def test_recordings_that_finish_together_raise_one_notification_each(store, grap
 def test_a_notification_nothing_was_publishable_for_is_recorded_rather_than_dropped(store, graph):
     suppressed = store.saves(minimal_notification(graph["recording"]))
     assert store.loads(Notification, suppressed.notification_id).state == "suppressed"
+
+
+def test_a_recording_lists_every_entry_in_its_processing_log_oldest_first(store, graph):
+    recording = graph["recording"]
+    transition = store.saves(replace(minimal_log_entry(recording), entered_state="analyzing"))
+    attempt = store.saves(
+        replace(
+            minimal_log_entry(recording),
+            kind="analyze_attempt",
+            occurred_at=datetime(2026, 9, 13, 9, 15, 30, tzinfo=UTC),
+            job_id=graph["job"].job_id,
+            duration_seconds=812.4,
+            error="the transcription service was unreachable",
+        )
+    )
+    action = store.saves(
+        replace(
+            minimal_log_entry(recording),
+            kind="approved",
+            occurred_at=datetime(2026, 9, 13, 11, 4, 9, tzinfo=UTC),
+            segment_id=graph["segment"].segment_id,
+            actor="the reviewer",
+        )
+    )
+    assert store.lists(LogEntry, recording_id=recording.recording_id) == [
+        graph["log_entry"],
+        transition,
+        attempt,
+        action,
+    ]
+
+
+def test_a_state_transition_records_the_state_it_entered_and_when(store, graph):
+    entered = store.saves(replace(minimal_log_entry(graph["recording"]), entered_state="analyzing"))
+    stored = reloaded(store, entered, "log_entry")
+    assert (stored.entered_state, stored.occurred_at) == ("analyzing", entered.occurred_at)
+
+
+def test_the_log_records_a_segments_transitions_beside_the_recordings(store, graph):
+    store.saves(replace(minimal_log_entry(graph["recording"]), entered_state="awaiting_review"))
+    store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            entered_state="recut",
+            segment_id=graph["segment"].segment_id,
+            occurred_at=datetime(2026, 9, 14, 8, 0, tzinfo=UTC),
+        )
+    )
+    logged = store.lists(LogEntry, recording_id=graph["recording"].recording_id)
+    assert [(entry.entered_state, entry.segment_id) for entry in logged] == [
+        (None, None),
+        ("awaiting_review", None),
+        ("recut", graph["segment"].segment_id),
+    ]
+
+
+def test_every_job_attempt_is_recorded_with_its_timestamp_duration_and_error(store, graph):
+    attempt = replace(
+        minimal_log_entry(graph["recording"]),
+        kind="analyze_attempt",
+        job_id=graph["job"].job_id,
+        duration_seconds=44.5,
+        error="the transcription service was unreachable",
+    )
+    first = store.saves(attempt)
+    second = store.saves(
+        replace(
+            attempt,
+            occurred_at=datetime(2026, 9, 13, 9, 20, tzinfo=UTC),
+            duration_seconds=2841.0,
+            error=None,
+        )
+    )
+    logged = store.lists(LogEntry, job_id=graph["job"].job_id)
+    assert [(entry.occurred_at, entry.duration_seconds, entry.error) for entry in logged] == [
+        (first.occurred_at, 44.5, "the transcription service was unreachable"),
+        (second.occurred_at, 2841.0, None),
+    ]
+
+
+def test_an_entry_that_cannot_be_correlated_to_the_application_logs_is_never_stored(
+    store, graph, tmp_path
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(minimal_log_entry(graph["recording"]), correlation_id=None))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_human_action_records_who_performed_it_and_against_which_segment(store, graph):
+    adjustment = store.saves(
+        replace(
+            minimal_log_entry(graph["recording"]),
+            kind="punch_in_adjusted",
+            actor="the reviewer",
+            segment_id=graph["segment"].segment_id,
+            punch_in_seconds=7216.5,
+        )
+    )
+    stored = reloaded(store, adjustment, "log_entry")
+    assert (stored.kind, stored.actor, stored.segment_id) == (
+        "punch_in_adjusted",
+        "the reviewer",
+        graph["segment"].segment_id,
+    )
 
 
 def test_saving_an_entity_again_does_not_duplicate_its_collections(store, graph):
