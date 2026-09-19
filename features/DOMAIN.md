@@ -145,7 +145,7 @@ and what renders.
 | Field | Why it exists |
 | --- | --- |
 | `recording_id` | |
-| `seed_block_id` | Which teaching Block it grew from. Null only for a `meeting` Segment, which a human creates by archiving a whole Recording. |
+| `seed_block_id` | Which teaching Block it grew from. Null for a meeting or hand-drawn Segment: a human creates a meeting Segment by archiving a whole Recording, and a reviewer can draw a Segment by hand. |
 | `classification` | `sermon`, `lesson`, `seminar`, or `meeting`. **Not the Block vocabulary.** |
 | `span_start_seconds`, `span_end_seconds` | The Segment's own outer bounds, which the punch points sit inside: a reviewer extends the start, "the Segment's span grows", and the punch-in may sit anywhere in the new span (`interface/punch_point_adjustment.feature`), and the detail view lists a span and a pair of boundaries per Segment (`interface/recording_detail.feature`). Not derivable from `seed_block_id`: extending would rewrite a machine-produced Block, and a `meeting` or hand-drawn Segment has no seed Block. |
 | `punch_in_seconds`, `punch_out_seconds` | The current boundaries, machine or human. The machine's original is not a second pair here: the reviewer can revert to the proposal after adjusting (`interface/punch_point_adjustment.feature`) by reading the cuts the `LogEntry` naming that Proposal carries. |
@@ -159,7 +159,7 @@ and what renders.
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
 | `warnings[]` | `check the opening`, `no clean cut point found at punch-in`, `no clean cut point found at punch-out`, `boundary is not acceptable`, `source was very quiet`. Five named conditions, held the way `Recording.warnings[]` is and for the same reasons (`analysis/punch_in_detection.feature`, `analysis/punch_out_detection.feature`, `analysis/segment_proposal.feature`, `processing/audio_rendering.feature`). |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
-| `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
+| `label` | The other half. Summarization suggests it from the summary; the reviewer can correct it. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
 
 **Four of the conditions a scenario flags on a Segment are derivable, and are not
 stored.** `length outside expected range` is the distance between the boundaries,
@@ -201,7 +201,7 @@ and supersedes the one before it rather than overwriting it.
 | `classification_confidence`, `boundary_confidence` | Separate, because a Segment can be confidently a sermon with badly guessed boundaries. Both derived. |
 | `evidence[]` | Each entry: `timecode`, `finding`, `implies`. Rendered as a table for the reviewer. |
 | `punch_in_difficulty`, `punch_out_difficulty` | `easy` / `moderate` / `hard`, from the quiet around the cut the machine proposed. The grade of the ground-truth cut lives on `CorpusPair`, so a configuration cannot raise the headline by grading more of its own cuts hard (`analysis/detection_accuracy.feature`). |
-| `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null when no second opinion is configured, and the absence must be stated rather than shown as agreement. |
+| `agreement_gap_seconds` | Distance to a second analysis's punch-in, if one ran. Null in v1 because one analysis is the whole design; a second opinion is deferred, not open. The absence must be stated rather than shown as agreement. |
 | `missing_evidence[]` | What was unavailable. Lowers confidence rather than blocking the Proposal. |
 | `punch_in_candidates[]` | Each entry: `timecode` and `considered_because`. "Analysis recorded an alternative punch-in candidate" whose evidence panel "shows why that candidate was considered" (`interface/punch_point_adjustment.feature`) — a bare timecode cannot. Ordered by rank. |
 | `superseded_by` | Re-running Analysis keeps the previous Proposals in the Recording's history, and where a reviewer has already edited a Segment the fresh machine proposal is shown *alongside* their work rather than over it (`analysis/analysis_orchestration.feature`, `interface/punch_point_adjustment.feature`). Two Proposals for one Segment therefore have to exist at once, which a 1:1 cannot do, and which of them is current has to be a stored fact. Written the way `Artifact.superseded_by` already is. |
@@ -452,8 +452,3 @@ it. An untouched approval is a `machine` pair, not a labelled example.
 - **Storage engine.** Nothing above needs more than rows and a blob store.
   Whether that is Postgres, SQLite or files is a framework question, and the
   point of writing this first was to be able to answer it on evidence.
-- **Whether a second analysis runs.** `agreement_gap_seconds` is nullable
-  because that decision is open (`analysis/analysis_confidence.feature`).
-- **Whether local audio is ever reclaimed.** `local_path` is nullable and the
-  object store is durable, so both answers fit. Q34 is open.
-- **Hard delete.** The last `@needs-decision` in the spec.
