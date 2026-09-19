@@ -1196,6 +1196,27 @@ def test_a_scan_carries_no_event_type_because_nothing_announced_it(store):
     assert store.loads(Discovery, store.saves(completed_scan()).discovery_id).event is None
 
 
+def test_a_webhook_does_not_carry_a_failure_only_a_scan_can_have(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(received_webhook(), failure="credentials"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_scan_does_not_carry_an_event_type_only_a_webhook_announces(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(completed_scan(), event="recording.uploaded"))
+    assert everything_stored(store, tmp_path) == stored
+
+
+def test_a_scan_that_failed_does_not_also_report_recordings_it_discovered(store, graph, tmp_path):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(completed_scan(), failure="transient", discovered_count=99))
+    assert everything_stored(store, tmp_path) == stored
+
+
 def test_an_alert_about_the_system_itself_is_raised_against_no_recording(store):
     raised = store.saves(system_alert())
     stored = store.loads(Notification, raised.notification_id)
