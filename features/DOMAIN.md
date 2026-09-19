@@ -51,9 +51,11 @@ One source audio file from the recorder. The unit of ingestion.
 | --- | --- |
 | `object_key` | The join back to the object store. Reconciliation matches on it, and matches only keys never seen before — which is what made the `discovered` deadlock possible (`ingestion/recording_download.feature`). |
 | `recording_id` | Derived from the key (`recording_20260913_090014`). Stable, and the only identifier that survives a re-download. |
-| `started_at` | Parsed from the filename, not from file mtime. Load-bearing: the 10:50–10:57 wall-clock band is a confidence input, and grouping same-day recordings needs it (`analysis/block_classification.feature`). |
+| `started_at` | Parsed from the filename wherever the key gives one, with `started_at_source` saying when it could not. Load-bearing: the 10:50–10:57 wall-clock band is a confidence input, and grouping same-day recordings needs it (`analysis/block_classification.feature`). |
+| `started_at_source` | `key` or `last_modified`. The key is the primary path and always present; the fallback is an upload time, so a Recording cannot be scored on the 10:50–10:57 band without knowing which it was (`ingestion/recording_download.feature`). The sidecar's `recorded_at` and the webhook's are not a third and fourth value: each carries the recorded time the key already gives, and "the key is the source of truth and a sidecar … is an enrichment" settles a disagreement in the key's favour (`ingestion/recording_download.feature`, `ingestion/webhook_notification.feature`). Only the upload-time fallback changes what the band may be scored against, which is the one distinction this field draws. Never null; an unrecorded provenance is the same hole. |
 | `duration_seconds` | From the probe stage. |
 | `size_bytes` | Needed before download to check free disk. |
+| `capture_device` | Which recorder produced it, shown as `Device` on the detail view (`interface/recording_detail.feature`). The host's identity rather than the ALSA device string the sidecar carries, and nullable because the recorder has no host field to send yet (`ingestion/webhook_notification.feature`). |
 | `channels`, `sample_rate`, `bits_per_raw_sample` | Reported on the detail view. **32-bit, not 24** — the spec said 24 in five places and was wrong. |
 | `channel_levels[]` | Each entry: `channel` and `rms_db`. "The Recording records a per-channel RMS level" — channel 1 at −21.3 dB against channel 2 at the −90.4 dB noise floor is what identifies the dead channel, and both are needed to tell that case from two channels carrying signal (`analysis/audio_probe.feature`). |
 | `mono_source` | Which channel or mix the render must take: "the Recording records that the render should use channel 1 only" (`analysis/audio_probe.feature`). Deliberately not a closed set — the scenarios name that one value and declare no vocabulary for the reviewer's answer when both channels carry signal. |
@@ -62,10 +64,45 @@ One source audio file from the recorder. The unit of ingestion.
 | `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
+| `sidecar_present` | "The missing sidecar is noted on the Recording" (`ingestion/recording_download.feature`), which `started_at_source` does not say — the key supplies the start time whether a sidecar exists or not. Null until the download looks, and not a warning, because no object in the bucket has one. |
 | `integrated_loudness_lufs`, `true_peak_dbtp`, `loudness_range_lu` | What the probe measured of the source, and the input the render normalizes from in one pass (`analysis/audio_probe.feature`, `processing/audio_rendering.feature`). `dynamic_range_db` is the emptiness metric on another scale, and `Artifact.render_settings` is the render's target rather than the measurement. |
 | `dynamic_range_db`, `active_fraction`, `longest_active_seconds` | The emptiness gate. Measured separation is three orders of magnitude — 3.6–6.6 dB for an empty room against 59–74 dB for anything publishable — so these are stored, not just thresholded and forgotten. |
 | `waiting_since` | When a Recording has been stuck in `discovered` for want of disk. Required to retry oldest-first and to escalate after a day. |
-| `skip_reason` | **Fate open; `sp-8eh` owns it.** Nothing skips a *Recording* — all four skip reasons are `SkippedObject`'s. Four scenarios do give a Recording a reason string, of two characters: a flag ("no substantive content", `interface/discarding_recordings.feature`; "source no longer available", `operations/storage_and_retention.feature`) and a failure reason (`ingestion/recording_download.feature`, `interface/recording_detail.feature`). Whether this field becomes either is for the beads owning those to settle, not for this row to assume. |
+| `warnings[]` | `damaged container`, `source clipping detected`, `sidecar disagrees with the audio`, `unexpected stereo content`, `unexpected language`, `low transcript quality`, `source no longer available`. Seven, several at once and none of them a state (`analysis/audio_probe.feature`, `analysis/transcription.feature`, `operations/storage_and_retention.feature`). |
+| `skip_reason` | **Fate open; `sp-8eh` owns it.** Nothing skips a *Recording* — all four skip reasons are `SkippedObject`'s. The flag half of the two characters four scenarios gave this field is now `warnings[]`'s, leaving the failure reason (`ingestion/recording_download.feature`, `interface/recording_detail.feature`) for the bead owning it to settle. |
+
+**A warning is a named value, not a column each.** The probe raises its own and
+transcription later raises another on the same Recording, so the set has to hold
+several and each new condition must not be a new column. It is closed rather than
+open because later behaviour reads the names — the render refuses to run on
+`unexpected stereo content` (`processing/audio_rendering.feature`) and the detail
+view explains `source clipping detected` specifically
+(`interface/recording_detail.feature`) — so a typo would silently disable a gate.
+`Notification.kind` and `LogEntry.kind` stay open because nothing branches on
+them. `sidecar disagrees with the audio` is the one value the Gherkin describes
+without quoting, and takes the wording of its scenario's title. It is a set, so
+one warning cannot be raised twice on one Recording; `channel_levels[]` and
+`speaker_matches[]` are ordered lists of measurements and are not deduplicated.
+
+**Four more of the conditions a scenario flags on a Recording are derivable, and
+are not stored.** `no substantive content` and `no audio content` are what
+`dynamic_range_db` and `active_fraction` already say, and `suspiciously short` and
+`suspiciously long` are `duration_seconds` against the observed 37–203 minute
+range (`analysis/audio_probe.feature`).
+
+**A warning is not a state, and the Segment side of one is a query.** Nothing
+about `source no longer available` moves the Recording — its scenario names no
+transition and leaves the Recording's skipped Segments skipped, so a `reviewed`
+Recording is inferred to stay `reviewed` — and "its skipped Segments are marked as
+no longer extractable" (`operations/storage_and_retention.feature`) is the skipped
+Segments of a Recording carrying that warning. A second field on every Segment
+would have to be maintained on each one and could disagree with the Recording.
+
+**The probed codec is not stored.** `analysis/audio_probe.feature` lists it among
+the probe's outputs and the detail view's `Format` line reads it, but it is `flac`
+on all 85 objects in the bucket, the key's extension already carries it, and
+`Artifact.kind` names the retained source `source_flac`. A second copy of the
+container's own name could only ever disagree with the file.
 
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth
@@ -89,6 +126,7 @@ never published alone.
 | `summary` | One line, so a Block can be judged without listening. |
 | `cue_start_seconds`, `cue_end_seconds` | The excerpt the Preview button plays. |
 | `retyped_by_human` | A reviewer can retype a Block, which re-runs Segment proposal. Must be distinguishable from a machine type, or the next re-analysis silently reverts the correction. |
+| `possibly_multiple_types` | A Block running a scripture reading into teaching is flagged as possibly more than one type, and the split affordance keys on that assertion rather than on `evidence[]` free text (`analysis/block_classification.feature`). A boolean, held the way `retyped_by_human` is: one condition, quoted as no string. |
 | `speaker_matches[]` | Each entry: `speaker_profile_id` and `similarity`. The reviewer is told which enrolled voice is teaching **and how confidently** (`interface/segment_review.feature`), which a bare link to a profile cannot carry. Named `similarity` rather than a confidence because it is the measured quantity — 0.92–0.95 on the preacher's teaching Block against 0.16–0.48 on music and announcements (`analysis/speaker_diarization.feature`) — and confidence in this model is always a derived level. Ordered, because the ranking is the signal and the runner-up is reliably communion. |
 
 **Ordering matters and is not incidental.** Consecutive Blocks of one type are
@@ -117,8 +155,24 @@ and what renders.
 | `boundary_source` | `model`, `refined`, `model-in/refined-out`, or `human`. Where the current boundaries came from: "every Segment records whether its boundaries were proposed or refined" (`analysis/segment_proposal.feature`). Already produced by the pipeline. |
 | `summary` | Its own one line, shown beside it in review and again in the notification (`analysis/summarization.feature`). `Notification.summary` is composed delivery text, and the Block summaries beneath a Segment do not compose into one. Null until summarization runs. |
 | `leading_silence_seconds` | Checked against the 1.0 s cap. Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
+| `warnings[]` | `check the opening`, `no clean cut point found at punch-in`, `no clean cut point found at punch-out`, `boundary is not acceptable`, `source was very quiet`. Five named conditions, held the way `Recording.warnings[]` is and for the same reasons (`analysis/punch_in_detection.feature`, `analysis/punch_out_detection.feature`, `analysis/segment_proposal.feature`, `processing/audio_rendering.feature`). |
 | `publication_date` | Half of the name every finished file carries, `YYYY-MM-DD - Label` (`interface/publication_details.feature`). Prefilled from the Recording's start and changeable from there. Null until entered: it is required to publish, and a Segment is proposed long before it is published. |
 | `label` | The other half, and the only part a human writes. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
+
+**Four of the conditions a scenario flags on a Segment are derivable, and are not
+stored.** `length outside expected range` is the distance between the boundaries,
+`recording may have started late` and `stopped early` are a boundary at 0 or at
+the Recording's duration, and "the source was clipped"
+(`processing/audio_rendering.feature`) is `source clipping detected` on the
+Segment's Recording. The Proposal's `hard` difficulty is **not** among them: it
+also grades noise near the cut and music under the first words, so a cut that did
+have its 250 ms of quiet can be `hard`, and all `hard` derives is the unquoted
+flag that the cut needs a human. `no clean cut point found at punch-in` and its
+punch-out twin are raised by that one missing margin and by nothing else, which
+is the reason a reviewer is shown. The other three stored values are a false
+start, an invariant that could not be satisfied, and a source quiet enough to
+need saying. `boundary is not acceptable` is the one value the Gherkin describes
+without quoting.
 
 **A span is not a second name for the punch points.** A proposed Segment's span
 is detected and normally wider than its cuts (`interface/recording_detail.feature`).

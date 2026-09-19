@@ -37,6 +37,26 @@ BLOCK_TYPES = (
     "other",
 )
 
+STARTED_AT_SOURCES = ("key", "last_modified")
+
+RECORDING_WARNINGS = (
+    "damaged container",
+    "source clipping detected",
+    "sidecar disagrees with the audio",
+    "unexpected stereo content",
+    "unexpected language",
+    "low transcript quality",
+    "source no longer available",
+)
+
+SEGMENT_WARNINGS = (
+    "check the opening",
+    "no clean cut point found at punch-in",
+    "no clean cut point found at punch-out",
+    "boundary is not acceptable",
+    "source was very quiet",
+)
+
 SEGMENT_CLASSIFICATIONS = ("sermon", "lesson", "seminar", "meeting")
 
 RECORDING_KINDS = (

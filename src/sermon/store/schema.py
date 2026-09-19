@@ -76,7 +76,9 @@ class Collection:
     owner: str
     element: type
     column: str | None = None
+    distinct: bool = False
     references: dict[str, str] = field(default_factory=dict)
+    closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -107,6 +109,7 @@ TABLES = {
             paths=("local_path",),
             closed={
                 "state": vocabularies.RECORDING_STATES,
+                "started_at_source": vocabularies.STARTED_AT_SOURCES,
                 "kind": vocabularies.RECORDING_KINDS,
             },
             collections=(
@@ -115,6 +118,15 @@ TABLES = {
                     table="recording_channel_level",
                     owner="recording_id",
                     element=ChannelLevel,
+                ),
+                Collection(
+                    field="warnings",
+                    table="recording_warning",
+                    owner="recording_id",
+                    element=str,
+                    column="warning",
+                    distinct=True,
+                    closed={"warning": vocabularies.RECORDING_WARNINGS},
                 ),
             ),
         ),
@@ -175,6 +187,17 @@ TABLES = {
                 "intent": vocabularies.SEGMENT_INTENTS,
                 "boundary_source": vocabularies.BOUNDARY_SOURCES,
             },
+            collections=(
+                Collection(
+                    field="warnings",
+                    table="segment_warning",
+                    owner="segment_id",
+                    element=str,
+                    column="warning",
+                    distinct=True,
+                    closed={"warning": vocabularies.SEGMENT_WARNINGS},
+                ),
+            ),
         ),
         Table(
             entity=Proposal,
@@ -366,6 +389,8 @@ def element_definition(collection, name, annotation):
     parts = [name, column_type(kind)]
     if not optional:
         parts.append("NOT NULL")
+    if name in collection.closed:
+        parts.append(f"CHECK ({name} IN ({listed(collection.closed[name])}))")
     if name in collection.references:
         parts.append(f"REFERENCES {collection.references[name]}")
     return " ".join(parts)
@@ -389,6 +414,9 @@ def collection_ddl(table, collection):
         *element_definitions(collection),
         f"PRIMARY KEY ({collection.owner}, position)",
     ]
+    if collection.distinct:
+        held = ", ".join(element_columns(collection))
+        definitions.append(f"UNIQUE ({collection.owner}, {held})")
     return creates(collection.table, definitions)
 
 

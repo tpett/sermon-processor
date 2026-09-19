@@ -58,6 +58,7 @@ ENTITY_TYPES = {
 
 CLOSED_COLUMNS = [
     ("recording", "state", vocabularies.RECORDING_STATES),
+    ("recording", "started_at_source", vocabularies.STARTED_AT_SOURCES),
     ("recording", "kind", vocabularies.RECORDING_KINDS),
     ("block", "type", vocabularies.BLOCK_TYPES),
     ("block", "classification_confidence", vocabularies.CONFIDENCE_LEVELS),
@@ -78,6 +79,11 @@ CLOSED_COLUMNS = [
     ("skipped_object", "reason", vocabularies.SKIP_REASONS),
     ("discovery", "kind", vocabularies.DISCOVERY_KINDS),
     ("discovery", "failure", vocabularies.DISCOVERY_FAILURES),
+]
+
+CLOSED_COLLECTIONS = [
+    ("recording", "warnings", vocabularies.RECORDING_WARNINGS),
+    ("segment", "warnings", vocabularies.SEGMENT_WARNINGS),
 ]
 
 COMPANIONS = {
@@ -108,7 +114,9 @@ def populated_recording():
         object_key="2026/09/13/recording_20260913_090014.flac",
         state="awaiting_review",
         started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
+        started_at_source="key",
         size_bytes=1_412_230_144,
+        capture_device="sanctuary-pi-01",
         kind="class",
         duration_seconds=11520.0,
         channels=2,
@@ -122,6 +130,7 @@ def populated_recording():
         mono_source_confirmed=True,
         local_path="recording_20260913_090014/source.flac",
         checksum="ac5f0d2b9e1c4477",
+        sidecar_present=True,
         integrated_loudness_lufs=-24.6,
         true_peak_dbtp=0.4,
         loudness_range_lu=7.2,
@@ -129,7 +138,8 @@ def populated_recording():
         active_fraction=0.82,
         longest_active_seconds=3492.5,
         waiting_since=datetime(2026, 9, 13, 9, 30, tzinfo=UTC),
-        skip_reason="source no longer available",
+        warnings=("damaged container", "unexpected stereo content"),
+        skip_reason="transcription timed out",
     )
 
 
@@ -139,6 +149,7 @@ def minimal_recording():
         object_key="2026/08/23/recording_20260823_102900.flac",
         state="discovered",
         started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
+        started_at_source="key",
         size_bytes=1_073_741_824,
     )
 
@@ -167,6 +178,7 @@ def populated_block(recording):
         cue_start_seconds=120.0,
         cue_end_seconds=132.0,
         retyped_by_human=True,
+        possibly_multiple_types=True,
     )
 
 
@@ -196,6 +208,7 @@ def populated_segment(recording, block, profile):
         boundary_source="model-in/refined-out",
         leading_silence_seconds=0.75,
         summary="A class on Hebrews 12, taught by one voice",
+        warnings=("check the opening", "source was very quiet"),
         publication_date=date(2026, 9, 13),
         label="Hebrews 12.4-11",
     )
@@ -518,6 +531,117 @@ def test_a_recording_whose_channels_the_reviewer_must_rule_on_holds_no_mono_sour
     assert (stored.mono_source, stored.mono_source_confirmed) == (None, None)
 
 
+def test_a_start_time_taken_from_the_upload_is_distinguishable_from_one_read_off_the_key(
+    store, graph
+):
+    from_key = store.saves(minimal_recording())
+    fallen_back = store.saves(replace(from_key, started_at_source="last_modified"))
+    assert reloaded(store, fallen_back, "recording").started_at_source == "last_modified"
+    assert reloaded(store, graph["recording"], "recording").started_at_source == "key"
+
+
+def test_a_recording_cannot_leave_the_source_of_its_start_time_unsaid():
+    with pytest.raises(TypeError):
+        Recording(
+            recording_id="recording_20260823_102900",
+            object_key="2026/08/23/recording_20260823_102900.flac",
+            state="discovered",
+            started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
+            size_bytes=1_073_741_824,
+        )
+
+
+def test_a_missing_sidecar_is_noted_on_the_recording(store, graph):
+    downloaded = store.saves(replace(graph["recording"], sidecar_present=False))
+    assert reloaded(store, downloaded, "recording").sidecar_present is False
+
+
+def test_a_recording_nothing_has_looked_for_a_sidecar_for_notes_neither(store):
+    saved = store.saves(minimal_recording())
+    assert reloaded(store, saved, "recording").sidecar_present is None
+
+
+def test_a_recording_names_the_device_that_captured_it(store, graph):
+    moved = store.saves(replace(graph["recording"], capture_device="sanctuary-pi-02"))
+    assert reloaded(store, moved, "recording").capture_device == "sanctuary-pi-02"
+
+
+def test_a_recording_the_recorder_announced_no_host_for_names_no_device(store):
+    saved = store.saves(minimal_recording())
+    assert reloaded(store, saved, "recording").capture_device is None
+
+
+def test_a_recording_lists_the_warnings_the_pipeline_raised_on_it(store, graph):
+    raised = ("damaged container", "unexpected language")
+    flagged = store.saves(replace(graph["recording"], warnings=raised))
+    assert reloaded(store, flagged, "recording").warnings == raised
+
+
+def test_a_recording_keeps_its_warnings_in_the_order_they_were_raised(store, graph):
+    raised = ("unexpected language", "damaged container")
+    flagged = store.saves(replace(graph["recording"], warnings=raised))
+    assert reloaded(store, flagged, "recording").warnings == raised
+
+
+def test_a_recording_the_pipeline_found_nothing_wrong_with_carries_no_warnings(store):
+    assert reloaded(store, store.saves(minimal_recording()), "recording").warnings == ()
+
+
+def test_a_recording_whose_source_clips_is_flagged_beside_its_other_warnings(store, graph):
+    raised = ("damaged container", "source clipping detected")
+    flagged = store.saves(replace(graph["recording"], warnings=raised))
+    assert reloaded(store, flagged, "recording").warnings == raised
+
+
+def test_a_clipping_flag_leaves_the_recording_where_analysis_found_it(store, graph):
+    analysing = store.saves(replace(graph["recording"], state="analyzing"))
+    flagged = store.saves(replace(analysing, warnings=("source clipping detected",)))
+    stored = reloaded(store, flagged, "recording")
+    assert (stored.state, stored.warnings) == ("analyzing", ("source clipping detected",))
+
+
+def test_a_discrepancy_between_the_sidecar_and_the_audio_is_recorded_as_a_warning(store, graph):
+    probed = store.saves(
+        replace(
+            graph["recording"],
+            duration_seconds=6268.950,
+            warnings=("sidecar disagrees with the audio",),
+        )
+    )
+    stored = reloaded(store, probed, "recording")
+    assert (stored.duration_seconds, stored.warnings) == (
+        6268.950,
+        ("sidecar disagrees with the audio",),
+    )
+
+
+def test_a_recording_whose_source_vanished_is_flagged_where_review_left_it(store, graph):
+    reviewed = store.saves(replace(graph["recording"], state="reviewed"))
+    flagged = store.saves(replace(reviewed, warnings=("source no longer available",)))
+    stored = reloaded(store, flagged, "recording")
+    assert (stored.state, stored.warnings) == ("reviewed", ("source no longer available",))
+
+
+def test_the_segments_no_longer_extractable_are_the_skipped_ones_whose_source_vanished(
+    store, graph
+):
+    vanished = store.saves(replace(graph["recording"], warnings=("source no longer available",)))
+    intact = store.saves(minimal_recording())
+    orphaned = store.saves(replace(minimal_segment(vanished), state="skipped"))
+    store.saves(replace(minimal_segment(intact), state="skipped"))
+    store.saves(replace(minimal_segment(vanished), state="approved"))
+    flagged = {
+        recording.recording_id
+        for recording in store.lists(Recording)
+        if "source no longer available" in recording.warnings
+    }
+    unextractable = [
+        segment for segment in store.lists(Segment, state="skipped")
+        if segment.recording_id in flagged
+    ]
+    assert [segment.segment_id for segment in unextractable] == [orphaned.segment_id]
+
+
 def test_a_recording_holds_the_source_loudness_the_render_normalizes_from(store, graph):
     reprobed = store.saves(
         replace(
@@ -582,6 +706,32 @@ def test_a_segment_no_block_seeded_holds_a_span_of_its_own(store, graph):
     stored = reloaded(store, drawn, "segment")
     assert stored.seed_block_id is None
     assert (stored.span_start_seconds, stored.span_end_seconds) == (0.0, 11520.0)
+
+
+def test_a_segment_lists_the_warnings_its_analysis_raised(store, graph):
+    raised = ("boundary is not acceptable", "check the opening")
+    flagged = store.saves(replace(graph["segment"], warnings=raised))
+    assert reloaded(store, flagged, "segment").warnings == raised
+
+
+def test_a_cut_with_no_quiet_margin_is_flagged_at_the_end_it_was_found(store, graph):
+    raised = ("no clean cut point found at punch-in", "no clean cut point found at punch-out")
+    flagged = store.saves(replace(graph["segment"], warnings=raised))
+    assert reloaded(store, flagged, "segment").warnings == raised
+
+
+def test_a_segment_nothing_went_wrong_with_carries_no_warnings(store, graph):
+    saved = store.saves(minimal_segment(graph["recording"]))
+    assert reloaded(store, saved, "segment").warnings == ()
+
+
+def test_a_boundary_that_cannot_satisfy_the_cut_rules_is_flagged_rather_than_moved(store, graph):
+    flagged = store.saves(replace(graph["segment"], warnings=("boundary is not acceptable",)))
+    stored = reloaded(store, flagged, "segment")
+    assert (stored.punch_in_seconds, stored.warnings) == (
+        graph["segment"].punch_in_seconds,
+        ("boundary is not acceptable",),
+    )
 
 
 def test_a_proposed_segment_carries_a_summary_of_its_own(store, graph):
@@ -680,6 +830,17 @@ def test_a_block_carries_every_piece_of_evidence_that_produced_it(store, graph):
         replace(minimal_block(graph["recording"]), type="sermon", evidence=evidence)
     )
     assert reloaded(store, saved, "block").evidence == evidence
+
+
+def test_a_block_that_may_contain_more_than_one_type_is_flagged_for_splitting(store, graph):
+    unflagged = store.saves(minimal_block(graph["recording"]))
+    flagged = store.saves(replace(unflagged, possibly_multiple_types=True))
+    assert reloaded(store, flagged, "block").possibly_multiple_types is True
+
+
+def test_a_block_the_classifier_read_as_one_thing_is_not_offered_for_splitting(store, graph):
+    saved = store.saves(minimal_block(graph["recording"]))
+    assert reloaded(store, saved, "block").possibly_multiple_types is False
 
 
 def test_a_block_lists_the_voices_recognised_in_it(store, graph):
@@ -1294,6 +1455,34 @@ def test_a_closed_column_accepts_every_value_the_spec_declares(store, graph, nam
         assert getattr(reloaded(store, saved, name), column) == value
 
 
+@pytest.mark.parametrize("name, field, allowed", CLOSED_COLLECTIONS)
+def test_a_closed_collection_refuses_a_value_the_spec_does_not_declare(
+    store, graph, tmp_path, name, field, allowed
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph[name], **{field: ("whatever the caller felt like",)}))
+    assert everything_stored(store, tmp_path) == stored
+
+
+@pytest.mark.parametrize("name, field, allowed", CLOSED_COLLECTIONS)
+def test_a_closed_collection_holds_every_value_the_spec_declares_at_once(
+    store, graph, name, field, allowed
+):
+    saved = store.saves(replace(graph[name], **{field: allowed}))
+    assert getattr(reloaded(store, saved, name), field) == allowed
+
+
+@pytest.mark.parametrize("name, field, allowed", CLOSED_COLLECTIONS)
+def test_a_set_shaped_collection_refuses_the_same_value_twice(
+    store, graph, tmp_path, name, field, allowed
+):
+    stored = everything_stored(store, tmp_path)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.saves(replace(graph[name], **{field: (allowed[0], allowed[0])}))
+    assert everything_stored(store, tmp_path) == stored
+
+
 def test_two_recordings_cannot_claim_one_object_key(store, graph, tmp_path):
     stored = everything_stored(store, tmp_path)
     with pytest.raises(sqlite3.IntegrityError):
@@ -1408,6 +1597,11 @@ def test_reverting_to_the_machine_proposal_reads_the_cuts_that_proposal_carries(
         9812.0,
         "model",
     )
+
+
+def test_a_recording_keeps_no_copy_of_the_codec_its_key_already_names(store):
+    with pytest.raises(ValueError):
+        store.lists(Recording, codec="flac")
 
 
 def test_a_segment_keeps_no_second_copy_of_the_cuts_the_machine_proposed(store):

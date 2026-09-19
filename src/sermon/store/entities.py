@@ -10,7 +10,9 @@ class Recording:
     object_key: str
     state: str
     started_at: datetime
+    started_at_source: str
     size_bytes: int
+    capture_device: str | None = None
     kind: str | None = None
     duration_seconds: float | None = None
     channels: int | None = None
@@ -21,6 +23,7 @@ class Recording:
     mono_source_confirmed: bool | None = None
     local_path: str | None = None
     checksum: str | None = None
+    sidecar_present: bool | None = None
     integrated_loudness_lufs: float | None = None
     true_peak_dbtp: float | None = None
     loudness_range_lu: float | None = None
@@ -28,6 +31,7 @@ class Recording:
     active_fraction: float | None = None
     longest_active_seconds: float | None = None
     waiting_since: datetime | None = None
+    warnings: tuple[str, ...] = ()
     skip_reason: str | None = None
 
 
@@ -45,6 +49,7 @@ class Block:
     cue_start_seconds: float | None = None
     cue_end_seconds: float | None = None
     retyped_by_human: bool = False
+    possibly_multiple_types: bool = False
     speaker_matches: tuple[SpeakerMatch, ...] = ()
 
 
@@ -66,6 +71,7 @@ class Segment:
     boundary_source: str | None = None
     leading_silence_seconds: float | None = None
     summary: str | None = None
+    warnings: tuple[str, ...] = ()
     publication_date: date | None = None
     label: str | None = None
 
