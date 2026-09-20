@@ -20,7 +20,6 @@ class RetriesFailedJob:
             replace(
                 job,
                 state="queued",
-                last_error=None,
                 failed_permanently=False,
                 queued_at=self.clock(),
             )

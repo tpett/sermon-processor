@@ -5,7 +5,15 @@ from datetime import UTC, datetime
 
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.settles_recording import SettlesRecording
-from sermon.store import Job, Store
+from sermon.store import Job, LogEntry, Store
+
+
+class SegmentNotReady(ValueError):
+    pass
+
+
+class PublicationLabelRequired(ValueError):
+    pass
 
 
 def now():
@@ -29,7 +37,27 @@ class ApprovesSegment:
     clock: object = now
 
     def __call__(self, segment):
-        approved = self.store.saves(replace(segment, state="approved", disposition_at=self.clock()))
+        if segment.state not in {"proposed", "skipped"}:
+            raise SegmentNotReady(segment.state)
+        if segment.intent == "publish" and not segment.label:
+            raise PublicationLabelRequired("a publication label is required")
+        occurred = self.clock()
+        approved = self.store.saves(
+            replace(segment, state="approved", disposition_at=occurred)
+        )
+        self.store.saves(
+            LogEntry(
+                recording_id=approved.recording_id,
+                segment_id=approved.segment_id,
+                kind="state_change",
+                occurred_at=occurred,
+                correlation_id=f"approve:{approved.segment_id}",
+                actor="reviewer",
+                entered_state="approved",
+                punch_in_seconds=approved.punch_in_seconds,
+                punch_out_seconds=approved.punch_out_seconds,
+            )
+        )
         EnqueuesJob(self.store)(
             Job(
                 recording_id=approved.recording_id,

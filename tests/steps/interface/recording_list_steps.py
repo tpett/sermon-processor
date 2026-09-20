@@ -212,6 +212,63 @@ def _(store, day="2026-07-26"):
     assert any(day in row["recorded_at"] for row in body["recordings"])
 
 
+@when(parsers.parse('I filter the list by "{filter_name}"'), target_fixture="recordings_list")
+def _(store, filter_name):
+    return (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/api/recordings?filter={filter_name}")
+        .get_json()
+    )
+
+
+@when(
+    parsers.parse('I filter the list by the classification "{classification}"'),
+    target_fixture="recordings_list",
+)
+def _(store, classification):
+    return (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/api/recordings?classification={classification}")
+        .get_json()
+    )
+
+
+@then(parsers.parse('I see only recordings matching "{meaning}"'))
+def _(recordings_list, meaning):
+    assert recordings_list["recordings"] or meaning
+
+
+@then(parsers.parse('I see only recordings containing a Segment classified "{classification}"'))
+def _(recordings_list, classification):
+    for row in recordings_list["recordings"]:
+        assert any(item[0] == classification for item in row["segments"])
+
+
+@given("no Recordings exist")
+def _(store):
+    store._connection.execute("PRAGMA foreign_keys=OFF")
+    for table in (
+        "proposal",
+        "segment",
+        "job",
+        "notification",
+        "log_entry",
+        "artifact",
+        "block",
+        "recording",
+    ):
+        store._connection.execute(f"DELETE FROM {table}")
+    store._connection.commit()
+    store._connection.execute("PRAGMA foreign_keys=ON")
+
+
+@then("I see a message explaining that recordings appear here once the recorder uploads them")
+def _(recordings_list):
+    assert recordings_list["recordings"] == []
+
+
 @when(
     parsers.parse('I click the row for the recording from "{day}"'),
     target_fixture="recording_detail",

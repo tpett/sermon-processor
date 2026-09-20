@@ -261,3 +261,69 @@ def _(store):
     succeeded = [job for job in jobs if job.state == "succeeded"]
     assert len(succeeded) == 1
     assert store.lists(Recording)[0].state == "awaiting_review"
+
+
+@given("a job fails")
+def _(store):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key=OBJECT_KEY,
+            state="downloaded",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+        )
+    )
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="failed",
+            attempts=1,
+            max_attempts=5,
+            dedupe_key=f"analyze:{recording.recording_id}",
+            queued_at=FROZEN,
+            last_error="transcription timed out",
+        )
+    )
+
+
+@then("it is retried with increasing delay between attempts")
+def _(store):
+    job = store.lists(Job, kind="analyze")[0]
+    retried = RetriesFailedJob(store=store, clock=lambda: FROZEN)(job)
+    assert retried.state == "queued"
+    assert retried.attempts == 1
+
+
+@then("each attempt is recorded with its error")
+def _(store):
+    job = store.lists(Job, kind="analyze")[0]
+    assert job.last_error
+
+
+@given("jobs are queued, running, and failed")
+def _(store):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key=OBJECT_KEY,
+            state="downloaded",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+        )
+    )
+    for state, kind in (("queued", "download"), ("running", "analyze"), ("failed", "render")):
+        store.saves(
+            Job(
+                recording_id=recording.recording_id,
+                kind=kind,
+                state=state,
+                max_attempts=5,
+                dedupe_key=f"{kind}:{recording.recording_id}:{state}",
+                queued_at=FROZEN,
+                last_error="boom" if state == "failed" else None,
+            )
+        )

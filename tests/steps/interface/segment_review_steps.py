@@ -177,3 +177,30 @@ def _(store, recording):
     segments = store.lists(Segment, recording_id=recording.recording_id)
     assert len(segments) == 2
 
+
+@then("its boundaries, classification, confidence and evidence remain stored")
+def _(store, recording):
+    segment = numbered_segment(store, recording, 1)
+    assert segment.punch_in_seconds
+    assert segment.classification
+    assert store.lists(Proposal, segment_id=segment.segment_id)
+
+
+@then("it remains visible on the Recording detail view")
+def _(store, recording):
+    from sermon.web import creates_app
+
+    detail = (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/api/recordings/{recording.recording_id}")
+        .get_json()
+    )
+    assert detail["segments"]
+
+
+@then("I can approve it at any point in the future")
+def _(store, recording):
+    segment = numbered_segment(store, recording, 1)
+    assert segment.state == "skipped"
+

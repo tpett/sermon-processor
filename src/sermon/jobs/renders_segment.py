@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
-from sermon.store import Artifact, Job, LogEntry, Notification, Segment, Store
+from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store
 
 
 def now():
@@ -35,7 +35,13 @@ class RendersSegment:
         )
         for name in PROCESS_STEPS:
             self.steps(name)
-        filename = f"{processing.publication_date.isoformat()} - {processing.label}.mp3"
+        published_on = processing.publication_date
+        if published_on is None:
+            published_on = self.store.loads(Recording, processing.recording_id).started_at.date()
+        if processing.label:
+            filename = f"{published_on.isoformat()} - {processing.label}.mp3"
+        else:
+            filename = f"{published_on.isoformat()}.mp3"
         self.store.saves(
             Artifact(
                 recording_id=segment.recording_id,

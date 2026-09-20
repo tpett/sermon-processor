@@ -35,14 +35,37 @@ class RecordingRow:
 class ListsRecordings:
     store: Store
 
-    def __call__(self, *, include_discarded=False):
+    def __call__(self, *, include_discarded=False, filter_name=None, classification=None):
         recordings = [
             recording
             for recording in self.store.lists(Recording)
             if include_discarded or recording.state != "discarded"
         ]
         recordings.sort(key=lambda recording: recording.started_at, reverse=True)
-        return tuple(self._row(recording) for recording in recordings)
+        rows = tuple(self._row(recording) for recording in recordings)
+        if classification:
+            rows = tuple(
+                row for row in rows if any(item[0] == classification for item in row.segments)
+            )
+        if filter_name == "Needs attention":
+            rows = tuple(row for row in rows if row.needs_attention)
+        elif filter_name == "In progress":
+            rows = tuple(row for row in rows if row.state in {"analyzing", "processing"})
+        elif filter_name == "Failed":
+            rows = tuple(row for row in rows if row.state in {"analysis_failed", "processing_failed"})
+        elif filter_name == "Published":
+            rows = tuple(
+                row for row in rows if any(item[2] == "complete" for item in row.segments)
+            )
+        elif filter_name == "Nothing to publish":
+            rows = tuple(row for row in rows if not row.segments)
+        elif filter_name == "Skipped segments":
+            rows = tuple(
+                row for row in rows if any(item[2] == "skipped" for item in row.segments)
+            )
+        elif filter_name == "Ignored":
+            rows = tuple(row for row in rows if row.state == "ignored")
+        return rows
 
     def _row(self, recording):
         segments = self.store.lists(Segment, recording_id=recording.recording_id)
