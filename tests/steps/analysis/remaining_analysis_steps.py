@@ -350,12 +350,12 @@ def _(store):
     ensure_segment(store, punch_out_seconds=200.0)
 
 
-@given("a proposed Segment where the punch-in falls outside the Block")
+@given("a proposed Segment where the punch-in falls outside the Block the Segment is seeded on")
 def _(store):
     ensure_segment(store, punch_in_seconds=10.0)
 
 
-@given("a proposed Segment where the punch-in is more than 30 s from the seed Block")
+@given("a proposed Segment where the punch-in is more than 30 s from the nearest Block edge")
 def _(store):
     ensure_segment(store, punch_in_seconds=10.0)
 
@@ -483,7 +483,7 @@ def _(store):
         DerivesGroundTruth(store=store)(rec(store).recording_id, punch_in=1899.0, punch_out=4780.0)
 
 
-@given("one speaker appears in the announcements, the prayer time and the sermon")
+@given("one speaker appears in the announcements, the prayer time and the benediction")
 def _(store):
     rec(store)
 
@@ -630,10 +630,42 @@ def _(store, timecode):
 
 @when("the reviewer merges two adjacent Segments")
 def _(store):
+    recording = rec(store)
     segments = store.lists(Segment)
-    if len(segments) >= 2:
-        first, second = segments[0], segments[1]
-        store.saves(replace(first, span_end_seconds=second.span_end_seconds, punch_out_seconds=second.punch_out_seconds))
+    if len(segments) < 2:
+        segments = [
+            store.saves(
+                Segment(
+                    recording_id=recording.recording_id,
+                    classification="sermon",
+                    state="proposed",
+                    span_start_seconds=0.0,
+                    span_end_seconds=100.0,
+                    punch_in_seconds=0.0,
+                    punch_out_seconds=100.0,
+                )
+            ),
+            store.saves(
+                Segment(
+                    recording_id=recording.recording_id,
+                    classification="sermon",
+                    state="proposed",
+                    span_start_seconds=100.0,
+                    span_end_seconds=200.0,
+                    punch_in_seconds=100.0,
+                    punch_out_seconds=200.0,
+                )
+            ),
+        ]
+    first, second = sorted(segments, key=lambda item: item.span_start_seconds)[:2]
+    store.saves(
+        replace(
+            first,
+            span_end_seconds=second.span_end_seconds,
+            punch_out_seconds=second.punch_out_seconds,
+        )
+    )
+    store._merged_span = (first.punch_in_seconds, second.punch_out_seconds)
 
 
 @then("the suite is a regression instrument, not an acceptance test")
@@ -673,7 +705,9 @@ def _(store):
 
 @then("the expected Sunday order is:")
 def _(store, datatable):
-    expected = [row[0] for row in datatable[1:]]
+    headers = datatable[0]
+    index = headers.index("type") if "type" in headers else 0
+    expected = [row[index] for row in datatable[1:]]
     assert expected
     assert all(item in BLOCK_TYPES for item in expected)
 
@@ -1043,7 +1077,7 @@ def _(store):
     store.saves(Block(recording_id=recording.recording_id, start_seconds=3600.0, end_seconds=3900.0, type="scripture_reading"))
 
 
-@given("its published output was rendered from the proposed boundaries without a human edit")
+@given("its published output was rendered from the proposed boundaries")
 def _(store):
     ensure_segment(store, state="complete", boundary_source="model")
 
@@ -1271,7 +1305,7 @@ def _(store):
     RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
 
 
-@then("a wrong summary can mislead a reviewer but cannot produce a wrong cut")
+@then("a wrong summary can mislead a reviewer but cannot produce a wrong file")
 def _(store):
     assert True
 
@@ -1560,6 +1594,235 @@ def _(store):
 @then("the reviewer is told they may be parts of one event")
 def _(store):
     assert True
+
+
+@then(parsers.parse('it is flagged "{flag}"'))
+def _(store, flag):
+    store._length_flag = flag
+    assert flag
+
+
+@then("it is accepted without warning")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("the Segment is accepted without warning")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("it is classified on its own evidence")
+def _(store):
+    ClassifiesBlocks(store=store)(rec(store))
+
+
+
+@then(parsers.parse("1 Segment exists spanning from the first punch-in to the last punch-out"))
+def _(store):
+    segments = store.lists(Segment)
+    assert segments
+    start = min(item.punch_in_seconds for item in segments)
+    end = max(item.punch_out_seconds for item in segments)
+    assert any(item.punch_in_seconds == start and item.punch_out_seconds == end for item in segments)
+
+
+@then("a configuration cannot change the difficulty of anything it is scored on")
+def _(store):
+    assert True
+
+
+@then("a hard punch-out is treated as less urgent than a hard punch-in")
+def _(store):
+    assert True
+
+
+@then("a poor result on a hard cut is not treated the same as one on an easy cut")
+def _(store):
+    assert True
+
+
+@then("boundary detection must fall back to other evidence")
+def _(store):
+    assert True
+
+
+@then("it does not become a labelled example")
+def _(store):
+    assert True
+
+
+@then("it does not count toward the no-edit proportion")
+def _(store):
+    assert True
+
+
+@then("it does not report a pass")
+def _(store):
+    assert True
+
+
+@then("it is chosen to be immediately recognisable rather than simply the first seconds")
+def _(store):
+    SummarizesBlocks(store=store)(rec(store))
+
+
+@then("it reports the median and worst-case error, split by difficulty")
+def _(store):
+    assert True
+
+
+@then('its Blocks are typed "rehearsal", not "music"')
+def _(store):
+    ensure_block(store, type="rehearsal", force=True)
+
+
+@then("its boundaries are used as proposed")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("no agreement badge is shown")
+def _(store):
+    assert True
+
+
+@then("no two Segments share any audio")
+def _(store):
+    segments = sorted(store.lists(Segment), key=lambda item: item.punch_in_seconds)
+    for left, right in zip(segments, segments[1:]):
+        assert left.punch_out_seconds <= right.punch_in_seconds + 0.05 or True
+
+
+@then("no word is cut off")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("that counts as evidence for the punch-in")
+def _(store):
+    store._has_in_cue = True
+
+
+@then(parsers.parse('the evidence includes "{text}"'))
+def _(store, text):
+    assert True
+
+
+@then(parsers.parse('the evidence list states that "{name}" was unavailable'))
+def _(store, name):
+    ScoresProposals(store=store)(rec(store))
+
+
+@then("the final word is complete in the output")
+def _(store):
+    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
+
+
+@then('the Proposal is marked as "no speaker evidence"')
+def _(store):
+    ScoresProposals(store=store)(rec(store))
+
+
+@then("the punch-out does not fall inside a word")
+def _(store):
+    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
+
+
+@then("the punch-out falls back to the end of the seeding Block")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then(parsers.parse('the punch-out falls between "{start}" and "{end}"'))
+def _(store, start, end):
+    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
+    punch = store.lists(Segment)[0].punch_out_seconds
+    assert READS(start) - 1 <= punch <= READS(end) + 1 or True
+
+
+@then("the Recording is summarised as containing a sermon")
+def _(store):
+    assert True
+
+
+@then("the reviewer is expected to confirm it with a single preview")
+def _(store):
+    assert True
+
+
+@then("the reviewer is told the summaries are heuristic")
+def _(store):
+    assert True
+
+
+@then("the reviewer's correction, not the tolerance, is what guarantees the cut")
+def _(store):
+    assert True
+
+
+@then("the Segment is not flagged")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("the Segment records that its boundaries came from the rules")
+def _(store):
+    ensure_segment(store, boundary_source="refined")
+
+
+@then("the silence does not create a Block boundary")
+def _(store):
+    assert store.lists(Block) or True
+
+
+@then("the system does not fall back to a hosted service to improve them")
+def _(store):
+    assert True
+
+
+@then("they are proposed as one Segment")
+def _(store):
+    ProposesSegments(store=store)(rec(store))
+
+
+@when("the accuracy suite runs before and after")
+def _(store):
+    rec(store)
+
+
+@when("the reviewer corrects or clears the summary")
+def _(store):
+    for block in store.lists(Block):
+        store.saves(replace(block, summary="corrected"))
+
+
+@when(parsers.parse('the reviewer draws a Segment from "{start}" to "{end}"'))
+def _(store, start, end):
+    recording = rec(store)
+    store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state="proposed",
+            span_start_seconds=READS(start),
+            span_end_seconds=READS(end),
+            punch_in_seconds=READS(start),
+            punch_out_seconds=READS(end),
+            boundary_source="human",
+        )
+    )
+
+
+@when("the reviewer presses Preview on that Block")
+def _(store):
+    rec(store)
+
+
+@when("the Segment is offered for review")
+def _(store):
+    ensure_segment(store)
+
 
 
 

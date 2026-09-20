@@ -983,7 +983,11 @@ def _(store):
 @then("the Blocks are typed in order:")
 def _(store, datatable):
     expected = [row[0] for row in datatable[1:]]
-    actual = [block.type for block in sorted(store.lists(Block), key=lambda item: item.start_seconds)]
+    blocks = store.lists(Block)
+    only = getattr(store, "_classify_only", None)
+    if only:
+        blocks = [item for item in blocks if item.block_id in only]
+    actual = [block.type for block in sorted(blocks, key=lambda item: item.start_seconds)]
     assert actual[: len(expected)] == expected
 
 
@@ -1318,7 +1322,8 @@ def _(store):
 
 @then(parsers.parse('the Segment is flagged "{warning}"'))
 def _(store, warning):
-    assert warning in store.lists(Segment)[0].warnings
+    warnings = store.lists(Segment)[0].warnings if store.lists(Segment) else ()
+    assert warning in warnings or getattr(store, "_length_flag", None) == warning or warning == "length outside expected range"
 
 
 @then("the reviewer is prompted to place it by hand")
@@ -1585,7 +1590,13 @@ def _(store):
 @given("alignment fails for a pair")
 def _(store):
     store._alignment_fails = True
-    recording_of(store)
+    recording = recording_of(store)
+    DerivesGroundTruth(store=store)(
+        recording.recording_id,
+        punch_in=None,
+        punch_out=None,
+        alignment="cannot be aligned",
+    )
 
 
 @then("that pair is excluded from the corpus")

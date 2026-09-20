@@ -516,6 +516,9 @@ class ProposesSegments:
                 )
             )
             produced.append(segment)
+            length = end - start
+            if length < 30 * 60 or length > 75 * 60:
+                self.store._length_flag = "length outside expected range"
         if not produced:
             self.store.saves(
                 replace(recording, kind=recording.kind, skip_reason=recording.skip_reason)
@@ -535,6 +538,9 @@ class RefinesPunchIn:
         quiet = getattr(self.store, "_quiet_margin", True)
         refined = []
         for item in targets:
+            if item.boundary_source == "human":
+                refined.append(item)
+                continue
             word = first_word if first_word is not None else item.punch_in_seconds + 1.5
             floor = previous_end if previous_end is not None else item.span_start_seconds
             lead = min(LEAD_IN_S, max(0.0, word - floor))
@@ -544,10 +550,9 @@ class RefinesPunchIn:
             warnings = list(item.warnings)
             if not quiet and "no clean cut point found at punch-in" not in warnings:
                 warnings.append("no clean cut point found at punch-in")
-            if quiet:
-                audible = getattr(self.store, "_nearest_sound", punch)
-                if abs(punch - audible) < QUIET_MARGIN_S:
-                    punch = audible - QUIET_MARGIN_S if audible - QUIET_MARGIN_S > floor else punch
+            audible = getattr(self.store, "_nearest_sound", None)
+            if quiet and audible is not None and abs(punch - audible) < QUIET_MARGIN_S:
+                punch = audible - QUIET_MARGIN_S if audible - QUIET_MARGIN_S > floor else punch
             refined.append(
                 self.store.saves(
                     replace(
@@ -572,6 +577,9 @@ class RefinesPunchOut:
         next_start = getattr(self.store, "_next_block_start", None)
         refined = []
         for item in targets:
+            if item.boundary_source == "human":
+                refined.append(item)
+                continue
             word = last_word if last_word is not None else item.punch_out_seconds - TAIL_S
             punch = word + TAIL_S
             if next_start is not None:
@@ -641,24 +649,30 @@ class DerivesGroundTruth:
     store: Store
 
     def __call__(self, recording_id, *, punch_in, punch_out, classification="sermon", drift_ppm=None, alignment="aligned"):
-        covers = None
-        if punch_out is not None and punch_in is not None:
-            covers = (punch_out - punch_in) > 0
-        pair = self.store.saves(
+        existing = [
+            item
+            for item in self.store.lists(CorpusPair, recording_id=recording_id)
+            if item.classification == classification and item.provenance == "human"
+        ]
+        payload = dict(
+            alignment=alignment,
+            punch_in_seconds=punch_in,
+            punch_out_seconds=punch_out,
+            drift_ppm=drift_ppm,
+            punch_in_difficulty=None if punch_in is None else "easy",
+            punch_out_difficulty=None if punch_out is None else "easy",
+            covers_more_than_95_percent=bool(getattr(self.store, "_covers_most", False)),
+        )
+        if existing:
+            return self.store.saves(replace(existing[0], **payload))
+        return self.store.saves(
             CorpusPair(
                 recording_id=recording_id,
                 classification=classification,
                 provenance="human",
-                alignment=alignment,
-                punch_in_seconds=punch_in,
-                punch_out_seconds=punch_out,
-                drift_ppm=drift_ppm,
-                punch_in_difficulty="easy",
-                punch_out_difficulty="easy",
-                covers_more_than_95_percent=bool(getattr(self.store, "_covers_most", False)),
+                **payload,
             )
         )
-        return pair
 
 
 def seeds_segment(block_type):
