@@ -27,6 +27,11 @@ def clock():
     return lambda: FROZEN
 
 
+@pytest.fixture
+def contents():
+    return CLASS_AND_SERVICE
+
+
 @given(parsers.parse("the Recording is {length} long"), target_fixture="recording")
 def _(store, recording, length):
     hours, minutes, seconds = (int(part) for part in length.split(":"))
