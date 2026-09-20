@@ -27,7 +27,7 @@ def _():
     return None
 
 
-@given(parsers.parse('a Recording in state "{state}"'), target_fixture="recording")
+@given(parsers.re('^a Recording in state "(?P<state>[^"]+)"$'), target_fixture="recording")
 def _(store, state):
     return store.saves(
         Recording(
