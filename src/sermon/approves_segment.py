@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from sermon.jobs.enqueues_job import EnqueuesJob
+from sermon.settles_recording import SettlesRecording
 from sermon.store import Job, Store
 
 
@@ -40,4 +41,5 @@ class ApprovesSegment:
                 queued_at=self.clock(),
             )
         )
+        SettlesRecording(self.store, clock=self.clock)(approved.recording_id)
         return approved

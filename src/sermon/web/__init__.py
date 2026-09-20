@@ -5,6 +5,7 @@ from flask import Flask, request
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.approves_segment import ApprovesSegment
+from sermon.skips_segment import SkipsSegment
 from sermon.lists_recordings import ListsRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.shows_recording import ShowsRecording
@@ -17,6 +18,7 @@ def creates_app(*, store, clock=now):
     lists = ListsRecordings(store=store)
     shows = ShowsRecording(store=store)
     approves = ApprovesSegment(store=store, clock=clock)
+    skips = SkipsSegment(store=store, clock=clock)
 
     @app.post("/api/webhooks/recordings")
     def recordings_webhook():
@@ -41,6 +43,12 @@ def creates_app(*, store, clock=now):
         segment = store.loads(Segment, segment_id)
         approved = approves(segment)
         return asdict(shows(approved.recording_id))
+
+    @app.post("/api/segments/<int:segment_id>/skip")
+    def skip_segment(segment_id):
+        segment = store.loads(Segment, segment_id)
+        skipped = skips(segment)
+        return asdict(shows(skipped.recording_id))
 
     @app.put("/api/segments/<int:segment_id>/publication")
     def publication_details(segment_id):

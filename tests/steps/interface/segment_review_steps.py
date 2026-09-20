@@ -5,6 +5,7 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment, ReviewSession
+from sermon.skips_segment import SkipsSegment
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.store import Block, Job, Proposal, Recording, Segment
 
@@ -119,3 +120,60 @@ def _(store, segment):
 @then("I did not have to open the waveform editor")
 def _(review_session):
     assert review_session.waveform_editor_opened is False
+
+
+def numbered_segment(store, recording, number):
+    segments = sorted(
+        store.lists(Segment, recording_id=recording.recording_id),
+        key=lambda item: item.span_start_seconds,
+    )
+    return segments[number - 1]
+
+
+@when(parsers.parse("I approve Segment {number:d}"))
+def _(store, recording, number, clock):
+    ApprovesSegment(store=store, clock=clock)(numbered_segment(store, recording, number))
+
+
+@when(parsers.parse("I skip Segment {number:d}"))
+def _(store, recording, number, clock):
+    SkipsSegment(store=store, clock=clock)(numbered_segment(store, recording, number))
+
+
+@then(parsers.parse('Segment {number:d} enters "{state}" and is queued for processing'))
+def _(store, recording, number, state):
+    segment = numbered_segment(store, recording, number)
+    assert store.loads(Segment, segment.segment_id).state == state
+    jobs = store.lists(Job, segment_id=segment.segment_id, kind="render")
+    assert jobs[0].state == "queued"
+
+
+@then(parsers.parse('Segment {number:d} enters "{state}"'))
+def _(store, recording, number, state):
+    segment = numbered_segment(store, recording, number)
+    assert store.loads(Segment, segment.segment_id).state == state
+
+
+@then("exactly one MP3 will be produced")
+def _(store, recording):
+    jobs = store.lists(Job, recording_id=recording.recording_id, kind="render")
+    assert len(jobs) == 1
+
+
+@then("two separate processing jobs are queued")
+def _(store, recording):
+    jobs = store.lists(Job, recording_id=recording.recording_id, kind="render")
+    assert len(jobs) == 2
+
+
+@then("two separate MP3s will be produced")
+def _(store, recording):
+    jobs = store.lists(Job, recording_id=recording.recording_id, kind="render")
+    assert len({job.segment_id for job in jobs}) == 2
+
+
+@then("each carries its own publication details")
+def _(store, recording):
+    segments = store.lists(Segment, recording_id=recording.recording_id)
+    assert len(segments) == 2
+
