@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime, date
 
 from pytest_bdd import given, parsers, then, when
@@ -75,3 +76,48 @@ def _(store, segment):
         label="Hebrews 12.4-11",
     )
     assert store.loads(Segment, saved.segment_id).publication_date == date(2026, 8, 24)
+
+
+@given(parsers.parse('the date is "{value}" and the label is "{label}"'), target_fixture="segment")
+def _(store, segment, value, label):
+    return RecordsPublicationDetails(store=store).saves(
+        segment,
+        publication_date=date.fromisoformat(value),
+        label=label,
+    )
+
+
+@when("the Segment is processed", target_fixture="processed_segment")
+def _(store, segment):
+    from sermon.jobs.enqueues_job import EnqueuesJob
+    from sermon.jobs.renders_segment import RunsRenderJob
+    from sermon.sends_notification import SendsNotification
+    from sermon.store import Job, Reviewer
+
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    approved = store.saves(replace(segment, state="approved"))
+    EnqueuesJob(store)(
+        Job(
+            recording_id=approved.recording_id,
+            segment_id=approved.segment_id,
+            kind="render",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"render:{approved.segment_id}",
+            queued_at=datetime(2026, 8, 23, 16, 0, tzinfo=UTC),
+        )
+    )
+    RunsRenderJob(
+        store=store,
+        steps=lambda _name: None,
+        notifies=SendsNotification(store=store),
+    )()
+    return store.loads(Segment, approved.segment_id)
+
+
+@then(parsers.parse('the output file is named "{filename}"'))
+def _(store, processed_segment, filename):
+    from sermon.store import Artifact
+
+    artifacts = store.lists(Artifact, segment_id=processed_segment.segment_id, kind="rendered_mp3")
+    assert artifacts[0].path == filename

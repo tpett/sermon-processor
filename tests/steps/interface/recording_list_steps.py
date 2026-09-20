@@ -210,3 +210,20 @@ def _(store, day="2026-07-26"):
         .get_json()
     )
     assert any(day in row["recorded_at"] for row in body["recordings"])
+
+
+@when(
+    parsers.parse('I click the row for the recording from "{day}"'),
+    target_fixture="recording_detail",
+)
+def _(store, day):
+    client = creates_app(store=store).test_client()
+    rows = client.get("/api/recordings").get_json()["recordings"]
+    row = next(item for item in rows if day in item["recorded_at"])
+    return client.get(f"/api/recordings/{row['recording_id']}").get_json()
+
+
+@then("I am taken to that Recording's detail view")
+def _(recording_detail):
+    assert recording_detail["recording_id"]
+    assert "segments" in recording_detail
