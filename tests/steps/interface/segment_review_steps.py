@@ -104,8 +104,8 @@ def _(review_session, segment):
 
 
 @when("I approve")
-def _(store, segment):
-    ApprovesSegment(store=store)(segment)
+def _(store, segment, clock):
+    ApprovesSegment(store=store, clock=clock)(segment)
 
 
 @then("the Segment is queued for processing")

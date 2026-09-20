@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
-from sermon.store import Store
+from sermon.store import Job, Store
 
 
 def now():
@@ -27,4 +27,16 @@ class ApprovesSegment:
     clock: object = now
 
     def __call__(self, segment):
-        return segment
+        approved = self.store.saves(replace(segment, state="approved", disposition_at=self.clock()))
+        self.store.saves(
+            Job(
+                recording_id=approved.recording_id,
+                segment_id=approved.segment_id,
+                kind="render",
+                state="queued",
+                max_attempts=5,
+                dedupe_key=f"render:{approved.segment_id}",
+                queued_at=self.clock(),
+            )
+        )
+        return approved
