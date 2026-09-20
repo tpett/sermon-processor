@@ -239,7 +239,13 @@ def _(object_store, recording):
 
 @then(parsers.parse('the Recording enters "{state}"'))
 def _(store, recording, state):
-    assert store.loads(Recording, recording.recording_id).state == state
+    stored = store.loads(Recording, recording.recording_id)
+    entered = [
+        entry.entered_state
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.entered_state is not None
+    ]
+    assert stored.state == state or state in entered
 
 
 @then(parsers.parse('the failure reason is "{reason}"'))

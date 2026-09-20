@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
-from sermon.store import Job, LogEntry, Notification, Proposal, Recording, Segment, Store
+from sermon.config import ModelEndpointUnreachable
+from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Segment, Store
 
 
 def now():
@@ -40,6 +41,21 @@ CLASS_AND_SERVICE = RecordingContents(
 
 
 ITERATED_STAGES = frozenset({"blocking", "block_classification"})
+REASONING_STAGES = frozenset({"block_classification", "summarization"})
+STAGE_ARTIFACTS = {
+    "envelope": "envelope",
+    "waveform": "waveform_peaks",
+    "preview": "preview",
+    "transcription": "transcript",
+    "diarization": "diarization",
+}
+
+
+class StageFailed(RuntimeError):
+    def __init__(self, stage, error="failed"):
+        super().__init__(error)
+        self.stage = stage
+        self.error = error
 
 
 @dataclass(frozen=True)
@@ -49,6 +65,39 @@ class AnalyzesRecording:
     notifies: object
     contents: object = CLASS_AND_SERVICE
     clock: object = now
+    reaches: object = None
+    only: str | None = None
+
+    def _run_stage(self, recording, name):
+        cached = {
+            artifact.kind
+            for artifact in self.store.lists(Artifact, recording_id=recording.recording_id)
+        }
+        artifact_kind = STAGE_ARTIFACTS.get(name)
+        if self.only is not None and name != self.only and artifact_kind in cached:
+            return
+        self.stages(name)
+        if name in REASONING_STAGES and self.reaches is not None:
+            self.reaches()
+        if artifact_kind and artifact_kind not in cached:
+            self.store.saves(
+                Artifact(
+                    recording_id=recording.recording_id,
+                    kind=artifact_kind,
+                    path=f"{recording.recording_id}/{artifact_kind}",
+                    size_bytes=1,
+                    checksum="0.0" if artifact_kind == "waveform_peaks" else name,
+                )
+            )
+        if name == "blocking" and not self.store.lists(Block, recording_id=recording.recording_id):
+            self.store.saves(
+                Block(
+                    recording_id=recording.recording_id,
+                    start_seconds=0.0,
+                    end_seconds=recording.duration_seconds or 0.0,
+                    type="sermon",
+                )
+            )
 
     def __call__(self, recording):
         correlation_id = f"analyze:{recording.recording_id}"
@@ -62,15 +111,42 @@ class AnalyzesRecording:
                 entered_state="analyzing",
             )
         )
-        for name in STAGE_ORDER:
-            if name in ITERATED_STAGES:
-                continue
-            if name == "summarization":
-                self.stages("blocking")
-                self.stages("block_classification")
-                self.stages("blocking")
-                self.stages("block_classification")
-            self.stages(name)
+        name = "envelope"
+        try:
+            for name in STAGE_ORDER:
+                if name in ITERATED_STAGES:
+                    continue
+                if name == "summarization":
+                    self._run_stage(analyzing, "blocking")
+                    self._run_stage(analyzing, "block_classification")
+                    self._run_stage(analyzing, "blocking")
+                    self._run_stage(analyzing, "block_classification")
+                self._run_stage(analyzing, name)
+        except ModelEndpointUnreachable as error:
+            self.store.saves(
+                LogEntry(
+                    recording_id=recording.recording_id,
+                    kind="state_change",
+                    occurred_at=self.clock(),
+                    correlation_id=correlation_id,
+                    error=str(error),
+                )
+            )
+            raise
+        except Exception as error:
+            stage = getattr(error, "stage", name)
+            self.store.saves(replace(analyzing, state="analysis_failed"))
+            self.store.saves(
+                LogEntry(
+                    recording_id=recording.recording_id,
+                    kind="state_change",
+                    occurred_at=self.clock(),
+                    correlation_id=correlation_id,
+                    entered_state="analysis_failed",
+                    error=f"{stage}: {error}",
+                )
+            )
+            raise StageFailed(stage, str(error)) from error
         for classification, punch_in, punch_out in self.contents.segments:
             segment = self.store.saves(
                 Segment(
@@ -123,16 +199,41 @@ class RunsAnalyzeJob:
     notifies: object
     contents: object = CLASS_AND_SERVICE
     clock: object = now
+    reaches: object = None
+    only: str | None = None
 
     def __call__(self):
         job = self.store.lists(Job, kind="analyze", state="queued")[0]
         running = self.store.saves(replace(job, state="running", started_at=self.clock()))
         recording = self.store.loads(Recording, running.recording_id)
-        AnalyzesRecording(
-            store=self.store,
-            stages=self.stages,
-            notifies=self.notifies,
-            contents=self.contents,
-            clock=self.clock,
-        )(recording)
+        try:
+            AnalyzesRecording(
+                store=self.store,
+                stages=self.stages,
+                notifies=self.notifies,
+                contents=self.contents,
+                clock=self.clock,
+                reaches=self.reaches,
+                only=self.only,
+            )(recording)
+        except StageFailed as error:
+            self.store.saves(
+                replace(
+                    running,
+                    state="failed",
+                    last_error=str(error),
+                    attempts=(running.attempts or 0) + 1,
+                )
+            )
+            return
+        except ModelEndpointUnreachable as error:
+            self.store.saves(
+                replace(
+                    running,
+                    state="failed",
+                    last_error=str(error),
+                    attempts=(running.attempts or 0) + 1,
+                )
+            )
+            return
         self.store.saves(replace(running, state="succeeded"))

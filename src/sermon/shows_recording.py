@@ -73,7 +73,10 @@ class ShowsRecording:
             selected = segments[0]
         peaks = ()
         for artifact in self.store.lists(Artifact, recording_id=recording_id, kind="waveform_peaks"):
-            peaks = tuple(float(value) for value in artifact.checksum.split(",") if value)
+            try:
+                peaks = tuple(float(value) for value in artifact.checksum.split(",") if value)
+            except ValueError:
+                peaks = ()
         blocks = tuple(
             (block.type, block.start_seconds, block.end_seconds, block.summary)
             for block in sorted(
