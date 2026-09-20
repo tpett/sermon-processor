@@ -13,17 +13,22 @@ from sermon.web import creates_app
 def _(store, state, day):
     started = datetime.strptime(day, "%Y-%m-%d").replace(hour=10, minute=29, tzinfo=UTC)
     recording_id = started.strftime("recording_%Y%m%d_%H%M%S")
+    object_key = f"recordings/{recording_id}.flac"
     recording = store.saves(
         Recording(
             recording_id=recording_id,
-            object_key=f"recordings/{recording_id}.flac",
+            object_key=object_key,
             state="reviewed",
             started_at=started,
             started_at_source="key",
-            size_bytes=1,
+            size_bytes=14,
             duration_seconds=2592.0,
+            local_path=object_key,
         )
     )
+    flac = store.resolves(recording)
+    flac.parent.mkdir(parents=True, exist_ok=True)
+    flac.write_bytes(b"fLaC" + bytes(10))
     segment = store.saves(
         Segment(
             recording_id=recording.recording_id,
@@ -73,7 +78,9 @@ def _(store, segment, label):
 @then("I can download the rendered MP3")
 def _(store, segment):
     artifacts = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
-    assert artifacts
+    response = creates_app(store=store).test_client().get(f"/api/artifacts/{artifacts[0].path}")
+    assert response.status_code == 200
+    assert response.data == b"mp3-stub-bytes"
 
 
 @then(parsers.parse('the download filename is "{filename}"'))
@@ -90,12 +97,17 @@ def _(store, segment):
 
 @then("I can download the original untrimmed FLAC")
 def _(store):
-    assert store.lists(Recording)[0].object_key.endswith(".flac")
+    recording = store.lists(Recording)[0]
+    response = creates_app(store=store).test_client().get(f"/api/artifacts/{recording.local_path}")
+    assert response.status_code == 200
+    assert response.data.startswith(b"fLaC")
 
 
 @then("it is byte-identical to what the recorder uploaded")
-def _():
-    return None
+def _(store):
+    recording = store.lists(Recording)[0]
+    response = creates_app(store=store).test_client().get(f"/api/artifacts/{recording.local_path}")
+    assert response.data == store.resolves(recording).read_bytes()
 
 
 @given(parsers.parse('two Segments from the same Recording are "{state}"'))
@@ -163,12 +175,15 @@ def _():
 
 @when("I download the MP3")
 def _(store, segment):
-    store._downloaded = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
+    artifacts = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
+    store._downloaded = (
+        creates_app(store=store).test_client().get(f"/api/artifacts/{artifacts[0].path}")
+    )
 
 
 @then("the download completes without the page timing out")
 def _(store):
-    assert store._downloaded
+    assert store._downloaded.status_code == 200
 
 
 @given(

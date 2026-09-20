@@ -51,6 +51,10 @@ def test_probe_fields_are_not_stored_from_the_webhook(store):
     assert recording.channels is None
 
 
-def test_a_webhook_does_not_write_a_discovery(store):
+def test_a_webhook_writes_a_discovery(store):
     AcceptsRecordingWebhook(store=store, clock=lambda: FROZEN)(PAYLOAD)
-    assert store.lists(Discovery) == []
+    discovery = store.lists(Discovery)[0]
+    assert discovery.kind == "webhook"
+    assert discovery.discovered_count == 1
+    assert discovery.event == "recording.uploaded"
+    assert discovery.occurred_at == FROZEN

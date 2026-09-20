@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sermon.store import Proposal, Recording, Segment, Store
+
+
+def now():
+    return datetime.now(UTC)
 
 CONFIDENCE_RANK = {"high": 0, "medium": 1, "low": 2}
 
@@ -35,6 +40,7 @@ class RecordingRow:
 @dataclass(frozen=True)
 class ListsRecordings:
     store: Store
+    clock: object = now
 
     def __call__(self, *, include_discarded=False, filter_name=None, classification=None, q=None):
         recordings = [
@@ -93,6 +99,9 @@ class ListsRecordings:
             ):
                 best = confidence
         labels = tuple(segment.label for segment in segments if segment.label)
+        waiting = False
+        if recording.waiting_since is not None:
+            waiting = (self.clock() - recording.waiting_since).total_seconds() > 86400
         return RecordingRow(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -100,7 +109,7 @@ class ListsRecordings:
             state=recording.state,
             segments=tuple(summaries),
             confidence=best,
-            needs_attention=awaiting > 0,
+            needs_attention=awaiting > 0 or waiting,
             failed=recording.state == "analysis_failed",
             awaiting_disposition=awaiting,
             labels=labels,

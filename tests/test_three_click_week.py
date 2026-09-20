@@ -1,18 +1,21 @@
+import subprocess
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
-from sermon.jobs.analyzes_recording import RunsAnalyzeJob
+from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
+from sermon.pipeline.render import render as render_span
 from sermon.sends_notification import SendsNotification
 from sermon.store import Artifact, Reviewer, Segment, opens_store
 from sermon.web import creates_app
 
-FLAC_BYTES = b"fLaC" + bytes(64)
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+SERMON = RecordingContents(segments=(("sermon", 0.5, 2.5),))
 
 
 @pytest.fixture
@@ -22,6 +25,26 @@ def store(tmp_path):
     opened.close()
 
 
+def writes_tone(path: Path):
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=3",
+            "-ac",
+            "1",
+            "-ar",
+            "44100",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+
 def queued_worker(store, fetches):
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))
     return RunsQueuedJobs(
@@ -29,13 +52,14 @@ def queued_worker(store, fetches):
         downloads=RunsDownloadJob(
             store=store,
             fetches=fetches,
-            probes=ProbesAudio(duration_seconds=11520.0, sample_rate=44100, channels=1),
+            probes=ProbesAudio(duration_seconds=3.0, sample_rate=44100, channels=1),
             clock=lambda: FROZEN,
         ),
         analyzes=RunsAnalyzeJob(
             store=store,
             stages=lambda _name: None,
             notifies=SendsNotification(store=store),
+            contents=SERMON,
             clock=lambda: FROZEN,
         ),
         renders=RunsRenderJob(
@@ -43,17 +67,26 @@ def queued_worker(store, fetches):
             steps=lambda _name: None,
             notifies=SendsNotification(store=store),
             clock=lambda: FROZEN,
+            renders=render_span,
         ),
     )
 
 
-def test_webhook_to_named_mp3(store):
+def test_webhook_to_named_mp3(store, tmp_path):
+    tone = tmp_path / "tone.flac"
+    writes_tone(tone)
     fetches = FetchesObject()
-    fetches.stores(OBJECT_KEY, FLAC_BYTES)
+    fetches.stores(OBJECT_KEY, tone.read_bytes())
     client = creates_app(store=store, clock=lambda: FROZEN).test_client()
     announced = client.post(
         "/api/webhooks/recordings",
-        json={"event": "recording.uploaded", "object_key": OBJECT_KEY, "size_bytes": len(FLAC_BYTES)},
+        json={
+            "event": "recording.uploaded",
+            "bucket": "sermons",
+            "object_key": OBJECT_KEY,
+            "size_bytes": tone.stat().st_size,
+            "recorded_at": "2026-08-23T10:30:15-05:00",
+        },
     )
     assert announced.status_code == 202
     worker = queued_worker(store, fetches)
@@ -73,4 +106,8 @@ def test_webhook_to_named_mp3(store):
     worker()
     artifacts = store.lists(Artifact, kind="rendered_mp3")
     assert artifacts[0].path == "2026-08-23 - Hebrews 12.4-11.mp3"
+    rendered = store.resolves(artifacts[0])
+    assert rendered.is_file()
+    assert artifacts[0].size_bytes > 1000
+    assert rendered.read_bytes()[:3] == b"ID3" or rendered.read_bytes()[:2] == b"\xff\xfb"
     assert store.loads(Segment, sermon["segment_id"]).state == "complete"

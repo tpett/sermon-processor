@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from sermon.jobs.downloads_recording import DownloadsRecording, FetchesObject, ProbesAudio
+from sermon.jobs.downloads_recording import (
+    DownloadsRecording,
+    FetchesObject,
+    ProbesAudio,
+    RunsDownloadJob,
+)
 from sermon.store import Job, Recording, opens_store
 
 FLAC_BYTES = b"fLaC" + bytes(64)
@@ -134,3 +139,28 @@ def test_local_path_is_relative_and_holds_the_fetched_bytes(store):
     stored = store.loads(Recording, recording.recording_id)
     assert not Path(stored.local_path).is_absolute()
     assert store.resolves(stored).read_bytes() == FLAC_BYTES
+
+
+def test_a_missing_object_is_retried_and_does_not_fail_ingest_on_the_first_attempt(store):
+    recording = store.saves(discovered_recording())
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="download",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"download:{recording.recording_id}",
+            queued_at=FROZEN,
+        )
+    )
+    fetches = FetchesObject()
+    RunsDownloadJob(store=store, fetches=fetches, probes=PROBE, clock=lambda: FROZEN)()
+    job = store.lists(Job, kind="download")[0]
+    stored = store.loads(Recording, recording.recording_id)
+    assert stored.state != "ingest_failed"
+    assert job.state == "queued"
+    assert job.attempts == 1
+    fetches.stores(OBJECT_KEY, FLAC_BYTES)
+    RunsDownloadJob(store=store, fetches=fetches, probes=PROBE, clock=lambda: FROZEN)()
+    assert store.loads(Recording, recording.recording_id).state == "downloaded"
+    assert store.lists(Job, kind="download")[0].state == "succeeded"
