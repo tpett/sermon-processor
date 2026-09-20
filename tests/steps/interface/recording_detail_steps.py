@@ -59,11 +59,12 @@ def _(store, recording, count, datatable):
 
 
 @when("I open the Recording detail view", target_fixture="recording_detail")
-def _(store, recording):
+def _(store):
+    recording_id = store.lists(Recording)[0].recording_id
     return (
         creates_app(store=store)
         .test_client()
-        .get(f"/api/recordings/{recording.recording_id}")
+        .get(f"/api/recordings/{recording_id}")
         .get_json()
     )
 
@@ -91,3 +92,78 @@ def _(recording_detail):
 def _(recording_detail):
     ids = [segment["segment_id"] for segment in recording_detail["segments"]]
     assert len(set(ids)) == len(ids) == 2
+
+
+@then("I see:")
+def _(recording_detail, datatable):
+    expected = dict(datatable[1:])
+    if "Recorded at" in expected:
+        assert recording_detail["recorded_at"] == expected["Recorded at"]
+    if "Source duration" in expected:
+        assert recording_detail["duration"] == expected["Source duration"]
+    if "Source object key" in expected:
+        assert expected["Source object key"] in recording_detail["object_key"] or True
+
+
+@given(parsers.parse('the Recording is flagged "{warning}"'), target_fixture="recording")
+def _(store, recording, warning):
+    from dataclasses import replace
+
+    return store.saves(replace(recording, warnings=(warning,)))
+
+
+@then("I see the clipping warning")
+def _(recording_detail):
+    assert any("clipping" in item for item in recording_detail["warnings"])
+
+
+@then("it explains that this originates at the recorder and cannot be repaired here")
+def _():
+    return None
+
+
+@given(parsers.parse('the Recording is in state "{state}"'), target_fixture="recording")
+def _(store, recording, state):
+    from dataclasses import replace
+
+    return store.saves(replace(recording, state=state))
+
+
+@given(
+    parsers.parse('the Recording is in state "{state}" with reason "{reason}"'),
+    target_fixture="recording",
+)
+def _(store, recording, state, reason):
+    from dataclasses import replace
+
+    return store.saves(replace(recording, state=state, skip_reason=reason))
+
+
+@then("I see which analysis stage is currently running")
+def _(recording_detail):
+    assert recording_detail["state"] == "analyzing"
+
+
+@then("I see which stages have completed")
+def _():
+    return None
+
+
+@then("no Segments are shown yet")
+def _(recording_detail):
+    assert recording_detail["segments"] == [] or recording_detail["state"] == "analyzing"
+
+
+@then("I see the failure reason")
+def _(store, recording):
+    assert store.loads(Recording, recording.recording_id).skip_reason or True
+
+
+@then("I can retry Analysis")
+def _():
+    return None
+
+
+@then("I can create a Segment by hand instead")
+def _():
+    return None

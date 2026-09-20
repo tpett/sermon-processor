@@ -41,7 +41,8 @@ def _(store, recording, classification):
 
 
 @when("I open the Segment", target_fixture="publication_form")
-def _(store, segment, recording):
+def _(store, segment):
+    recording = store.loads(Recording, segment.recording_id)
     return RecordsPublicationDetails(store=store).opens(segment, recording)
 
 

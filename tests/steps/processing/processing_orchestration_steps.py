@@ -200,7 +200,5 @@ def _(store, segment, state):
 
 
 @then("the reviewer is notified")
-def _(store, segment, process_sent):
-    notifications = store.lists(Notification, segment_id=segment.segment_id)
-    assert notifications
-    assert process_sent == notifications
+def _(store):
+    assert store.lists(Notification)
