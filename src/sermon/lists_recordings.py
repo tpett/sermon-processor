@@ -29,13 +29,14 @@ class RecordingRow:
     needs_attention: bool
     failed: bool
     awaiting_disposition: int
+    labels: tuple
 
 
 @dataclass(frozen=True)
 class ListsRecordings:
     store: Store
 
-    def __call__(self, *, include_discarded=False, filter_name=None, classification=None):
+    def __call__(self, *, include_discarded=False, filter_name=None, classification=None, q=None):
         recordings = [
             recording
             for recording in self.store.lists(Recording)
@@ -65,6 +66,15 @@ class ListsRecordings:
             )
         elif filter_name == "Ignored":
             rows = tuple(row for row in rows if row.state == "ignored")
+        if q:
+            needle = q.lower()
+            rows = tuple(
+                row
+                for row in rows
+                if needle in row.recorded_at.lower()
+                or any(needle in label.lower() for label in row.labels)
+                or any(needle in item[0].lower() for item in row.segments)
+            )
         return rows[:50]
 
     def _row(self, recording):
@@ -82,6 +92,7 @@ class ListsRecordings:
                 best is None or CONFIDENCE_RANK[confidence] < CONFIDENCE_RANK[best]
             ):
                 best = confidence
+        labels = tuple(segment.label for segment in segments if segment.label)
         return RecordingRow(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -92,4 +103,5 @@ class ListsRecordings:
             needs_attention=awaiting > 0,
             failed=recording.state == "analysis_failed",
             awaiting_disposition=awaiting,
+            labels=labels,
         )

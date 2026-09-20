@@ -5,6 +5,16 @@ from dataclasses import dataclass
 from sermon.lists_recordings import formats_clock, formats_recorded_at
 from sermon.store import Proposal, Recording, Segment, Store
 
+RECORDING_ACTIONS = {
+    "discovered": "Discard",
+    "analyzing": "Discard",
+    "analysis_failed": "Retry analysis, Create segment by hand, Discard",
+    "awaiting_review": "Re-run analysis, Split segment, Merge segments, Create segment, Archive whole recording, Discard",
+    "reviewed": "Create segment, Archive whole recording, Discard",
+    "discarded": "Restore",
+    "ignored": "Discard",
+}
+
 
 @dataclass(frozen=True)
 class SegmentView:
@@ -31,6 +41,7 @@ class RecordingView:
     capture_device: str | None
     warnings: tuple
     segments: tuple
+    actions: str
 
 
 @dataclass(frozen=True)
@@ -54,6 +65,7 @@ class ShowsRecording:
             capture_device=recording.capture_device,
             warnings=recording.warnings,
             segments=tuple(self._segment(segment) for segment in segments),
+            actions=RECORDING_ACTIONS.get(recording.state, "Discard"),
         )
 
     def _segment(self, segment):

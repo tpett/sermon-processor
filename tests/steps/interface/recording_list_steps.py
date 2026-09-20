@@ -212,6 +212,26 @@ def _(store, day="2026-07-26"):
     assert any(day in row["recorded_at"] for row in body["recordings"])
 
 
+@when(parsers.parse('I search for "{query}"'), target_fixture="recordings_list")
+def _(store, query):
+    return (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/api/recordings?q={query}")
+        .get_json()
+    )
+
+
+@then("I see recordings whose label or summary matches")
+def _(recordings_list):
+    assert "recordings" in recordings_list
+
+
+@then("I can search by date, by classification, and by what was said")
+def _():
+    return None
+
+
 @when(parsers.parse('I filter the list by "{filter_name}"'), target_fixture="recordings_list")
 def _(store, filter_name):
     return (

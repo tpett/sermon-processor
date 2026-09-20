@@ -167,3 +167,8 @@ def _():
 @then("I can create a Segment by hand instead")
 def _():
     return None
+
+
+@then(parsers.parse('the available recording-level actions are "{actions}"'))
+def _(recording_detail, actions):
+    assert recording_detail["actions"] == actions

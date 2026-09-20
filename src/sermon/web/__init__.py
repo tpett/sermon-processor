@@ -37,6 +37,7 @@ def creates_app(*, store, clock=now):
             include_discarded=include_discarded,
             filter_name=request.args.get("filter"),
             classification=request.args.get("classification"),
+            q=request.args.get("q"),
         )
         return {
             "recordings": [asdict(row) for row in rows],
