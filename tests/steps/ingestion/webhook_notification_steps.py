@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
@@ -18,16 +17,6 @@ WEBHOOK_WITHOUT_HOST_IDENTITY = {
     "sample_rate": 44100,
     "channels": 2,
 }
-
-
-def json_object(datatable):
-    payload = {}
-    for field, value in datatable[1:]:
-        try:
-            payload[field] = json.loads(value)
-        except json.JSONDecodeError:
-            payload[field] = value
-    return payload
 
 
 def posts_webhook(processor_client, webhook_endpoint, payload):
@@ -52,7 +41,7 @@ def _():
 
 @when("the Recorder sends a webhook with the payload:", target_fixture="processor_response")
 def _(processor_client, webhook_endpoint, datatable):
-    return posts_webhook(processor_client, webhook_endpoint, json_object(datatable))
+    return posts_webhook(processor_client, webhook_endpoint, dict(datatable[1:]))
 
 
 @when("the Recorder sends a webhook with no host identity", target_fixture="processor_response")
