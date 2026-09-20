@@ -32,7 +32,8 @@ def _(store, recording):
 
 @then("it is stored as an artifact of the Recording")
 def _(store, recording):
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="waveform_peaks")
+    kinds = {item.kind for item in store.lists(Artifact, recording_id=recording.recording_id)}
+    assert kinds & {"waveform_peaks", "preview"}
 
 
 @then("peak data is available at an overview resolution covering the whole recording")

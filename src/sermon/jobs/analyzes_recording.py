@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from sermon.config import ModelEndpointUnreachable
+from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Segment, Store
@@ -44,7 +45,7 @@ CLASS_AND_SERVICE = RecordingContents(
 
 ITERATED_STAGES = frozenset({"blocking", "block_classification"})
 REASONING_STAGES = frozenset({"block_classification", "summarization"})
-OPTIONAL_STAGES = frozenset({"waveform"})
+OPTIONAL_STAGES = frozenset({"waveform", "preview"})
 STAGE_ARTIFACTS = {
     "envelope": "envelope",
     "waveform": "waveform_peaks",
@@ -106,6 +107,9 @@ class AnalyzesRecording:
                 return "stop"
         if name == "waveform":
             GeneratesWaveformPeaks(store=self.store, clock=self.clock)(recording)
+            return
+        if name == "preview":
+            GeneratesPreview(store=self.store)(recording)
             return
         if name in REASONING_STAGES and self.reaches is not None:
             self.reaches()
