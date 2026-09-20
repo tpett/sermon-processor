@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Recording</title>
+</head>
+<body>
+  <canvas id="overview" width="1100" height="80"></canvas>
+  <canvas id="detail" width="1100" height="200"></canvas>
+  <audio id="player" preload="none"></audio>
+  <script id="recording-data" type="application/json">{{ payload|safe }}</script>
+  <script src="{{ url_for('static', filename='review.js') }}"></script>
+</body>
+</html>

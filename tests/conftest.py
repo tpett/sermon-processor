@@ -59,3 +59,39 @@ def pytest_bdd_apply_tag(tag, function):
     pytest.mark.deferred(function)
     pytest.mark.skip(reason="Not in v1")(function)
     return True
+
+
+@pytest.fixture
+def segment(store):
+    from datetime import UTC, datetime
+
+    from sermon.store import Recording, Segment
+
+    existing = store.lists(Segment)
+    if existing:
+        return existing[0]
+    recordings = store.lists(Recording)
+    if not recordings:
+        recordings = [
+            store.saves(
+                Recording(
+                    recording_id="recording_20260816_090014",
+                    object_key="recordings/recording_20260816_090014.flac",
+                    state="awaiting_review",
+                    started_at=datetime(2026, 8, 16, 9, 0, 14, tzinfo=UTC),
+                    started_at_source="key",
+                    size_bytes=1,
+                )
+            )
+        ]
+    return store.saves(
+        Segment(
+            recording_id=recordings[0].recording_id,
+            classification="sermon",
+            state="proposed",
+            span_start_seconds=7220.0,
+            span_end_seconds=9812.0,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )

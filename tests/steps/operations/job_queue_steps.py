@@ -21,8 +21,10 @@ FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
 WEBHOOK = {
     "event": "recording.uploaded",
+    "bucket": "sermons",
     "object_key": OBJECT_KEY,
     "size_bytes": len(FLAC_BYTES),
+    "recorded_at": "2026-08-23T10:30:15-05:00",
 }
 
 

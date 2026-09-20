@@ -4,7 +4,7 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.jobs.renders_segment import RunsRenderJob
+from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
 from sermon.sends_notification import SendsNotification
 from sermon.store import Job, LogEntry, Notification, Recording, Reviewer, Segment
 
@@ -89,11 +89,24 @@ def _(store, process_log, process_sent):
 
 @when("processing runs")
 def _(store, process_log, process_sent):
+    def steps(name):
+        process_log.append(name)
+        failing = getattr(store, "_failing_step", None)
+        if failing == name:
+            raise StepFailed(name, f"{name} failed")
+        if getattr(store, "_fail_once", None) == name:
+            store._fail_once = None
+            raise StepFailed(name, f"{name} failed once")
+        if getattr(store, "_no_space", False):
+            raise StepFailed(name, "disk full")
+        if getattr(store, "_object_missing", False):
+            raise StepFailed("extract", "source audio is no longer available")
+
     queued = store.lists(Job, kind="render", state="queued")
     if queued:
         RunsRenderJob(
             store=store,
-            steps=process_log.append,
+            steps=steps,
             notifies=SendsNotification(store=store, sends=process_sent.append),
             clock=lambda: FROZEN,
         )()

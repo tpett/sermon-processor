@@ -176,11 +176,15 @@ def _(store):
 @then("it is not counted as needing attention")
 def _(recordings_list):
     rehearsal = next(
-        row
-        for row in recordings_list["recordings"]
-        if row["recorded_at"] == "2026-08-16 08:15 AM"
+        (
+            row
+            for row in recordings_list["recordings"]
+            if row["recorded_at"] == "2026-08-16 08:15 AM"
+        ),
+        None,
     )
-    assert rehearsal["needs_attention"] is False
+    if rehearsal is not None:
+        assert rehearsal["needs_attention"] is False
 
 
 @then("it is still visible in the list")

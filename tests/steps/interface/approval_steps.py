@@ -183,8 +183,10 @@ def _(store, segment):
 
 
 @then("no re-analysis is required")
-def _(store, segment):
-    assert not store.lists(Job, recording_id=segment.recording_id, kind="analyze", state="queued")
+def _(store):
+    assert not [
+        job for job in store.lists(Job, kind="analyze") if job.state == "queued"
+    ]
 
 
 @given(parsers.parse('the Segment\'s intent is "{intent}"'), target_fixture="segment")

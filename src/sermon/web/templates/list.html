@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Recordings</title>
+</head>
+<body>
+  <h1>Recordings</h1>
+  <p data-awaiting="{{ awaiting }}">{{ awaiting }} awaiting disposition</p>
+  <ul>
+  {% for row in recordings %}
+    <li data-id="{{ row.recording_id }}" data-attention="{{ row.needs_attention }}">
+      <a href="/recordings/{{ row.recording_id }}">{{ row.recorded_at }}</a>
+      {{ row.state }} {{ row.duration }}
+    </li>
+  {% endfor %}
+  </ul>
+</body>
+</html>
