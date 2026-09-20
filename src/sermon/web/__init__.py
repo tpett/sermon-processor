@@ -1,11 +1,15 @@
-from datetime import UTC, datetime
+from flask import Flask, request
 
-from flask import Flask
-
-
-def now():
-    return datetime.now(UTC)
+from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 
 
 def creates_app(*, store, clock=now):
-    return Flask(__name__)
+    app = Flask(__name__)
+    accepts = AcceptsRecordingWebhook(store=store, clock=clock)
+
+    @app.post("/api/webhooks/recordings")
+    def recordings_webhook():
+        accepts(request.get_json())
+        return ("", 202)
+
+    return app
