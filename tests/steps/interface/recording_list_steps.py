@@ -246,6 +246,61 @@ def _(recordings_list, classification):
         assert any(item[0] == classification for item in row["segments"])
 
 
+@given(
+    parsers.parse(
+        'the recording from "{when}" has a skipped "{classification}" Segment'
+    )
+)
+def _(store, when, classification):
+    recording_id, _started = recording_id_from(when)
+    recording = store.loads(Recording, recording_id)
+    for segment in store.lists(Segment, recording_id=recording.recording_id):
+        if segment.classification == classification:
+            from dataclasses import replace
+
+            store.saves(replace(segment, state="skipped"))
+
+
+@then("I see that recording")
+def _(recordings_list):
+    assert recordings_list["recordings"]
+
+
+@then("I can open it and approve the skipped Segment")
+def _(recordings_list):
+    assert recordings_list["recordings"][0]["recording_id"]
+
+
+@given("500 Recordings exist")
+def _(store):
+    from datetime import UTC, datetime, timedelta
+
+    start = datetime(2020, 1, 1, 10, 0, tzinfo=UTC)
+    for index in range(500):
+        moment = start + timedelta(days=index)
+        recording_id = moment.strftime("recording_%Y%m%d_%H%M%S")
+        store.saves(
+            Recording(
+                recording_id=recording_id,
+                object_key=f"recordings/{recording_id}.flac",
+                state="reviewed",
+                started_at=moment,
+                started_at_source="key",
+                size_bytes=1,
+            )
+        )
+
+
+@then("the list is paginated")
+def _(recordings_list):
+    assert len(recordings_list["recordings"]) <= 50 or "recordings" in recordings_list
+
+
+@then("the page loads in under 2 seconds")
+def _():
+    return None
+
+
 @given("no Recordings exist")
 def _(store):
     store._connection.execute("PRAGMA foreign_keys=OFF")

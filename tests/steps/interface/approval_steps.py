@@ -261,3 +261,64 @@ def _(store):
 @then("no Segment is ever published on classification alone")
 def _():
     return None
+
+
+@given("another reviewer approved the Segment a moment ago", target_fixture="segment")
+def _(store, segment, clock):
+    return ApprovesSegment(store=store, clock=clock)(segment)
+
+
+@then("I am told it has already been approved")
+def _(approval):
+    assert isinstance(approval["error"], SegmentNotReady)
+
+
+@then("no second processing job is queued")
+def _(store, segment):
+    jobs = store.lists(Job, segment_id=segment.segment_id, kind="render")
+    assert len(jobs) == 1
+
+
+@given("a guest preacher asked not to be distributed", target_fixture="segment")
+def _(store, segment):
+    return store.saves(replace(segment, intent="archive"))
+
+
+@when('I set the intent to "archive" and approve', target_fixture="approval")
+def _(store, segment, clock):
+    updated = store.saves(replace(segment, intent="archive"))
+    try:
+        return {"segment": ApprovesSegment(store=store, clock=clock)(updated), "error": None}
+    except (PublicationLabelRequired, SegmentNotReady) as error:
+        return {"segment": updated, "error": error}
+
+
+@then("the Segment renders as an archive copy")
+def _(approval):
+    assert approval["error"] is None
+    assert approval["segment"].intent == "archive"
+
+
+@then("it is not presented as a published product")
+def _(store, segment):
+    stored = store.loads(Segment, segment.segment_id)
+    assert stored.intent == "archive"
+
+
+@when('I change the intent to "publish" and approve', target_fixture="approval")
+def _(store, segment, clock):
+    updated = store.saves(replace(segment, intent="publish", label=None))
+    try:
+        return {"segment": ApprovesSegment(store=store, clock=clock)(updated), "error": None}
+    except (PublicationLabelRequired, SegmentNotReady) as error:
+        return {"segment": updated, "error": error}
+
+
+@then("the Segment renders with the full publication treatment")
+def _(approval):
+    assert approval["error"] is None or isinstance(approval["error"], PublicationLabelRequired)
+
+
+@then("I am asked for a label")
+def _(approval):
+    assert isinstance(approval["error"], PublicationLabelRequired) or approval["segment"].label

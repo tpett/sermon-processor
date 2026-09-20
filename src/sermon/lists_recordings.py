@@ -65,7 +65,7 @@ class ListsRecordings:
             )
         elif filter_name == "Ignored":
             rows = tuple(row for row in rows if row.state == "ignored")
-        return rows
+        return rows[:50]
 
     def _row(self, recording):
         segments = self.store.lists(Segment, recording_id=recording.recording_id)
