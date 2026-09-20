@@ -94,6 +94,20 @@ def test_analyze_job_is_queued_from_the_injected_clock(store):
     assert job.queued_at == FROZEN
 
 
+def test_analyze_job_is_queued_when_the_sidecar_is_missing(store):
+    recording = store.saves(discovered_recording())
+    downloads(store, object_store(sidecar=False))(recording)
+    jobs = store.lists(Job, recording_id=recording.recording_id, kind="analyze")
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job.state == "queued"
+    assert job.kind == "analyze"
+    assert job.segment_id is None
+    assert job.max_attempts == 5
+    assert job.dedupe_key == f"analyze:{recording.recording_id}"
+    assert job.queued_at == FROZEN
+
+
 def test_missing_sidecar_derives_technical_metadata_from_the_probe(store):
     recording = store.saves(discovered_recording())
     downloads(store, object_store(sidecar=False))(recording)
