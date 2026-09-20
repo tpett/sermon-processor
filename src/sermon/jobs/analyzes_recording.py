@@ -3,6 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from sermon.analysis import (
+    ClassifiesBlocks,
+    DiarizesRecording,
+    DividesIntoBlocks,
+    ProposesSegments,
+    RefinesPunchIn,
+    RefinesPunchOut,
+    ScoresProposals,
+    SummarizesBlocks,
+    TranscribesRecording,
+)
 from sermon.config import ModelEndpointUnreachable
 from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
@@ -111,6 +122,35 @@ class AnalyzesRecording:
         if name == "preview":
             GeneratesPreview(store=self.store)(recording)
             return
+        if name == "transcription":
+            TranscribesRecording(store=self.store)(recording)
+            return
+        if name == "diarization":
+            DiarizesRecording(store=self.store)(recording)
+            return
+        if name == "blocking":
+            DividesIntoBlocks(store=self.store)(recording)
+            return
+        if name == "block_classification":
+            if self.reaches is not None:
+                self.reaches()
+            ClassifiesBlocks(store=self.store)(recording)
+            return
+        if name == "summarization":
+            if self.reaches is not None:
+                self.reaches()
+            SummarizesBlocks(store=self.store)(recording)
+            return
+        if name == "segment_proposal":
+            ProposesSegments(store=self.store)(recording)
+            return
+        if name == "boundary_refinement":
+            RefinesPunchIn(store=self.store)(recording)
+            RefinesPunchOut(store=self.store)(recording)
+            return
+        if name == "scoring":
+            ScoresProposals(store=self.store)(recording)
+            return
         if name in REASONING_STAGES and self.reaches is not None:
             self.reaches()
         if artifact_kind and artifact_kind not in cached:
@@ -124,14 +164,7 @@ class AnalyzesRecording:
                 )
             )
         if name == "blocking" and not self.store.lists(Block, recording_id=recording.recording_id):
-            self.store.saves(
-                Block(
-                    recording_id=recording.recording_id,
-                    start_seconds=0.0,
-                    end_seconds=recording.duration_seconds or 0.0,
-                    type="sermon",
-                )
-            )
+            DividesIntoBlocks(store=self.store)(recording)
 
     def __call__(self, recording):
         correlation_id = f"analyze:{recording.recording_id}"
@@ -184,27 +217,28 @@ class AnalyzesRecording:
                 )
             )
             raise StageFailed(stage, str(error)) from error
-        for classification, punch_in, punch_out in self.contents.segments:
-            segment = self.store.saves(
-                Segment(
-                    recording_id=recording.recording_id,
-                    classification=classification,
-                    state="proposed",
-                    span_start_seconds=punch_in,
-                    span_end_seconds=punch_out,
-                    punch_in_seconds=punch_in,
-                    punch_out_seconds=punch_out,
+        if not self.store.lists(Segment, recording_id=recording.recording_id):
+            for classification, punch_in, punch_out in self.contents.segments:
+                segment = self.store.saves(
+                    Segment(
+                        recording_id=recording.recording_id,
+                        classification=classification,
+                        state="proposed",
+                        span_start_seconds=punch_in,
+                        span_end_seconds=punch_out,
+                        punch_in_seconds=punch_in,
+                        punch_out_seconds=punch_out,
+                    )
                 )
-            )
-            self.store.saves(
-                Proposal(
-                    segment_id=segment.segment_id,
-                    classification_confidence="high",
-                    boundary_confidence="medium",
-                    punch_in_grade="easy",
-                    punch_out_grade="easy",
+                self.store.saves(
+                    Proposal(
+                        segment_id=segment.segment_id,
+                        classification_confidence="high",
+                        boundary_confidence="medium",
+                        punch_in_grade="easy",
+                        punch_out_grade="easy",
+                    )
                 )
-            )
         reviewed = self.store.saves(replace(analyzing, state="awaiting_review"))
         self.store.saves(
             LogEntry(
@@ -215,17 +249,18 @@ class AnalyzesRecording:
                 entered_state="awaiting_review",
             )
         )
-        notification = self.store.saves(
-            Notification(
-                recording_id=recording.recording_id,
-                kind="segment_proposed",
-                recipient="reviewer",
-                summary="publishable Segments were found",
-                created_at=self.clock(),
-                state="pending",
+        if self.store.lists(Segment, recording_id=recording.recording_id):
+            notification = self.store.saves(
+                Notification(
+                    recording_id=recording.recording_id,
+                    kind="segment_proposed",
+                    recipient="reviewer",
+                    summary="publishable Segments were found",
+                    created_at=self.clock(),
+                    state="pending",
+                )
             )
-        )
-        self.notifies(notification)
+            self.notifies(notification)
         return reviewed
 
 

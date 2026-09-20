@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sermon.analysis.io import reads_json
 from sermon.lists_recordings import formats_clock, formats_recorded_at
 from sermon.store import Artifact, Block, Proposal, Recording, Segment, Store
 
@@ -56,6 +57,7 @@ class RecordingView:
     playhead_seconds: float
     preview_kind: str
     mp3_ready: bool
+    transcript: tuple
 
 
 @dataclass(frozen=True)
@@ -97,6 +99,13 @@ class ShowsRecording:
             item.state == "complete"
             for item in segments
         )
+        transcript = ()
+        doc = reads_json(self.store, recording, "transcript")
+        if doc:
+            transcript = tuple(
+                (item["start"], item["end"], item.get("text", ""), item.get("speaker"))
+                for item in doc.get("utterances", [])
+            )
         return RecordingView(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -127,6 +136,7 @@ class ShowsRecording:
             playhead_seconds=playhead_seconds,
             preview_kind="preview",
             mp3_ready=mp3_ready,
+            transcript=transcript,
         )
 
     def _segment(self, segment):
