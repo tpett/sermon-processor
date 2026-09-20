@@ -72,6 +72,8 @@ class ListsRecordings:
             )
         elif filter_name == "Ignored":
             rows = tuple(row for row in rows if row.state == "ignored")
+        if filter_name is None:
+            rows = tuple(row for row in rows if row.state != "ignored")
         if q:
             needle = q.lower()
             rows = tuple(

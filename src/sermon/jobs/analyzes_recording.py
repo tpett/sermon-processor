@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from sermon.config import ModelEndpointUnreachable
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
+from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Segment, Store
 
 
@@ -69,6 +70,7 @@ class AnalyzesRecording:
     clock: object = now
     reaches: object = None
     only: str | None = None
+    measures: object = None
 
     def _run_stage(self, recording, name):
         cached = {
@@ -84,6 +86,24 @@ class AnalyzesRecording:
             if name in OPTIONAL_STAGES:
                 return
             raise
+        if name == "probe":
+            measures = self.measures or (
+                lambda item: ProbeResult(
+                    duration_seconds=item.duration_seconds or 0.0,
+                    sample_rate=item.sample_rate or 44100,
+                    channels=item.channels or 1,
+                    bits_per_raw_sample=item.bits_per_raw_sample,
+                    channel_levels=item.channel_levels,
+                    integrated_loudness_lufs=item.integrated_loudness_lufs,
+                    true_peak_dbtp=item.true_peak_dbtp,
+                    loudness_range_lu=item.loudness_range_lu,
+                    dynamic_range_db=item.dynamic_range_db,
+                    active_fraction=item.active_fraction,
+                )
+            )
+            probed = ProbesRecording(store=self.store, measures=measures)(recording)
+            if probed.state == "ignored":
+                return "stop"
         if name == "waveform":
             GeneratesWaveformPeaks(store=self.store, clock=self.clock)(recording)
             return
@@ -127,11 +147,14 @@ class AnalyzesRecording:
                 if name in ITERATED_STAGES:
                     continue
                 if name == "summarization":
+                    if self._run_stage(analyzing, "blocking") == "stop":
+                        return self.store.loads(Recording, recording.recording_id)
+                    if self._run_stage(analyzing, "block_classification") == "stop":
+                        return self.store.loads(Recording, recording.recording_id)
                     self._run_stage(analyzing, "blocking")
                     self._run_stage(analyzing, "block_classification")
-                    self._run_stage(analyzing, "blocking")
-                    self._run_stage(analyzing, "block_classification")
-                self._run_stage(analyzing, name)
+                if self._run_stage(analyzing, name) == "stop":
+                    return self.store.loads(Recording, recording.recording_id)
         except ModelEndpointUnreachable as error:
             self.store.saves(
                 LogEntry(
@@ -211,6 +234,7 @@ class RunsAnalyzeJob:
     clock: object = now
     reaches: object = None
     only: str | None = None
+    measures: object = None
 
     def __call__(self):
         job = self.store.lists(Job, kind="analyze", state="queued")[0]
@@ -225,6 +249,7 @@ class RunsAnalyzeJob:
                 clock=self.clock,
                 reaches=self.reaches,
                 only=self.only,
+                measures=self.measures,
             )(recording)
         except StageFailed as error:
             self.store.saves(
