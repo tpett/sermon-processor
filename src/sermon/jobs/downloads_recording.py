@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from pathlib import Path
 
-from sermon.store import Job, Recording, Store
+from sermon.store import Job, LogEntry, Recording, Store
 
 
 def now():
@@ -48,7 +50,71 @@ class DownloadsRecording:
     clock: object = now
 
     def __call__(self, recording):
-        return recording
+        correlation_id = f"download:{recording.recording_id}"
+        downloading = self.store.saves(replace(recording, state="downloading"))
+        self.store.saves(
+            LogEntry(
+                recording_id=recording.recording_id,
+                kind="state_change",
+                occurred_at=self.clock(),
+                correlation_id=correlation_id,
+                entered_state="downloading",
+            )
+        )
+        fetched = self.fetches(recording.object_key)
+        local_path = recording.object_key
+        destination = self.store.resolves(replace(downloading, local_path=local_path))
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(fetched.body)
+        started_at = datetime.strptime(
+            Path(recording.object_key).stem, "recording_%Y%m%d_%H%M%S"
+        ).replace(tzinfo=UTC)
+        sidecar = self.fetches(f"{recording.object_key}.meta.json")
+        if sidecar is None:
+            sidecar_present = False
+            probed = self.probes(destination)
+            duration_seconds = probed.duration_seconds
+            sample_rate = probed.sample_rate
+            channels = probed.channels
+        else:
+            sidecar_present = True
+            metadata = json.loads(sidecar.body)
+            duration_seconds = float(metadata["duration"])
+            sample_rate = int(metadata["sample_rate"])
+            channels = int(metadata["channels"])
+        downloaded = self.store.saves(
+            replace(
+                downloading,
+                state="downloaded",
+                local_path=local_path,
+                sidecar_present=sidecar_present,
+                duration_seconds=duration_seconds,
+                sample_rate=sample_rate,
+                channels=channels,
+                started_at=started_at,
+                started_at_source="key",
+            )
+        )
+        self.store.saves(
+            LogEntry(
+                recording_id=recording.recording_id,
+                kind="state_change",
+                occurred_at=self.clock(),
+                correlation_id=correlation_id,
+                entered_state="downloaded",
+            )
+        )
+        self.store.saves(
+            Job(
+                recording_id=recording.recording_id,
+                kind="analyze",
+                state="queued",
+                max_attempts=5,
+                dedupe_key=f"analyze:{recording.recording_id}",
+                queued_at=self.clock(),
+            )
+        )
+        return downloaded
 
 
 @dataclass(frozen=True)
