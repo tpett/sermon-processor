@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.store import Job, Store
 
 
@@ -28,7 +29,7 @@ class ApprovesSegment:
 
     def __call__(self, segment):
         approved = self.store.saves(replace(segment, state="approved", disposition_at=self.clock()))
-        self.store.saves(
+        EnqueuesJob(self.store)(
             Job(
                 recording_id=approved.recording_id,
                 segment_id=approved.segment_id,

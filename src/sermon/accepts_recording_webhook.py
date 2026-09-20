@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.store import Job, Recording, Store
 
 
@@ -32,7 +33,7 @@ class AcceptsRecordingWebhook:
                 size_bytes=int(payload["size_bytes"]),
             )
         )
-        self.store.saves(
+        EnqueuesJob(self.store)(
             Job(
                 recording_id=recording_id,
                 kind="download",

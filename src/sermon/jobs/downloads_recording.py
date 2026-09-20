@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.store import Job, LogEntry, Recording, Store
 
 
@@ -104,7 +105,7 @@ class DownloadsRecording:
                 entered_state="downloaded",
             )
         )
-        self.store.saves(
+        EnqueuesJob(self.store)(
             Job(
                 recording_id=recording.recording_id,
                 kind="analyze",
@@ -126,10 +127,12 @@ class RunsDownloadJob:
 
     def __call__(self):
         job = self.store.lists(Job, kind="download", state="queued")[0]
-        recording = self.store.loads(Recording, job.recording_id)
+        running = self.store.saves(replace(job, state="running", started_at=self.clock()))
+        recording = self.store.loads(Recording, running.recording_id)
         DownloadsRecording(
             store=self.store,
             fetches=self.fetches,
             probes=self.probes,
             clock=self.clock,
         )(recording)
+        self.store.saves(replace(running, state="succeeded"))
