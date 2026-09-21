@@ -203,7 +203,7 @@ def _(store):
 )
 def _(store, object_store, clock, object_key):
     return (
-        creates_app(store=store, clock=clock, fetches=object_store)
+        creates_app(store=store, clock=clock, lists_objects=object_store.lists)
         .test_client()
         .post("/api/ingest", json={"object_key": object_key})
     )
