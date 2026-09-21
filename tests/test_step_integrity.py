@@ -171,6 +171,14 @@ def test_the_condemnation_report_is_current():
     assert REPORT_PATH.read_text() == renders_report(reads_the_tree(), measures_the_spec()), f"run {REGENERATION}"
 
 
+def test_the_guard_refuses_a_permission_the_tree_does_not_earn(tmp_path):
+    planted = plants(tmp_path, SOUND_MODULE)
+    assert finds_stale_permissions(planted, {"I am on the tailnet": "ambient"}) == []
+    assert finds_stale_permissions(planted, {"a downloaded Recording": "it sets up a row"}) == [
+        "a downloaded Recording"
+    ]
+
+
 def test_the_guard_clears_a_step_module_that_asserts(tmp_path):
     assert [one for one in plants(tmp_path, SOUND_MODULE) if one.faults] == []
 

@@ -82,6 +82,7 @@ class Definition:
     module: str
     line: int
     faults: tuple[str, ...]
+    omitted: bool = False
     parser: object = None
 
     @property
@@ -376,6 +377,7 @@ def judges_step_module(path: Path, root: Path) -> list[Definition]:
                     module=module,
                     line=line,
                     faults=judges_definition(kind, parser, node, helpers, truths, sermon_names),
+                    omitted=omits_a_body(node),
                     parser=parser,
                 )
             )
@@ -394,18 +396,13 @@ def condemns(definitions: list[Definition]) -> list[Definition]:
     return [one for one in definitions if one.faults]
 
 
-def finds_stale_permissions(definitions: list[Definition]) -> list[str]:
-    empty = {
+def finds_stale_permissions(definitions: list[Definition], permitted=PERMITTED_EMPTY_GIVENS) -> list[str]:
+    honoured = {
         one.text
         for one in definitions
-        if one.kind == "given" and UNENUMERATED_GIVEN not in one.faults and one.parser is not None
+        if one.kind == "given" and one.omitted and one.parser is not None
     }
-    honoured = {one.text for one in definitions if one.kind == "given" and one.parser is not None}
-    return sorted(
-        name
-        for name in PERMITTED_EMPTY_GIVENS
-        if name not in honoured or name not in empty
-    )
+    return sorted(name for name in permitted if name not in honoured)
 
 
 def reads_scenario_templates(spec_root: Path = SPEC_ROOT):
