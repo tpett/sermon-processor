@@ -515,41 +515,42 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/artifact_downloads.feature:84 then the MP3 download is not offered`
 - `processing/artifact_downloads.feature:98 then it is fetched from the object store`
 - `processing/artifact_downloads.feature:99 then the download still succeeds`
-- `processing/audio_rendering.feature:100 then the quiet passages are audible at a normal listening volume`
-- `processing/audio_rendering.feature:101 then the loudest passages are not clipped`
-- `processing/audio_rendering.feature:102 then no separate compression stage is applied`
-- `processing/audio_rendering.feature:106 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
-- `processing/audio_rendering.feature:107 then the settings used are recorded on every rendered Segment`
-- `processing/audio_rendering.feature:108 then changing them is what makes a re-render meaningful`
-- `processing/audio_rendering.feature:116 then the output is brought down to the target loudness and peak ceiling`
-- `processing/audio_rendering.feature:117 then no attempt is made to reconstruct the clipped peaks`
-- `processing/audio_rendering.feature:124 then the output reaches the target loudness`
-- `processing/audio_rendering.feature:125 then the noise floor is not raised to a distracting level`
-- `processing/audio_rendering.feature:145 then the output is an MP3`
-- `processing/audio_rendering.feature:146 then the channel layout is mono`
-- `processing/audio_rendering.feature:147 then the sample rate is 44100 Hz`
-- `processing/audio_rendering.feature:148 then the bitrate is variable, averaging between 96 and 108 kbps`
+- `processing/audio_rendering.feature:102 given the Segment contains passages 18 dB quieter than the loudest passage`
+- `processing/audio_rendering.feature:104 then the quiet passages are audible at a normal listening volume`
+- `processing/audio_rendering.feature:105 then the loudest passages are not clipped`
+- `processing/audio_rendering.feature:106 then no separate compression stage is applied`
+- `processing/audio_rendering.feature:110 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
+- `processing/audio_rendering.feature:111 then the settings used are recorded on every rendered Segment`
+- `processing/audio_rendering.feature:112 then changing them is what makes a re-render meaningful`
+- `processing/audio_rendering.feature:120 then the output is brought down to the target loudness and peak ceiling`
+- `processing/audio_rendering.feature:121 then no attempt is made to reconstruct the clipped peaks`
+- `processing/audio_rendering.feature:128 then the output reaches the target loudness`
+- `processing/audio_rendering.feature:129 then the noise floor is not raised to a distracting level`
+- `processing/audio_rendering.feature:149 then the output is an MP3`
 - `processing/audio_rendering.feature:15 given channel 2 of the source is silent`
-- `processing/audio_rendering.feature:152 given the Segment is 43 minutes long`
-- `processing/audio_rendering.feature:154 then the resulting MP3 is between 25 MB and 40 MB`
-- `processing/audio_rendering.feature:158 then bitrate, channel layout and sample rate are configuration, not code`
-- `processing/audio_rendering.feature:159 then changing them is a re-render, never a re-analysis`
-- `processing/audio_rendering.feature:168 then the full span is converted without trimming refinement`
-- `processing/audio_rendering.feature:169 then channel 1 extraction is still applied`
-- `processing/audio_rendering.feature:170 then loudness normalization is still applied`
-- `processing/audio_rendering.feature:171 then the same single loudness treatment is applied`
-- `processing/audio_rendering.feature:181 given a Segment rendered under the current loudness target`
-- `processing/audio_rendering.feature:182 given earlier published files sit 7 to 11 LU quieter`
-- `processing/audio_rendering.feature:183 then the difference is stated to the reviewer once, not on every render`
-- `processing/audio_rendering.feature:188 given past Segments with stored boundaries`
-- `processing/audio_rendering.feature:189 when an operator re-renders the archive`
-- `processing/audio_rendering.feature:190 then each is re-rendered from its stored boundaries under the current target`
-- `processing/audio_rendering.feature:191 then any whose source is no longer available fails individually and is reported`
-- `processing/audio_rendering.feature:192 then the reviewer is not asked to approve anything again`
-- `processing/audio_rendering.feature:198 given a Segment has been rendered`
-- `processing/audio_rendering.feature:199 when it is rendered again with identical settings`
-- `processing/audio_rendering.feature:200 then the output is byte-identical apart from embedded timestamps`
-- `processing/audio_rendering.feature:201 then the recorded render settings are unchanged`
+- `processing/audio_rendering.feature:150 then the channel layout is mono`
+- `processing/audio_rendering.feature:151 then the sample rate is 44100 Hz`
+- `processing/audio_rendering.feature:152 then the bitrate is variable, averaging between 96 and 108 kbps`
+- `processing/audio_rendering.feature:156 given the Segment is 43 minutes long`
+- `processing/audio_rendering.feature:158 then the resulting MP3 is between 25 MB and 40 MB`
+- `processing/audio_rendering.feature:162 then bitrate, channel layout and sample rate are configuration, not code`
+- `processing/audio_rendering.feature:163 then changing them is a re-render, never a re-analysis`
+- `processing/audio_rendering.feature:172 then the full span is converted without trimming refinement`
+- `processing/audio_rendering.feature:173 then channel 1 extraction is still applied`
+- `processing/audio_rendering.feature:174 then loudness normalization is still applied`
+- `processing/audio_rendering.feature:175 then the same single loudness treatment is applied`
+- `processing/audio_rendering.feature:185 given a Segment rendered under the current loudness target`
+- `processing/audio_rendering.feature:186 given earlier published files sit 7 to 11 LU quieter`
+- `processing/audio_rendering.feature:187 then the difference is stated to the reviewer once, not on every render`
+- `processing/audio_rendering.feature:192 given past Segments with stored boundaries`
+- `processing/audio_rendering.feature:193 when an operator re-renders the archive`
+- `processing/audio_rendering.feature:194 then each is re-rendered from its stored boundaries under the current target`
+- `processing/audio_rendering.feature:195 then any whose source is no longer available fails individually and is reported`
+- `processing/audio_rendering.feature:196 then the reviewer is not asked to approve anything again`
+- `processing/audio_rendering.feature:202 given a Segment has been rendered`
+- `processing/audio_rendering.feature:203 when it is rendered again with identical settings`
+- `processing/audio_rendering.feature:204 then the output is byte-identical apart from embedded timestamps`
+- `processing/audio_rendering.feature:205 then the recorded render settings are unchanged`
 - `processing/audio_rendering.feature:24 then the output takes channel 1 only`
 - `processing/audio_rendering.feature:25 then channel 2 is discarded without being mixed in`
 - `processing/audio_rendering.feature:26 then the output level matches channel 1's level, not half of it`
@@ -562,15 +563,14 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/audio_rendering.feature:51 then a short fade-in is applied at the start`
 - `processing/audio_rendering.feature:52 then a short fade-out is applied at the end`
 - `processing/audio_rendering.feature:53 then neither fade is long enough to swallow a spoken word`
-- `processing/audio_rendering.feature:73 then the output true peak does not exceed "-1.5 dBTP"`
-- `processing/audio_rendering.feature:74 then the measured input and output loudness are recorded on the Segment`
-- `processing/audio_rendering.feature:78 given two Segments whose sources differ in loudness by 8 LU`
-- `processing/audio_rendering.feature:79 when both are rendered`
-- `processing/audio_rendering.feature:80 then their output integrated loudness values are within 1 LU of each other`
-- `processing/audio_rendering.feature:86 given the Segment contains one isolated peak 12 dB above the speech level`
-- `processing/audio_rendering.feature:88 then the output integrated loudness still meets the target`
-- `processing/audio_rendering.feature:89 then the isolated peak is limited rather than allowed to set the level`
-- `processing/audio_rendering.feature:98 given the Segment contains passages 18 dB quieter than the loudest passage`
+- `processing/audio_rendering.feature:77 then the output true peak, measured on the decoded MP3, does not exceed "-0.5 dBTP"`
+- `processing/audio_rendering.feature:78 then the measured input and output loudness are recorded on the Segment`
+- `processing/audio_rendering.feature:82 given two Segments whose sources differ in loudness by 8 LU`
+- `processing/audio_rendering.feature:83 when both are rendered`
+- `processing/audio_rendering.feature:84 then their output integrated loudness values are within 1 LU of each other`
+- `processing/audio_rendering.feature:90 given the Segment contains one isolated peak 12 dB above the speech level`
+- `processing/audio_rendering.feature:92 then the output integrated loudness still meets the target`
+- `processing/audio_rendering.feature:93 then the isolated peak is limited rather than allowed to set the level`
 - `processing/processing_orchestration.feature:101 when the system comes back up`
 - `processing/processing_orchestration.feature:103 then processing is restarted from the beginning`
 - `processing/processing_orchestration.feature:104 then no partial artifact is exposed as a download`
