@@ -65,6 +65,14 @@ CLI_LEFT_BEHIND = ("render", "classify")
 
 INJECTED_SETTINGS = {"classify": ("DATA", "PROMPTS"), "segments": ("DATA_ROOT",)}
 
+ROOT_GUARDS = ("requires_root", "requires_directory_under_root")
+
+ROOT_CONSUMERS = {
+    ("segments", "DATA_ROOT"): ("candidate_edges", "derive", "snap", "speaker_edges"),
+    ("classify", "DATA"): ("load_diarization", "run_structured"),
+    ("classify", "PROMPTS"): ("run_perblock", "run_structured", "run_whole"),
+}
+
 INJECTING_ROOTS = (PROJECT_ROOT / "src" / "sermon", EXPERIMENTS_SRC)
 
 DRIVERS = (
@@ -211,16 +219,72 @@ def configures_the_setting(tree, setting):
     )
 
 
-def uses_a_library_callable(tree, module):
-    names = set(MOVED[module])
+def names_the_called(node):
+    return getattr(node.func, "attr", None) or getattr(node.func, "id", None)
+
+
+def guards_the_setting(node, setting):
+    return (
+        isinstance(node, ast.Call)
+        and names_the_called(node) in ROOT_GUARDS
+        and any(
+            isinstance(argument, ast.Constant) and argument.value == setting
+            for argument in node.args
+        )
+    )
+
+
+def parses_the_library_module(module):
+    return ast.parse((PIPELINE_ROOT / f"{module}.py").read_text(encoding="utf-8"))
+
+
+def names_the_functions_of(tree):
+    return [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+
+def names_what_each_function_calls(tree):
+    return {
+        node.name: {
+            names_the_called(held)
+            for held in ast.walk(node)
+            if isinstance(held, ast.Call)
+        }
+        for node in names_the_functions_of(tree)
+    }
+
+
+def finds_what_consumes_the_root(module, setting):
+    tree = parses_the_library_module(module)
+    calls = names_what_each_function_calls(tree)
+    consumers = {
+        node.name
+        for node in names_the_functions_of(tree)
+        if any(guards_the_setting(held, setting) for held in ast.walk(node))
+    }
+    assert consumers, f"nothing in {names_pipeline_module(module)} guards {setting}"
+    while True:
+        reaching = {
+            name for name, called in calls.items() if called & consumers
+        } - consumers
+        if not reaching:
+            return consumers
+        consumers |= reaching
+
+
+def reaches_what_consumes_the_root(tree, module, setting):
+    consumers = finds_what_consumes_the_root(module, setting)
     wanted = names_pipeline_module(module)
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module == wanted:
-            if any(alias.name in names for alias in node.names):
+            if any(alias.name in consumers for alias in node.names):
                 return True
         elif (
             isinstance(node, ast.Attribute)
-            and node.attr in names
+            and node.attr in consumers
             and isinstance(node.ctx, ast.Load)
         ):
             return True
@@ -237,12 +301,11 @@ def finds_callers_that_leave_a_root_unset(roots, library=PIPELINE_ROOT):
             for module, settings in sorted(INJECTED_SETTINGS.items()):
                 if not reaches_the_pipeline_module(tree, module):
                     continue
-                if not uses_a_library_callable(tree, module):
-                    continue
                 offenders += [
                     f"{path.name} leaves {names_pipeline_module(module)}.{setting} unset"
                     for setting in settings
-                    if not configures_the_setting(tree, setting)
+                    if reaches_what_consumes_the_root(tree, module, setting)
+                    and not configures_the_setting(tree, setting)
                 ]
     return sorted(offenders)
 
@@ -300,27 +363,67 @@ def test_the_guard_covers_a_caller_under_the_production_package(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "source",
+    ("module", "setting", "consumers"),
+    [(module, setting, ROOT_CONSUMERS[(module, setting)])
+     for module, setting in sorted(ROOT_CONSUMERS)],
+    ids=[f"{module}.{setting}" for module, setting in sorted(ROOT_CONSUMERS)],
+)
+def test_the_functions_that_consume_a_root_are_the_ones_the_library_reaches(
+    module, setting, consumers
+):
+    assert sorted(finds_what_consumes_the_root(module, setting)) == sorted(consumers)
+
+
+@pytest.mark.parametrize(
+    ("source", "setting"),
     [
-        "from sermon.pipeline.classify import run_whole",
-        "from sermon.pipeline.classify import load_diarization",
-        "from sermon.pipeline import classify\nclassify.run_whole('a-model', doc)\n",
-        "from sermon.pipeline import classify\nclassify.load_diarization('rec1')\n",
+        ("from sermon.pipeline.classify import run_whole", "PROMPTS"),
+        ("from sermon.pipeline.classify import load_diarization", "DATA"),
+        ("from sermon.pipeline import classify\nclassify.run_whole('a-model', doc)\n", "PROMPTS"),
+        ("from sermon.pipeline import classify\nclassify.load_diarization('rec1')\n", "DATA"),
     ],
 )
-def test_the_guard_sees_a_call_into_the_library(source):
-    assert uses_a_library_callable(ast.parse(source), "classify")
+def test_the_guard_sees_a_call_that_consumes_the_root(source, setting):
+    assert reaches_what_consumes_the_root(ast.parse(source), "classify", setting)
 
 
+@pytest.mark.parametrize("setting", ("DATA", "PROMPTS"))
 @pytest.mark.parametrize(
     "source",
     [
         "from sermon.pipeline import classify",
         "from sermon.pipeline import classify\nclassify.ENDPOINT = host\n",
+        "from sermon.pipeline.classify import hms, render_transcript",
     ],
 )
-def test_the_guard_does_not_treat_an_endpoint_assignment_as_a_call_into_the_library(source):
-    assert not uses_a_library_callable(ast.parse(source), "classify")
+def test_the_guard_does_not_treat_a_call_that_spends_no_root_as_one_that_does(source, setting):
+    assert not reaches_what_consumes_the_root(ast.parse(source), "classify", setting)
+
+
+def test_the_guard_does_not_require_a_root_of_a_caller_that_imports_only_a_pure_function(
+    tmp_path,
+):
+    caller = tmp_path / "sermon" / "analysis"
+    caller.mkdir(parents=True)
+    (caller / "blocks_a_recording.py").write_text(
+        "from sermon.pipeline.segments import TAIL_GUARD_S, TAIL_S, coalesce\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == []
+
+
+def test_the_guard_requires_a_root_of_a_caller_that_reaches_it_through_the_library(tmp_path):
+    caller = tmp_path / "sermon" / "analysis"
+    caller.mkdir(parents=True)
+    (caller / "derives_a_segment.py").write_text(
+        "from sermon.pipeline.segments import derive\n"
+    )
+    (caller / "edges_a_recording.py").write_text(
+        "from sermon.pipeline import segments\nsegments.speaker_edges(doc)\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == [
+        "derives_a_segment.py leaves sermon.pipeline.segments.DATA_ROOT unset",
+        "edges_a_recording.py leaves sermon.pipeline.segments.DATA_ROOT unset",
+    ]
 
 
 def test_the_guard_covers_a_caller_that_runs_the_library_without_setting_roots(tmp_path):
