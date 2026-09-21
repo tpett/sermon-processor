@@ -28,3 +28,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# Local runtime data root (SERMON_DATA_ROOT)
+data/
