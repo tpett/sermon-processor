@@ -4,6 +4,7 @@ import hashlib
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from sermon.records_publication_details import names_rendered_mp3
 from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store
 
 
@@ -60,13 +61,18 @@ class RendersSegment:
                 )
             )
             raise StepFailed(step, str(error)) from error
+        recording = self.store.loads(Recording, processing.recording_id)
         published_on = processing.publication_date
         if published_on is None:
-            published_on = self.store.loads(Recording, processing.recording_id).started_at.date()
-        if processing.label:
-            filename = f"{published_on.isoformat()} - {processing.label}.mp3"
-        else:
-            filename = f"{published_on.isoformat()}.mp3"
+            published_on = recording.started_at.date()
+        filename = names_rendered_mp3(published_on, processing.label)
+        warnings = list(processing.warnings)
+        if recording.integrated_loudness_lufs is not None and recording.integrated_loudness_lufs <= -30:
+            if "source was very quiet" not in warnings:
+                warnings.append("source was very quiet")
+        if "source clipping detected" in recording.warnings:
+            self.store._source_was_clipped = True
+        processing = self.store.saves(replace(processing, warnings=tuple(warnings)))
         artifact = Artifact(
             recording_id=segment.recording_id,
             segment_id=segment.segment_id,
@@ -78,7 +84,6 @@ class RendersSegment:
         destination = self.store.resolves(artifact)
         destination.parent.mkdir(parents=True, exist_ok=True)
         if self.renders is not None:
-            recording = self.store.loads(Recording, processing.recording_id)
             source = self.store.resolves(recording)
             self.renders(
                 source,

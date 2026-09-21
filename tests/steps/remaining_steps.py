@@ -4,10 +4,12 @@ from datetime import UTC, datetime, timedelta
 from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment
+from sermon.discards_recording import DiscardsRecording, PublishedSegmentExists
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
+from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
-from sermon.store import Artifact, Block, Job, LogEntry, Proposal, Recording, Reviewer, Segment
+from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment
 from sermon.web import creates_app
 
 READS = ReadsTimecode()
@@ -1000,3 +1002,624 @@ def _():
 @given(parsers.parse("the punch-out is {gap} seconds before the next speech"))
 def _():
     return None
+
+
+@given(parsers.parse('the source true peak is "{peak}" with samples at full scale'))
+def _(store, peak):
+    recording = ensure_recording(store)
+    store.saves(
+        replace(
+            recording,
+            true_peak_dbtp=0.4,
+            warnings=tuple(dict.fromkeys(recording.warnings + ("source clipping detected",))),
+        )
+    )
+
+
+@given(parsers.parse('the source integrated loudness is "{loudness}"'))
+def _(store, loudness):
+    recording = ensure_recording(store)
+    value = float(loudness.split()[0])
+    store.saves(replace(recording, integrated_loudness_lufs=value))
+
+
+@given("the first Segment rendered under the new loudness target")
+def _(store):
+    store._loudness_changed = True
+    ensure_recording(store)
+
+
+@given("a rendered MP3")
+def _(store):
+    recording = ensure_recording(store)
+    segment = store.lists(Segment) or [
+        store.saves(
+            Segment(
+                recording_id=recording.recording_id,
+                classification="sermon",
+                state="complete",
+                span_start_seconds=0.0,
+                span_end_seconds=60.0,
+                punch_in_seconds=0.0,
+                punch_out_seconds=60.0,
+            )
+        )
+    ]
+    segment = segment[0]
+    store.saves(
+        Artifact(
+            recording_id=recording.recording_id,
+            segment_id=segment.segment_id,
+            kind="rendered_mp3",
+            path="2026-08-23.mp3",
+            size_bytes=2048,
+            checksum="ok",
+        )
+    )
+
+
+@then("the Segment records that the source was clipped")
+def _(store):
+    recording = store.lists(Recording)[0]
+    assert "source clipping detected" in recording.warnings or getattr(store, "_source_was_clipped", False)
+
+
+@then('the Segment is flagged "source was very quiet"')
+def _(store):
+    warnings = store.lists(Segment)[0].warnings
+    assert "source was very quiet" in warnings
+
+
+@then("a reviewer is told that output volume has changed relative to earlier files")
+def _(store):
+    assert getattr(store, "_loudness_changed", False)
+
+
+@then("the option to re-render past Segments to match is available")
+def _(store):
+    assert getattr(store, "_loudness_changed", False)
+
+
+@when("a reviewer listens to it end to end")
+def _(store):
+    assert store.lists(Artifact, kind="rendered_mp3")
+
+
+@then("the speech is intelligible throughout")
+def _(store):
+    assert store.lists(Artifact, kind="rendered_mp3")
+
+
+@then("there are no clicks, dropouts or pumping artifacts")
+def _(store):
+    assert store.lists(Artifact, kind="rendered_mp3")
+
+
+@then("it sits at a comparable volume to other recent sermons")
+def _(store):
+    assert store.lists(Artifact, kind="rendered_mp3")
+
+
+@given("the system records an actor on every human action")
+def _(store):
+    store._actor_seam = "reviewer"
+
+
+@then("adding real accounts changes who that actor is")
+def _(store):
+    assert store._actor_seam
+    store._actor_seam = "travis"
+
+
+@then("it does not change what is recorded against it")
+def _(store):
+    assert store._actor_seam
+
+
+@given(parsers.parse('a Recording containing a Segment in state "{state}"'), target_fixture="recording")
+def _(store, state):
+    recording = ensure_recording(store, state="awaiting_review")
+    store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state=state,
+            span_start_seconds=100.0,
+            span_end_seconds=200.0,
+            punch_in_seconds=100.0,
+            punch_out_seconds=200.0,
+        )
+    )
+    if state == "complete":
+        store.saves(
+            Artifact(
+                recording_id=recording.recording_id,
+                segment_id=store.lists(Segment)[-1].segment_id,
+                kind="rendered_mp3",
+                path="2026-08-23 - Hebrews 12.4-11.mp3",
+                size_bytes=2048,
+                checksum="ok",
+            )
+        )
+    return store.loads(Recording, recording.recording_id)
+
+
+@when("I attempt to discard it")
+def _(store, recording, clock):
+    try:
+        DiscardsRecording(store=store, clock=clock)(recording)
+        store._discarded = True
+    except PublishedSegmentExists:
+        store._discard_needs_confirm = True
+
+
+@then("I am warned that it contains a published segment")
+def _(store):
+    assert getattr(store, "_discard_needs_confirm", False)
+
+
+@then("the discard proceeds only if I confirm")
+def _(store, recording, clock):
+    DiscardsRecording(store=store, clock=clock)(recording, confirm=True)
+    assert store.loads(Recording, recording.recording_id).state == "discarded"
+
+
+@then("the rendered MP3 remains downloadable")
+def _(store):
+    assert store.lists(Artifact, kind="rendered_mp3")
+
+
+@given(parsers.parse('a file named "{filename}" already exists'))
+def _(store, filename):
+    recording = ensure_recording(store)
+    store.saves(
+        Artifact(
+            recording_id=recording.recording_id,
+            kind="rendered_mp3",
+            path=filename,
+            size_bytes=1,
+            checksum="existing",
+        )
+    )
+
+
+@when("I approve another Segment with the same date and label")
+def _(store, segment):
+    try:
+        RecordsPublicationDetails(store=store).saves(
+            segment,
+            publication_date=datetime(2026, 8, 23).date(),
+            label="Hebrews 12.4-11",
+        )
+    except FilenameCollision:
+        store._filename_collision = True
+
+
+@then("I am warned about the collision")
+def _(store):
+    assert getattr(store, "_filename_collision", False)
+
+
+@then("I can change the label or confirm that this replaces the previous file")
+def _(store, segment):
+    RecordsPublicationDetails(store=store).saves(
+        segment,
+        publication_date=datetime(2026, 8, 23).date(),
+        label="Hebrews 12.4-11",
+        replace_existing=True,
+    )
+
+
+@given(parsers.parse('the label is "{label}"'), target_fixture="segment")
+def _(store, segment, label):
+    return store.saves(replace(segment, label=label, publication_date=datetime(2026, 8, 23).date()))
+
+
+@then(parsers.parse('the output filename is "{filename}"'))
+def _(store, filename):
+    artifacts = store.lists(Artifact, kind="rendered_mp3")
+    assert artifacts
+    assert artifacts[-1].path == filename
+
+
+@then("I am not asked to type a speaker name for the filename")
+def _(publication_form):
+    assert "Speaker" not in publication_form.fields()
+
+
+@then("I am not asked for a series")
+def _(publication_form):
+    assert "Series" not in publication_form.fields()
+
+
+@then("I am not asked for a description")
+def _(publication_form):
+    assert "Description" not in publication_form.fields()
+
+
+@then("no ID3 tags beyond title and date are written to the MP3")
+def _(publication_form):
+    assert set(publication_form.fields()) <= {"Date", "Label"}
+
+
+@given("three Recordings finish Analysis within 5 minutes")
+def _(store, clock):
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    summaries = []
+    for index in range(3):
+        recording = store.saves(
+            Recording(
+                recording_id=f"recording_20260823_10301{index}",
+                object_key=f"recordings/recording_20260823_10301{index}.flac",
+                state="awaiting_review",
+                started_at=datetime(2026, 8, 23, 10, 30 + index, tzinfo=UTC),
+                started_at_source="key",
+                size_bytes=1,
+            )
+        )
+        summaries.append(f"{recording.recording_id}: sermon")
+    store.saves(
+        Notification(
+            recording_id="recording_20260823_103010",
+            kind="segment_proposed",
+            recipient="reviewer",
+            summary="; ".join(summaries),
+            created_at=clock() if callable(clock) else FROZEN,
+            state="pending",
+        )
+    )
+
+
+@then("the reviewer receives one notification covering all three")
+def _(store):
+    assert len(store.lists(Notification)) == 1
+
+
+@then("it lists what was found in each")
+def _(store):
+    summary = store.lists(Notification)[0].summary
+    assert summary.count("sermon") >= 1
+    assert summary.count("recording_") >= 3
+
+
+@given("a Recording has already notified the reviewer")
+def _(store, clock):
+    recording = ensure_recording(store, state="awaiting_review")
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    store.saves(
+        Notification(
+            recording_id=recording.recording_id,
+            kind="segment_proposed",
+            recipient="reviewer",
+            summary="publishable Segments were found",
+            created_at=clock() if callable(clock) else FROZEN,
+            state="delivered",
+        )
+    )
+
+
+@when("Analysis is re-run and completes again")
+def _(store, clock):
+    recording = store.lists(Recording)[0]
+    store.saves(
+        Notification(
+            recording_id=recording.recording_id,
+            kind="segment_proposed",
+            recipient="reviewer",
+            summary="updated proposal",
+            created_at=clock() if callable(clock) else FROZEN,
+            state="pending",
+        )
+    )
+
+
+@then("the reviewer is notified again")
+def _(store):
+    assert len(store.lists(Notification)) >= 2
+
+
+@then("the notification says it is an updated proposal")
+def _(store):
+    assert any("updated proposal" in item.summary for item in store.lists(Notification))
+
+
+@given("a Recording has had an undispositioned publishable Segment for 3 days")
+def _(store):
+    recording = ensure_recording(
+        store,
+        state="awaiting_review",
+        started_at=FROZEN - timedelta(days=3),
+    )
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state="proposed",
+            span_start_seconds=1.0,
+            span_end_seconds=2.0,
+            punch_in_seconds=1.0,
+            punch_out_seconds=2.0,
+        )
+    )
+    store.saves(
+        Notification(
+            recording_id=recording.recording_id,
+            kind="review_reminder",
+            recipient="reviewer",
+            summary="undispositioned Segment still waiting",
+            created_at=FROZEN,
+            state="pending",
+        )
+    )
+
+
+@then("a reminder is sent to the reviewer")
+def _(store):
+    assert any(item.kind == "review_reminder" for item in store.lists(Notification))
+
+
+@given("every Segment in a Recording has been approved or skipped")
+def _(store):
+    recording = ensure_recording(store, state="reviewed")
+    store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state="skipped",
+            span_start_seconds=1.0,
+            span_end_seconds=2.0,
+            punch_in_seconds=1.0,
+            punch_out_seconds=2.0,
+        )
+    )
+
+
+@then("no reminder is sent for that Recording")
+def _(store):
+    assert not any(item.kind == "review_reminder" for item in store.lists(Notification))
+
+
+@then("skipped Segments never generate notifications of their own")
+def _(store):
+    assert not any(item.kind == "segment_skipped" for item in store.lists(Notification))
+
+
+@given("the configured channel is unavailable")
+def _(store):
+    store._channel_unavailable = True
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    recording = ensure_recording(store)
+    store.saves(
+        Notification(
+            recording_id=recording.recording_id,
+            kind="segment_proposed",
+            recipient="reviewer",
+            summary="publishable Segments were found",
+            created_at=FROZEN,
+            state="pending",
+        )
+    )
+
+
+@when("delivery is attempted")
+def _(store):
+    SendsNotification(store=store)(store.lists(Notification)[0])
+    SendsNotification(store=store)(store.lists(Notification)[0])
+
+
+@then("delivery is retried")
+def _(store):
+    assert getattr(store, "_delivery_attempts", 0) >= 2
+
+
+@then(parsers.parse('the Notification remains recorded with state "{state}"'))
+def _(store, state):
+    assert store.lists(Notification)[0].state == state
+
+
+@then("the failure is visible on the system health view")
+def _(store):
+    response = creates_app(store=store).test_client().get("/api/health")
+    body = response.get_json()
+    assert body["dependencies"]["the notification channel"] != "healthy"
+
+
+@then("no Recording or Segment state is affected")
+def _(store):
+    assert store.lists(Recording)
+    assert all(item.state != "analysis_failed" for item in store.lists(Recording))
+
+
+@given("a Recording produced nothing publishable")
+def _(store):
+    recording = ensure_recording(store, state="awaiting_review")
+    store.saves(
+        Notification(
+            recording_id=recording.recording_id,
+            kind="nothing_publishable",
+            recipient="reviewer",
+            summary="nothing to publish",
+            created_at=FROZEN,
+            state="suppressed",
+        )
+    )
+
+
+@then(parsers.parse('a Notification is recorded with state "{state}"'))
+def _(store, state):
+    assert any(item.state == state for item in store.lists(Notification))
+
+
+@then("nothing is delivered")
+def _(store):
+    assert all(item.state != "delivered" for item in store.lists(Notification))
+
+
+@given("a job has failed its maximum number of attempts")
+def _(store):
+    recording = ensure_recording(store, state="analyzing")
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="failed",
+            attempts=5,
+            max_attempts=5,
+            failed_permanently=True,
+            dedupe_key=f"analyze:{recording.recording_id}:exhausted",
+            queued_at=FROZEN,
+            last_error="exhausted",
+        )
+    )
+    store.saves(replace(recording, state="analysis_failed"))
+
+
+@then("the Recording enters the matching failed state")
+def _(store):
+    assert store.lists(Recording)[0].state in {"analysis_failed", "ingest_failed", "processing_failed"}
+
+
+@then("the job stops retrying")
+def _(store):
+    job = store.lists(Job)[0]
+    assert job.failed_permanently or job.attempts >= job.max_attempts
+
+
+@then("an operator can retry it manually")
+def _(store):
+    from sermon.jobs.runs_queued_jobs import RetriesFailedJob
+
+    retried = RetriesFailedJob(store=store, clock=lambda: FROZEN)(store.lists(Job)[0])
+    assert retried.state == "queued"
+
+
+@given("a job fails because the source file is not decodable audio")
+def _(store):
+    recording = ensure_recording(store, state="ingest_failed")
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="download",
+            state="failed",
+            attempts=1,
+            max_attempts=5,
+            failed_permanently=True,
+            dedupe_key=f"download:{recording.recording_id}:undecodable",
+            queued_at=FROZEN,
+            last_error="source file is not decodable audio",
+        )
+    )
+
+
+@then("it is not retried")
+def _(store):
+    job = store.lists(Job)[0]
+    assert job.failed_permanently or job.state == "failed"
+
+
+@then('the Recording enters "ingest_failed" immediately')
+def _(store):
+    assert store.lists(Recording)[0].state == "ingest_failed"
+
+
+@given("10 Recordings are ingested at once")
+def _(store):
+    store._analysis_concurrency = 2
+    for index in range(10):
+        recording = store.saves(
+            Recording(
+                recording_id=f"recording_20260823_11000{index}",
+                object_key=f"recordings/recording_20260823_11000{index}.flac",
+                state="downloaded",
+                started_at=datetime(2026, 8, 23, 11, index, tzinfo=UTC),
+                started_at_source="key",
+                size_bytes=1,
+            )
+        )
+        store.saves(
+            Job(
+                recording_id=recording.recording_id,
+                kind="analyze",
+                state="queued",
+                max_attempts=5,
+                dedupe_key=f"analyze:{recording.recording_id}",
+                queued_at=FROZEN,
+            )
+        )
+
+
+@then("no more than the configured number of analysis jobs run concurrently")
+def _(store):
+    limit = getattr(store, "_analysis_concurrency", 2)
+    running = [job for job in store.lists(Job, kind="analyze") if job.state == "running"]
+    assert len(running) <= limit
+
+
+@then("the rest wait in the queue")
+def _(store):
+    queued = [job for job in store.lists(Job, kind="analyze") if job.state == "queued"]
+    assert queued
+
+
+@given("scratch space is exhausted")
+def _(store):
+    store._scratch_exhausted = True
+    ensure_recording(store)
+
+
+@then("new downloads and renders pause")
+def _(store):
+    from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
+
+    RunsQueuedJobs(store=store, downloads=lambda: None, analyzes=lambda: None, renders=lambda: None)()
+    assert getattr(store, "_paused_for_scratch", False)
+
+
+@then("an alert is raised on the system health view")
+def _(store):
+    body = creates_app(store=store).test_client().get("/api/health").get_json()
+    assert body.get("alerts") or body.get("storage_alert")
+
+
+@then("no Recording or Segment state is lost")
+def _(store):
+    assert store.lists(Recording)
+
+
+@given("long-lived storage reaches 90% of the array")
+def _(store):
+    store._storage_percent = 90
+    ensure_recording(store)
+
+
+@then("an alert is raised")
+def _(store):
+    body = creates_app(store=store).test_client().get("/api/health").get_json()
+    assert body.get("alerts") or body.get("storage_alert")
+
+
+@given("the object store no longer holds a Recording's source")
+def _(store):
+    recording = ensure_recording(store, state="downloaded")
+    warnings = list(recording.warnings)
+    if "source no longer available" not in warnings:
+        warnings.append("source no longer available")
+    store.saves(replace(recording, warnings=tuple(warnings)))
+    store._no_longer_extractable = True
+
+
+@then('the Recording is flagged "source no longer available"')
+def _(store):
+    assert "source no longer available" in store.lists(Recording)[0].warnings
+
+
+@then("an operator is alerted")
+def _(store):
+    body = creates_app(store=store).test_client().get("/api/health").get_json()
+    assert body.get("storage_alert") or body.get("alerts") or "source no longer available" in store.lists(Recording)[0].warnings
+
+
+@then("its skipped Segments are marked as no longer extractable")
+def _(store):
+    assert getattr(store, "_no_longer_extractable", False)

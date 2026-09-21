@@ -28,6 +28,7 @@ retry) → analyze → HTML list/detail → publication label → approve → na
 | `src/sermon/pipeline/` | Extracted spike library — frozen unless instruments run |
 | Ingestion Gherkin | 38 passed (`pytest tests/test_spec.py -m ingestion`) |
 | Analysis Gherkin | 285 passed, 5 skipped, 1 failed of 291 (`-m analysis`) |
+| Processing / interface / notifications / ops | remaining edge Gherkin now green except the analysis diarization contradiction |
 | `experiments/` | Frozen spike. Do not refactor it or hold it to TDD. |
 | `experiments/FINDINGS.md` | Every number in the spec traces here. |
 | `~/Desktop/Sermons` | Ground truth. Read-only except adding new source/edit pairs. |

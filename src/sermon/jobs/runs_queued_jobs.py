@@ -34,10 +34,23 @@ class RunsQueuedJobs:
     renders: object
 
     def __call__(self):
+        if getattr(self.store, "_scratch_exhausted", False):
+            self.store._paused_for_scratch = True
+            return None
         queued = self.store.lists(Job, state="queued")
         if not queued:
             return None
+        limit = getattr(self.store, "_analysis_concurrency", None)
+        if limit is not None:
+            running = len(self.store.lists(Job, kind="analyze", state="running"))
+            analyze_queued = [job for job in queued if job.kind == "analyze"]
+            if running >= limit:
+                return None
+            queued = analyze_queued or queued
         job = queued[0]
+        if job.attempts >= job.max_attempts:
+            self.store.saves(replace(job, state="failed", failed_permanently=True))
+            return job
         {
             "download": self.downloads,
             "analyze": self.analyzes,

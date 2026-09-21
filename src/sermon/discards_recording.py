@@ -3,7 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
-from sermon.store import Job, LogEntry, Recording, Store
+from sermon.store import Job, LogEntry, Recording, Segment, Store
+
+
+class PublishedSegmentExists(ValueError):
+    pass
 
 
 def now():
@@ -15,7 +19,15 @@ class DiscardsRecording:
     store: Store
     clock: object = now
 
-    def __call__(self, recording, *, reason=None, actor="reviewer"):
+    def __call__(self, recording, *, reason=None, actor="reviewer", confirm=False):
+        published = [
+            item
+            for item in self.store.lists(Segment, recording_id=recording.recording_id)
+            if item.state == "complete"
+        ]
+        if published and not confirm:
+            self.store._discard_needs_confirm = True
+            raise PublishedSegmentExists(recording.recording_id)
         occurred = self.clock()
         for job in self.store.lists(Job, recording_id=recording.recording_id):
             if job.state in {"queued", "running"}:

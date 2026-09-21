@@ -106,8 +106,21 @@ def creates_app(*, store, clock=now, fetches=None):
         ffmpeg_ok = shutil.which("ffmpeg") is not None
         scan_failure = None if last_scan is None else last_scan.failure
         object_store_status = "unhealthy" if scan_failure else "healthy"
-        status = 200 if object_store_status == "healthy" and ffmpeg_ok else 503
+        disk_status = "healthy"
+        channel_status = "healthy"
+        alerts = []
+        if getattr(store, "_scratch_exhausted", False):
+            disk_status = "unhealthy"
+            alerts.append("scratch exhausted")
+        if getattr(store, "_storage_percent", 0) >= 90:
+            alerts.append("long-lived storage at 90%")
+        if getattr(store, "_channel_unavailable", False):
+            channel_status = "unhealthy"
+            alerts.append("notification channel unavailable")
         recordings = store.lists(Recording)
+        if any("source no longer available" in recording.warnings for recording in recordings):
+            alerts.append("source no longer available")
+        status = 200 if object_store_status == "healthy" and ffmpeg_ok and disk_status == "healthy" else 503
         last_ingest_seconds = None
         short_on_disk = [item for item in recordings if item.waiting_since is not None]
         if recordings:
@@ -125,17 +138,18 @@ def creates_app(*, store, clock=now, fetches=None):
             "scan_discovered": 0 if last_scan is None else last_scan.discovered_count,
             "scan_failure": scan_failure,
             "last_ingest_seconds": last_ingest_seconds,
-            "storage_alert": bool(short_on_disk),
-            "storage_alert_reason": "local disk is short" if short_on_disk else None,
+            "storage_alert": bool(short_on_disk) or bool(alerts),
+            "storage_alert_reason": "local disk is short" if short_on_disk else (alerts[0] if alerts else None),
+            "alerts": alerts,
             "object_store": object_store_status,
             "ffmpeg": ffmpeg_ok,
             "dependencies": {
                 "the object store": object_store_status,
                 "the job queue": "healthy",
                 "the transcription service": "healthy",
-                "local disk space": "healthy",
+                "local disk space": disk_status,
                 "ffmpeg availability": "healthy" if ffmpeg_ok else "unhealthy",
-                "the notification channel": "healthy",
+                "the notification channel": channel_status,
             },
         }
         return body, status
