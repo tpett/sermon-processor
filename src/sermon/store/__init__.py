@@ -17,7 +17,7 @@ from .entities import (
     SpeakerMatch,
     SpeakerProfile,
 )
-from .store import DATABASE_NAME, Store, UnstorableValue, opens_store
+from .store import DATABASE_NAME, StoredSchemaDiffers, Store, UnstorableValue, opens_store
 from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
 
 __all__ = [
@@ -42,6 +42,7 @@ __all__ = [
     "SpeakerMatch",
     "SpeakerProfile",
     "Store",
+    "StoredSchemaDiffers",
     "UnstorableValue",
     "opens_store",
 ]

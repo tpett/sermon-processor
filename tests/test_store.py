@@ -25,6 +25,7 @@ from sermon.store import (
     SpeakerMatch,
     SpeakerProfile,
     Store,
+    StoredSchemaDiffers,
     UnstorableValue,
     opens_store,
     vocabularies,
@@ -2115,21 +2116,21 @@ def ages_the_database(data_root, statement):
 def test_a_database_lacking_a_column_the_code_declares_is_refused_at_open(tmp_path):
     opens_store(data_root=tmp_path).close()
     ages_the_database(tmp_path, "ALTER TABLE artifact DROP COLUMN input_loudness_lufs")
-    with pytest.raises(Exception, match="artifact.*input_loudness_lufs"):
+    with pytest.raises(StoredSchemaDiffers, match="artifact lacks input_loudness_lufs"):
         opens_store(data_root=tmp_path)
 
 
 def test_a_database_holding_a_column_no_entity_declares_is_refused_at_open(tmp_path):
     opens_store(data_root=tmp_path).close()
     ages_the_database(tmp_path, "ALTER TABLE recording_channel_level ADD COLUMN peak_db REAL")
-    with pytest.raises(Exception, match="recording_channel_level.*peak_db"):
+    with pytest.raises(StoredSchemaDiffers, match="recording_channel_level holds peak_db"):
         opens_store(data_root=tmp_path)
 
 
 def test_a_database_the_code_cannot_use_says_what_makes_it_usable_again(tmp_path):
     opens_store(data_root=tmp_path).close()
     ages_the_database(tmp_path, "ALTER TABLE artifact DROP COLUMN output_true_peak_dbtp")
-    with pytest.raises(Exception, match="sermon-reconcile"):
+    with pytest.raises(StoredSchemaDiffers, match="sermon-reconcile"):
         opens_store(data_root=tmp_path)
 
 

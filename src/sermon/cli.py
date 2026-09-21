@@ -25,6 +25,7 @@ from sermon.store import (
     Reviewer,
     Segment,
     SkippedObject,
+    StoredSchemaDiffers,
     opens_store,
 )
 from sermon.web import creates_app
@@ -77,8 +78,19 @@ def opens(settings, lists_objects):
     )
 
 
+def opens_or_reports(settings, lists_objects, prints):
+    try:
+        return opens(settings, lists_objects)
+    except StoredSchemaDiffers as stale:
+        prints(str(stale))
+        return None
+
+
 def reconciles(settings=None, lists_objects=None, prints=print):
-    configuration, store, lists_objects = opens(settings, lists_objects)
+    opened = opens_or_reports(settings, lists_objects, prints)
+    if opened is None:
+        return 1
+    configuration, store, lists_objects = opened
     try:
         prints(
             f"scanning {configuration.object_store.bucket} "
@@ -171,7 +183,10 @@ def fetches(settings=None, object_key=None, fetches_object=None, lists_objects=N
         object_key = reads_one_argument(FETCH_USAGE, prints)
         if object_key is None:
             return 1
-    configuration, store, lists_objects = opens(settings, lists_objects)
+    opened = opens_or_reports(settings, lists_objects, prints)
+    if opened is None:
+        return 1
+    configuration, store, lists_objects = opened
     try:
         recording = discovers(store, object_key, lists_objects)
         reports_source(brings_local(store, recording, fetch_for(configuration, fetches_object), prints), prints)
@@ -228,7 +243,10 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
     if asked is None:
         return 1
     object_key, punch_in, punch_out, label, published_on = asked
-    configuration, store, lists_objects = opens(settings, lists_objects)
+    opened = opens_or_reports(settings, lists_objects, prints)
+    if opened is None:
+        return 1
+    configuration, store, lists_objects = opened
     store.saves(Reviewer(actor=REVIEWER, receives_notifications=True))
     try:
         recording = discovers(store, object_key, lists_objects)
@@ -321,9 +339,12 @@ def starts(app, host, port):
     app.run(host=host, port=port)
 
 
-def serves(settings=None, lists_objects=None, runs=starts):
+def serves(settings=None, lists_objects=None, runs=starts, prints=print):
     settings = resolves_settings() if settings is None else settings
-    _, store, lists_objects = opens(settings, lists_objects)
+    opened = opens_or_reports(settings, lists_objects, prints)
+    if opened is None:
+        return 1
+    _, store, lists_objects = opened
     app = creates_app(store=store, lists_objects=lists_objects)
     app.config["BIND_HOST"] = settings.get(BIND_HOST, app.config["BIND_HOST"])
     runs(app, app.config["BIND_HOST"], int(settings.get(PORT, DEFAULT_PORT)))

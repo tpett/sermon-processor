@@ -10,6 +10,7 @@ from typing import get_type_hints
 from .schema import (
     TABLES,
     column_names,
+    declared_columns,
     element_columns,
     order_by,
     schema_statements,
@@ -22,6 +23,10 @@ DATABASE_NAME = "sermon.sqlite3"
 
 
 class UnstorableValue(TypeError):
+    pass
+
+
+class StoredSchemaDiffers(RuntimeError):
     pass
 
 
@@ -192,11 +197,42 @@ def creates_schema(connection):
             connection.execute(statement)
 
 
+def reads_stored_columns(connection, table):
+    return tuple(row["name"] for row in connection.execute(f"PRAGMA table_info({table})"))
+
+
+def finds_schema_differences(connection):
+    differences = []
+    for table, declared in declared_columns().items():
+        stored = reads_stored_columns(connection, table)
+        lacking = [name for name in declared if name not in stored]
+        surplus = [name for name in stored if name not in declared]
+        if lacking:
+            differences.append(f"{table} lacks {', '.join(lacking)}")
+        if surplus:
+            differences.append(f"{table} holds {', '.join(surplus)}, which no entity declares")
+    return tuple(differences)
+
+
+def guards_schema(connection, database):
+    differences = finds_schema_differences(connection)
+    if not differences:
+        return
+    connection.close()
+    raise StoredSchemaDiffers(
+        f"{database} does not match the entities this code declares: "
+        f"{'; '.join(differences)}. Nothing migrates a database here — delete that file "
+        f"and run sermon-reconcile, which rebuilds every Recording from the bucket."
+    )
+
+
 def opens_store(data_root):
     root = Path(data_root)
     root.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(root / DATABASE_NAME, check_same_thread=False)
+    database = root / DATABASE_NAME
+    connection = sqlite3.connect(database, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     creates_schema(connection)
+    guards_schema(connection, database)
     return Store(connection, ResolvesStoredPath(data_root=root))
