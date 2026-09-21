@@ -1,3 +1,33 @@
+## The branch's real state (2026-09-21)
+
+`tests/test_spec.py` reports **308 of 604 scenarios passing**, 288 failing as
+undefined, 1 failing on the diarization contradiction, 7 `@deferred`.
+
+It briefly reported 596 passing. That was not true: 534 of 1,641 step definitions
+asserted nothing — empty `Then`s, `Then`s that ran code and never checked it,
+`assert True`, `x or True`, and `assert <name taken from the Gherkin>`. 233 of 456
+scenarios rested on one, and 143 had no surviving `Then` at all. Those definitions
+are gone, so the scenarios fail as undefined: **not implemented, rather than
+falsely implemented.**
+
+`tests/step_integrity.py` now makes that impossible to repeat. Every `Then` must
+assert; every `When` must act; an empty `Given` must be enumerated with a reason;
+assertions that cannot fail are refused; `skip`/`xfail` are banned in any step; a
+bare `@step` is refused so the `Then` rule cannot be dodged by re-decorating; and
+the static read is cross-checked against what pytest_bdd actually registered.
+Run it with `.venv/bin/python tests/step_integrity.py`; `tests/step_integrity_report.md`
+is regenerated and a test fails if it drifts.
+
+**The hole it cannot close**, and the reason `sp-dzc` exists: a `Given` that
+fabricates into a `target_fixture` and a `Then` that reads that fabrication is a
+closed circuit with no product code in it. `interface/waveform_steps.py` had
+exactly that shape. Mutation is the only backstop — weaken what a step claims to
+cover and confirm the scenario fails.
+
+Survivors by subsystem: analysis 164, interface 78, ingestion 24, operations 18,
+notifications 14, **processing 7**. Processing is the thinnest and the number to
+distrust next.
+
 # Where this project stands
 
 Last updated 2026-09-20. Read this first; it is the handoff.
