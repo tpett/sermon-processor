@@ -778,7 +778,6 @@
   }
  },
  "constants.unread": [
-  "cues.GREETING_OPENERS",
   "cues.PREAMBLE",
   "cues.VERSION",
   "segments.PREAMBLE_GAP_S",
