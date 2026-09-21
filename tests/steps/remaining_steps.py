@@ -831,7 +831,10 @@ def _():
 
 @given("no Segment was proposed")
 def _(store):
-    assert True
+    store._nothing_to_publish = True
+    store._proposal_only = []
+    for item in store.lists(Segment):
+        store.saves(replace(item, state="skipped"))
 
 
 @when("I download it")

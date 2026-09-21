@@ -62,6 +62,28 @@ def pytest_bdd_apply_tag(tag, function):
 
 
 @pytest.fixture
+def recording(store):
+    from datetime import UTC, datetime
+
+    from sermon.store import Recording
+
+    existing = store.lists(Recording)
+    if existing:
+        return existing[0]
+    return store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key="recordings/recording_20260823_103015.flac",
+            state="downloaded",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=5412.0,
+        )
+    )
+
+
+@pytest.fixture
 def segment(store):
     from datetime import UTC, datetime
 

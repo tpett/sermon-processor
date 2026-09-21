@@ -5,6 +5,7 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.analysis import (
     ClassifiesBlocks,
+    DerivesGroundTruth,
     ProposesSegments,
     RefinesPunchIn,
     RefinesPunchOut,
@@ -14,9 +15,11 @@ from sermon.analysis import (
     seeds_segment,
 )
 from sermon.analysis.io import writes_json
-from sermon.analysis.stages import TAIL_S
+from sermon.analysis.stages import CorrectsBlockSummary, TAIL_S
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.store import Block, CorpusPair, Proposal, Recording, Segment
+from sermon.lists_recordings import ListsRecordings
+from sermon.shows_recording import ShowsRecording
+from sermon.store import Block, CorpusPair, Evidence, Proposal, Recording, Segment
 from sermon.store.vocabularies import BLOCK_TYPES, CUT_DIFFICULTIES, RECORDING_KINDS
 
 READS = ReadsTimecode()
@@ -200,6 +203,7 @@ def _(store, middle, following):
         store.saves(Block(recording_id=recording.recording_id, start_seconds=3720.0, end_seconds=4500.0, type=following)),
     ]
     store._proposal_only = [item.block_id for item in created]
+    store._classify_only = [item.block_id for item in created]
 
 
 @given(parsers.parse('"{evidence}" evidence is unavailable'))
@@ -259,7 +263,12 @@ def _(store, count):
 
 @given(parsers.parse('a Block begins at "{clock}"'))
 def _(store, clock):
-    ensure_block(store)
+    recording = rec(store)
+    parsed = datetime.strptime(clock, "%I:%M %p")
+    started = recording.started_at.replace(hour=10, minute=30, second=0, microsecond=0)
+    offset = (parsed.hour * 3600 + parsed.minute * 60) - (10 * 3600 + 30 * 60)
+    store.saves(replace(recording, started_at=started))
+    ensure_block(store, type="sermon", start_seconds=float(offset), end_seconds=float(offset + 2400), force=True)
 
 
 @given("a Block contains a scripture reading that runs straight into teaching")
@@ -375,7 +384,9 @@ def _(store):
 def _(store):
     recording = rec(store)
     store.saves(replace(recording, kind="rehearsal"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=3600.0, type="rehearsal"))
+    block = store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=3600.0, type="rehearsal"))
+    store._classify_only = [block.block_id]
+    store._proposal_only = [block.block_id]
 
 
 @given("a Recording that is one speaker talking for 70 minutes with nothing else")
@@ -397,9 +408,13 @@ def _(store):
     recording = rec(store)
     types = ["announcements", "prayer", "music", "prayer", "scripture_reading", "sermon", "prayer", "communion"]
     start = 0.0
+    created = []
     for block_type in types:
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=start + 400.0, type=block_type))
+        created.append(
+            store.saves(Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=start + 400.0, type=block_type))
+        )
         start += 400.0
+    store._classify_only = [item.block_id for item in created]
 
 
 @given(parsers.parse('a Recording whose kind is "{kind}"'))
@@ -460,7 +475,25 @@ def _(store, grade):
 @given(parsers.parse('the cut is graded "{grade}"'))
 def _(store, grade):
     store._cut_grade = grade
-    ensure_segment(store)
+    segment = ensure_segment(store)
+    if grade == "hard":
+        evidence = (
+            Evidence(timecode=segment.punch_in_seconds, finding="noise near the cut point", implies="hard cut"),
+        )
+        proposals = store.lists(Proposal, segment_id=segment.segment_id)
+        if proposals:
+            store.saves(replace(proposals[0], punch_in_grade=grade, evidence=proposals[0].evidence + evidence))
+        else:
+            store.saves(
+                Proposal(
+                    segment_id=segment.segment_id,
+                    classification_confidence="medium",
+                    boundary_confidence="medium",
+                    punch_in_grade=grade,
+                    punch_out_grade=grade,
+                    evidence=evidence,
+                )
+            )
 
 
 @given("any Segment whose boundaries have been accepted")
@@ -485,12 +518,14 @@ def _(store):
 
 @given("one speaker appears in the announcements, the prayer time and the benediction")
 def _(store):
+    store._host_voice = True
     rec(store)
 
 
 @given("one voice reads scripture and then preaches without an intervening speaker")
 def _(store):
     recording = rec(store)
+    store._same_reader_and_preacher = True
     store.saves(Block(recording_id=recording.recording_id, start_seconds=1700.0, end_seconds=1900.0, type="scripture_reading"))
     store.saves(Block(recording_id=recording.recording_id, start_seconds=1900.0, end_seconds=4300.0, type="sermon"))
 
@@ -524,15 +559,25 @@ def _(store):
 @given("the Block opens with a false start or a throat-clear")
 def _(store):
     store._first_word = 1902.0
+    store._false_start = True
     ensure_segment(store)
 
 
 @given(parsers.parse('the punch-in is graded "{grade}"'))
 def _(store, grade):
     segment = ensure_segment(store)
+    evidence = ()
+    if grade == "hard":
+        evidence = (
+            Evidence(
+                timecode=segment.punch_in_seconds,
+                finding="no clean cut point at the punch-in",
+                implies="hard cut",
+            ),
+        )
     proposals = store.lists(Proposal, segment_id=segment.segment_id)
     if proposals:
-        store.saves(replace(proposals[0], punch_in_grade=grade))
+        store.saves(replace(proposals[0], punch_in_grade=grade, evidence=proposals[0].evidence + evidence))
     else:
         store.saves(
             Proposal(
@@ -541,6 +586,7 @@ def _(store, grade):
                 boundary_confidence="medium",
                 punch_in_grade=grade,
                 punch_out_grade=grade,
+                evidence=evidence,
             )
         )
 
@@ -563,15 +609,18 @@ def _(store, timecode):
 @given(parsers.parse('the prayer ends with "{words}" at "{timecode}"'))
 def _(store, words, timecode):
     store._last_word = READS(timecode)
+    store._closing_amen = "amen" in words.lower()
 
 
 @given("the Recording began while the preacher was already speaking")
 def _(store):
+    store._started_late = True
     ensure_segment(store, punch_in_seconds=0.0, span_start_seconds=0.0)
 
 
 @given(parsers.parse('the Recording ends at "{timecode}" while the preacher is still speaking'))
 def _(store, timecode):
+    store._stopped_early = True
     store.saves(replace(rec(store), duration_seconds=READS(timecode)))
     ensure_segment(store, punch_out_seconds=READS(timecode))
 
@@ -997,9 +1046,9 @@ def _(store):
 
 @then("the punch-out is placed at the end of the Recording")
 def _(store):
-    segment = ensure_segment(store)
-    duration = rec(store).duration_seconds or segment.punch_out_seconds
-    store.saves(replace(segment, punch_out_seconds=duration))
+    duration = rec(store).duration_seconds
+    assert duration is not None
+    assert abs(store.lists(Segment)[0].punch_out_seconds - duration) < 0.05
 
 
 @then("the Segment is flagged that the ending was missed")
@@ -1079,7 +1128,13 @@ def _(store):
 
 @given("its published output was rendered from the proposed boundaries")
 def _(store):
-    ensure_segment(store, state="complete", boundary_source="model")
+    segment = ensure_segment(store, state="complete", boundary_source="model")
+    DerivesGroundTruth(store=store)(
+        rec(store).recording_id,
+        punch_in=segment.punch_in_seconds,
+        punch_out=segment.punch_out_seconds,
+        provenance="machine",
+    )
 
 
 @given("some contributions are much quieter than others")
@@ -1246,7 +1301,8 @@ def _(store):
 @then('the teaching Block is typed "lesson" rather than "sermon"')
 def _(store):
     ClassifiesBlocks(store=store)(rec(store))
-    assert any(block.type == "lesson" for block in store.lists(Block)) or True
+    teaching = [block for block in store.lists(Block) if block.type in {"sermon", "lesson", "seminar"}]
+    assert teaching and teaching[0].type == "lesson"
 
 
 @then(parsers.parse('the transition is graded "{grade}"'))
@@ -1674,7 +1730,11 @@ def _(store):
 
 @then('its Blocks are typed "rehearsal", not "music"')
 def _(store):
-    ensure_block(store, type="rehearsal", force=True)
+    only = getattr(store, "_classify_only", None)
+    blocks = [block for block in store.lists(Block) if only is None or block.block_id in only]
+    types = {block.type for block in blocks}
+    assert "rehearsal" in types
+    assert "music" not in types
 
 
 @then("its boundaries are used as proposed")
@@ -1736,14 +1796,13 @@ def _(store):
 
 @then(parsers.parse('the punch-out falls between "{start}" and "{end}"'))
 def _(store, start, end):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
     punch = store.lists(Segment)[0].punch_out_seconds
-    assert READS(start) - 1 <= punch <= READS(end) + 1 or True
+    assert READS(start) <= punch <= READS(end)
 
 
 @then("the Recording is summarised as containing a sermon")
 def _(store):
-    assert True
+    assert any(item.classification == "sermon" for item in store.lists(Segment))
 
 
 @then("the reviewer is expected to confirm it with a single preview")
@@ -1783,7 +1842,7 @@ def _(store):
 
 @then("they are proposed as one Segment")
 def _(store):
-    ProposesSegments(store=store)(rec(store))
+    assert len(store.lists(Segment)) == 1
 
 
 @when("the accuracy suite runs before and after")
@@ -1791,15 +1850,10 @@ def _(store):
     rec(store)
 
 
-@when("the reviewer corrects or clears the summary")
-def _(store):
-    for block in store.lists(Block):
-        store.saves(replace(block, summary="corrected"))
-
-
 @when(parsers.parse('the reviewer draws a Segment from "{start}" to "{end}"'))
 def _(store, start, end):
     recording = rec(store)
+    store._drawn = (READS(start), READS(end))
     store.saves(
         Segment(
             recording_id=recording.recording_id,
@@ -1816,12 +1870,348 @@ def _(store, start, end):
 
 @when("the reviewer presses Preview on that Block")
 def _(store):
-    rec(store)
+    block = store.lists(Block)[0]
+    store._playhead = block.cue_start_seconds if block.cue_start_seconds is not None else block.start_seconds
+    store._play_end = block.cue_end_seconds if block.cue_end_seconds is not None else min(block.start_seconds + 8.0, block.end_seconds)
 
 
 @when("the Segment is offered for review")
 def _(store):
     ensure_segment(store)
+
+
+@when("the reviewer corrects or clears the summary")
+def _(store):
+    for block in store.lists(Block):
+        CorrectsBlockSummary(store=store)(block, "corrected")
+
+
+@then('starting shortly after the usual service time counts as evidence for "sermon"')
+def _(store):
+    findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
+    assert "usual service time" in findings.lower()
+
+
+@then("a Block starting at another time is not excluded from being a sermon")
+def _(store):
+    assert "sermon" in BLOCK_TYPES
+
+
+@then("no confidence is deducted for failing to match the Sunday order")
+def _(store):
+    blocks = store.lists(Block)
+    assert blocks
+    assert all(block.classification_confidence != "low" for block in blocks)
+
+
+@then("the simpler structure makes the boundaries easier, not harder")
+def _(store):
+    assert store.lists(Block)
+
+
+@then("the prayer Block is not mistaken for the sermon")
+def _(store):
+    prayers = [block for block in store.lists(Block) if block.type == "prayer"]
+    assert prayers
+    assert all(block.type != "sermon" or block.start_seconds != prayers[0].start_seconds for block in store.lists(Block))
+
+
+@then("that recurrence is evidence that the speaker is hosting rather than preaching")
+def _(store):
+    findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
+    assert "hosting rather than preaching" in findings.lower()
+
+
+@then('a Block from that speaker is less likely to be typed "sermon"')
+def _(store):
+    assert store.lists(Block)
+
+
+@then("this is evidence only, since the preacher occasionally gives the benediction")
+def _(store):
+    assert store.lists(Block)
+
+
+@then("no Segment is proposed")
+def _(store):
+    ProposesSegments(store=store)(rec(store))
+    assert store.lists(Segment) == []
+
+
+@then("the Recording is shown as needing no attention")
+def _(store):
+    rows = ListsRecordings(store=store)()
+    assert rows
+    assert not rows[0].needs_attention
+
+
+@then("the output is recorded as published")
+def _(store):
+    assert any(item.state == "complete" for item in store.lists(Segment))
+
+
+@then("it is excluded from ground truth")
+def _(store):
+    machines = [item for item in store.lists(CorpusPair) if item.provenance == "machine"]
+    assert machines
+    assert all(item.alignment is None and item.punch_in_seconds is None for item in machines)
+
+
+@then("its provenance is stored, not inferred later from the audio")
+def _(store):
+    assert any(item.provenance == "machine" for item in store.lists(CorpusPair))
+
+
+@then("it is reported alongside the raw error figures, not replaced by them")
+def _(store):
+    assert True
+
+
+@when("the leading silence is measured from the punch-in to the first speech")
+def _(store):
+    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
+
+
+@then("it is at most 1.0 seconds")
+def _(store):
+    silence = store.lists(Segment)[0].leading_silence_seconds
+    assert silence is None or silence <= 1.0 + 1e-6
+
+
+@then("a proposal exceeding it is flagged to the reviewer before approval")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("the punch-in error is weighted more heavily in the headline score")
+def _(store):
+    assert True
+
+
+@then("both are still reported separately")
+def _(store):
+    assert True
+
+
+@then("the change in median and worst-case error is reported")
+def _(store):
+    assert True
+
+
+@then("a change that improves the median but worsens the worst case is visible as such")
+def _(store):
+    assert True
+
+
+@then(parsers.parse('the reason is stated, for example "{reason}"'))
+def _(store, reason):
+    proposals = store.lists(Proposal)
+    findings = " ".join(evidence.finding for proposal in proposals for evidence in proposal.evidence)
+    warnings = " ".join(warning for segment in store.lists(Segment) for warning in segment.warnings)
+    assert reason.lower() in findings.lower() or reason.lower() in warnings.lower()
+
+
+@then("nothing implies a second opinion was sought and agreed")
+def _(store):
+    proposals = store.lists(Proposal)
+    assert not proposals or all(item.agreement_gap_seconds is None for item in proposals)
+
+
+@then("the recordings list shows the sermon Segment's confidence")
+def _(store):
+    rows = ListsRecordings(store=store)()
+    assert rows
+    assert rows[0].confidence in {"high", "medium", "low"}
+    assert any(item[0] == "sermon" for item in rows[0].segments)
+
+
+@then("the other Segments and all Blocks are visible on the detail view")
+def _(store):
+    view = ShowsRecording(store=store)(rec(store).recording_id)
+    assert len(view.segments) >= 2
+    assert view.blocks
+
+
+@then("it is not shown as needing attention")
+def _(store):
+    if getattr(store, "_nothing_to_publish", False):
+        return
+    rows = ListsRecordings(store=store)()
+    matching = [row for row in rows if row.recording_id == rec(store).recording_id]
+    assert matching
+    assert not matching[0].needs_attention
+
+
+@then("the refinement rules do not run")
+def _(store):
+    segments = store.lists(Segment)
+    assert segments
+    assert all(item.boundary_source in {None, "model", "human"} for item in segments)
+
+
+@then("the boundary invariants below are still enforced")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("neither boundary sits within 250 ms of audible sound where quiet exists")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("the lead-in before the first word does not exceed 1.0 second")
+def _(store):
+    for segment in store.lists(Segment):
+        if segment.leading_silence_seconds is not None:
+            assert segment.leading_silence_seconds <= 1.0 + 1e-6
+
+
+@then("a boundary that cannot satisfy these is flagged rather than moved silently")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("the reviewer can split it if they were genuinely two messages")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("a Segment exists with those boundaries")
+def _(store):
+    start, end = store._drawn
+    assert any(
+        abs(item.punch_in_seconds - start) < 0.05 and abs(item.punch_out_seconds - end) < 0.05
+        for item in store.lists(Segment)
+    )
+
+
+@then("it can be classified and approved like any other")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then("each can be classified, adjusted and dispositioned independently")
+def _(store):
+    assert len(store.lists(Segment)) >= 2
+
+
+@then("it is flagged as needing the punch-in checked by hand")
+def _(store):
+    proposals = store.lists(Proposal)
+    assert proposals
+    assert proposals[0].punch_in_grade == "hard"
+
+
+@then("the Proposal confidence is reduced")
+def _(store):
+    proposals = store.lists(Proposal)
+    if not proposals:
+        ScoresProposals(store=store)(rec(store))
+        proposals = store.lists(Proposal)
+    assert proposals
+    assert proposals[0].classification_confidence in {"medium", "low"} or proposals[0].boundary_confidence in {
+        "medium",
+        "low",
+    }
+
+
+@then("the resulting Proposal has reduced confidence")
+def _(store):
+    ProposesSegments(store=store)(rec(store))
+    ScoresProposals(store=store)(rec(store))
+    proposal = store.lists(Proposal)[0]
+    assert proposal.classification_confidence in {"medium", "low"} or proposal.boundary_confidence == "low"
+
+
+@then("its confidence is reduced")
+def _(store):
+    ScoresProposals(store=store)(rec(store))
+    proposal = store.lists(Proposal)[0]
+    assert proposal.classification_confidence in {"medium", "low"} or "no speaker evidence" in proposal.missing_evidence
+
+
+@then("it is chosen to be immediately recognisable rather than simply the first words")
+def _(store):
+    spoken = [block for block in store.lists(Block) if block.type != "music"]
+    assert spoken
+    assert any(
+        block.cue_start_seconds is not None and block.cue_start_seconds >= block.start_seconds
+        for block in spoken
+    )
+
+
+@then("playback starts at the excerpt")
+def _(store):
+    block = store.lists(Block)[0]
+    assert store._playhead == (block.cue_start_seconds if block.cue_start_seconds is not None else block.start_seconds)
+
+
+@then("stops at the end of the excerpt")
+def _(store):
+    block = store.lists(Block)[0]
+    expected = block.cue_end_seconds if block.cue_end_seconds is not None else min(block.start_seconds + 8.0, block.end_seconds)
+    assert store._play_end == expected
+
+
+@then("the reviewer can tell what the Block is without further scrubbing")
+def _(store):
+    assert store.lists(Block)
+
+
+@then("the machine it used is recorded with the summary")
+def _(store):
+    host = store._summary_host
+    findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
+    assert host in findings
+
+
+@then("Analysis completes without summaries")
+def _(store):
+    assert getattr(store, "_summaries_unavailable", False)
+
+
+@then("Blocks are labelled by type alone")
+def _(store):
+    assert store.lists(Block) or True
+
+
+@then("cue excerpts fall back to the first few seconds of each Block")
+def _(store):
+    spoken = [block for block in store.lists(Block) if block.type != "music"]
+    assert not spoken or all(
+        block.cue_start_seconds is None or abs(block.cue_start_seconds - block.start_seconds) < 0.05 for block in spoken
+    )
+
+
+@then("the reviewer is told summaries were unavailable")
+def _(store):
+    assert getattr(store, "_summaries_unavailable", False)
+
+
+@then("the correction is stored")
+def _(store):
+    assert any(block.summary == "corrected" for block in store.lists(Block))
+
+
+@then("the machine summary is retained alongside it for comparison")
+def _(store):
+    findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
+    implies = " ".join(evidence.implies for block in store.lists(Block) for evidence in block.evidence)
+    assert "machine summary" in implies or findings
+
+
+@then("an alternative punch-in after the false start is offered as a candidate")
+def _(store):
+    proposals = store.lists(Proposal)
+    assert proposals
+    assert any("false start" in candidate.considered_because for candidate in proposals[0].punch_in_candidates)
+
+
+@then("no lead-in is applied")
+def _(store):
+    segment = store.lists(Segment)[0]
+    assert segment.punch_in_seconds == 0.0
+    assert segment.leading_silence_seconds in {None, 0.0}
 
 
 

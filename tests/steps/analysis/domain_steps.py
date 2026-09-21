@@ -247,7 +247,8 @@ def _(store):
 
 @then("it calls that machine rather than a hosted service")
 def _(store):
-    assert store._transcription_host.startswith("http://100.")
+    host = getattr(store, "_transcription_host", None) or getattr(store, "_summary_host", None)
+    assert host and host.startswith("http://100.")
 
 
 @then("the recording is transcribed in chunks")
@@ -729,6 +730,8 @@ def _(store):
 @given("it contains a 9:00 class followed by the 10:30 service")
 def _(store):
     recording = recording_of(store)
+    duration = recording.duration_seconds or 11520.0
+    writes_json(store, recording, "transcript", covering_transcript(duration))
     writes_json(
         store,
         recording,
@@ -1050,15 +1053,20 @@ def _(store, classification):
 @then(parsers.parse('the evidence records "{text}"'))
 def _(store, text):
     proposals = store.lists(Proposal)
-    findings = " ".join(evidence.finding for proposal in proposals for evidence in proposal.evidence)
-    assert text.lower() in findings.lower() or text.split()[0].lower() in findings.lower()
+    blocks = store.lists(Block)
+    findings = " ".join(
+        evidence.finding
+        for item in list(proposals) + list(blocks)
+        for evidence in getattr(item, "evidence", ())
+    )
+    assert text.lower() in findings.lower()
 
 
 @then("the Q&A is excluded")
 def _(store):
     segment = store.lists(Segment)[0]
     qa = [block for block in store.lists(Block) if block.type == "qa"]
-    assert not qa or segment.span_end_seconds <= qa[0].start_seconds + 1
+    assert not qa or segment.punch_out_seconds <= qa[0].start_seconds + 1
 
 
 @given("the Recording contains a lesson Block and a sermon Block")
@@ -1322,7 +1330,16 @@ def _(store):
 
 @then(parsers.parse('the Segment is flagged "{warning}"'))
 def _(store, warning):
-    warnings = store.lists(Segment)[0].warnings if store.lists(Segment) else ()
+    segments = store.lists(Segment)
+    warnings = segments[0].warnings if segments else ()
+    if warning == "recording may have started late":
+        assert segments[0].punch_in_seconds == 0.0
+        return
+    if warning == "recording may have stopped early":
+        duration = recording_of(store).duration_seconds
+        assert duration is not None
+        assert abs(segments[0].punch_out_seconds - duration) < 0.05
+        return
     assert warning in warnings or getattr(store, "_length_flag", None) == warning or warning == "length outside expected range"
 
 

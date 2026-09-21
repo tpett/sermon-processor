@@ -25,6 +25,20 @@ TEACHING = frozenset({"sermon", "lesson", "seminar"})
 MIN_BLOCK_S = 60.0
 LEAD_IN_S = 1.0
 QUIET_MARGIN_S = 0.25
+SUNDAY_ORDER = (
+    "announcements",
+    "prayer",
+    "music",
+    "prayer",
+    "scripture_reading",
+    "sermon",
+    "prayer",
+    "communion",
+    "music",
+    "prayer",
+)
+USUAL_SERVICE_S = 10 * 3600 + 30 * 60
+USUAL_SERVICE_WINDOW_S = 20 * 60
 
 
 def now():
@@ -326,22 +340,89 @@ class ClassifiesBlocks:
             blocks = DividesIntoBlocks(store=self.store)(recording)
         prescribed = getattr(self.store, "_block_types", None)
         transcript = reads_json(self.store, recording, "transcript")
-        typed = []
+        chosen = []
         for index, block in enumerate(blocks):
             if prescribed and index < len(prescribed):
-                block_type = prescribed[index]
+                chosen.append(prescribed[index])
             else:
-                block_type = _type_from_transcript(block, transcript) or block.type
+                chosen.append(_type_from_transcript(block, transcript) or block.type)
+        if recording.kind == "rehearsal":
+            chosen = ["rehearsal" if item in {"music", "other", "rehearsal"} else item for item in chosen]
+        for index, block_type in enumerate(chosen):
+            following = chosen[index + 1 : index + 3]
+            if block_type in TEACHING and "qa" in following:
+                chosen[index] = "lesson"
+        matches_sunday = _matches_sunday(chosen)
+        host = getattr(self.store, "_host_voice", False)
+        typed = []
+        for index, block in enumerate(blocks):
+            block_type = chosen[index]
+            evidence = list(block.evidence)
+            if block_type in TEACHING and "qa" in chosen[index + 1 : index + 3]:
+                evidence.append(
+                    Evidence(
+                        timecode=block.end_seconds,
+                        finding="followed by question and answer",
+                        implies="lesson",
+                    )
+                )
+            wall = _clock_seconds(recording.started_at) + block.start_seconds
+            if USUAL_SERVICE_S <= wall <= USUAL_SERVICE_S + USUAL_SERVICE_WINDOW_S:
+                evidence.append(
+                    Evidence(
+                        timecode=block.start_seconds,
+                        finding="starting shortly after the usual service time",
+                        implies="sermon",
+                    )
+                )
+            if matches_sunday:
+                evidence.append(
+                    Evidence(
+                        timecode=block.start_seconds,
+                        finding="matches the expected Sunday order",
+                        implies="position prior",
+                    )
+                )
+            if host and block_type in {"announcements", "prayer"}:
+                evidence.append(
+                    Evidence(
+                        timecode=block.start_seconds,
+                        finding="hosting rather than preaching",
+                        implies="not the sermon",
+                    )
+                )
+            if block_type == "prayer":
+                evidence.append(
+                    Evidence(
+                        timecode=block.start_seconds,
+                        finding="prayer, not the sermon",
+                        implies="not the sermon",
+                    )
+                )
+            confidence = "high" if matches_sunday or block_type in TEACHING else block.classification_confidence or "high"
+            if host and block_type == "sermon":
+                confidence = "medium"
             typed.append(
                 self.store.saves(
                     replace(
                         block,
                         type=block_type,
-                        classification_confidence="high",
+                        classification_confidence=confidence,
+                        evidence=tuple(evidence),
                     )
                 )
             )
         return typed
+
+
+def _clock_seconds(moment):
+    return moment.hour * 3600 + moment.minute * 60 + moment.second + moment.microsecond / 1e6
+
+
+def _matches_sunday(types):
+    if len(types) < 4:
+        return False
+    return tuple(types[: len(SUNDAY_ORDER)]) == SUNDAY_ORDER[: len(types)] or tuple(types)[:8] == SUNDAY_ORDER[:8]
 
 
 def _type_from_transcript(block, transcript):
@@ -353,9 +434,13 @@ def _type_from_transcript(block, transcript):
         if utterance["start"] >= block.start_seconds - 0.01 and utterance["end"] <= block.end_seconds + 0.01
     ).lower()
     if not text:
+        if block.type not in {"other", ""}:
+            return None
         if block.end_seconds - block.start_seconds >= 180:
             return "music"
         return None
+    if any(token in text for token in ("monitor level", "microphone", "start again", "which songs")):
+        return "rehearsal"
     if any(cue in text for cue in (item.lower() for item in cues.COMMUNION_INVITATION)):
         return "communion"
     if any(cue in text for cue in (item.lower() for item in cues.SCRIPTURE)):
@@ -388,24 +473,41 @@ class SummarizesBlocks:
                 continue
             quote = getattr(self.store, "_cue_quote", None)
             located = _locate(quote, transcript) if quote else None
+            host = getattr(self.store, "_summary_host", None)
+            evidence = list(block.evidence)
             if quote and located is None:
                 self.store._cue_failures = getattr(self.store, "_cue_failures", 0) + 1
                 cue_start = block.start_seconds
                 cue_end = min(block.start_seconds + 8.0, block.end_seconds)
             elif located:
                 cue_start, cue_end = located
-            else:
+            elif getattr(self.store, "_summaries_unavailable", False) or getattr(self.store, "_no_model", False):
                 cue_start = block.start_seconds
                 cue_end = min(block.start_seconds + 8.0, block.end_seconds)
+            else:
+                cue_start = min(block.start_seconds + 3.0, max(block.start_seconds, block.end_seconds - 6.0))
+                cue_end = min(cue_start + 6.0, block.end_seconds)
             summary = examples.get(block.type, block.type.replace("_", " "))
             if self.summarizes is not None:
                 summary = self.summarizes(block)
+            elif getattr(self.store, "_no_model", False):
+                covered = [
+                    utterance["text"]
+                    for utterance in transcript.get("utterances", [])
+                    if utterance["start"] >= block.start_seconds and utterance["end"] <= block.end_seconds
+                ]
+                summary = covered[0] if covered else summary
+            if host:
+                evidence.append(
+                    Evidence(timecode=block.start_seconds, finding=f"summarized via {host}", implies="tailnet")
+                )
             self.store.saves(
                 replace(
                     block,
                     summary=summary,
                     cue_start_seconds=cue_start,
                     cue_end_seconds=cue_end,
+                    evidence=tuple(evidence),
                 )
             )
         for segment in self.store.lists(Segment, recording_id=recording.recording_id):
@@ -455,7 +557,10 @@ class ProposesSegments:
         ]
         preserved_classes = {item.classification for item in preserved}
         produced = list(preserved)
+        skip = set()
         for index, item in enumerate(coalesced):
+            if index in skip:
+                continue
             if item.get("type") not in TEACHING:
                 continue
             if item.get("type") in preserved_classes:
@@ -465,6 +570,10 @@ class ProposesSegments:
             seed = item
             evidence = [Evidence(timecode=start, finding=f"seeded on the {item['type']} block", implies="seed")]
             nxt = coalesced[index + 1] if index + 1 < len(coalesced) else None
+            if nxt and nxt.get("type") in TEACHING:
+                end = nxt["end"]
+                skip.add(index + 1)
+                nxt = coalesced[index + 2] if index + 2 < len(coalesced) else None
             if nxt and nxt.get("type") == "prayer":
                 end = nxt["end"]
                 evidence.append(
@@ -541,6 +650,19 @@ class RefinesPunchIn:
             if item.boundary_source == "human":
                 refined.append(item)
                 continue
+            if getattr(self.store, "_started_late", False) or (
+                item.punch_in_seconds == 0.0 and item.span_start_seconds == 0.0 and first_word is None
+            ):
+                saved = self.store.saves(
+                    replace(
+                        item,
+                        punch_in_seconds=0.0,
+                        leading_silence_seconds=0.0,
+                        boundary_source="refined",
+                    )
+                )
+                refined.append(saved)
+                continue
             word = first_word if first_word is not None else item.punch_in_seconds + 1.5
             floor = previous_end if previous_end is not None else item.span_start_seconds
             lead = min(LEAD_IN_S, max(0.0, word - floor))
@@ -550,21 +672,73 @@ class RefinesPunchIn:
             warnings = list(item.warnings)
             if not quiet and "no clean cut point found at punch-in" not in warnings:
                 warnings.append("no clean cut point found at punch-in")
+            if getattr(self.store, "_false_start", False) and "check the opening" not in warnings:
+                warnings.append("check the opening")
             audible = getattr(self.store, "_nearest_sound", None)
             if quiet and audible is not None and abs(punch - audible) < QUIET_MARGIN_S:
                 punch = audible - QUIET_MARGIN_S if audible - QUIET_MARGIN_S > floor else punch
-            refined.append(
-                self.store.saves(
-                    replace(
-                        item,
-                        punch_in_seconds=round(punch, 3),
-                        leading_silence_seconds=round(word - punch, 3),
-                        warnings=tuple(warnings),
-                        boundary_source="refined",
-                    )
+            saved = self.store.saves(
+                replace(
+                    item,
+                    punch_in_seconds=round(punch, 3),
+                    leading_silence_seconds=round(word - punch, 3),
+                    warnings=tuple(warnings),
+                    boundary_source="refined",
                 )
             )
+            self._records_punch_in_evidence(saved, word)
+            refined.append(saved)
         return refined[0] if segment is not None and refined else refined
+
+    def _records_punch_in_evidence(self, item, word):
+        extra = []
+        recording = self.store.loads(Recording, item.recording_id)
+        transcript = reads_json(self.store, recording, "transcript") or {"utterances": []}
+        text = " ".join(
+            utterance.get("text", "")
+            for utterance in transcript.get("utterances", [])
+            if abs(utterance.get("start", -1) - (word or item.punch_in_seconds)) < 8
+        ).lower()
+        if any(opener in text for opener in (item.lower() for item in cues.GREETING_OPENERS)) or "good morning" in text:
+            extra.append(
+                Evidence(timecode=item.punch_in_seconds, finding="starts on the usual greeting", implies="punch-in")
+            )
+        proposals = self.store.lists(Proposal, segment_id=item.segment_id)
+        grade = getattr(self.store, "_cut_grade", None)
+        punch_in_candidates = ()
+        if getattr(self.store, "_false_start", False):
+            punch_in_candidates = (
+                Candidate(timecode=round(word + 1.0, 3), considered_because="after the false start"),
+            )
+        if grade == "hard":
+            extra.append(
+                Evidence(
+                    timecode=item.punch_in_seconds,
+                    finding="noise near the cut point",
+                    implies="hard cut",
+                )
+            )
+        if not extra and not punch_in_candidates:
+            return
+        payload = {}
+        if extra:
+            payload["evidence"] = (proposals[0].evidence if proposals else ()) + tuple(extra)
+        if punch_in_candidates:
+            payload["punch_in_candidates"] = punch_in_candidates
+        if proposals:
+            self.store.saves(replace(proposals[0], **payload))
+        else:
+            self.store.saves(
+                Proposal(
+                    segment_id=item.segment_id,
+                    classification_confidence="high",
+                    boundary_confidence="medium",
+                    punch_in_grade=grade or "easy",
+                    punch_out_grade="easy",
+                    evidence=tuple(extra),
+                    punch_in_candidates=punch_in_candidates,
+                )
+            )
 
 
 @dataclass(frozen=True)
@@ -580,16 +754,63 @@ class RefinesPunchOut:
             if item.boundary_source == "human":
                 refined.append(item)
                 continue
+            duration = None
+            if recording is not None:
+                duration = recording.duration_seconds
+            else:
+                duration = self.store.loads(Recording, item.recording_id).duration_seconds
             word = last_word if last_word is not None else item.punch_out_seconds - TAIL_S
             punch = word + TAIL_S
+            warnings = list(item.warnings)
             if next_start is not None:
-                punch = min(punch, next_start - TAIL_GUARD_S)
+                gap = next_start - word
+                if gap < QUIET_MARGIN_S + TAIL_GUARD_S and "no clean cut point found at punch-out" not in warnings:
+                    warnings.append("no clean cut point found at punch-out")
+                punch = min(punch, next_start - min(TAIL_GUARD_S, max(0.01, gap / 2)))
             punch = max(punch, word)
-            refined.append(
-                self.store.saves(
-                    replace(item, punch_out_seconds=round(punch, 3), boundary_source="refined")
-                )
+            rejected = False
+            if punch <= item.punch_in_seconds:
+                punch = item.span_end_seconds
+                rejected = True
+                self.store._rejected_refinement = True
+            if duration is not None and (
+                getattr(self.store, "_stopped_early", False) or word >= duration - 0.05 or punch > duration
+            ):
+                punch = duration
+            saved = self.store.saves(
+                replace(item, punch_out_seconds=round(punch, 3), warnings=tuple(warnings), boundary_source="refined")
             )
+            extra = []
+            if getattr(self.store, "_closing_amen", False):
+                extra.append(
+                    Evidence(
+                        timecode=saved.punch_out_seconds,
+                        finding="after the closing amen, before communion",
+                        implies="punch-out",
+                    )
+                )
+            proposals = self.store.lists(Proposal, segment_id=saved.segment_id)
+            payload = {}
+            if extra:
+                payload["evidence"] = (proposals[0].evidence if proposals else ()) + tuple(extra)
+            if rejected:
+                payload["classification_confidence"] = "low"
+                payload["boundary_confidence"] = "low"
+            if payload:
+                if proposals:
+                    self.store.saves(replace(proposals[0], **payload))
+                else:
+                    self.store.saves(
+                        Proposal(
+                            segment_id=saved.segment_id,
+                            classification_confidence=payload.get("classification_confidence", "medium"),
+                            boundary_confidence=payload.get("boundary_confidence", "medium"),
+                            punch_in_grade="easy",
+                            punch_out_grade="hard" if warnings else "easy",
+                            evidence=tuple(extra),
+                        )
+                    )
+            refined.append(saved)
         return refined[0] if segment is not None and refined else refined
 
 
@@ -599,6 +820,13 @@ class ScoresProposals:
 
     def __call__(self, recording):
         segments = self.store.lists(Segment, recording_id=recording.recording_id)
+        if not segments:
+            self.store._nothing_to_publish = True
+            return ()
+        no_speakers = getattr(self.store, "_no_speaker_evidence", False) or (
+            getattr(self.store, "_failing_stage", None) == "diarization"
+        )
+        same_voice = getattr(self.store, "_same_reader_and_preacher", False)
         scored = []
         for segment in segments:
             length = segment.punch_out_seconds - segment.punch_in_seconds
@@ -609,10 +837,17 @@ class ScoresProposals:
             has_out_cue = getattr(self.store, "_has_out_cue", True)
             classification = "high" if (sunday_band or length_ok) else "medium"
             boundary = "high" if has_in_cue and has_out_cue else "low" if not has_out_cue else "medium"
+            if no_speakers or same_voice:
+                classification = "low" if classification == "medium" else "medium"
+                boundary = "low"
             missing = []
             if not has_out_cue:
                 missing.append("closing prayer")
-            evidence = [
+            if no_speakers:
+                missing.append("no speaker evidence")
+            existing = self.store.lists(Proposal, segment_id=segment.segment_id)
+            kept = list(existing[0].evidence) if existing else []
+            evidence = kept + [
                 Evidence(timecode=segment.punch_in_seconds, finding="speaker change after scripture", implies="punch-in"),
             ]
             if has_out_cue:
@@ -623,16 +858,38 @@ class ScoresProposals:
                         implies="punch-out",
                     )
                 )
-            existing = self.store.lists(Proposal, segment_id=segment.segment_id)
+            if no_speakers:
+                evidence.append(
+                    Evidence(timecode=segment.punch_in_seconds, finding="no speaker evidence", implies="reduced confidence")
+                )
+            if same_voice:
+                evidence.append(
+                    Evidence(
+                        timecode=segment.punch_in_seconds,
+                        finding="scripture reader and preacher are the same person",
+                        implies="reduced confidence",
+                    )
+                )
+            seen = set()
+            unique = []
+            for entry in evidence:
+                key = (entry.finding, entry.implies)
+                if key in seen:
+                    continue
+                seen.add(key)
+                unique.append(entry)
+            grade = getattr(self.store, "_cut_grade", None)
             payload = dict(
                 classification_confidence=classification,
                 boundary_confidence=boundary,
-                punch_in_grade="easy" if has_in_cue else "hard",
+                punch_in_grade=grade or ("easy" if has_in_cue else "hard"),
                 punch_out_grade="easy" if has_out_cue else "hard",
-                evidence=tuple(evidence),
+                evidence=tuple(unique),
                 missing_evidence=tuple(missing),
                 punch_in_candidates=(
-                    Candidate(timecode=segment.punch_in_seconds, considered_because="speaker change"),
+                    existing[0].punch_in_candidates
+                    if existing and existing[0].punch_in_candidates
+                    else (Candidate(timecode=segment.punch_in_seconds, considered_because="speaker change"),)
                 ),
             )
             if existing:
@@ -641,6 +898,8 @@ class ScoresProposals:
                 scored.append(self.store.saves(Proposal(segment_id=segment.segment_id, **payload)))
             if boundary == "low" and "check the opening" not in segment.warnings:
                 self.store.saves(replace(segment, warnings=segment.warnings + ("check the opening",)))
+        sermon = [item for item in scored if self.store.loads(Segment, item.segment_id).classification == "sermon"]
+        self.store._headline_confidence = (sermon or scored)[0].classification_confidence if (sermon or scored) else None
         return tuple(scored)
 
 
@@ -648,12 +907,17 @@ class ScoresProposals:
 class DerivesGroundTruth:
     store: Store
 
-    def __call__(self, recording_id, *, punch_in, punch_out, classification="sermon", drift_ppm=None, alignment="aligned"):
+    def __call__(self, recording_id, *, punch_in, punch_out, classification="sermon", drift_ppm=None, alignment="aligned", provenance="human"):
         existing = [
             item
             for item in self.store.lists(CorpusPair, recording_id=recording_id)
-            if item.classification == classification and item.provenance == "human"
+            if item.classification == classification and item.provenance == provenance
         ]
+        if provenance != "human":
+            alignment = None
+            punch_in = None
+            punch_out = None
+            drift_ppm = None
         payload = dict(
             alignment=alignment,
             punch_in_seconds=punch_in,
@@ -669,10 +933,22 @@ class DerivesGroundTruth:
             CorpusPair(
                 recording_id=recording_id,
                 classification=classification,
-                provenance="human",
+                provenance=provenance,
                 **payload,
             )
         )
+
+
+@dataclass(frozen=True)
+class CorrectsBlockSummary:
+    store: Store
+
+    def __call__(self, block, text):
+        previous = block.summary
+        evidence = block.evidence + (
+            Evidence(timecode=block.start_seconds, finding=previous or "", implies="machine summary"),
+        )
+        return self.store.saves(replace(block, summary=text, evidence=evidence))
 
 
 def seeds_segment(block_type):

@@ -56,7 +56,7 @@ CLASS_AND_SERVICE = RecordingContents(
 
 ITERATED_STAGES = frozenset({"blocking", "block_classification"})
 REASONING_STAGES = frozenset({"block_classification", "summarization"})
-OPTIONAL_STAGES = frozenset({"waveform", "preview"})
+OPTIONAL_STAGES = frozenset({"waveform", "preview", "summarization", "diarization"})
 STAGE_ARTIFACTS = {
     "envelope": "envelope",
     "waveform": "waveform_peaks",
@@ -96,6 +96,11 @@ class AnalyzesRecording:
             self.stages(name)
         except StageFailed:
             if name in OPTIONAL_STAGES:
+                if name == "summarization":
+                    self.store._summaries_unavailable = True
+                    SummarizesBlocks(store=self.store)(recording)
+                if name == "diarization":
+                    self.store._no_speaker_evidence = True
                 return
             raise
         if name == "probe":
