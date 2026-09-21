@@ -1,29 +1,48 @@
 # Where this project stands
 
-Last updated 2026-09-18. Read this first; it is the handoff.
+Last updated 2026-09-20. Read this first; it is the handoff.
 
 **The specification is done for v1, and the stack is chosen. See
 [ARCHITECTURE.md](ARCHITECTURE.md).**
 
 Python throughout: the existing pipeline extracted into a package, Flask as a
 thin API, a `Job` table rather than a broker, SQLite and files, a vanilla
-ES-modules client, and `pytest-bdd` + Playwright running all 460 scenarios from
-one runner. Reasoning stays on mac-m1 over HTTP.
+ES-modules client, and `pytest-bdd` running the 460 Gherkin scenarios from
+`features/` (604 tests once Outlines expand). Reasoning stays on mac-m1 over
+HTTP.
+
+Work is on `tpett/ai/v1-build`. Do not merge to `master` from this handoff.
+Beads (`bd`) is the ledger; it was behind the code until 2026-09-20 — read
+comments on `sp-3wf` / `sp-b41` rather than `bd ready` for what actually landed.
 
 ## What exists
 
-**Nothing is built.** There is a specification, an experiment that tested whether
-the specification is buildable, and a corpus of real recordings with ground truth.
-No application code.
+The three-click week is a real path on this branch: webhook → download (with
+retry) → analyze → HTML list/detail → publication label → approve → named MP3.
+`tests/test_three_click_week.py` asserts the file, size, and ID3/MPEG headers.
 
 | | |
 | --- | --- |
 | `features/` | 34 Gherkin feature files, the behaviour specification |
-| `features/QUESTIONS.md` | 78 design questions and the owner's answers — the source of most decisions |
-| `features/AUDIT.md` | Two rounds of reconciling the spec against measurement. **Section E and the second-pass list are the open decisions.** |
-| `experiments/` | The spike: alignment, transcription, diarization, classification, rendering |
-| `experiments/FINDINGS.md` | The running record. Every number in the spec traces here. |
-| `experiments/data/groundtruth.json` | 36 recordings, 31 labelled segments. The yardstick. |
+| `src/sermon/` | Application: store, jobs, analysis stages, Flask, vanilla client |
+| `src/sermon/pipeline/` | Extracted spike library — frozen unless instruments run |
+| Ingestion Gherkin | 38 passed (`pytest tests/test_spec.py -m ingestion`) |
+| Analysis Gherkin | 285 passed, 5 skipped, 1 failed of 291 (`-m analysis`) |
+| `experiments/` | Frozen spike. Do not refactor it or hold it to TDD. |
+| `experiments/FINDINGS.md` | Every number in the spec traces here. |
+| `~/Desktop/Sermons` | Ground truth. Read-only except adding new source/edit pairs. |
+
+The one remaining analysis failure is a spec contradiction, not missing code:
+`analysis_orchestration.feature` lists diarization as a stage whose permanent
+failure puts the Recording in `analysis_failed`; `speaker_diarization.feature`
+and `blocking.feature` say Analysis continues without speaker evidence.
+Implementation follows the continue path.
+
+**Not done.** Most of `features/processing`, `features/interface` beyond the
+review happy-path, phone, waveform editor, 2-year retention, and the
+`@deferred` scenarios. Measured loudness on a render (`sp-xx2`) and a discard
+reason (`sp-9w3`) are still missing fields. Per-Rule bead decomposition
+(`sp-3wf.1` and siblings) was skipped; work went against the suite.
 
 Derived data (transcripts, diarization, blocks, audio) is gitignored and
 reproducible from `experiments/src` plus the sources in `~/Desktop/Sermons`.
