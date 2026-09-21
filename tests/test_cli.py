@@ -201,3 +201,15 @@ def test_an_incomplete_environment_is_refused_rather_than_guessed(tmp_path):
 
     with pytest.raises(MissingConfiguration):
         reconciles(settings={"SERMON_DATA_ROOT": str(tmp_path)}, lists_objects=lambda: [])
+
+
+def test_the_served_app_answers_a_request_made_on_another_thread(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    settings = settings_file(tmp_path)
+    reconciles(settings=settings, lists_objects=bucket_holding(SEEN).lists)
+    runs = RecordsServer()
+    serves(settings=settings, lists_objects=bucket_holding().lists, runs=runs)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        answered = pool.submit(lambda: runs.app.test_client().get("/").status_code).result()
+    assert answered == 200

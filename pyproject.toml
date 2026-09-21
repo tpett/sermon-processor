@@ -15,6 +15,10 @@ dependencies = [
     "flask",
 ]
 
+[project.scripts]
+sermon-reconcile = "sermon.cli:reconciles"
+sermon-serve = "sermon.cli:serves"
+
 [project.optional-dependencies]
 dev = [
     "pytest",

@@ -83,6 +83,19 @@ unit tests for modules you touched. Do not run a bare `pytest` on scenario work.
 Worktrees use the repo-root `.venv` (`../.venv/bin/python` from `worktrees/<name>`);
 never `uv pip install` a second copy.
 
+## Running it
+
+Both commands read the gitignored `.env` in the working directory, and a
+variable already set in the environment wins over the file.
+
+```bash
+.venv/bin/sermon-reconcile   # scan the bucket; prints what it found, exit 1 on failure
+.venv/bin/sermon-serve       # serve the reviewer's app; SERMON_BIND_HOST, SERMON_PORT
+```
+
+`sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
+the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
+
 ## Where the work is now, and what that means for choices
 
 The foundations are done: the harness over all 604 scenarios, the store, config,
