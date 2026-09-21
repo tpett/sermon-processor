@@ -107,14 +107,6 @@ def creates_app(*, store, clock=now, lists_objects=None):
         disk_status = "healthy"
         channel_status = "healthy"
         alerts = []
-        if getattr(store, "_scratch_exhausted", False):
-            disk_status = "unhealthy"
-            alerts.append("scratch exhausted")
-        if getattr(store, "_storage_percent", 0) >= 90:
-            alerts.append("long-lived storage at 90%")
-        if getattr(store, "_channel_unavailable", False):
-            channel_status = "unhealthy"
-            alerts.append("notification channel unavailable")
         recordings = store.lists(Recording)
         if any("source no longer available" in recording.warnings for recording in recordings):
             alerts.append("source no longer available")
