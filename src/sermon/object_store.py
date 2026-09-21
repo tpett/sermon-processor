@@ -13,6 +13,11 @@ REGION = "garage"
 ADDRESSING_STYLE = "path"
 SIGNATURE_VERSION = "s3v4"
 LISTING = "list_objects_v2"
+READING = "get_object"
+CHUNK_BYTES = 8 * 1024 * 1024
+MULTIPART = "-"
+DIGEST_LENGTH = 32
+ABSENT = frozenset({"NoSuchKey", "NoSuchBucket", "NotFound", "404"})
 REFUSED = 403
 REFUSALS = frozenset(
     {"AccessDenied", "InvalidAccessKeyId", "SignatureDoesNotMatch", "403", "Forbidden"}
@@ -72,3 +77,22 @@ class ListsBucketObjects:
             ]
         except (BotoCoreError, ClientError) as error:
             raise translates(error) from error
+
+
+@dataclass(frozen=True)
+class FetchedObject:
+    size_bytes: int
+    announced_bytes: int | None = None
+    checksum: str | None = None
+    entity_tag: str | None = None
+    last_modified: object = None
+
+
+@dataclass(frozen=True)
+class FetchesBucketObject:
+    bucket: str
+    client: object
+    chunk_bytes: int = CHUNK_BYTES
+
+    def __call__(self, object_key, destination):
+        raise NotImplementedError(object_key)

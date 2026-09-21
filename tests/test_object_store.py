@@ -1,4 +1,5 @@
 import ast
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from sermon.object_store import (
     LISTING,
     REGION,
     SIGNATURE_VERSION,
+    FetchesBucketObject,
     ListsBucketObjects,
     OpensObjectStore,
 )
@@ -27,6 +29,8 @@ BUCKET = "reformation-recordings"
 ACCESS_KEY_ID = "an-access-key-id-that-is-not-real"
 SECRET_ACCESS_KEY = "a-secret-access-key-that-is-not-real"
 FROZEN = datetime(2026, 9, 21, 12, 0, tzinfo=UTC)
+RECORDING_KEY = "recordings/recording_20260823_103015.flac"
+FLAC = b"fLaC" + bytes(252)
 RECORDED = datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC)
 WRITING_OPERATIONS = (
     "put_object",
@@ -262,3 +266,194 @@ def test_listing_is_the_only_operation_asked_of_the_client():
         }
     )
     assert asked == ["get_paginator"]
+
+
+class StreamsBody:
+    def __init__(self, payload, largest=None):
+        self.payload = payload
+        self.reads = []
+        self.at = 0
+        self.closed = False
+        self.largest = largest
+
+    def read(self, amount=None):
+        if amount is None:
+            self.reads.append(len(self.payload) - self.at)
+            chunk = self.payload[self.at:]
+            self.at = len(self.payload)
+            return chunk
+        self.reads.append(amount)
+        chunk = self.payload[self.at:self.at + amount]
+        self.at += len(chunk)
+        return chunk
+
+    def close(self):
+        self.closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *unused):
+        self.close()
+        return False
+
+
+class StubsReadableClient:
+    def __init__(self, objects=None, error=None):
+        self.objects = dict(objects or {})
+        self.error = error
+        self.asked = []
+        self.bodies = []
+
+    def get_object(self, **arguments):
+        self.asked.append(arguments)
+        if self.error is not None:
+            raise self.error
+        held = self.objects.get(arguments["Key"])
+        if held is None:
+            raise missing()
+        payload, announced, tag = held
+        body = StreamsBody(payload)
+        self.bodies.append(body)
+        answer = {"Body": body, "ContentLength": announced, "LastModified": FROZEN}
+        if tag is not None:
+            answer["ETag"] = tag
+        return answer
+
+    def get_paginator(self, operation):
+        raise AssertionError(operation)
+
+
+def missing(operation="GetObject"):
+    return ClientError(
+        {
+            "Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."},
+            "ResponseMetadata": {"HTTPStatusCode": 404},
+        },
+        operation,
+    )
+
+
+def holds(payload, announced=None, tag="unset"):
+    digest = hashlib.md5(payload).hexdigest()
+    return {
+        RECORDING_KEY: (
+            payload,
+            len(payload) if announced is None else announced,
+            f'"{digest}"' if tag == "unset" else tag,
+        )
+    }
+
+
+def fetches(objects=None, error=None, chunk_bytes=None):
+    client = StubsReadableClient(objects=objects, error=error)
+    arguments = {} if chunk_bytes is None else {"chunk_bytes": chunk_bytes}
+    return client, FetchesBucketObject(bucket=BUCKET, client=client, **arguments)
+
+
+def test_fetching_asks_the_store_for_exactly_the_named_object(tmp_path):
+    client, fetch = fetches(holds(FLAC))
+    fetch(RECORDING_KEY, tmp_path / "held.flac")
+    assert client.asked == [{"Bucket": BUCKET, "Key": RECORDING_KEY}]
+
+
+def test_the_fetched_object_lands_on_disk_byte_for_byte(tmp_path):
+    _, fetch = fetches(holds(FLAC))
+    destination = tmp_path / "under" / "held.flac"
+    fetch(RECORDING_KEY, destination)
+    assert destination.read_bytes() == FLAC
+
+
+def test_the_fetch_reports_the_size_digest_and_modification_time_it_saw(tmp_path):
+    _, fetch = fetches(holds(FLAC))
+    fetched = fetch(RECORDING_KEY, tmp_path / "held.flac")
+    assert (fetched.size_bytes, fetched.checksum, fetched.last_modified) == (
+        len(FLAC),
+        hashlib.md5(FLAC).hexdigest(),
+        FROZEN,
+    )
+
+
+def test_the_fetch_reports_what_the_store_announced_beside_what_it_wrote(tmp_path):
+    _, fetch = fetches(holds(FLAC))
+    fetched = fetch(RECORDING_KEY, tmp_path / "held.flac")
+    assert (fetched.announced_bytes, fetched.entity_tag) == (
+        len(FLAC),
+        hashlib.md5(FLAC).hexdigest(),
+    )
+
+
+def test_a_multipart_entity_tag_is_not_offered_as_a_digest(tmp_path):
+    _, fetch = fetches(holds(FLAC, tag='"d41d8cd98f00b204e9800998ecf8427e-7"'))
+    assert fetch(RECORDING_KEY, tmp_path / "held.flac").entity_tag is None
+
+
+def test_the_recording_is_written_in_chunks_rather_than_read_whole(tmp_path):
+    client, fetch = fetches(holds(FLAC), chunk_bytes=16)
+    fetch(RECORDING_KEY, tmp_path / "held.flac")
+    body = client.bodies[0]
+    assert body.reads == [16] * (len(FLAC) // 16) + [16]
+    assert max(body.reads) == 16
+
+
+def test_the_streamed_body_is_closed_even_though_it_was_read_to_the_end(tmp_path):
+    client, fetch = fetches(holds(FLAC), chunk_bytes=16)
+    fetch(RECORDING_KEY, tmp_path / "held.flac")
+    assert client.bodies[0].closed is True
+
+
+def test_an_object_the_store_does_not_hold_is_reported_as_absent(tmp_path):
+    _, fetch = fetches({})
+    assert fetch(RECORDING_KEY, tmp_path / "held.flac") is None
+
+
+def test_an_object_the_store_does_not_hold_leaves_nothing_behind(tmp_path):
+    _, fetch = fetches({})
+    destination = tmp_path / "held.flac"
+    fetch(RECORDING_KEY, destination)
+    assert not destination.exists()
+
+
+def test_a_refused_credential_on_a_fetch_is_not_a_transient_failure(tmp_path):
+    _, fetch = fetches(holds(FLAC), error=forbidden("GetObject"))
+    with pytest.raises(ObjectStoreForbidden):
+        fetch(RECORDING_KEY, tmp_path / "held.flac")
+
+
+def test_an_unreachable_endpoint_on_a_fetch_is_a_transient_failure(tmp_path):
+    _, fetch = fetches(holds(FLAC), error=EndpointConnectionError(endpoint_url=ENDPOINT))
+    with pytest.raises(ObjectStoreUnreachable):
+        fetch(RECORDING_KEY, tmp_path / "held.flac")
+
+
+def test_a_server_error_on_a_fetch_is_a_transient_failure(tmp_path):
+    _, fetch = fetches(holds(FLAC), error=server_error())
+    with pytest.raises(ObjectStoreUnreachable):
+        fetch(RECORDING_KEY, tmp_path / "held.flac")
+
+
+def test_a_truncated_transfer_reports_fewer_bytes_than_the_store_announced(tmp_path):
+    _, fetch = fetches(holds(FLAC, announced=len(FLAC) + 1024))
+    fetched = fetch(RECORDING_KEY, tmp_path / "held.flac")
+    assert fetched.size_bytes < fetched.announced_bytes
+
+
+def test_no_credential_survives_into_a_representation_of_the_fetch(tmp_path):
+    _, fetch = fetches(holds(FLAC))
+    assert ACCESS_KEY_ID not in repr(fetch)
+    assert SECRET_ACCESS_KEY not in repr(fetch)
+
+
+def test_reading_an_object_is_the_only_other_operation_asked_of_the_client():
+    tree = ast.parse(MODULE.read_text(encoding="utf-8"))
+    asked = sorted(
+        {
+            node.func.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Attribute)
+            and node.func.value.attr == "client"
+        }
+    )
+    assert asked == ["get_object", "get_paginator"]
