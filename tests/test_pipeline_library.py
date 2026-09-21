@@ -323,6 +323,32 @@ def test_the_guard_does_not_treat_an_endpoint_assignment_as_a_call_into_the_libr
     assert not uses_a_library_callable(ast.parse(source), "classify")
 
 
+def test_the_guard_does_not_require_a_root_of_a_caller_that_imports_only_a_pure_function(
+    tmp_path,
+):
+    caller = tmp_path / "sermon" / "analysis"
+    caller.mkdir(parents=True)
+    (caller / "blocks_a_recording.py").write_text(
+        "from sermon.pipeline.segments import TAIL_GUARD_S, TAIL_S, coalesce\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == []
+
+
+def test_the_guard_requires_a_root_of_a_caller_that_reaches_it_through_the_library(tmp_path):
+    caller = tmp_path / "sermon" / "analysis"
+    caller.mkdir(parents=True)
+    (caller / "derives_a_segment.py").write_text(
+        "from sermon.pipeline.segments import derive\n"
+    )
+    (caller / "edges_a_recording.py").write_text(
+        "from sermon.pipeline import segments\nsegments.speaker_edges(doc)\n"
+    )
+    assert finds_callers_that_leave_a_root_unset([tmp_path]) == [
+        "derives_a_segment.py leaves sermon.pipeline.segments.DATA_ROOT unset",
+        "edges_a_recording.py leaves sermon.pipeline.segments.DATA_ROOT unset",
+    ]
+
+
 def test_the_guard_covers_a_caller_that_runs_the_library_without_setting_roots(tmp_path):
     caller = tmp_path / "sermon" / "jobs"
     caller.mkdir(parents=True)
