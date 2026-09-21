@@ -1,4 +1,6 @@
+import sqlite3
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -13,7 +15,7 @@ from sermon.cli import (
 )
 from sermon.jobs.downloads_recording import FetchesObject
 from sermon.object_store import ListsBucketObjects
-from sermon.store import Artifact, Recording, Segment, opens_store
+from sermon.store import DATABASE_NAME, Artifact, Recording, Segment, opens_store
 
 ENDPOINT = "https://s3.home.tpett.me"
 BUCKET = "reformation-recordings"
@@ -308,6 +310,37 @@ def test_fetching_never_prints_a_credential(tmp_path):
             lists_objects=objects.lists, prints=prints)
     assert ACCESS_KEY_ID not in str(prints)
     assert SECRET_ACCESS_KEY not in str(prints)
+
+
+def ages_the_database(data_root, statement):
+    connection = sqlite3.connect(Path(data_root) / DATABASE_NAME)
+    with connection:
+        connection.execute(statement)
+    connection.close()
+
+
+def test_a_database_the_code_cannot_use_stops_a_render_before_it_fetches(tmp_path):
+    settings = settings_file(tmp_path)
+    opens_store(settings["SERMON_DATA_ROOT"]).close()
+    ages_the_database(
+        settings["SERMON_DATA_ROOT"], "ALTER TABLE artifact DROP COLUMN input_loudness_lufs"
+    )
+    objects = bucket_holding(SEEN)
+    prints = RecordsLines()
+    outcome = renders(
+        settings=settings,
+        object_key=SEEN,
+        punch_in="0:00:02",
+        punch_out="0:00:18",
+        label="Hebrews 12.4-11",
+        published_on="2026-08-23",
+        fetches_object=objects,
+        lists_objects=objects.lists,
+        prints=prints,
+    )
+    assert (outcome, objects.fetched) == (1, [])
+    assert "input_loudness_lufs" in str(prints)
+    assert "sermon-reconcile" in str(prints)
 
 
 def rendered_by_hand(tmp_path, prints, **overrides):

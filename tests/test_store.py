@@ -2105,6 +2105,34 @@ def test_reopening_the_data_root_finds_what_was_stored(tmp_path):
         second.close()
 
 
+def ages_the_database(data_root, statement):
+    connection = sqlite3.connect(data_root / DATABASE_NAME)
+    with connection:
+        connection.execute(statement)
+    connection.close()
+
+
+def test_a_database_lacking_a_column_the_code_declares_is_refused_at_open(tmp_path):
+    opens_store(data_root=tmp_path).close()
+    ages_the_database(tmp_path, "ALTER TABLE artifact DROP COLUMN input_loudness_lufs")
+    with pytest.raises(Exception, match="artifact.*input_loudness_lufs"):
+        opens_store(data_root=tmp_path)
+
+
+def test_a_database_holding_a_column_no_entity_declares_is_refused_at_open(tmp_path):
+    opens_store(data_root=tmp_path).close()
+    ages_the_database(tmp_path, "ALTER TABLE recording_channel_level ADD COLUMN peak_db REAL")
+    with pytest.raises(Exception, match="recording_channel_level.*peak_db"):
+        opens_store(data_root=tmp_path)
+
+
+def test_a_database_the_code_cannot_use_says_what_makes_it_usable_again(tmp_path):
+    opens_store(data_root=tmp_path).close()
+    ages_the_database(tmp_path, "ALTER TABLE artifact DROP COLUMN output_true_peak_dbtp")
+    with pytest.raises(Exception, match="sermon-reconcile"):
+        opens_store(data_root=tmp_path)
+
+
 def test_the_store_resolves_an_artifact_under_its_data_root(store, graph, tmp_path):
     assert store.resolves(graph["artifact"]) == tmp_path / graph["artifact"].path
 
