@@ -4,6 +4,10 @@ import hashlib
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from sermon.jobs.renders_mp3 import (
+    reads_source_channel,
+    refuses_unsettled_stereo,
+)
 from sermon.records_publication_details import names_rendered_mp3
 from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store
 
@@ -13,6 +17,15 @@ def now():
 
 
 PROCESS_STEPS = ("extract", "normalize", "encode", "name", "publish")
+DIGEST_CHUNK_BYTES = 8 * 1024 * 1024
+
+
+def digests(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as held:
+        while chunk := held.read(DIGEST_CHUNK_BYTES):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 class StepFailed(RuntimeError):
@@ -31,6 +44,7 @@ class RendersSegment:
     renders: object = None
 
     def __call__(self, segment):
+        refuses_unsettled_stereo(self.store.loads(Recording, segment.recording_id))
         correlation_id = f"render:{segment.segment_id}"
         processing = self.store.saves(replace(segment, state="processing"))
         self.store.saves(
@@ -70,8 +84,6 @@ class RendersSegment:
         if recording.integrated_loudness_lufs is not None and recording.integrated_loudness_lufs <= -30:
             if "source was very quiet" not in warnings:
                 warnings.append("source was very quiet")
-        if "source clipping detected" in recording.warnings:
-            self.store._source_was_clipped = True
         processing = self.store.saves(replace(processing, warnings=tuple(warnings)))
         artifact = Artifact(
             recording_id=segment.recording_id,
@@ -84,18 +96,21 @@ class RendersSegment:
         destination = self.store.resolves(artifact)
         destination.parent.mkdir(parents=True, exist_ok=True)
         if self.renders is not None:
-            source = self.store.resolves(recording)
-            self.renders(
-                source,
+            rendered = self.renders(
+                self.store.resolves(recording),
                 processing.punch_in_seconds,
                 processing.punch_out_seconds,
                 destination,
+                channel=reads_source_channel(recording.mono_source),
             )
-            payload = destination.read_bytes()
             artifact = replace(
                 artifact,
-                size_bytes=len(payload),
-                checksum=hashlib.sha256(payload).hexdigest(),
+                size_bytes=destination.stat().st_size,
+                checksum=digests(destination),
+                render_settings=rendered.settings,
+                input_loudness_lufs=rendered.input_loudness_lufs,
+                output_loudness_lufs=rendered.achieved_loudness_lufs,
+                output_true_peak_dbtp=rendered.achieved_true_peak_dbtp,
             )
         else:
             destination.write_bytes(b"")

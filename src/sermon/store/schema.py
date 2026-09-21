@@ -484,6 +484,19 @@ def creates(name, definitions):
     return f"CREATE TABLE IF NOT EXISTS {name} (\n    {body}\n)"
 
 
+def declared_columns():
+    declared = {}
+    for table in TABLES.values():
+        declared[table.name] = column_names(table)
+        for collection in table.collections:
+            declared[collection.table] = (
+                collection.owner,
+                "position",
+                *element_columns(collection),
+            )
+    return declared
+
+
 def schema_statements():
     statements = []
     for table in TABLES.values():

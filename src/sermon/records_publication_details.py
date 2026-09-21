@@ -45,7 +45,6 @@ class RecordsPublicationDetails:
             if item.path == path and item.segment_id != segment.segment_id
         ]
         if existing and not replace_existing:
-            self.store._filename_collision = path
             raise FilenameCollision(path)
         return self.store.saves(
             replace(segment, publication_date=publication_date, label=label)

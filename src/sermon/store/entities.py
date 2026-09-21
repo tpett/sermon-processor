@@ -126,6 +126,9 @@ class Artifact:
     size_bytes: int
     checksum: str
     render_settings: dict | None = None
+    input_loudness_lufs: float | None = None
+    output_loudness_lufs: float | None = None
+    output_true_peak_dbtp: float | None = None
     asr_config: dict | None = None
     superseded_by: int | None = None
 

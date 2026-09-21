@@ -1,3 +1,78 @@
+## SLICE 2 is done — a cut by hand renders (2026-09-21)
+
+**There is a playable MP3, cut at boundaries a human chose.** Verified end to end
+with no bucket involved, against a locally generated 31-minute stereo FLAC with a
+dead channel:
+
+```
+$ sermon-fetch recording_20260823_103015
+recordings/recording_20260823_103015.flac -> recordings/recording_20260823_103015.flac
+116135338 bytes, 1900.0 s, 2 channels at 44100 Hz
+-29.8 LUFS integrated, -14.9 dBTP true peak, 1.8 LU range
+channel 1: -29.286828 dB RMS
+channel 2: -120.0 dB RMS
+signal on channel 1
+
+$ sermon-render recording_20260823_103015 --from 0:02:00 --to 0:28:30 \
+      --label "Hebrews 12.4-11" --date 2026-08-23
+2026-08-23 - Hebrews 12.4-11.mp3 -> .../data/2026-08-23 - Hebrews 12.4-11.mp3
+17798148 bytes over 1590.0 s
+-16.0 LUFS integrated, -1.4 dBTP true peak, 89 kbps, 1 channel at 44100 Hz
+input was -29.84 LUFS
+off target: true peak -1.4 dBTP exceeds -1.5
+off target: bitrate 89 kbps is outside 96-108
+```
+
+Probe 7 s, a 26.5-minute cut in 40 s, peak RSS 78 MB against a 116 MB source.
+**Both off-target lines are the synthetic source, not the chain** — narrow-band
+synthesised speech encodes below 96 kbps and overshoots the ceiling by 0.1 dB on
+this material; the same command on a 3-minute span of the same file landed the
+true peak at exactly -1.5. The real corpus measured 96-108 kbps. That is the
+point of printing them: the command exits non-zero rather than looking like a
+success, which is the failure the manual process had.
+
+**`0:00:00` on the detail page is fixed.** Nothing had ever probed a recording;
+`MeasuresRecordingAudio` now does, reusing the validated `probe_format` and
+`probe_loudness` unchanged and adding one `astats` pass for the per-channel RMS
+that decides which channel carries signal.
+
+**The fetch never buffers a recording.** `FetchesBucketObject` reads one named
+object in 8 MiB chunks straight into the destination file, digesting as it goes,
+and `DownloadsRecording` hands it the destination rather than taking bytes back.
+There is still no write path: the AST guard that pinned `get_paginator` as the
+only method asked of the client now admits `get_object` beside it and nothing
+else, and the write-operation guard is untouched.
+
+**What the render actually guarantees.** One channel taken, never downmixed, at
+the channel the probe named; the approved span within 100 ms; one loudness stage
+that measures then corrects with no separate compression; short fades both ends;
+`-q:a 3` VBR; mono 44.1 kHz; the filename from `names_rendered_mp3`; and the
+measured input loudness, output loudness and output true peak recorded on the
+Artifact beside the settings the render was given.
+
+**What it does not guarantee, honestly.** `-17 LUFS within 1 LU` and
+`96-108 kbps` are properties of real programme material, not of the chain: the
+achieved loudness is `-1.5 - crest factor` whenever loudnorm falls back to
+dynamic mode, so a synthetic source lands wherever its crest factor puts it. The
+suite therefore asserts the mechanism and the render's own verdict on itself; the
+numbers are verified by running the command on a real recording. Nothing in
+`tests/` needs the bucket or the tailnet.
+
+**Two hooks removed, and no scenario changed verdict.** `renders_segment` no
+longer sets `store._source_was_clipped` and `records_publication_details` no
+longer sets `store._filename_collision`. The clipping step now asserts the
+Recording's own warning; the collision step asserts the refusal the caller
+actually caught, through a `target_fixture` rather than a flag on the store. Both
+scenarios were already red and stay red for their real reasons — the clipping one
+needs a Segment-level record the vocabulary does not hold yet.
+
+**`audio_rendering.feature` is still entirely red, all 20 scenarios, exactly as
+it was.** Its Background fixes punch points at 2:00:20 and 2:43:32, so
+implementing it honestly needs a 2h43m source generated and a 43-minute span
+rendered per scenario. That is a bead of its own, not a side effect of this one.
+The feature was read as the specification for the code, which is what the
+implementation satisfies.
+
 ## SLICE 1 is done — the corpus is visible (2026-09-21)
 
 `sermon-reconcile` then `sermon-serve`, against the real bucket:

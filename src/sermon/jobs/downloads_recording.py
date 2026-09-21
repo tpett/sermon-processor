@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sermon.jobs.enqueues_job import EnqueuesJob
+from sermon.object_store import FetchedObject
 from sermon.reconciles_bucket import ObjectStoreForbidden, ObjectStoreUnreachable
 from sermon.store import Job, LogEntry, Recording, Store
 
@@ -23,6 +24,11 @@ class ChecksumMismatch(RuntimeError):
     pass
 
 
+class ObjectTruncated(ChecksumMismatch):
+    def __init__(self, written, announced):
+        super().__init__(f"{written} of the {announced} bytes the store announced")
+
+
 class UndecodableAudio(RuntimeError):
     def __init__(self):
         super().__init__("source file is not decodable audio")
@@ -33,48 +39,84 @@ class InsufficientDisk(RuntimeError):
 
 
 @dataclass(frozen=True)
-class FetchedObject:
+class HeldObject:
     body: bytes
     last_modified: datetime | None = None
-    size_bytes: int | None = None
+    announced_bytes: int | None = None
+    entity_tag: str | None = None
 
 
 class FetchesObject:
     def __init__(self):
         self._objects = {}
         self.error = None
+        self.destinations = []
+        self.fetched = []
 
-    def stores(self, key, body, *, last_modified=None, size_bytes=None):
+    def stores(self, key, body, *, last_modified=None, size_bytes=None, entity_tag=None):
         payload = bytes(body)
-        self._objects[key] = FetchedObject(
+        self._objects[key] = HeldObject(
             body=payload,
             last_modified=last_modified,
-            size_bytes=len(payload) if size_bytes is None else size_bytes,
+            announced_bytes=len(payload) if size_bytes is None else size_bytes,
+            entity_tag=hashlib.md5(payload).hexdigest() if entity_tag is None else entity_tag,
         )
 
     def drops(self, key):
         self._objects.pop(key, None)
 
-    def lists(self):
+    def holds(self, key):
+        held = self._objects.get(key)
+        return None if held is None else held.body
+
+    def _refuses(self):
         if self.error in {"403 Forbidden", "403"}:
             raise ObjectStoreForbidden(self.error)
         if self.error:
             raise ObjectStoreUnreachable(self.error)
+
+    def lists(self):
+        self._refuses()
         return [
             {
                 "object_key": key,
-                "size_bytes": fetched.size_bytes if fetched.size_bytes is not None else len(fetched.body),
-                "last_modified": fetched.last_modified,
+                "size_bytes": held.announced_bytes,
+                "last_modified": held.last_modified,
             }
-            for key, fetched in self._objects.items()
+            for key, held in self._objects.items()
         ]
 
-    def __call__(self, key):
-        if self.error in {"403 Forbidden", "403"}:
-            raise ObjectStoreForbidden(self.error)
-        if self.error:
-            raise ObjectStoreUnreachable(self.error)
-        return self._objects.get(key)
+    def __call__(self, key, destination):
+        self._refuses()
+        held = self._objects.get(key)
+        if held is None:
+            return None
+        self.destinations.append(destination)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(held.body)
+        fetched = FetchedObject(
+            size_bytes=len(held.body),
+            announced_bytes=held.announced_bytes,
+            checksum=hashlib.md5(held.body).hexdigest(),
+            entity_tag=held.entity_tag,
+            last_modified=held.last_modified,
+        )
+        self.fetched.append(fetched)
+        return fetched
+
+
+def refuses_a_partial_transfer(fetched, destination):
+    if fetched.announced_bytes is None or fetched.size_bytes == fetched.announced_bytes:
+        return
+    destination.unlink(missing_ok=True)
+    raise ObjectTruncated(fetched.size_bytes, fetched.announced_bytes)
+
+
+def refuses_a_digest_the_store_disowns(fetched, destination):
+    if fetched.entity_tag is None or fetched.entity_tag == fetched.checksum:
+        return
+    destination.unlink(missing_ok=True)
+    raise ChecksumMismatch(fetched.checksum)
 
 
 @dataclass(frozen=True)
@@ -110,7 +152,9 @@ class DownloadsRecording:
                 entered_state="downloading",
             )
         )
-        fetched = self.fetches(recording.object_key)
+        local_path = recording.object_key
+        destination = self.store.resolves(replace(downloading, local_path=local_path))
+        fetched = self.fetches(recording.object_key, destination)
         if fetched is None:
             if recording.state not in {"discovered"}:
                 warnings = list(recording.warnings)
@@ -118,7 +162,7 @@ class DownloadsRecording:
                     warnings.append("source no longer available")
                 self.store.saves(replace(recording, warnings=tuple(warnings)))
             raise ObjectNotReadable(recording.object_key)
-        if not fetched.body:
+        if not fetched.size_bytes:
             self.store.saves(replace(downloading, state="ingest_failed"))
             self.store.saves(
                 LogEntry(
@@ -131,20 +175,18 @@ class DownloadsRecording:
                 )
             )
             raise UndecodableAudio()
-        local_path = recording.object_key
-        destination = self.store.resolves(replace(downloading, local_path=local_path))
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(fetched.body)
+        refuses_a_partial_transfer(fetched, destination)
+        refuses_a_digest_the_store_disowns(fetched, destination)
         if recording.checksum:
-            digest = hashlib.md5(fetched.body).hexdigest()
             expected = recording.checksum.rstrip(".")
-            if digest != recording.checksum and not digest.startswith(expected):
+            if fetched.checksum != recording.checksum and not fetched.checksum.startswith(expected):
                 destination.unlink(missing_ok=True)
-                raise ChecksumMismatch(digest)
+                raise ChecksumMismatch(fetched.checksum)
         started_at = datetime.strptime(
             Path(recording.object_key).stem, "recording_%Y%m%d_%H%M%S"
         ).replace(tzinfo=UTC)
-        sidecar = self.fetches(f"{recording.object_key}.meta.json")
+        sidecar_path = destination.with_name(f"{destination.name}.meta.json")
+        sidecar = self.fetches(f"{recording.object_key}.meta.json", sidecar_path)
         if sidecar is None:
             sidecar_present = False
             probed = self.probes(destination)
@@ -153,7 +195,7 @@ class DownloadsRecording:
             channels = probed.channels
         else:
             sidecar_present = True
-            metadata = json.loads(sidecar.body)
+            metadata = json.loads(sidecar_path.read_text(encoding="utf-8"))
             duration_seconds = float(metadata["duration"])
             sample_rate = int(metadata["sample_rate"])
             channels = int(metadata["channels"])
@@ -162,6 +204,7 @@ class DownloadsRecording:
                 downloading,
                 state="downloaded",
                 local_path=local_path,
+                checksum=fetched.checksum,
                 sidecar_present=sidecar_present,
                 duration_seconds=duration_seconds,
                 sample_rate=sample_rate,

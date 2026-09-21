@@ -191,10 +191,9 @@ def _(store, recording):
 @then(parsers.parse('"{_field}" falls back to the object\'s last-modified timestamp'))
 def _(store, recording, object_store):
     stored = store.loads(Recording, recording.recording_id)
-    fetched = object_store(stored.object_key)
     assert stored.started_at_source == "key"
     assert stored.started_at == datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC)
-    assert stored.started_at != fetched.last_modified
+    assert stored.started_at != OBJECT_LAST_MODIFIED
 
 
 @given(parsers.parse('the webhook announced an MD5 of "{checksum}"'))
@@ -402,8 +401,9 @@ def _(store, recording, object_store):
 
     stored = store.loads(Recording, recording.recording_id)
     local = store.resolves(stored).read_bytes()
-    remote = object_store(stored.object_key).body
-    assert hashlib.md5(local).digest() == hashlib.md5(remote).digest()
+    remote = object_store.holds(stored.object_key)
+    assert hashlib.md5(local).hexdigest() == stored.checksum
+    assert hashlib.md5(local).hexdigest() == hashlib.md5(remote).hexdigest()
     assert local == remote
 
 

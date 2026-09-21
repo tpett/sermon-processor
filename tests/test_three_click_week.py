@@ -6,9 +6,9 @@ import pytest
 
 from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
+from sermon.jobs.renders_mp3 import RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
-from sermon.pipeline.render import render as render_span
 from sermon.sends_notification import SendsNotification
 from sermon.store import Artifact, Reviewer, Segment, opens_store
 from sermon.web import creates_app
@@ -67,7 +67,7 @@ def queued_worker(store, fetches):
             steps=lambda _name: None,
             notifies=SendsNotification(store=store),
             clock=lambda: FROZEN,
-            renders=render_span,
+            renders=RendersMp3(),
         ),
     )
 

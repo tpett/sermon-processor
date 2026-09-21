@@ -33,11 +33,11 @@ def _run(cmd: list[str]) -> str:
     return p.stderr
 
 
-def measure(src: Path, start: float, dur: float) -> dict:
+def measure(src: Path, start: float, dur: float, channel: int = 0) -> dict:
     """Pass 1 — loudnorm's own measurement of the span we are about to render."""
     err = _run(["ffmpeg", "-v", "info", "-nostats",
                 "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", str(src),
-                "-af", f"pan=mono|c0=c0,loudnorm=I={TARGET_I}:TP={TARGET_TP}:"
+                "-af", f"pan=mono|c0=c{channel},loudnorm=I={TARGET_I}:TP={TARGET_TP}:"
                        f"LRA={TARGET_LRA}:print_format=json",
                 "-f", "null", "-"])
     a, b = err.rfind("{"), err.rfind("}")
@@ -47,14 +47,14 @@ def measure(src: Path, start: float, dur: float) -> dict:
 
 
 def render(src: Path, start: float, end: float, dst: Path,
-           loudness: bool = True, fades: bool = True) -> dict:
+           loudness: bool = True, fades: bool = True, channel: int = 0) -> dict:
     dur = end - start
     dst.parent.mkdir(parents=True, exist_ok=True)
 
-    chain = ["pan=mono|c0=c0"]
+    chain = [f"pan=mono|c0=c{channel}"]
     m = {}
     if loudness:
-        m = measure(src, start, dur)
+        m = measure(src, start, dur, channel)
         chain.append(
             f"loudnorm=I={TARGET_I}:TP={TARGET_TP}:LRA={TARGET_LRA}:"
             f"measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
