@@ -448,3 +448,20 @@ def stereo_source(tmp_path):
     )
     raw.unlink()
     return flac
+
+
+def test_fetching_reports_a_scan_that_could_not_reach_the_store(tmp_path):
+    prints = RecordsLines()
+    objects = bucket_holding_audio(tmp_path)
+    objects.error = "connection reset"
+    assert fetches(settings=settings_file(tmp_path), object_key=SEEN,
+                   fetches_object=objects, lists_objects=objects.lists,
+                   prints=prints) == 1
+    assert "failed" in str(prints)
+    assert "holds no" not in str(prints)
+
+
+def test_rendering_an_object_the_bucket_does_not_hold_fails(tmp_path):
+    prints = RecordsLines()
+    assert rendered_by_hand(tmp_path, prints, object_key=UNSEEN) == 1
+    assert f"holds no {UNSEEN}" in str(prints)

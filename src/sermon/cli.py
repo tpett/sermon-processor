@@ -32,9 +32,9 @@ from sermon.web import creates_app
 ENVIRONMENT_FILE = ".env"
 REVIEWER = "reviewer"
 READS_TIMECODE = ReadsTimecode()
-FETCH_USAGE = "usage: sermon-fetch <object-key-or-recording-id>"
+FETCH_USAGE = "sermon-fetch <object-key-or-recording-id>"
 RENDER_USAGE = (
-    "usage: sermon-render <object-key-or-recording-id> "
+    "sermon-render <object-key-or-recording-id> "
     "--from <h:mm:ss> --to <h:mm:ss> --label <text> [--date <yyyy-mm-dd>]"
 )
 BIND_HOST = "SERMON_BIND_HOST"
@@ -115,12 +115,22 @@ def names_the_recording(store, named):
     return None
 
 
+class NothingNamesIt(RuntimeError):
+    pass
+
+
 def discovers(store, named, lists_objects):
     known = names_the_recording(store, named)
     if known is not None:
         return known
     ReconcilesBucket(store=store, lists_objects=lists_objects)()
-    return names_the_recording(store, named)
+    scans = store.lists(Discovery, kind="scan")
+    if scans and scans[-1].failure:
+        raise NothingNamesIt(f"the scan for {named} failed: {scans[-1].failure}")
+    found = names_the_recording(store, named)
+    if found is None:
+        raise NothingNamesIt(f"the bucket holds no {named}")
+    return found
 
 
 def brings_local(store, recording, fetch, prints):
@@ -164,11 +174,11 @@ def fetches(settings=None, object_key=None, fetches_object=None, lists_objects=N
     configuration, store, lists_objects = opens(settings, lists_objects)
     try:
         recording = discovers(store, object_key, lists_objects)
-        if recording is None:
-            prints(f"the bucket holds no {object_key}")
-            return 1
         reports_source(brings_local(store, recording, fetch_for(configuration, fetches_object), prints), prints)
         return 0
+    except NothingNamesIt as unknown:
+        prints(str(unknown))
+        return 1
     except (ObjectStoreForbidden, ObjectStoreUnreachable) as refused:
         prints(f"the object store refused the fetch: {refused}")
         return 1
@@ -222,9 +232,6 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
     store.saves(Reviewer(actor=REVIEWER, receives_notifications=True))
     try:
         recording = discovers(store, object_key, lists_objects)
-        if recording is None:
-            prints(f"the bucket holds no {object_key}")
-            return 1
         recording = brings_local(store, recording, fetch_for(configuration, fetches_object), prints)
         if published_on is None:
             published_on = recording.started_at.date()
@@ -245,6 +252,9 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
         rendered = produced[-1]
         reports_render(store, artifacts[-1], rendered, prints)
         return 1 if rendered.misses() else 0
+    except NothingNamesIt as unknown:
+        prints(str(unknown))
+        return 1
     except ChannelsNeedReview as unsettled:
         prints(f"{unsettled}; confirm which channel to take before rendering")
         return 1
@@ -272,7 +282,7 @@ def reads_failure(store, segment):
 def reads_one_argument(usage, prints):
     arguments = sys.argv[1:]
     if len(arguments) != 1:
-        prints(usage)
+        prints(f"usage: {usage}")
         return None
     return arguments[0]
 
@@ -302,7 +312,7 @@ def parses_render_command(arguments, prints):
     try:
         asked = parser.parse_args(arguments)
     except SystemExit:
-        prints(RENDER_USAGE)
+        prints(f"usage: {RENDER_USAGE}")
         return None
     return (asked.recording, asked.punch_in, asked.punch_out, asked.label, asked.published_on)
 
