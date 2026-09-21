@@ -1,3 +1,36 @@
+## SLICE 1 is done — the corpus is visible (2026-09-21)
+
+`sermon-reconcile` then `sermon-serve`, against the real bucket:
+
+- **93 recordings discovered, 0 skipped**, all in `discovered`, all
+  `started_at_source='key'`, 2026-03-11 .. 2026-09-20 — matching the bucket exactly.
+- The list page renders real dates newest first, paginated at 50, which
+  `recording_list.feature` requires. Detail pages return 200.
+- Durations show `0:00:00` because nothing has probed yet. Honest, not a defect.
+
+**The object store is `s3.home.tpett.me`, path-style, region `garage`.**
+`garage.home.tpett.me` fronts a Garage endpoint that rejects S3 API routes, and
+virtual-host addressing cannot work — Caddy serves no wildcard certificate.
+Credentials live in a gitignored 0600 `.env`; `data/` is gitignored too.
+
+**The bucket holds 93 objects, 39.1 GiB, every one a `.flac`, and no sidecars at
+all.** Three consequences: `recording_download.feature`'s preamble says 85 objects
+and is stale; every start time therefore comes from the key, which is what
+`started_at_source` exists to record; and no real key exercises the
+"key does not match the pattern" skip reason, so that branch needs a unit test.
+
+**Two defects only running it could find.** `creates_app` defaulted its object
+store to the in-memory `FetchesObject` test double — the fake was the shipped
+production default. And `sermon-serve` returned 500 on every page from SQLite
+objects crossing threads, invisible to the entire suite because `test_client`
+runs in-thread: a green suite against an app no browser could load. This is the
+case for the slice rule — done means an artifact inspected outside the test suite.
+
+Three scenarios went red when this slice's four test hooks were removed, and stay
+red honestly: the health view never measured disk. One was deliberately left
+failing rather than made green while half its chain is still hook-driven in a
+module slice 1 does not own.
+
 ## The branch's real state (2026-09-21)
 
 `tests/test_spec.py` reports **308 of 604 scenarios passing**, 288 failing as
