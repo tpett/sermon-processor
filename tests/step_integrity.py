@@ -210,6 +210,17 @@ def calls_pytest(node: ast.Call, attributes: frozenset[str]) -> bool:
     return roots_attribute(node.func) == "pytest" and node.func.attr in attributes
 
 
+def reaches_bodies(node: ast.FunctionDef, helpers: dict[str, ast.FunctionDef]):
+    bodies = [node]
+    for statement in ast.walk(node):
+        if not isinstance(statement, ast.Call) or not isinstance(statement.func, ast.Name):
+            continue
+        helper = helpers.get(statement.func.id)
+        if helper is not None and helper not in bodies:
+            bodies.append(helper)
+    return bodies
+
+
 def asserts_something(node: ast.FunctionDef, helpers: dict[str, ast.FunctionDef], depth: int = 0) -> bool:
     for statement in ast.walk(node):
         if isinstance(statement, (ast.Assert, ast.Raise)):
@@ -299,29 +310,30 @@ def cannot_fail(test: ast.expr, gherkin: frozenset[str], truths: frozenset[str])
     return restates_the_gherkin(test, gherkin, truths)
 
 
-def finds_unfalsifiable_assertions(
-    node: ast.FunctionDef, gherkin: frozenset[str], truths: frozenset[str]
-) -> bool:
+def finds_unfalsifiable_assertions(bodies, gherkin: frozenset[str], truths: frozenset[str]) -> bool:
     return any(
         cannot_fail(statement.test, gherkin, truths)
-        for statement in ast.walk(node)
+        for body in bodies
+        for statement in ast.walk(body)
         if isinstance(statement, ast.Assert)
     )
 
 
-def joins_a_literal_true(node: ast.FunctionDef) -> bool:
-    for statement in ast.walk(node):
-        if not isinstance(statement, ast.BoolOp):
-            continue
-        if any(isinstance(value, ast.Constant) and value.value is True for value in statement.values):
-            return True
+def joins_a_literal_true(bodies) -> bool:
+    for body in bodies:
+        for statement in ast.walk(body):
+            if not isinstance(statement, ast.BoolOp):
+                continue
+            if any(isinstance(one, ast.Constant) and one.value is True for one in statement.values):
+                return True
     return False
 
 
-def neuters_itself(node: ast.FunctionDef) -> bool:
+def neuters_itself(bodies) -> bool:
     return any(
         isinstance(statement, ast.Call) and calls_pytest(statement, NEUTERING_PYTEST_CALLS)
-        for statement in ast.walk(node)
+        for body in bodies
+        for statement in ast.walk(body)
     )
 
 
@@ -334,11 +346,12 @@ def names_parameters(node: ast.FunctionDef) -> frozenset[str]:
 def judges_definition(kind, parser, node, helpers, truths, sermon_names) -> tuple[str, ...]:
     faults = []
     gherkin = names_gherkin_arguments(parser)
-    if neuters_itself(node):
+    bodies = reaches_bodies(node, helpers)
+    if neuters_itself(bodies):
         faults.append(NEUTERED_STEP)
-    if joins_a_literal_true(node):
+    if joins_a_literal_true(bodies):
         faults.append(TRUE_OPERAND)
-    if finds_unfalsifiable_assertions(node, gherkin, truths):
+    if finds_unfalsifiable_assertions(bodies, gherkin, truths):
         faults.append(UNFALSIFIABLE_ASSERTION)
     if parser is None:
         faults.append(UNREADABLE_NAME)

@@ -63,12 +63,20 @@ ELSEWHERE = "it holds"
 
 def checks_it():
     pass
+
+
+def pretends_to_check(store):
+    assert True
 '''
 
 EVASIONS = (
     ('@then("it holds")\ndef _():\n    return None\n', HOLLOW_THEN),
     ('@then("it holds")\ndef _(store):\n    store.lists()\n', INERT_THEN),
     ('@then("it holds")\ndef _():\n    checks_it()\n', INERT_THEN),
+    (
+        '@then("it holds")\ndef _(store):\n    pretends_to_check(store)\n',
+        UNFALSIFIABLE_ASSERTION,
+    ),
     ('@then("it holds")\ndef _():\n    assert True\n', UNFALSIFIABLE_ASSERTION),
     ('@then("it holds")\ndef _():\n    assert 1 == 1\n', UNFALSIFIABLE_ASSERTION),
     ('@then("it holds")\ndef _():\n    assert not False\n', UNFALSIFIABLE_ASSERTION),
