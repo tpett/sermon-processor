@@ -11,11 +11,6 @@ def _(store):
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))
 
 
-@given("no delivery channel is configured")
-def _():
-    return None
-
-
 @when("something happens that a reviewer should know about")
 def _(store, clock):
     recording = store.saves(
@@ -95,36 +90,6 @@ def _(store):
 @then("it is visible in the interface")
 def _(store):
     assert store.lists(Notification)
-
-
-@then("nothing fails")
-def _():
-    return None
-
-
-@then("delivering a Notification is separate from creating one")
-def _():
-    return None
-
-
-@then("adding or changing a channel does not change when Notifications are raised")
-def _():
-    return None
-
-
-@then("the same Notification can be delivered by more than one channel")
-def _():
-    return None
-
-
-@when("I open the interface")
-def _():
-    return None
-
-
-@then("I see the Notifications raised for me")
-def _(store):
-    assert store.lists(Notification) or True
 
 
 @then("I can see which were delivered and which were not")

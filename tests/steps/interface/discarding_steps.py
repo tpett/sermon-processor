@@ -201,16 +201,6 @@ def _(store, recording):
     assert store.loads(Recording, recording.recording_id).state != "discarded"
 
 
-@then("its Segments are intact")
-def _(store, recording):
-    store.lists(Segment, recording_id=recording.recording_id)
-
-
-@then("the source object in the object store is untouched")
-def _():
-    return None
-
-
 @then("the Recording's record and analysis artifacts are retained")
 def _(store, recording):
     assert store.loads(Recording, recording.recording_id) is not None

@@ -142,12 +142,6 @@ def _(store):
     assert health.get("scan_failure") == "transient" or health.get("object_store") != "healthy"
 
 
-@then("the next scheduled scan runs normally")
-def _(store, object_store, clock):
-    object_store.error = None
-    bucket(store, object_store, clock)()
-
-
 @given("the reconciliation scan skips an object")
 def _(store, object_store, clock):
     object_store.stores("recordings/README.txt", b"readme", last_modified=clock() - timedelta(hours=1))

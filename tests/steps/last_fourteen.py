@@ -19,51 +19,6 @@ def _(store, segment):
         )
 
 
-@then("the resulting MP3 is identical to what it would have been in August")
-def _():
-    return None
-
-
-@then("the whole flow works without a waveform")
-def _():
-    return None
-
-
-@then("the evidence panel shows why that candidate was considered")
-def _():
-    return None
-
-
-@then("I do not have to discard it for the queue to stay clean")
-def _():
-    return None
-
-
-@then("I can approve")
-def _():
-    return None
-
-
-@then("the boundaries can still be adjusted and approved")
-def _():
-    return None
-
-
-@then("I can still adjust and approve boundaries")
-def _():
-    return None
-
-
-@then("it is approved for processing without asking me for boundaries")
-def _():
-    return None
-
-
-@then("the gap is shown as \"0.90 s\"")
-def _():
-    return None
-
-
 @given("a Recording of 104 minutes")
 def _(store):
     store.saves(
@@ -138,26 +93,6 @@ def _(store, clock):
     skipped = [item for item in store.lists(Segment) if item.state == "skipped"]
     if skipped:
         ApprovesSegment(store=store, clock=clock)(skipped[0])
-
-
-@then("the source is still available")
-def _():
-    return None
-
-
-@then("it remains available if I ever want it")
-def _():
-    return None
-
-
-@then("I am asked to confirm that this recording may be distributed")
-def _():
-    return None
-
-
-@then("the confirmation is recorded with the approval")
-def _():
-    return None
 
 
 @when("I revert it to proposed")

@@ -40,11 +40,6 @@ def _(store):
     ensure_recording(store, sample_rate=44100, channels=2, bits_per_raw_sample=32)
 
 
-@given("channel 2 of the source is silent")
-def _():
-    return None
-
-
 @given(parsers.parse('a Recording ingested {years:d} years ago'))
 def _(store, years):
     ensure_recording(
@@ -177,20 +172,10 @@ def _(store):
     ensure_recording(store, size_bytes=1_500_000_000)
 
 
-@given("a download was interrupted at 300 MB")
-def _():
-    return None
-
-
 @given("the local FLAC has been removed to save disk")
 def _(store):
     recording = ensure_recording(store)
     store.saves(replace(recording, local_path=None))
-
-
-@given("the rendered MP3 file cannot be found")
-def _(store):
-    return None
 
 
 @when("a reviewer disables notifications")
@@ -238,26 +223,6 @@ def _(store):
             queued_at=FROZEN,
         )
     )
-
-
-@when("the system comes back up")
-def _():
-    return None
-
-
-@given(parsers.parse('its transcript contains "{text}"'))
-def _(text):
-    return None
-
-
-@then('the label is suggested as "TEC"')
-def _():
-    return None
-
-
-@then(parsers.parse('the label is suggested as "{label}"'))
-def _(label):
-    assert label
 
 
 @when("I approve both")
@@ -352,11 +317,6 @@ def _(store, segment, state):
     )
 
 
-@given("the loudness target has been changed in configuration")
-def _():
-    return None
-
-
 @given(parsers.parse('{count:d} Segments are "complete" under the previous loudness settings'))
 def _(store, count):
     recording = ensure_recording(store, state="reviewed")
@@ -389,11 +349,6 @@ def _(store):
     ensure_recording(store)
 
 
-@then("the MP3 download is not offered")
-def _():
-    return None
-
-
 @given("the Recording contains another Segment classified \"lesson\"")
 def _(store, recording):
     store.saves(
@@ -409,29 +364,9 @@ def _(store, recording):
     )
 
 
-@when("I focus the punch-in")
-def _():
-    return None
-
-
-@given("the punch-in has focus")
-def _():
-    return None
-
-
-@then("the available nudge steps are shown alongside the boundary")
-def _():
-    return None
-
-
 @then(parsers.parse('the punch-in is now "{timecode}"'))
 def _(store, segment, timecode):
     assert abs(store.loads(Segment, segment.segment_id).punch_in_seconds - READS(timecode)) < 0.02
-
-
-@given(parsers.parse("the visible window is {window}"))
-def _(window):
-    return None
 
 
 @then(parsers.parse("100 ms is {pixels}"))
@@ -439,17 +374,7 @@ def _(pixels):
     assert "px" in pixels
 
 
-@then(parsers.parse("placing a boundary to 100 ms is {verdict}"))
-def _(verdict):
-    assert verdict
-
-
 @given("I am looking for the right moment")
-def _():
-    return None
-
-
-@then("the transcript is what I read")
 def _():
     return None
 
@@ -459,35 +384,9 @@ def _():
     return None
 
 
-@then("the waveform is what I use")
-def _():
-    return None
-
-
-@then("no words are expected in view at that zoom")
-def _():
-    return None
-
-
 @given(parsers.parse("a Recording of {minutes:d} minutes"))
 def _(store, minutes):
     ensure_recording(store, duration_seconds=float(minutes * 60))
-
-
-@then("its peak data is fetched per recording rather than inlined in the page")
-def _(store):
-    from sermon.web import creates_app
-
-    recordings = store.lists(Recording)
-    if recordings:
-        creates_app(store=store).test_client().get(
-            f"/api/recordings/{recordings[0].recording_id}"
-        )
-
-
-@then("it is served at progressive resolution")
-def _():
-    return None
 
 
 @when("the render runs")
@@ -532,34 +431,9 @@ def _(store, step):
     assert any(entry.error and step in entry.error for entry in entries) or store.lists(Job)
 
 
-@then("partial output is cleaned up")
-def _():
-    return None
-
-
-@then("a reviewer can retry processing without re-approving")
-def _():
-    return None
-
-
-@then("the step is retried")
-def _():
-    return None
-
-
 @then("processing completes normally")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("the source is re-downloaded from the object store first")
-def _():
-    return None
-
-
-@then("processing continues normally")
-def _():
-    return None
 
 
 @then(parsers.parse('the failure reason is "{reason}"'))
@@ -582,24 +456,9 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then("a storage alert is raised")
-def _():
-    return None
-
-
 @then('the Segment is detected as stuck in "processing"')
 def _(store):
     assert any(item.state == "processing" for item in store.lists(Segment))
-
-
-@then("processing is restarted from the beginning")
-def _():
-    return None
-
-
-@then("no partial artifact is exposed as a download")
-def _():
-    return None
 
 
 @when("I cancel processing")
@@ -609,45 +468,9 @@ def _(store, segment):
     store.saves(replace(store.loads(Segment, segment.segment_id), state="proposed"))
 
 
-@then("the processing job stops")
-def _(store, segment):
-    jobs = store.lists(Job, segment_id=segment.segment_id)
-    assert all(job.state in {"cancelled", "failed", "queued"} for job in jobs) or True
-
-
 @then('the Segment returns to "proposed"')
 def _(store, segment):
     assert store.loads(Segment, segment.segment_id).state == "proposed"
-
-
-@then("any partial output is discarded")
-def _():
-    return None
-
-
-@then("I can correct it before approving")
-def _():
-    return None
-
-
-@then("the output takes channel 1 only")
-def _():
-    return None
-
-
-@then("channel 2 is discarded without being mixed in")
-def _():
-    return None
-
-
-@then("the output level matches channel 1's level, not half of it")
-def _():
-    return None
-
-
-@then("the output is mono")
-def _():
-    return None
 
 
 @then("the output begins at the approved punch-in")
@@ -660,89 +483,14 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then("the output duration matches the approved span within 100 ms")
-def _():
-    return None
-
-
-@then("the trim is sample-accurate rather than snapped to a frame boundary")
-def _():
-    return None
-
-
-@then("a short fade-in is applied at the start")
-def _():
-    return None
-
-
-@then("a short fade-out is applied at the end")
-def _():
-    return None
-
-
-@then("neither fade is long enough to swallow a spoken word")
-def _():
-    return None
-
-
 @then(parsers.parse('the output integrated loudness is "{target}" within {tol:d} LU'))
 def _(target, tol):
     assert "LUFS" in target
 
 
-@then(parsers.parse('the output true peak does not exceed "{peak}"'))
-def _(peak):
-    assert peak
-
-
-@then("the measured input and output loudness are recorded on the Segment")
-def _():
-    return None
-
-
-@then("there is one set of loudness settings, not a normalize toggle and a compress toggle")
-def _():
-    return None
-
-
-@then("the settings used are recorded on every rendered Segment")
-def _():
-    return None
-
-
-@then("changing them is what makes a re-render meaningful")
-def _():
-    return None
-
-
-@then("the change is rejected")
-def _(rejected=None):
-    return None
-
-
 @when("it is ingested")
 def _(store):
     ensure_recording(store)
-
-
-@then("the punch-in is visibly marked as the one the keyboard will move")
-def _():
-    return None
-
-
-@when("I move focus to the punch-out")
-def _():
-    return None
-
-
-@then("they read as 50 ms, 0.1 s, 1 s and 10 s")
-def _():
-    return None
-
-
-@then("the highlighted region updates")
-def _():
-    return None
 
 
 @when("I set the punch-in to the current playhead position", target_fixture="segment")
@@ -760,21 +508,6 @@ def _(store, segment):
     return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds)
 
 
-@then("the punch-in moves to the nearest silence gap boundary")
-def _():
-    return None
-
-
-@then("I am warned that the cut is too close to the audio")
-def _():
-    return None
-
-
-@then("spans with at least 250 ms of quiet are visually marked")
-def _():
-    return None
-
-
 @when("I ask to snap the punch-in to the start of speech", target_fixture="segment")
 def _(store, segment):
     from sermon.places_punch_in import PlacesPunchIn
@@ -789,21 +522,6 @@ def _(store, segment):
     return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 1)
 
 
-@then("the transcript words are shown aligned to their position on the waveform")
-def _():
-    return None
-
-
-@then("individual words are not drawn")
-def _():
-    return None
-
-
-@then("the change is accepted")
-def _():
-    return None
-
-
 @then("it survives me reloading the page")
 def _(store, segment):
     assert store.loads(Segment, segment.segment_id)
@@ -814,21 +532,11 @@ def _(store, segment):
     assert store.loads(Segment, segment.segment_id)
 
 
-@when("Analysis is re-run")
-def _(store):
-    return None
-
-
 @when("I adjust this Segment's punch-in", target_fixture="segment")
 def _(store, segment):
     from sermon.places_punch_in import PlacesPunchIn
 
     return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 0.5)
-
-
-@then("the boundary controls are collapsed")
-def _():
-    return None
 
 
 @given("no Segment was proposed")
@@ -844,11 +552,6 @@ def _(store):
     store._downloaded = True
 
 
-@when("my browser resumes it")
-def _():
-    return None
-
-
 @when("I download the original FLAC")
 def _(store):
     store._downloaded = True
@@ -857,17 +560,6 @@ def _(store):
 @when("I attempt to download it")
 def _(store):
     store._download_error = True
-
-
-@then("no further notifications are sent to them")
-def _():
-    return None
-
-
-@then("each carries its own label")
-def _(store):
-    labels = {item.label for item in store.lists(Segment) if item.label}
-    assert labels or True
 
 
 @when("I approve it without entering a label", target_fixture="approval")
@@ -887,121 +579,10 @@ def _(store, label):
         store.saves(replace(segment, label=label))
 
 
-@then('it enters "recut"')
-def _(store):
-    for segment in store.lists(Segment):
-        store.saves(replace(segment, state="recut"))
-
-
-@then("it is processed again")
-def _():
-    return None
-
-
-@then("the original FLAC is unchanged")
-def _():
-    return None
-
-
 @when("I re-cut this Segment")
 def _(store):
     for segment in store.lists(Segment):
         store.saves(replace(segment, state="proposed"))
-
-
-@when("an operator re-renders the Segment")
-def _(store):
-    return None
-
-
-@when("an operator re-renders them all")
-def _():
-    return None
-
-
-@when("the change is saved")
-def _():
-    return None
-
-
-@then("only the most recent MP3 is stored")
-def _():
-    return None
-
-
-@when("I view its history")
-def _():
-    return None
-
-
-@then("the gap is shown as \"0.90 s\"")
-def _(store):
-    return None
-
-
-@then("it is marked as shorter than the 1.5 second tail the editor prefers")
-def _():
-    return None
-
-
-@when("I zoom into the punch-in")
-def _():
-    return None
-
-
-@then("the waveform resolution increases")
-def _():
-    return None
-
-
-@then("I can distinguish individual words in the waveform")
-def _():
-    return None
-
-
-@then("I can place a boundary to within 100 ms")
-def _():
-    return None
-
-
-@when("I zoom into a boundary")
-def _():
-    return None
-
-
-@then("the transcript words are drawn aligned to the waveform")
-def _():
-    return None
-
-
-@then("I can read exactly what is said either side of the cut")
-def _():
-    return None
-
-
-@given("I have zoomed in")
-def _():
-    return None
-
-
-@when("I choose to fit the whole recording")
-def _():
-    return None
-
-
-@then("the waveform returns to showing the full duration")
-def _():
-    return None
-
-
-@then("all Block bands are visible again")
-def _():
-    return None
-
-
-@given(parsers.parse("the punch-out is {gap} seconds before the next speech"))
-def _():
-    return None
 
 
 @given(parsers.parse('the source true peak is "{peak}" with samples at full scale'))
@@ -1198,16 +779,6 @@ def _(store, segment):
 @then("I am warned about the collision")
 def _(store):
     assert getattr(store, "_filename_collision", False)
-
-
-@then("I can change the label or confirm that this replaces the previous file")
-def _(store, segment):
-    RecordsPublicationDetails(store=store).saves(
-        segment,
-        publication_date=datetime(2026, 8, 23).date(),
-        label="Hebrews 12.4-11",
-        replace_existing=True,
-    )
 
 
 @given(parsers.parse('the label is "{label}"'), target_fixture="segment")

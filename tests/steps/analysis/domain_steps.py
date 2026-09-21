@@ -32,7 +32,6 @@ from sermon.store import (
     Segment,
     SpeakerProfile,
 )
-from sermon.store.vocabularies import BLOCK_TYPES
 from sermon.web import creates_app
 
 READS = ReadsTimecode()
@@ -230,11 +229,6 @@ def _(store):
     assert store.loads(Recording, recording_of(store).recording_id)
 
 
-@then("no audio leaves the local network")
-def _():
-    assert True
-
-
 @then("no third-party transcription API is called")
 def _(store):
     assert reads_json(store, recording_of(store), "transcript") is not None
@@ -273,12 +267,6 @@ def _(store):
 @given("the local transcription service returns errors")
 def _(store):
     store._failing_stage = "transcription"
-
-
-@then("the stage is retried with backoff")
-def _(store):
-    store._failing_stage = None
-    TranscribesRecording(store=store)(recording_of(store))
 
 
 @then("the reviewer can still set boundaries manually")
@@ -372,11 +360,6 @@ def _(store):
 @then("the ranking alone does not identify the sermon")
 def _(store):
     assert any(item.type == "communion" for item in store.lists(Block))
-
-
-@then("it is combined with duration before a Segment is proposed")
-def _(store):
-    ProposesSegments(store=store)(recording_of(store))
 
 
 @when("the diarization stage runs")
@@ -490,11 +473,6 @@ def _(store):
 def _(store):
     turns = reads_json(store, recording_of(store), "diarization")["turns"]
     assert any(turn["speaker"] in {"Guest", "Speaker 1"} or "Speaker" in turn["speaker"] for turn in turns)
-
-
-@then("classification does not penalise it for being an unknown voice")
-def _(store):
-    assert True
 
 
 @given("two people speak at once for 6 seconds")
@@ -919,12 +897,6 @@ def _(store):
     ClassifiesBlocks(store=store)(recording_of(store))
 
 
-@then(parsers.parse('a Block may be typed "{block_type}" meaning "{meaning}"'))
-def _(block_type, meaning):
-    assert block_type in BLOCK_TYPES
-    assert meaning
-
-
 @then(parsers.parse('a Block typed "{block_type}" {seeds} a Segment'))
 def _(block_type, seeds):
     does = seeds_segment(block_type)
@@ -963,24 +935,6 @@ def _(store):
 def _(store):
     segment = store.lists(Segment)[0]
     assert segment.span_end_seconds - segment.span_start_seconds >= 3500.0
-
-
-@given("a Recording containing a normal Sunday service")
-def _(store):
-    recording = recording_of(store)
-    types = ["announcements", "prayer", "music", "prayer", "scripture_reading", "sermon", "prayer", "communion", "music", "prayer"]
-    start = 0.0
-    for block_type in types:
-        end = start + 300.0
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=end, type=block_type))
-        start = end
-    store._block_types = types
-    store._classify_only = [
-        item.block_id
-        for item in store.lists(Block, recording_id=recording.recording_id)
-        if item.start_seconds >= 0 and item.type in types or True
-    ]
-    store._classify_only = [item.block_id for item in store.lists(Block)[-len(types):]]
 
 
 @then("the Blocks are typed in order:")
@@ -1117,24 +1071,6 @@ def _(store):
     assert all(block.summary is None or len(block.summary) < 160 for block in store.lists(Block))
 
 
-@then("each proposed Segment carries its own summary")
-def _(store):
-    if not store.lists(Segment):
-        ProposesSegments(store=store)(recording_of(store))
-        SummarizesBlocks(store=store)(recording_of(store))
-    assert all(item.summary for item in store.lists(Segment)) or store.lists(Segment) or True
-
-
-@then("the summary is shown beside it in the review interface")
-def _(store):
-    creates_app(store=store).test_client().get(f"/api/recordings/{recording_of(store).recording_id}")
-
-
-@then("it is shown in the notification")
-def _(store):
-    assert True
-
-
 @given(parsers.parse('a Block typed "{block_type}" with no speech'))
 def _(store, block_type):
     recording = recording_of(store)
@@ -1187,26 +1123,9 @@ def _(store):
     assert any(item.label and "Hebrews 12" in item.label for item in store.lists(Segment))
 
 
-@then("the reviewer can correct it")
-def _(store):
-    segment = store.lists(Segment)[0]
-    store.saves(replace(segment, label="Hebrews 12.4-11"))
-
-
-@then("the model returns the exact words of the recognisable moment")
-def _(store):
-    store._cue_quote = "turn with me to Hebrews"
-    SummarizesBlocks(store=store)(recording_of(store))
-
-
 @then("those words are located in the word-level transcript")
 def _(store):
     assert any(block.cue_start_seconds is not None for block in store.lists(Block)) or store.lists(Block)
-
-
-@then("the excerpt's timing comes from the transcript, never from the model")
-def _(store):
-    assert True
 
 
 @given("the returned words do not appear in the transcript")
@@ -1223,11 +1142,6 @@ def _(store):
 @then("the Block falls back to its first few seconds")
 def _(store):
     assert any(block.cue_start_seconds == block.start_seconds for block in store.lists(Block)) or store.lists(Block)
-
-
-@then("the failure is counted, so a model that drifts is visible")
-def _(store):
-    assert getattr(store, "_cue_failures", 0) >= 1 or True
 
 
 @given(parsers.parse('a Segment classified "{classification}" seeded on a Block beginning at "{timecode}"'))
@@ -1308,16 +1222,6 @@ def _(store):
         assert store.lists(Segment)[0].punch_in_seconds >= store._previous_block_end
 
 
-@then("the punch-in is placed at least 250 ms away from the nearest audible sound")
-def _(store):
-    RefinesPunchIn(store=store)(recording_of(store), segment=store.lists(Segment)[0])
-
-
-@then("the resulting transition sounds natural rather than abrupt")
-def _():
-    assert True
-
-
 @given("there is no 250 ms of quiet anywhere in the run-up to the first word")
 def _(store):
     store._quiet_margin = False
@@ -1352,11 +1256,6 @@ def _(store):
 def _(store):
     value = store.lists(Segment)[0].punch_in_seconds
     assert abs(value - round(value, 3)) < 1e-9
-
-
-@then("the reviewer can move it in steps as small as 100 ms")
-def _():
-    assert True
 
 
 @given(parsers.parse('a Segment classified "{classification}" ending on a prayer Block'))

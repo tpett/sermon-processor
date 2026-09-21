@@ -94,17 +94,6 @@ def _(recording_detail):
     assert len(set(ids)) == len(ids) == 2
 
 
-@then("I see:")
-def _(recording_detail, datatable):
-    expected = dict(datatable[1:])
-    if "Recorded at" in expected:
-        assert recording_detail["recorded_at"] == expected["Recorded at"]
-    if "Source duration" in expected:
-        assert recording_detail["duration"] == expected["Source duration"]
-    if "Source object key" in expected:
-        assert expected["Source object key"] in recording_detail["object_key"] or True
-
-
 @given(parsers.parse('the Recording is flagged "{warning}"'), target_fixture="recording")
 def _(store, recording, warning):
     from dataclasses import replace
@@ -115,11 +104,6 @@ def _(store, recording, warning):
 @then("I see the clipping warning")
 def _(recording_detail):
     assert any("clipping" in item for item in recording_detail["warnings"])
-
-
-@then("it explains that this originates at the recorder and cannot be repaired here")
-def _():
-    return None
 
 
 @given(parsers.parse('the Recording is in state "{state}"'), target_fixture="recording")
@@ -144,29 +128,9 @@ def _(recording_detail):
     assert recording_detail["state"] == "analyzing"
 
 
-@then("I see which stages have completed")
-def _():
-    return None
-
-
 @then("no Segments are shown yet")
 def _(recording_detail):
     assert recording_detail["segments"] == [] or recording_detail["state"] == "analyzing"
-
-
-@then("I see the failure reason")
-def _(store, recording):
-    assert store.loads(Recording, recording.recording_id).skip_reason or True
-
-
-@then("I can retry Analysis")
-def _():
-    return None
-
-
-@then("I can create a Segment by hand instead")
-def _():
-    return None
 
 
 @then(parsers.parse('the available recording-level actions are "{actions}"'))
