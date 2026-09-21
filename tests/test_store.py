@@ -2136,3 +2136,28 @@ def test_an_artifact_whose_path_escapes_the_data_root_is_never_stored(store, gra
     with pytest.raises(PathEscapesDataRoot):
         store.saves(replace(graph["artifact"], artifact_id=None, path="../../escaped.mp3"))
     assert everything_stored(store, tmp_path) == stored
+
+
+def reads_object_keys(opened):
+    try:
+        return sorted(item.object_key for item in opened.lists(Recording))
+    except sqlite3.ProgrammingError as refused:
+        return str(refused)
+
+
+def test_a_store_opened_on_one_thread_is_readable_from_another(store):
+    from concurrent.futures import ThreadPoolExecutor
+
+    store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key="recordings/recording_20260823_103015.flac",
+            state="discovered",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=743829120,
+        )
+    )
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        found = pool.submit(reads_object_keys, store).result()
+    assert found == ["recordings/recording_20260823_103015.flac"]

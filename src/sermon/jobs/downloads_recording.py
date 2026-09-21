@@ -110,9 +110,6 @@ class DownloadsRecording:
                 entered_state="downloading",
             )
         )
-        if getattr(self.store, "_scratch_exhausted", False):
-            self.store.saves(replace(recording, waiting_since=self.clock()))
-            raise InsufficientDisk(recording.size_bytes)
         fetched = self.fetches(recording.object_key)
         if fetched is None:
             if recording.state not in {"discovered"}:

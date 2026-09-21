@@ -10,7 +10,6 @@ from flask import Flask, render_template, request, send_file
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
 from sermon.discards_recording import DiscardsRecording, RestoresRecording
-from sermon.jobs.downloads_recording import FetchesObject
 from sermon.lists_recordings import ListsRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.reconciles_bucket import ReconcilesBucket
@@ -19,7 +18,7 @@ from sermon.skips_segment import SkipsSegment
 from sermon.store import Artifact, Discovery, Job, Recording, Segment
 
 
-def creates_app(*, store, clock=now, fetches=None):
+def creates_app(*, store, clock=now, lists_objects=None):
     web_dir = Path(__file__).parent
     app = Flask(
         __name__,
@@ -34,8 +33,7 @@ def creates_app(*, store, clock=now, fetches=None):
     skips = SkipsSegment(store=store, clock=clock)
     discards = DiscardsRecording(store=store, clock=clock)
     restores = RestoresRecording(store=store, clock=clock)
-    fetches = fetches if fetches is not None else FetchesObject()
-    reconciles = ReconcilesBucket(store=store, lists_objects=fetches.lists, clock=clock)
+    reconciles = ReconcilesBucket(store=store, lists_objects=lists_objects, clock=clock)
     playheads = {}
 
     @app.get("/")
@@ -109,14 +107,6 @@ def creates_app(*, store, clock=now, fetches=None):
         disk_status = "healthy"
         channel_status = "healthy"
         alerts = []
-        if getattr(store, "_scratch_exhausted", False):
-            disk_status = "unhealthy"
-            alerts.append("scratch exhausted")
-        if getattr(store, "_storage_percent", 0) >= 90:
-            alerts.append("long-lived storage at 90%")
-        if getattr(store, "_channel_unavailable", False):
-            channel_status = "unhealthy"
-            alerts.append("notification channel unavailable")
         recordings = store.lists(Recording)
         if any("source no longer available" in recording.warnings for recording in recordings):
             alerts.append("source no longer available")

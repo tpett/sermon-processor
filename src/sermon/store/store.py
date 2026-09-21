@@ -195,7 +195,7 @@ def creates_schema(connection):
 def opens_store(data_root):
     root = Path(data_root)
     root.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(root / DATABASE_NAME)
+    connection = sqlite3.connect(root / DATABASE_NAME, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     creates_schema(connection)
