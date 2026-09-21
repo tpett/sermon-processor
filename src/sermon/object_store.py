@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
+from datetime import datetime
 
 import boto3
 from botocore.config import Config
@@ -17,11 +19,31 @@ READING = "get_object"
 CHUNK_BYTES = 8 * 1024 * 1024
 MULTIPART = "-"
 DIGEST_LENGTH = 32
+ABSENT_STATUS = 404
 ABSENT = frozenset({"NoSuchKey", "NoSuchBucket", "NotFound", "404"})
 REFUSED = 403
 REFUSALS = frozenset(
     {"AccessDenied", "InvalidAccessKeyId", "SignatureDoesNotMatch", "403", "Forbidden"}
 )
+
+
+def cannot_find_the_object(error):
+    response = error.response or {}
+    return (
+        response.get("ResponseMetadata", {}).get("HTTPStatusCode") == ABSENT_STATUS
+        or response.get("Error", {}).get("Code") in ABSENT
+    )
+
+
+def reads_a_plain_digest(entity_tag):
+    unquoted = (entity_tag or "").strip('"')
+    if len(unquoted) != DIGEST_LENGTH or MULTIPART in unquoted:
+        return None
+    try:
+        int(unquoted, 16)
+    except ValueError:
+        return None
+    return unquoted
 
 
 def refuses_the_credential(error):
@@ -85,7 +107,7 @@ class FetchedObject:
     announced_bytes: int | None = None
     checksum: str | None = None
     entity_tag: str | None = None
-    last_modified: object = None
+    last_modified: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -95,4 +117,26 @@ class FetchesBucketObject:
     chunk_bytes: int = CHUNK_BYTES
 
     def __call__(self, object_key, destination):
-        raise NotImplementedError(object_key)
+        try:
+            answer = self.client.get_object(Bucket=self.bucket, Key=object_key)
+        except ClientError as error:
+            if cannot_find_the_object(error):
+                return None
+            raise translates(error) from error
+        except BotoCoreError as error:
+            raise translates(error) from error
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.md5()
+        written = 0
+        with answer["Body"] as body, destination.open("wb") as sink:
+            while chunk := body.read(self.chunk_bytes):
+                digest.update(chunk)
+                written += len(chunk)
+                sink.write(chunk)
+        return FetchedObject(
+            size_bytes=written,
+            announced_bytes=answer.get("ContentLength"),
+            checksum=digest.hexdigest(),
+            entity_tag=reads_a_plain_digest(answer.get("ETag")),
+            last_modified=answer.get("LastModified"),
+        )

@@ -253,19 +253,6 @@ def test_the_module_names_no_operation_that_writes():
     assert [verb for verb in WRITING_OPERATIONS if verb in source] == []
 
 
-def test_listing_is_the_only_operation_asked_of_the_client():
-    tree = ast.parse(MODULE.read_text(encoding="utf-8"))
-    asked = sorted(
-        {
-            node.func.attr
-            for node in ast.walk(tree)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Attribute)
-            and node.func.value.attr == "client"
-        }
-    )
-    assert asked == ["get_paginator"]
 
 
 class StreamsBody:
@@ -444,7 +431,7 @@ def test_no_credential_survives_into_a_representation_of_the_fetch(tmp_path):
     assert SECRET_ACCESS_KEY not in repr(fetch)
 
 
-def test_reading_an_object_is_the_only_other_operation_asked_of_the_client():
+def test_listing_and_reading_are_the_only_operations_asked_of_the_client():
     tree = ast.parse(MODULE.read_text(encoding="utf-8"))
     asked = sorted(
         {
