@@ -85,16 +85,31 @@ never `uv pip install` a second copy.
 
 ## Running it
 
-Both commands read the gitignored `.env` in the working directory, and a
+Every command reads the gitignored `.env` in the working directory, and a
 variable already set in the environment wins over the file.
 
 ```bash
 .venv/bin/sermon-reconcile   # scan the bucket; prints what it found, exit 1 on failure
 .venv/bin/sermon-serve       # serve the reviewer's app; SERMON_BIND_HOST, SERMON_PORT
+.venv/bin/sermon-fetch recordings/recording_20260823_103015.flac
+.venv/bin/sermon-render recording_20260823_103015 \
+    --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
 ```
 
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
 the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
+
+`sermon-fetch` streams **one** named object into the data root and measures it,
+printing duration, channels, sample rate, loudness, true peak and a level per
+channel. Either an object key or a recording id names it.
+
+`sermon-render` is the whole cut in one command: it fetches and probes the source
+if it is not already local, creates the Segment from the boundaries you gave it,
+approves it, renders the MP3, and prints what the output achieved against every
+published target. **It exits non-zero when a target was missed** and the MP3 is
+still written — the process it replaces shipped 9 LU quiet without anyone
+noticing, so an off-target render must not read as a success. `--date` defaults to
+the recorded date.
 
 ## Where the work is now, and what that means for choices
 
