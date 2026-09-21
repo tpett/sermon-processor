@@ -14,7 +14,7 @@ from sermon.jobs.probes_recording import (
 from sermon.store import Recording, opens_store
 
 SAMPLE_RATE = 44100
-SECONDS = 4.0
+SECONDS = 12.0
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
 QUIET = 0.02
 
@@ -31,10 +31,10 @@ def speech_like(seconds, amplitude, seed=11):
     samples = int(seconds * SAMPLE_RATE)
     noise = generator.standard_normal(samples).astype(np.float32)
     smoothed = np.convolve(noise, np.ones(24, dtype=np.float32) / 24, mode="same")
-    spoken = np.ones(samples, dtype=np.float32)
+    spoken = np.zeros(samples, dtype=np.float32)
     silence = int(0.4 * SAMPLE_RATE)
-    for start in range(0, samples, SAMPLE_RATE):
-        spoken[start:start + silence] = 0.0
+    for phrase, start in enumerate(range(0, samples, SAMPLE_RATE)):
+        spoken[start + silence:start + SAMPLE_RATE] = 0.15 + 0.85 * ((phrase * 3 % 5) / 4.0)
     return smoothed * spoken * amplitude / max(float(np.abs(smoothed).max()), 1e-9)
 
 

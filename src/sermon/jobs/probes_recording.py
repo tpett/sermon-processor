@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+import subprocess
 from dataclasses import dataclass, replace
 
 from datetime import UTC, datetime
 
+from sermon.pipeline.render import probe_format, probe_loudness
 from sermon.store import ChannelLevel, LogEntry, Recording, Store
 
 
 def now():
     return datetime.now(UTC)
 
+
 class AudioNotMeasurable(RuntimeError):
     pass
 
 
 SILENT_RMS_DB = -80.0
+SILENCE_FLOOR_DB = -120.0
 EMPTY_DYNAMIC_RANGE_DB = 12.0
 EMPTY_ACTIVE_FRACTION = 0.01
+CHANNEL_LEVELS = "astats=measure_overall=none:measure_perchannel=RMS_level"
+CHANNEL_LINE = "Channel:"
+RMS_LINE = "RMS level dB:"
 
 
 @dataclass(frozen=True)
@@ -34,12 +41,62 @@ class ProbeResult:
     damaged_container: bool = False
 
 
+def reads_channel_levels(report):
+    levels = []
+    channel = None
+    for line in report.splitlines():
+        spoken = line.partition("] ")[2] or line
+        if spoken.startswith(CHANNEL_LINE):
+            channel = int(spoken.split()[1])
+        elif spoken.startswith(RMS_LINE) and channel is not None:
+            levels.append(ChannelLevel(channel=channel, rms_db=reads_decibels(spoken)))
+            channel = None
+    return tuple(levels)
+
+
+def reads_decibels(line):
+    spoken = line.rpartition(":")[2].strip()
+    try:
+        value = float(spoken)
+    except ValueError:
+        return SILENCE_FLOOR_DB
+    return SILENCE_FLOOR_DB if value < SILENCE_FLOOR_DB else value
+
+
+def runs_ffmpeg(command):
+    return subprocess.run(command, capture_output=True, text=True).stderr
+
+
 @dataclass(frozen=True)
 class MeasuresRecordingAudio:
     resolves: object
+    runs: object = runs_ffmpeg
 
     def __call__(self, recording):
-        raise NotImplementedError(recording.object_key)
+        path = self.resolves(recording)
+        if path is None or not path.is_file():
+            raise AudioNotMeasurable(recording.object_key)
+        try:
+            format_report = probe_format(path)
+        except (ValueError, KeyError) as unreadable:
+            raise AudioNotMeasurable(recording.object_key) from unreadable
+        if not format_report.get("channels") or not format_report.get("duration"):
+            raise AudioNotMeasurable(recording.object_key)
+        loudness = probe_loudness(path)
+        return ProbeResult(
+            duration_seconds=format_report["duration"],
+            sample_rate=int(format_report["sr"]),
+            channels=format_report["channels"],
+            channel_levels=reads_channel_levels(
+                self.runs([
+                    "ffmpeg", "-v", "info", "-nostats", "-hide_banner",
+                    "-i", str(path), "-af", CHANNEL_LEVELS, "-f", "null", "-",
+                ])
+            ),
+            integrated_loudness_lufs=loudness.get("I"),
+            true_peak_dbtp=loudness.get("Peak"),
+            loudness_range_lu=loudness.get("LRA"),
+        )
 
 
 @dataclass(frozen=True)
