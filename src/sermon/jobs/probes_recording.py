@@ -69,19 +69,19 @@ def runs_ffmpeg(command):
 
 @dataclass(frozen=True)
 class MeasuresRecordingAudio:
-    resolves: object
+    resolves: object = None
     runs: object = runs_ffmpeg
 
-    def __call__(self, recording):
-        path = self.resolves(recording)
+    def __call__(self, held):
+        path = held if self.resolves is None else self.resolves(held)
         if path is None or not path.is_file():
-            raise AudioNotMeasurable(recording.object_key)
+            raise AudioNotMeasurable(str(path))
         try:
             format_report = probe_format(path)
         except (ValueError, KeyError) as unreadable:
-            raise AudioNotMeasurable(recording.object_key) from unreadable
+            raise AudioNotMeasurable(str(path)) from unreadable
         if not format_report.get("channels") or not format_report.get("duration"):
-            raise AudioNotMeasurable(recording.object_key)
+            raise AudioNotMeasurable(str(path))
         loudness = probe_loudness(path)
         return ProbeResult(
             duration_seconds=format_report["duration"],
