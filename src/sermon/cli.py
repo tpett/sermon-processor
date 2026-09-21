@@ -72,6 +72,17 @@ def reconciles(settings=None, lists_objects=None, prints=print):
         store.close()
 
 
+def fetches(settings=None, object_key=None, fetches_object=None, lists_objects=None,
+            prints=print):
+    raise NotImplementedError(object_key)
+
+
+def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label=None,
+            published_on=None, intent="publish", fetches_object=None, lists_objects=None,
+            prints=print):
+    raise NotImplementedError(object_key)
+
+
 def starts(app, host, port):
     app.run(host=host, port=port)
 

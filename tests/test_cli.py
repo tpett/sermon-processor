@@ -4,14 +4,16 @@ import pytest
 
 from sermon.cli import (
     ENVIRONMENT_FILE,
+    fetches,
     lists_bucket,
     reconciles,
+    renders,
     resolves_settings,
     serves,
 )
 from sermon.jobs.downloads_recording import FetchesObject
 from sermon.object_store import ListsBucketObjects
-from sermon.store import Recording, opens_store
+from sermon.store import Artifact, Recording, Segment, opens_store
 
 ENDPOINT = "https://s3.home.tpett.me"
 BUCKET = "reformation-recordings"
@@ -213,3 +215,236 @@ def test_the_served_app_answers_a_request_made_on_another_thread(tmp_path):
     with ThreadPoolExecutor(max_workers=1) as pool:
         answered = pool.submit(lambda: runs.app.test_client().get("/").status_code).result()
     assert answered == 200
+
+
+def real_source(root, seconds=20.0, live_channel=1, sample_rate=44100):
+    import subprocess
+
+    import numpy as np
+
+    generator = np.random.default_rng(5)
+    samples = int(seconds * sample_rate)
+    noise = np.convolve(
+        generator.standard_normal(samples).astype(np.float32),
+        np.ones(24, dtype=np.float32) / 24,
+        mode="same",
+    )
+    spoken = np.zeros(samples, dtype=np.float32)
+    silence = int(0.4 * sample_rate)
+    for phrase, start in enumerate(range(0, samples, sample_rate)):
+        spoken[start + silence:start + sample_rate] = 0.15 + 0.85 * ((phrase * 3 % 5) / 4.0)
+    live = noise * spoken * 0.5 / max(float(np.abs(noise).max()), 1e-9)
+    dead = np.zeros(samples, dtype=np.float32)
+    channels = [live, dead] if live_channel == 1 else [dead, live]
+    raw = root / "source.raw"
+    root.mkdir(parents=True, exist_ok=True)
+    raw.write_bytes((np.stack(channels, axis=1) * (2 ** 31 - 1)).astype(np.int32).tobytes())
+    flac = root / "source.flac"
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-f", "s32le", "-ar", str(sample_rate), "-ac", "2",
+         "-i", str(raw), "-c:a", "flac", "-sample_fmt", "s32", str(flac)],
+        check=True,
+    )
+    raw.unlink()
+    return flac
+
+
+def bucket_holding_audio(tmp_path, live_channel=1):
+    objects = FetchesObject()
+    objects.stores(
+        SEEN,
+        real_source(tmp_path / "made", live_channel=live_channel).read_bytes(),
+        last_modified=FROZEN - timedelta(days=1),
+    )
+    return objects
+
+
+def test_fetching_streams_the_named_object_into_the_data_root(tmp_path):
+    settings = settings_file(tmp_path)
+    objects = bucket_holding_audio(tmp_path)
+    assert fetches(settings=settings, object_key=SEEN, fetches_object=objects,
+                   lists_objects=objects.lists, prints=RecordsLines()) == 0
+    assert (tmp_path / "data" / SEEN).is_file()
+
+
+def test_fetching_probes_what_it_fetched(tmp_path):
+    settings = settings_file(tmp_path)
+    objects = bucket_holding_audio(tmp_path)
+    fetches(settings=settings, object_key=SEEN, fetches_object=objects,
+            lists_objects=objects.lists, prints=RecordsLines())
+    store = opens_store(settings["SERMON_DATA_ROOT"])
+    try:
+        recording = store.lists(Recording)[0]
+        assert recording.duration_seconds == pytest.approx(20.0, abs=0.1)
+        assert (recording.channels, recording.sample_rate) == (2, 44100)
+        assert recording.integrated_loudness_lufs is not None
+        assert recording.mono_source == "channel 1"
+    finally:
+        store.close()
+
+
+def test_fetching_reports_what_it_measured(tmp_path):
+    prints = RecordsLines()
+    objects = bucket_holding_audio(tmp_path)
+    fetches(settings=settings_file(tmp_path), object_key=SEEN, fetches_object=objects,
+            lists_objects=objects.lists, prints=prints)
+    reported = str(prints)
+    assert "channel 1" in reported
+    assert "LUFS" in reported
+    assert "44100" in reported
+
+
+def test_fetching_an_object_the_bucket_does_not_hold_fails(tmp_path):
+    objects = bucket_holding_audio(tmp_path)
+    assert fetches(settings=settings_file(tmp_path), object_key=UNSEEN,
+                   fetches_object=objects, lists_objects=objects.lists,
+                   prints=RecordsLines()) == 1
+
+
+def test_fetching_never_prints_a_credential(tmp_path):
+    prints = RecordsLines()
+    objects = bucket_holding_audio(tmp_path)
+    fetches(settings=settings_file(tmp_path), object_key=SEEN, fetches_object=objects,
+            lists_objects=objects.lists, prints=prints)
+    assert ACCESS_KEY_ID not in str(prints)
+    assert SECRET_ACCESS_KEY not in str(prints)
+
+
+def rendered_by_hand(tmp_path, prints, **overrides):
+    objects = bucket_holding_audio(tmp_path, live_channel=overrides.pop("live_channel", 1))
+    arguments = {
+        "object_key": SEEN,
+        "punch_in": "0:00:02",
+        "punch_out": "0:00:18",
+        "label": "Hebrews 12.4-11",
+        "published_on": "2026-08-23",
+        **overrides,
+    }
+    return renders(
+        settings=settings_file(tmp_path),
+        fetches_object=objects,
+        lists_objects=objects.lists,
+        prints=prints,
+        **arguments,
+    )
+
+
+def test_rendering_a_hand_specified_cut_writes_a_named_mp3(tmp_path):
+    prints = RecordsLines()
+    rendered_by_hand(tmp_path, prints)
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        artifact = store.lists(Artifact, kind="rendered_mp3")[0]
+        assert artifact.path == "2026-08-23 - Hebrews 12.4-11.mp3"
+        assert store.resolves(artifact).stat().st_size == artifact.size_bytes > 1000
+    finally:
+        store.close()
+
+
+def test_rendering_fetches_and_probes_the_source_it_needs(tmp_path):
+    rendered_by_hand(tmp_path, RecordsLines())
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        recording = store.lists(Recording)[0]
+        assert recording.duration_seconds == pytest.approx(20.0, abs=0.1)
+        assert recording.mono_source == "channel 1"
+    finally:
+        store.close()
+
+
+def test_rendering_takes_the_channel_the_probe_named(tmp_path):
+    rendered_by_hand(tmp_path, RecordsLines(), live_channel=2)
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        assert store.lists(Artifact, kind="rendered_mp3")[0].render_settings["source_channel"] == 2
+    finally:
+        store.close()
+
+
+def test_rendering_reports_the_span_and_what_the_output_achieved(tmp_path):
+    prints = RecordsLines()
+    rendered_by_hand(tmp_path, prints)
+    reported = str(prints)
+    assert "2026-08-23 - Hebrews 12.4-11.mp3" in reported
+    assert "LUFS" in reported
+    assert "dBTP" in reported
+    assert "kbps" in reported
+
+
+def test_rendering_records_the_boundaries_a_human_chose(tmp_path):
+    rendered_by_hand(tmp_path, RecordsLines())
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        segment = store.lists(Segment)[0]
+        assert (segment.punch_in_seconds, segment.punch_out_seconds) == (2.0, 18.0)
+        assert segment.boundary_source == "human"
+        assert segment.state == "complete"
+    finally:
+        store.close()
+
+
+def test_rendering_fails_when_the_output_misses_a_published_target(tmp_path):
+    prints = RecordsLines()
+    outcome = rendered_by_hand(tmp_path, prints)
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        artifact = store.lists(Artifact, kind="rendered_mp3")[0]
+    finally:
+        store.close()
+    on_target = (
+        abs(artifact.output_loudness_lufs + 17.0) <= 1.0
+        and artifact.output_true_peak_dbtp <= -1.5
+        and 96 <= (artifact.size_bytes * 8) // 16000 <= 108
+    )
+    assert (outcome == 0) is on_target
+
+
+def test_rendering_refuses_a_source_whose_channels_were_never_settled(tmp_path):
+    prints = RecordsLines()
+    settings = settings_file(tmp_path)
+    objects = FetchesObject()
+    objects.stores(SEEN, stereo_source(tmp_path).read_bytes(),
+                   last_modified=FROZEN - timedelta(days=1))
+    outcome = renders(
+        settings=settings,
+        object_key=SEEN,
+        punch_in="0:00:02",
+        punch_out="0:00:18",
+        label="Hebrews 12.4-11",
+        published_on="2026-08-23",
+        fetches_object=objects,
+        lists_objects=objects.lists,
+        prints=prints,
+    )
+    assert outcome == 1
+    assert "channel" in str(prints)
+
+
+def stereo_source(tmp_path):
+    import subprocess
+
+    import numpy as np
+
+    sample_rate = 44100
+    generator = np.random.default_rng(9)
+    samples = int(20.0 * sample_rate)
+    both = [
+        np.convolve(
+            generator.standard_normal(samples).astype(np.float32),
+            np.ones(24, dtype=np.float32) / 24,
+            mode="same",
+        ) * 0.2
+        for _ in range(2)
+    ]
+    root = tmp_path / "stereo"
+    root.mkdir(parents=True, exist_ok=True)
+    raw = root / "source.raw"
+    raw.write_bytes((np.stack(both, axis=1) * (2 ** 31 - 1)).astype(np.int32).tobytes())
+    flac = root / "source.flac"
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-f", "s32le", "-ar", str(sample_rate), "-ac", "2",
+         "-i", str(raw), "-c:a", "flac", "-sample_fmt", "s32", str(flac)],
+        check=True,
+    )
+    raw.unlink()
+    return flac
