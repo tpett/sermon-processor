@@ -13,6 +13,7 @@ from sermon.jobs.renders_mp3 import (
     TOLERANCE_LU,
     ChannelsNeedReview,
     RenderProducedNothing,
+    RenderedAudio,
     RendersMp3,
     reads_source_channel,
 )
@@ -183,6 +184,31 @@ def test_the_render_names_every_published_target_the_output_missed(tmp_path):
     )
     assert (f"{CEILING_TP}" in named) is not (rendered.achieved_true_peak_dbtp <= CEILING_TP)
     assert (f"{LOWEST_KBPS}" in named) is not (LOWEST_KBPS <= rendered.kbps <= HIGHEST_KBPS)
+
+
+def decodes_to(peak):
+    return RenderedAudio(
+        path=Path("out.mp3"),
+        size_bytes=36_000_000,
+        duration_seconds=2940.0,
+        channels=1,
+        sample_rate=SAMPLE_RATE,
+        kbps=102,
+        input_loudness_lufs=-26.4,
+        achieved_loudness_lufs=PUBLISHED_I,
+        achieved_true_peak_dbtp=peak,
+        achieved_loudness_range_lu=7.0,
+        settings={},
+    )
+
+
+@pytest.mark.parametrize(("peak", "missed"), [(-0.98, False), (-0.3, True)])
+def test_the_ceiling_leaves_the_encoder_room_to_overshoot_the_peak_it_was_asked_for(
+    peak, missed
+):
+    named = decodes_to(peak).misses()
+    assert any("true peak" in one for one in named) is missed
+    assert not any("loudness" in one or "bitrate" in one for one in named)
 
 
 def test_the_settings_recorded_are_the_ones_the_encode_was_given(tmp_path):

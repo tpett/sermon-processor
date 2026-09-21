@@ -16,7 +16,7 @@ from sermon.pipeline.render import (
 
 PUBLISHED_I = -17.0
 TOLERANCE_LU = 1.0
-CEILING_TP = TARGET_TP
+CEILING_TP = -0.5
 LOWEST_KBPS = 96
 HIGHEST_KBPS = 108
 CHANNEL_NAMES = {"channel 1": 0, "channel 2": 1}
