@@ -9,6 +9,10 @@ argument-hint: "[BASE_SHA..HEAD_SHA] [bead id]"
 Find what is actually wrong with a change, fix what is worth fixing, and return a
 verdict.
 
+do-bead invokes this **only** for diffs that touch `src/sermon/store`,
+`src/sermon/pipeline`, or `tests/test_spec_harness.py`. Scenario implementation
+uses a mutation check instead — do not run this checklist on that path.
+
 **One reviewer subagent, not several.** Parallel single-concern reviewers find
 more, but each one costs another full copy of the diff, and at this project's size
 that is the wrong trade. The coverage they gave is preserved as a **fixed checklist

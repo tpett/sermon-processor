@@ -71,11 +71,17 @@ number in `FINDINGS.md` traces to the code there.
 
 ```bash
 uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of range
-.venv/bin/python -m pytest                          # the suite is features/, via pytest-bdd
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 604 tests (Outlines expand)
+.venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
+.venv/bin/python -m pytest                          # full suite: store, pipeline, harness, or before master
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 604 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
+
+For a feature-file change, run that file's scenarios, `validate_spec.py`, and
+unit tests for modules you touched. Do not run a bare `pytest` on scenario work.
+Worktrees use the repo-root `.venv` (`../.venv/bin/python` from `worktrees/<name>`);
+never `uv pip install` a second copy.
 
 ## Where the work is now, and what that means for choices
 
@@ -104,7 +110,10 @@ and processing. It tells you which open beads actually matter; until it exists,
 none of them provably do.
 
 **142 Rules is not a plan.** One bead per Rule is roughly 142 beads and more
-tokens than any single budget. Implement the vertical slice, then widen.
+tokens than any single budget. Implement the vertical slice, then widen. One
+feature file per bead; serial the three-click chain; parallel only true siblings.
+Scenario work is reviewed by mutating the new assertions, not by the
+eight-concern reviewer.
 
 ## Architecture
 
