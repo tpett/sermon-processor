@@ -23,3 +23,8 @@ __pycache__/
 # Local virtualenvs and editable-install metadata
 .venv/
 *.egg-info/
+
+# Secrets. Never committed — ARCHITECTURE.md deploy section.
+.env
+.env.*
+!.env.example
