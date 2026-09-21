@@ -75,24 +75,18 @@ def source(tmp_path, live_channel=1):
 
 
 class RecordsCommands:
-    def __init__(self, reply):
-        self.reply = reply
+    def __init__(self, runs):
+        self.runs = runs
         self.commands = []
 
     def __call__(self, command):
         self.commands.append(list(command))
-        return self.reply
-
-
-MEASURED = (
-    'some log {"input_i": "-28.70", "input_tp": "-13.80", "input_lra": "9.40", '
-    '"input_thresh": "-38.80", "target_offset": "-0.02"} trailing log'
-)
+        return self.runs(command)
 
 
 @pytest.fixture
 def recorded(monkeypatch):
-    recorder = RecordsCommands(MEASURED)
+    recorder = RecordsCommands(chain._run)
     monkeypatch.setattr(chain, "_run", recorder)
     return recorder
 
@@ -112,46 +106,54 @@ def test_the_rendered_output_covers_the_approved_span_within_100_ms(tmp_path):
     assert rendered.duration_seconds == pytest.approx(PUNCH_OUT - PUNCH_IN, abs=0.1)
 
 
-def test_the_channel_the_probe_named_is_the_one_that_reaches_the_output(tmp_path):
-    live = RendersMp3()(source(tmp_path, live_channel=2), PUNCH_IN, PUNCH_OUT,
-                        tmp_path / "live.mp3", channel=1)
-    dead = RendersMp3()(source(tmp_path, live_channel=2), PUNCH_IN, PUNCH_OUT,
-                        tmp_path / "dead.mp3", channel=0)
-    assert live.achieved_loudness_lufs > dead.achieved_loudness_lufs + 20.0
+def lopsided(tmp_path):
+    return writes_flac(tmp_path / OBJECT_KEY, [phrases(0.5), phrases(0.05, seed=12)])
+
+
+def test_each_channel_reaches_the_output_at_its_own_level_not_a_downmix(tmp_path):
+    loud = RendersMp3()(lopsided(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "loud.mp3",
+                        channel=0)
+    quiet = RendersMp3()(lopsided(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "quiet.mp3",
+                         channel=1)
+    apart = loud.input_loudness_lufs - quiet.input_loudness_lufs
+    assert apart == pytest.approx(20.0, abs=2.0)
 
 
 def test_the_render_extracts_one_channel_rather_than_averaging_the_two(recorded, tmp_path):
-    RendersMp3()(tmp_path / "in.flac", PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3", channel=1)
-    chains = [chain_of(command) for command in recorded.commands]
-    assert all(one.startswith("pan=mono|c0=c1") for one in chains)
+    RendersMp3()(source(tmp_path, live_channel=2), PUNCH_IN, PUNCH_OUT,
+                 tmp_path / "out.mp3", channel=1)
+    chains = [chain_of(command) for command in recorded.commands if "-af" in command]
+    assert chains and all(one.startswith("pan=mono|c0=c1") for one in chains)
     assert not any("amerge" in one or "amix" in one for one in chains)
 
 
 def test_loudness_is_one_stage_that_measures_then_corrects(recorded, tmp_path):
-    RendersMp3()(tmp_path / "in.flac", PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
-    measuring, rendering = (chain_of(command) for command in recorded.commands)
+    rendered = RendersMp3()(source(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
+    measuring, rendering = (
+        chain_of(command) for command in recorded.commands if "-af" in command
+    )
     assert measuring.count("loudnorm") == 1
     assert rendering.count("loudnorm") == 1
-    assert "measured_I=-28.70" in rendering
+    assert f"measured_I={rendered.input_loudness_lufs:.2f}" in rendering
 
 
 def test_no_separate_compression_stage_is_applied(recorded, tmp_path):
-    RendersMp3()(tmp_path / "in.flac", PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
-    for command in recorded.commands:
+    RendersMp3()(source(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
+    for command in (one for one in recorded.commands if "-af" in one):
         assert "acompressor" not in chain_of(command)
         assert "compand" not in chain_of(command)
 
 
 def test_a_short_fade_brackets_the_cut_at_both_ends(recorded, tmp_path):
-    RendersMp3()(tmp_path / "in.flac", PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
-    rendering = chain_of(recorded.commands[-1])
-    assert "afade=t=in:st=0:d=0.02" in rendering
-    assert "afade=t=out:st=15.980:d=0.02" in rendering
+    RendersMp3()(source(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
+    rendering = chain_of([one for one in recorded.commands if "-af" in one][-1])
+    assert f"afade=t=in:st=0:d={chain.FADE_S}" in rendering
+    assert f"afade=t=out:st={PUNCH_OUT - PUNCH_IN - chain.FADE_S:.3f}:d={chain.FADE_S}" in rendering
 
 
 def test_the_encode_asks_for_a_variable_bitrate(recorded, tmp_path):
-    RendersMp3()(tmp_path / "in.flac", PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
-    encoding = recorded.commands[-1]
+    RendersMp3()(source(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3")
+    encoding = [one for one in recorded.commands if "libmp3lame" in one][-1]
     assert "-q:a" in encoding
     assert "-b:a" not in encoding
 

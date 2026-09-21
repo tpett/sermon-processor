@@ -641,8 +641,7 @@ def _(store):
 
 @then("the Segment records that the source was clipped")
 def _(store):
-    recording = store.lists(Recording)[0]
-    assert "source clipping detected" in recording.warnings or getattr(store, "_source_was_clipped", False)
+    assert "source clipping detected" in store.lists(Recording)[0].warnings
 
 
 @then('the Segment is flagged "source was very quiet"')
@@ -764,7 +763,7 @@ def _(store, filename):
     )
 
 
-@when("I approve another Segment with the same date and label")
+@when("I approve another Segment with the same date and label", target_fixture="collision")
 def _(store, segment):
     try:
         RecordsPublicationDetails(store=store).saves(
@@ -772,13 +771,14 @@ def _(store, segment):
             publication_date=datetime(2026, 8, 23).date(),
             label="Hebrews 12.4-11",
         )
-    except FilenameCollision:
-        store._filename_collision = True
+    except FilenameCollision as refused:
+        return refused
+    return None
 
 
 @then("I am warned about the collision")
-def _(store):
-    assert getattr(store, "_filename_collision", False)
+def _(collision):
+    assert isinstance(collision, FilenameCollision)
 
 
 @given(parsers.parse('the label is "{label}"'), target_fixture="segment")
