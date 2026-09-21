@@ -10,6 +10,10 @@ from sermon.store import ChannelLevel, LogEntry, Recording, Store
 def now():
     return datetime.now(UTC)
 
+class AudioNotMeasurable(RuntimeError):
+    pass
+
+
 SILENT_RMS_DB = -80.0
 EMPTY_DYNAMIC_RANGE_DB = 12.0
 EMPTY_ACTIVE_FRACTION = 0.01
@@ -28,6 +32,14 @@ class ProbeResult:
     dynamic_range_db: float | None = None
     active_fraction: float | None = None
     damaged_container: bool = False
+
+
+@dataclass(frozen=True)
+class MeasuresRecordingAudio:
+    resolves: object
+
+    def __call__(self, recording):
+        raise NotImplementedError(recording.object_key)
 
 
 @dataclass(frozen=True)
