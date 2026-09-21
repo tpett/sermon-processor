@@ -1,3 +1,4 @@
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from sermon.jobs.downloads_recording import (
+    ChecksumMismatch,
     DownloadsRecording,
     FetchesObject,
     ProbesAudio,
@@ -130,7 +132,7 @@ def test_a_parseable_key_is_not_replaced_by_last_modified(store):
     downloads(store, fetches)(recording)
     stored = store.loads(Recording, recording.recording_id)
     assert stored.started_at == datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC)
-    assert stored.started_at != fetches(OBJECT_KEY).last_modified
+    assert stored.started_at != datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
 
 
 def test_local_path_is_relative_and_holds_the_fetched_bytes(store):
@@ -164,3 +166,54 @@ def test_a_missing_object_is_retried_and_does_not_fail_ingest_on_the_first_attem
     RunsDownloadJob(store=store, fetches=fetches, probes=PROBE, clock=lambda: FROZEN)()
     assert store.loads(Recording, recording.recording_id).state == "downloaded"
     assert store.lists(Job, kind="download")[0].state == "succeeded"
+
+
+def test_the_object_is_streamed_to_where_it_will_live_rather_than_returned(store):
+    recording = store.saves(discovered_recording())
+    fetches = object_store(sidecar=False)
+    downloads(store, fetches)(recording)
+    stored = store.loads(Recording, recording.recording_id)
+    assert fetches.destinations == [store.resolves(stored)]
+    assert not hasattr(fetches.fetched[0], "body")
+
+
+def test_the_sidecar_is_streamed_beside_the_recording_it_describes(store):
+    recording = store.saves(discovered_recording())
+    fetches = object_store()
+    downloads(store, fetches)(recording)
+    stored = store.loads(Recording, recording.recording_id)
+    assert fetches.destinations[1] == store.resolves(stored).with_name(
+        f"{store.resolves(stored).name}.meta.json"
+    )
+
+
+def test_a_transfer_shorter_than_the_store_announced_is_refused(store):
+    recording = store.saves(discovered_recording())
+    fetches = FetchesObject()
+    fetches.stores(OBJECT_KEY, FLAC_BYTES, size_bytes=len(FLAC_BYTES) + 4096)
+    with pytest.raises(ChecksumMismatch):
+        downloads(store, fetches)(recording)
+
+
+def test_a_transfer_shorter_than_the_store_announced_leaves_nothing_behind(store, tmp_path):
+    recording = store.saves(discovered_recording())
+    fetches = FetchesObject()
+    fetches.stores(OBJECT_KEY, FLAC_BYTES, size_bytes=len(FLAC_BYTES) + 4096)
+    with pytest.raises(ChecksumMismatch):
+        downloads(store, fetches)(recording)
+    assert not (tmp_path / OBJECT_KEY).exists()
+
+
+def test_a_digest_that_disagrees_with_the_stores_own_entity_tag_is_refused(store):
+    recording = store.saves(discovered_recording())
+    fetches = FetchesObject()
+    fetches.stores(OBJECT_KEY, FLAC_BYTES, entity_tag="0" * 32)
+    with pytest.raises(ChecksumMismatch):
+        downloads(store, fetches)(recording)
+
+
+def test_the_digest_the_fetch_computed_is_recorded_on_the_recording(store):
+    recording = store.saves(discovered_recording())
+    downloads(store, object_store())(recording)
+    stored = store.loads(Recording, recording.recording_id)
+    assert stored.checksum == hashlib.md5(FLAC_BYTES).hexdigest()
