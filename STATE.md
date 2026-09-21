@@ -1,3 +1,56 @@
+## SLICE 2 is done — a publishable MP3 from real audio (2026-09-21)
+
+Verified on `recording_20260913_090014`, the 3h 3m class-plus-service recording,
+cut at the sermon boundaries `segment_review.feature` gives for that date.
+**The human listened: "sounds good and the cut points are solid."**
+
+```
+fetch   1456376029 bytes, 10990.0 s, 2ch 44100 Hz, -22.6 LUFS, 0.4 dBTP, 18.6 LU
+        channel 1 -25.8 dB RMS, channel 2 -90.4 dB  ->  signal on channel 1
+        warning: source clipping detected
+render  2026-09-13 - Hebrews 12.25-29.mp3   38,556,488 bytes over 2943.0 s
+        -17.6 LUFS, -1.0 dBTP, 104 kbps, mono 44100 Hz    on target, exit 0
+store   Artifact  input -22.75 LUFS, output -17.6 LUFS, peak -1.0 dBTP
+        Segment   sermon 6967.0 -> 9910.0, label, date, boundary_source=human
+```
+
+Two spec behaviours fired on real material for the first time: the **dead second
+channel** was detected and channel 1 chosen rather than averaged (which would have
+cost 6 dB), and **`source clipping detected`** came from a measured 0.4 dBTP rather
+than from a test flag.
+
+**Commands.** `sermon-fetch <recording-id>` then
+`sermon-render <recording-id> --from 1:56:07 --to 2:45:10 --label "..." --date YYYY-MM-DD`.
+Run from the directory holding `.env`. An off-target render exits 1 — that alarm is
+the guarantee that the manual process, which once shipped a file 9 LU quiet, lacked.
+
+**Loudness is 6-11 LU louder than the back catalogue** (-17.6 against -23.9 to
+-28.5). `FINDINGS.md` predicted new files would be dramatically louder; the human
+has now heard one and approved it, so that question is settled.
+
+### Two defects this slice found, neither visible to the suite
+
+**A stale schema was accepted silently and failed after 49 minutes of ffmpeg.**
+`opens_store` now compares `PRAGMA table_info` against the columns the entities
+declare and refuses at open, naming what differs in both directions. No migration
+machinery — `sermon-reconcile` rebuilds every row in seconds. This had been filed
+as a speculative P3 in the backlog and was the first thing to break.
+
+**`audio_rendering.feature` asserted a true-peak ceiling no render has ever met.**
+Ours measured -0.98 dBTP; the six validated renders measured -1.1, -0.8, -1.0,
+-0.8, -0.6, -0.7, and the hand-made back catalogue was mostly above -1.5 too.
+-1.5 is what loudnorm is **asked** for pre-encode; LAME's lossy reconstruction
+overshoots. The spec documents this distinction correctly one scenario earlier for
+loudness and had it wrong here. It now asserts **-0.5 dBTP measured on the decoded
+MP3** and says which signal it means; `renders_mp3`'s own verdict was aligned to
+match. **`TARGET_TP` stays -1.5** — do not "fix" it.
+
+`audio_rendering.feature`'s 20 scenarios remain red. Its Background fixes punch
+points at 2:00:20-2:43:32, so honest step definitions need a 2h43m source rendered
+per scenario. That is a bead of its own; the code satisfies the feature as a
+specification, and the numbers are properties of real programme material rather
+than of synthetic audio.
+
 ## SLICE 2 is done — a cut by hand renders (2026-09-21)
 
 **There is a playable MP3, cut at boundaries a human chose.** Verified end to end
