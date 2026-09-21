@@ -148,26 +148,6 @@ def _(store, segment):
     assert len(names) >= 1
 
 
-@then(parsers.parse('I can download "{artifact}"'))
-def _(artifact):
-    assert artifact
-
-
-@then("I can read its transcript without downloading anything")
-def _():
-    return None
-
-
-@then("the transcript covers the approved span")
-def _():
-    return None
-
-
-@then("I can expand to the full Recording transcript")
-def _():
-    return None
-
-
 @given("I am using a phone")
 def _():
     return None

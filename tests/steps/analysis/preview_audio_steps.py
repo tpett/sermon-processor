@@ -78,16 +78,6 @@ def _(store):
     assert store._seek.get_json()["playhead_seconds"] > 0
 
 
-@then("playback begins within 2 seconds")
-def _():
-    return None
-
-
-@then("the earlier part of the recording is never downloaded")
-def _():
-    return None
-
-
 @given(parsers.parse('a Block has a cue excerpt at "{timecode}"'))
 def _(store, recording, timecode):
     from sermon.extends_segment_span import ReadsTimecode

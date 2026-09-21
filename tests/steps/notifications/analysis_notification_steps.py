@@ -222,11 +222,6 @@ def _(store):
     assert store.lists(Notification)
 
 
-@then("it states why confidence is low")
-def _():
-    return None
-
-
 @then("the reviewer is notified that content was found but no teaching was identified")
 def _(store):
     assert "no teaching" in store.lists(Notification)[0].summary

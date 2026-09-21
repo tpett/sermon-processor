@@ -176,25 +176,10 @@ def _(store, segment):
     assert proposals[0].evidence
 
 
-@then("hovering a marker describes the evidence")
-def _():
-    return None
-
-
-@then("clicking a marker seeks the player to that point")
-def _():
-    return None
-
-
 @then("a speaker track is shown beneath the waveform")
 def _(store):
     detail = current_detail(store)
     assert detail["blocks"] or detail["peaks"]
-
-
-@then("each speaker span is coloured by speaker")
-def _():
-    return None
 
 
 @then("non-speech regions such as music are visually distinct")
@@ -222,15 +207,6 @@ def _(recording_detail):
     assert "playhead_seconds" in recording_detail
 
 
-@when("I choose to preview the punch-in", target_fixture="preview")
-def _(store, segment):
-    return {
-        "start": segment.punch_in_seconds - 5,
-        "end": segment.punch_in_seconds + 5,
-        "kind": "punch-in",
-    }
-
-
 @then("playback starts 5 seconds before the punch-in")
 def _(preview, segment):
     assert preview["start"] == segment.punch_in_seconds - 5
@@ -244,11 +220,6 @@ def _(preview):
 @then("playback stops 5 seconds after the punch-in")
 def _(preview, segment):
     assert preview["end"] == segment.punch_in_seconds + 5
-
-
-@when("I choose to preview the cut", target_fixture="preview")
-def _(segment):
-    return {"kind": "cut", "in": segment.punch_in_seconds, "out": segment.punch_out_seconds}
 
 
 @then("I hear the last 5 seconds before the punch-in joined to the first 5 seconds after it")
@@ -276,21 +247,6 @@ def _(recording_detail):
     assert recording_detail["preview_kind"] == "preview"
 
 
-@then("only the region being played is fetched")
-def _():
-    return None
-
-
-@then("playback begins within 2 seconds of pressing play")
-def _():
-    return None
-
-
-@when("I zoom the detail view into the punch-in", target_fixture="zoom")
-def _(segment):
-    return {"overview": "whole", "detail": "three seconds", "center": segment.punch_in_seconds}
-
-
 @then("the overview still shows the whole recording")
 def _(zoom):
     assert zoom["overview"] == "whole"
@@ -304,11 +260,6 @@ def _(zoom):
 @then("I can see where in the service that window falls")
 def _(zoom):
     assert zoom["center"]
-
-
-@when("I click a point on the overview", target_fixture="zoom")
-def _(segment):
-    return {"overview": "whole", "detail": "thirty seconds", "center": 4000.0, "zoom_unchanged": True}
 
 
 @then("the detail view moves to that point")
@@ -352,21 +303,6 @@ def _(store):
 @then("nothing claims the boundary is correct")
 def _(store):
     assert "correct" not in current_detail(store)
-
-
-@when("I zoom in around a boundary", target_fixture="zoom")
-def _(segment):
-    return {"window": 3.0, "pixels_per_100ms": 36.7}
-
-
-@then(parsers.parse("a {amount} gap is {pixels} of the detail view"))
-def _(zoom, amount, pixels):
-    assert zoom["window"] == 3.0 or True
-
-
-@then(parsers.parse('that is "{feel}"'))
-def _(feel):
-    assert feel
 
 
 @when(parsers.parse('I drag the punch-in handle to "{timecode}"'), target_fixture="segment")
@@ -427,21 +363,6 @@ def _(store, segment):
     return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 0.08)
 
 
-@given('the teaching begins with "good morning"')
-def _():
-    return None
-
-
-@given("the opening contains a throat-clear before the first real words")
-def _():
-    return None
-
-
-@given("I am viewing the whole recording at overview resolution")
-def _():
-    return None
-
-
 @when(parsers.parse('I try to set the punch-out to "{timecode}"'), target_fixture="rejected")
 def _(store, segment, timecode):
     from dataclasses import replace
@@ -463,11 +384,6 @@ def _(segment, which, timecode):
     if which == "punch-out" and value > segment.span_end_seconds:
         return {"error": "outside"}
     return {"error": None}
-
-
-@when("I try to set a span shorter than 1 second", target_fixture="rejected")
-def _(segment):
-    return {"error": "short"}
 
 
 @when("I set a span of 6 minutes", target_fixture="segment")

@@ -242,11 +242,6 @@ def _(segment):
     assert suggested == "publish" or segment.classification != "sermon"
 
 
-@then('I can change it to "archive" before approving')
-def _(store, segment):
-    store.saves(replace(segment, intent="archive"))
-
-
 @then("the intent I approved with is recorded")
 def _(store, segment):
     stored = store.loads(Segment, segment.segment_id)
@@ -258,11 +253,6 @@ def _(store):
     for job in store.lists(Job, kind="render"):
         segment = store.loads(Segment, job.segment_id)
         assert segment.state in {"approved", "processing", "complete"}
-
-
-@then("no Segment is ever published on classification alone")
-def _():
-    return None
 
 
 @given("another reviewer approved the Segment a moment ago", target_fixture="segment")

@@ -174,16 +174,6 @@ def _(store):
     assert len(store.lists(Recording)) == 1
 
 
-@then("a Recording is uniquely identified by its bucket and object key")
-def _():
-    return None
-
-
-@then("the same key always refers to the same audio")
-def _():
-    return None
-
-
 @when("two identical webhooks are handled concurrently", target_fixture="processor_response")
 def _(processor_client, webhook_endpoint):
     first = posts_webhook(processor_client, webhook_endpoint, IDENTICAL)
@@ -232,31 +222,6 @@ def _(store):
     assert discoveries[-1].event == "recording.started"
 
 
-@given("the Sermon Processor is unreachable")
-def _():
-    return None
-
-
-@when("the Recorder attempts to deliver a webhook")
-def _():
-    return None
-
-
-@then("the Recorder retries with exponential backoff")
-def _():
-    return None
-
-
-@then("after the retry budget is exhausted the Recorder records a delivery failure")
-def _():
-    return None
-
-
-@then("the Recording is still ingested later by S3 reconciliation")
-def _():
-    return None
-
-
 @given("the object store has not yet made the object available")
 def _(object_store):
     return object_store
@@ -264,11 +229,6 @@ def _(object_store):
 
 @given("the object store is a Garage S3 instance reachable over the tailnet")
 def _():
-    return None
-
-
-@given(parsers.parse('it contains a bucket "{bucket}"'))
-def _(bucket):
     return None
 
 

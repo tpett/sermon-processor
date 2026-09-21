@@ -193,11 +193,6 @@ def _(store):
     store._queued_fetches = fetches
 
 
-@when("the application restarts")
-def _():
-    return None
-
-
 @then("the queued jobs still run")
 def _(store):
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))

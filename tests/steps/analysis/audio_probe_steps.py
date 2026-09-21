@@ -278,13 +278,6 @@ def _(store):
     assert any(row.state == "ignored" for row in rows)
 
 
-@then("a reviewer can restore it for analysis if the machine was wrong")
-def _(store, recording):
-    from sermon.discards_recording import RestoresRecording
-
-    RestoresRecording(store=store)(store.loads(Recording, recording.recording_id))
-
-
 @given(parsers.parse("the Recording's dynamic range is {range_db:d} dB"))
 def _(store, recording, range_db):
     store._probe = ProbeResult(

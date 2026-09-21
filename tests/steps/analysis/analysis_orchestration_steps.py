@@ -330,12 +330,6 @@ def _(store, recording):
         assert item.punch_out_seconds > item.punch_in_seconds
 
 
-@then("they can be revisited and approved months later")
-def _(store, recording):
-    skipped = [item for item in store.lists(Segment, recording_id=recording.recording_id) if item.state == "skipped"]
-    store.saves(replace(skipped[0], state="proposed"))
-
-
 @then("doing so does not require re-running Analysis")
 def _(store, recording):
     jobs = store.lists(Job, recording_id=recording.recording_id, kind="analyze")
@@ -464,14 +458,6 @@ def _(store, recording):
 @given('the "transcription" stage fails once and then succeeds')
 def _(store):
     store._fail_once_stage = "transcription"
-
-
-@then("the stage is retried")
-def _(store, recording, stage_log, sent, contents, clock):
-    job = store.lists(Job, kind="analyze")[0]
-    store.saves(replace(job, state="queued", dedupe_key=f"{job.dedupe_key}:retry"))
-    store.saves(replace(store.loads(Recording, recording.recording_id), state="downloaded"))
-    runs_analysis(store, recording, stage_log, sent, contents, clock)
 
 
 @then("Analysis completes normally")

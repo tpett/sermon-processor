@@ -231,11 +231,6 @@ def _(recordings_list):
     assert "recordings" in recordings_list
 
 
-@then("I can search by date, by classification, and by what was said")
-def _():
-    return None
-
-
 @when(parsers.parse('I filter the list by "{filter_name}"'), target_fixture="recordings_list")
 def _(store, filter_name):
     return (
@@ -318,11 +313,6 @@ def _(store):
 @then("the list is paginated")
 def _(recordings_list):
     assert len(recordings_list["recordings"]) <= 50 or "recordings" in recordings_list
-
-
-@then("the page loads in under 2 seconds")
-def _():
-    return None
 
 
 @given("no Recordings exist")

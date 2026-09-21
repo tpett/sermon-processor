@@ -717,11 +717,6 @@ def _(store):
     store._merged_span = (first.punch_in_seconds, second.punch_out_seconds)
 
 
-@then("the suite is a regression instrument, not an acceptance test")
-def _():
-    assert True
-
-
 @then("the Segment does not claim more certainty than one analysis supports")
 def _(store):
     proposals = store.lists(Proposal)
@@ -740,16 +735,6 @@ def _(store):
     RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
     if getattr(store, "_next_block_start", None):
         assert store.lists(Segment)[0].punch_out_seconds <= store._next_block_start
-
-
-@then("the punch-out is placed at least 250 ms away from the nearest audible sound")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the headline measure is the proportion of Segments approved with no boundary edit")
-def _(store):
-    assert store.lists(Segment) or store.lists(CorpusPair) or True
 
 
 @then("the expected Sunday order is:")
@@ -784,17 +769,6 @@ def _(store, first, second):
     assert first in CUT_DIFFICULTIES and second in CUT_DIFFICULTIES
 
 
-@then("the corpus includes sermons and class sessions")
-def _(store):
-    pairs = store.lists(CorpusPair)
-    assert pairs or True
-
-
-@then("punch-in error is reported with its sign, never as an absolute value")
-def _():
-    assert True
-
-
 @then("no transcript leaves the local network")
 def _(store):
     assert rec(store)
@@ -804,22 +778,6 @@ def _(store):
 def _(store):
     proposals = store.lists(Proposal)
     assert not proposals or proposals[0].classification_confidence in {"high", "medium", "low"}
-
-
-@then("no cue excerpt begins or ends inside a silence")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("no boundary, classification or disposition depends on a summary")
-def _(store):
-    assert True
-
-
-@then("every Segment records whether its boundaries were proposed or refined")
-def _(store):
-    segments = store.lists(Segment)
-    assert all(item.boundary_source in {None, "model", "refined", "human", "model-in/refined-out"} for item in segments) or True
 
 
 @then("each type carries a confidence derived from evidence, not self-reported")
@@ -869,11 +827,6 @@ def _(store):
     assert rec(store).kind in RECORDING_KINDS or rec(store).kind is None
 
 
-@then("each carries the evidence that produced it")
-def _(store):
-    ClassifiesBlocks(store=store)(rec(store))
-
-
 @then("the Block is not split")
 def _(store):
     assert store.lists(Block)
@@ -921,11 +874,6 @@ def _(store, block_type):
 @then("the machine's original type is retained beside it")
 def _(store):
     assert store.lists(Block)
-
-
-@then("downstream Segment proposal uses the reviewer's type")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
 
 
 @then("the prayer is included in the Segment")
@@ -979,21 +927,6 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then("the reviewer can merge two adjacent Segments")
-def _(store):
-    assert True
-
-
-@then("the reviewer can draw a Segment by hand")
-def _(store):
-    assert True
-
-
-@then("the resulting Segment is indistinguishable from a machine-proposed one")
-def _(store):
-    assert True
-
-
 @then("it is marked as having no speaker attribution")
 def _(store):
     assert store.lists(Block)
@@ -1007,41 +940,10 @@ def _(store, kind):
     assert store.loads(Recording, rec(store).recording_id).kind in {kind, None} or kind in RECORDING_KINDS
 
 
-@then("a reviewable Segment is still proposed")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-
-
-@then("the reviewer can still approve a cut")
-def _(store):
-    assert True
-
-
-@then("the first words of the teaching are not clipped")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("starting a little early is preferred to clipping")
-def _(store):
-    assert True
-
-
 @then("the punch-in is placed at the start of the Recording")
 def _(store):
     ensure_segment(store, punch_in_seconds=0.0)
     assert store.lists(Segment)[0].punch_in_seconds == 0.0
-
-
-@then("the Segment is flagged that the opening was missed")
-def _(store):
-    segment = ensure_segment(store)
-    store.saves(replace(segment, warnings=segment.warnings + ("check the opening",)))
-
-
-@then("the reviewer is warned the opening was not captured")
-def _(store):
-    assert True
 
 
 @then("the punch-out is placed at the end of the Recording")
@@ -1051,58 +953,14 @@ def _(store):
     assert abs(store.lists(Segment)[0].punch_out_seconds - duration) < 0.05
 
 
-@then("the Segment is flagged that the ending was missed")
-def _(store):
-    segment = ensure_segment(store)
-    store.saves(replace(segment, warnings=segment.warnings + ("check the opening",)))
-
-
 @then("the punch-in is left in place")
 def _(store):
     assert store.lists(Segment)
 
 
-@then("the failure is recorded")
-def _(store):
-    assert True
-
-
-@then("the candidate is moved to the nearest word boundary")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-
-
 @then("the word is not split")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("the reviewer is told Analysis ran once")
-def _(store):
-    assert True
-
-
-@then("they are told a second opinion is not in this version")
-def _(store):
-    assert True
-
-
-@then("the list row for the Recording shows the best Segment's confidence")
-def _(store):
-    from sermon.lists_recordings import ListsRecordings
-
-    ListsRecordings(store=store)()
-
-
-@then("a Recording with no Segments shows as having nothing to publish")
-def _(store):
-    assert True
-
-
-@then("the reviewer is not asked to treat the number as a quality score")
-def _(store):
-    assert True
 
 
 @given("another is 1 second late at the punch-out")
@@ -1157,106 +1015,10 @@ def _(store):
     RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
 
 
-@then("a change that worsens the error distribution is reported as a regression")
-def _(store):
-    assert True
-
-
 @then("a Proposal is still produced for every Segment")
 def _(store):
     ScoresProposals(store=store)(rec(store))
     assert store.lists(Proposal) or store.lists(Segment)
-
-
-@then("a Segment is proposed for each sustained teaching Block")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-
-
-@then("a Segment is still seeded on it")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-
-
-@then("a self-reported confidence may be stored for diagnosis")
-def _(store):
-    assert True
-
-
-@then("accuracy is reported separately for each classification")
-def _(store):
-    assert True
-
-
-@then("correctness is established by the accuracy suite instead")
-def _(store):
-    assert True
-
-
-@then("cut difficulty remains the signal that asks for a listen")
-def _(store):
-    assert True
-
-
-@then("each Block gains confidence from its position in the order")
-def _(store):
-    ClassifiesBlocks(store=store)(rec(store))
-
-
-@then("each boundary's difficulty comes from the audio around the human cut")
-def _(store):
-    assert True
-
-
-@then("each pair is graded against the difficulty of its own transition")
-def _(store):
-    assert True
-
-
-@then("exactly one analysis informs the Proposal")
-def _(store):
-    ScoresProposals(store=store)(rec(store))
-
-
-@then("for each pair it reports:")
-def _(store, datatable):
-    assert datatable
-
-
-@then(parsers.parse('its teaching Blocks are typed "{block_type}"'))
-def _(store, block_type):
-    recording = rec(store)
-    for block in store.lists(Block, recording_id=recording.recording_id):
-        if block.type in {"sermon", "lesson", "seminar", "other", "rehearsal"} or True:
-            store.saves(replace(block, type=block_type if block_type in BLOCK_TYPES else block.type))
-    assert block_type in BLOCK_TYPES
-
-
-@then("late punch-ins are reported separately from early ones")
-def _(store):
-    assert True
-
-
-@then("starting shortly after the usual service time counts as evidence for teaching")
-def _(store):
-    store._has_in_cue = True
-
-
-@then('that counts as evidence for "rehearsal"')
-def _(store):
-    ensure_block(store, type="rehearsal", force=True)
-
-
-@then('that following Block is strong evidence for "sermon"')
-def _(store):
-    ensure_block(store, type="sermon")
-
-
-@then("that recording and the approved boundaries can be added to the corpus")
-def _(store):
-    from sermon.analysis import DerivesGroundTruth
-
-    DerivesGroundTruth(store=store)(rec(store).recording_id, punch_in=1900.0, punch_out=4500.0)
 
 
 @then("the Block keeps the type the classifier gave it")
@@ -1267,17 +1029,6 @@ def _(store):
 @then("the Block type is updated")
 def _(store):
     assert store.lists(Block)
-
-
-@then("the confidence that the Block is teaching is increased")
-def _(store):
-    block = ensure_block(store)
-    store.saves(replace(block, classification_confidence="high"))
-
-
-@then("the Segment ends at the end of the sermon Block")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
 
 
 @then("the Segment is shown as needing attention")
@@ -1291,11 +1042,6 @@ def _(store):
     sermons = [block for block in store.lists(Block) if block.type == "sermon"]
     if sermons and store.lists(Segment):
         assert store.lists(Segment)[0].span_start_seconds >= sermons[0].start_seconds - 1
-
-
-@then("the suite does not require the machine to match the human exactly")
-def _(store):
-    assert True
 
 
 @then('the teaching Block is typed "lesson" rather than "sermon"')
@@ -1328,97 +1074,9 @@ def _(store, timecode):
     ensure_segment(store, punch_in_seconds=READS(timecode), span_start_seconds=READS(timecode))
 
 
-@then(parsers.parse('the Recording is summarised as "{summary}" rather than as "{other}"'))
-def _(store, summary, other):
-    rec(store)
-    assert summary and other
-
-
-@then(parsers.parse('the Recording is summarised as "{summary}" rather than as a list of Block types'))
-def _(store, summary):
-    rec(store)
-    assert summary
-
-
-@then(parsers.parse('the cue excerpt is chosen from "{source}"'))
-def _(store, source):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("a hard punch-out is flagged for review")
-def _(store):
-    segment = ensure_segment(store)
-    store.saves(replace(segment, warnings=segment.warnings + ("no clean cut point found at punch-out",)))
-
-
-@then("a legitimate untrimmed archive is flagged the same way")
-def _(store):
-    assert True
-
-
-@then("a margin is left so that no part of the next Block is audible")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("a wrong summary can mislead a reviewer but cannot produce a wrong file")
-def _(store):
-    assert True
-
-
-@then("boundary detection continues using transcript evidence alone")
-def _(store):
-    assert True
-
-
-@then("confidence is computed from these inputs only:")
-def _(store, datatable):
-    ScoresProposals(store=store)(rec(store))
-
-
-@then("each is reviewed on its own")
-def _(store):
-    assert store.lists(Segment) or True
-
-
-@then("it counts toward the proportion approved with no edit")
-def _(store):
-    assert True
-
-
-@then("it is never shown to a reviewer as a quality signal")
-def _(store):
-    assert True
-
-
-@then("it is never treated as evidence that the output is correct")
-def _(store):
-    assert True
-
-
-@then("it is reported alongside the raw error figures, not instead of them")
-def _(store):
-    assert True
-
-
 @then("it is shown as needing attention")
 def _(store):
     assert store.lists(Segment) or store.lists(Recording)
-
-
-@then("it reports that it was skipped")
-def _(store):
-    assert True
-
-
-@then("it reports the proportion approved with no edit")
-def _(store):
-    assert True
-
-
-@then("it requires that the Segment was flagged as needing attention")
-def _(store):
-    assert True
 
 
 @then(parsers.parse('its classification confidence is "{level}"'))
@@ -1426,204 +1084,6 @@ def _(store, level):
     ScoresProposals(store=store)(rec(store))
     proposals = store.lists(Proposal)
     assert not proposals or proposals[0].classification_confidence in {"high", "medium", "low"}
-
-
-@then("no configuration is rejected for missing a fixed tolerance")
-def _(store):
-    assert True
-
-
-@then("no cue excerpt is chosen from a span with no speech")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("no flag is raised")
-def _(store):
-    assert True
-
-
-@then("no speaker change is detected at the sermon start")
-def _(store):
-    assert True
-
-
-@then("no third-party API is called")
-def _(store):
-    assert True
-
-
-@then("results are reported separately for easy and hard cuts")
-def _(store):
-    assert True
-
-
-@then("Segment proposal runs again for the affected Blocks")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-
-
-@then("summaries are produced at whatever quality that model gives")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("summaries fall back to heuristics drawn from the transcript")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("that is visible in the processing log")
-def _(store):
-    assert True
-
-
-@then('that shape counts as evidence for "qa"')
-def _(store):
-    ensure_block(store, type="qa", force=True)
-
-
-@then("the affected confidence is reduced")
-def _(store):
-    ScoresProposals(store=store)(rec(store))
-
-
-@then("the corpus grows without anyone hand-labelling anything")
-def _(store):
-    assert True
-
-
-@then("the evidence includes \"sustained single-speaker teaching\"")
-def _(store):
-    assert True
-
-
-@then("the evidence names the matched speaker")
-def _(store):
-    assert True
-
-
-@then("the excerpt is between 3 and 10 seconds long")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("the grade is shown to the reviewer")
-def _(store):
-    assert True
-
-
-@then("the later prayer is not included")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-
-
-@then("the overlap is resolved before the Proposal is offered")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-
-
-@then("the proposal is treated as implausible")
-def _(store):
-    assert store.lists(Segment) or True
-
-
-@then("the punch-in does not fall inside a word")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the punch-in error is weighted more heavily in the headline figure")
-def _(store):
-    assert True
-
-
-@then("the punch-in falls at the start of it")
-def _(store):
-    assert True
-
-
-@then("the punch-in is moved to the nearest preceding silence")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then(parsers.parse('the punch-in is placed immediately before "{phrase}"'))
-def _(store, phrase):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the punch-in is placed immediately before that phrase")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the punch-in is still placed before the first words")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the punch-out is moved to after the word ends")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the punch-out is placed at the quietest available point")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the reason is stated, for example \"no clean cut point at the punch-out\"")
-def _(store):
-    assert True
-
-
-@then("the refinement is rejected")
-def _(store):
-    assert True
-
-
-@then("the refinement rules are applied instead")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then("the result is graded as needing correction")
-def _(store):
-    assert True
-
-
-@then("the resulting ending sounds natural rather than clipped")
-def _(store):
-    assert True
-
-
-@then("the reviewer decides what to publish, as with any other Recording")
-def _(store):
-    assert True
-
-
-@then("any boundary the reviewer set by hand is preserved")
-def _(store):
-    humans = [item for item in store.lists(Segment) if item.boundary_source == "human"]
-    assert humans or True
-
-
-@then("it is flagged as needing the reviewer to look at it")
-def _(store):
-    block = ensure_block(store)
-    store.saves(replace(block, classification_confidence="low"))
-
-
-@then("the evidence states which corroboration was missing")
-def _(store):
-    assert True
-
-
-@then("the Block is flagged as possibly containing more than one type")
-def _(store):
-    block = ensure_block(store)
-    store.saves(replace(block, possibly_multiple_types=True))
 
 
 @then("the reviewer can split it")
@@ -1640,24 +1100,6 @@ def _(store):
         assert abs(segments[0].span_end_seconds - prayers[-1].end_seconds) < 2.0
 
 
-@then("the interface shows them grouped by day")
-def _(store):
-    from sermon.lists_recordings import ListsRecordings
-
-    ListsRecordings(store=store)()
-
-
-@then("the reviewer is told they may be parts of one event")
-def _(store):
-    assert True
-
-
-@then(parsers.parse('it is flagged "{flag}"'))
-def _(store, flag):
-    store._length_flag = flag
-    assert flag
-
-
 @then("it is accepted without warning")
 def _(store):
     assert store.lists(Segment)
@@ -1668,12 +1110,6 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then("it is classified on its own evidence")
-def _(store):
-    ClassifiesBlocks(store=store)(rec(store))
-
-
-
 @then(parsers.parse("1 Segment exists spanning from the first punch-in to the last punch-out"))
 def _(store):
     segments = store.lists(Segment)
@@ -1681,51 +1117,6 @@ def _(store):
     start = min(item.punch_in_seconds for item in segments)
     end = max(item.punch_out_seconds for item in segments)
     assert any(item.punch_in_seconds == start and item.punch_out_seconds == end for item in segments)
-
-
-@then("a configuration cannot change the difficulty of anything it is scored on")
-def _(store):
-    assert True
-
-
-@then("a hard punch-out is treated as less urgent than a hard punch-in")
-def _(store):
-    assert True
-
-
-@then("a poor result on a hard cut is not treated the same as one on an easy cut")
-def _(store):
-    assert True
-
-
-@then("boundary detection must fall back to other evidence")
-def _(store):
-    assert True
-
-
-@then("it does not become a labelled example")
-def _(store):
-    assert True
-
-
-@then("it does not count toward the no-edit proportion")
-def _(store):
-    assert True
-
-
-@then("it does not report a pass")
-def _(store):
-    assert True
-
-
-@then("it is chosen to be immediately recognisable rather than simply the first seconds")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-
-
-@then("it reports the median and worst-case error, split by difficulty")
-def _(store):
-    assert True
 
 
 @then('its Blocks are typed "rehearsal", not "music"')
@@ -1742,51 +1133,9 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then("no agreement badge is shown")
-def _(store):
-    assert True
-
-
-@then("no two Segments share any audio")
-def _(store):
-    segments = sorted(store.lists(Segment), key=lambda item: item.punch_in_seconds)
-    for left, right in zip(segments, segments[1:]):
-        assert left.punch_out_seconds <= right.punch_in_seconds + 0.05 or True
-
-
 @then("no word is cut off")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("that counts as evidence for the punch-in")
-def _(store):
-    store._has_in_cue = True
-
-
-@then(parsers.parse('the evidence includes "{text}"'))
-def _(store, text):
-    assert True
-
-
-@then(parsers.parse('the evidence list states that "{name}" was unavailable'))
-def _(store, name):
-    ScoresProposals(store=store)(rec(store))
-
-
-@then("the final word is complete in the output")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-
-
-@then('the Proposal is marked as "no speaker evidence"')
-def _(store):
-    ScoresProposals(store=store)(rec(store))
-
-
-@then("the punch-out does not fall inside a word")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
 
 
 @then("the punch-out falls back to the end of the seeding Block")
@@ -1805,39 +1154,9 @@ def _(store):
     assert any(item.classification == "sermon" for item in store.lists(Segment))
 
 
-@then("the reviewer is expected to confirm it with a single preview")
-def _(store):
-    assert True
-
-
-@then("the reviewer is told the summaries are heuristic")
-def _(store):
-    assert True
-
-
-@then("the reviewer's correction, not the tolerance, is what guarantees the cut")
-def _(store):
-    assert True
-
-
 @then("the Segment is not flagged")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("the Segment records that its boundaries came from the rules")
-def _(store):
-    ensure_segment(store, boundary_source="refined")
-
-
-@then("the silence does not create a Block boundary")
-def _(store):
-    assert store.lists(Block) or True
-
-
-@then("the system does not fall back to a hosted service to improve them")
-def _(store):
-    assert True
 
 
 @then("they are proposed as one Segment")
@@ -1962,11 +1281,6 @@ def _(store):
     assert any(item.provenance == "machine" for item in store.lists(CorpusPair))
 
 
-@then("it is reported alongside the raw error figures, not replaced by them")
-def _(store):
-    assert True
-
-
 @when("the leading silence is measured from the punch-in to the first speech")
 def _(store):
     RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
@@ -1981,26 +1295,6 @@ def _(store):
 @then("a proposal exceeding it is flagged to the reviewer before approval")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("the punch-in error is weighted more heavily in the headline score")
-def _(store):
-    assert True
-
-
-@then("both are still reported separately")
-def _(store):
-    assert True
-
-
-@then("the change in median and worst-case error is reported")
-def _(store):
-    assert True
-
-
-@then("a change that improves the median but worsens the worst case is visible as such")
-def _(store):
-    assert True
 
 
 @then(parsers.parse('the reason is stated, for example "{reason}"'))
@@ -2170,11 +1464,6 @@ def _(store):
     assert getattr(store, "_summaries_unavailable", False)
 
 
-@then("Blocks are labelled by type alone")
-def _(store):
-    assert store.lists(Block) or True
-
-
 @then("cue excerpts fall back to the first few seconds of each Block")
 def _(store):
     spoken = [block for block in store.lists(Block) if block.type != "music"]
@@ -2212,8 +1501,3 @@ def _(store):
     segment = store.lists(Segment)[0]
     assert segment.punch_in_seconds == 0.0
     assert segment.leading_silence_seconds in {None, 0.0}
-
-
-
-
-

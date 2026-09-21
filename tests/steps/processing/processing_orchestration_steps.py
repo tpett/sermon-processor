@@ -174,16 +174,6 @@ def _(store, segment):
     assert len(artifacts) >= 1
 
 
-@then("a failure in one does not affect the other")
-def _():
-    return None
-
-
-@then("the reviewer can continue working with other Recordings and Segments")
-def _():
-    return None
-
-
 @then("the recordings list shows this Segment as processing")
 def _(store, segment):
     stored = store.loads(Segment, segment.segment_id)
