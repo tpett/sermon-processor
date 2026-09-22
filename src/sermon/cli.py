@@ -3,17 +3,24 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import date
+import time
+from dataclasses import replace
+from datetime import UTC, date, datetime
 from pathlib import Path
 
+from sermon.analysis import MeasuresBoundaryError, ProposesFromStoredTranscript, ReadsStoredTranscript
+from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.approves_segment import ApprovesSegment
-from sermon.config import ReadsConfiguration
+from sermon.binds_model_endpoint import BindsModelEndpoint
+from sermon.config import ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.downloads_recording import DownloadsRecording
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
 from sermon.jobs.renders_mp3 import ChannelsNeedReview, RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.object_store import FetchesBucketObject, ListsBucketObjects, OpensObjectStore
+from sermon.pipeline.classify import hms
+from sermon.pipeline.roots import RootNotConfigured
 from sermon.reconciles_bucket import ObjectStoreForbidden, ObjectStoreUnreachable, ReconcilesBucket
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
@@ -21,6 +28,7 @@ from sermon.store import (
     Artifact,
     Discovery,
     Job,
+    Proposal,
     Recording,
     Reviewer,
     Segment,
@@ -38,6 +46,12 @@ RENDER_USAGE = (
     "sermon-render <object-key-or-recording-id> "
     "--from <h:mm:ss> --to <h:mm:ss> --label <text> [--date <yyyy-mm-dd>]"
 )
+PROPOSE_USAGE = (
+    "sermon-propose <recording-id> [<recording-id> ...] --corpus <path-to-experiments/data> "
+    "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] "
+    "[--asr <config>] [--store <data-root>]"
+)
+NO_SUMMARIES = "none"
 BIND_HOST = "SERMON_BIND_HOST"
 PORT = "SERMON_PORT"
 DEFAULT_PORT = 8000
@@ -349,3 +363,127 @@ def serves(settings=None, lists_objects=None, runs=starts, prints=print):
     app.config["BIND_HOST"] = settings.get(BIND_HOST, app.config["BIND_HOST"])
     runs(app, app.config["BIND_HOST"], int(settings.get(PORT, DEFAULT_PORT)))
     return 0
+
+
+def parses_propose_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-propose", usage=PROPOSE_USAGE, add_help=True)
+    parser.add_argument("recordings", nargs="+")
+    parser.add_argument("--corpus", required=True)
+    parser.add_argument("--prompts")
+    parser.add_argument("--model", default=CLASSIFIER)
+    parser.add_argument("--summaries", default=SUMMARIZER)
+    parser.add_argument("--asr", default=ASR_CONFIG)
+    parser.add_argument("--store")
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {PROPOSE_USAGE}")
+        return None
+
+
+def registers_from_transcript(store, named, corpus, asr_config):
+    doc = ReadsStoredTranscript(corpus, asr_config)(named)
+    known = names_the_recording(store, named)
+    if known is not None:
+        return store.saves(replace(known, duration_seconds=doc["duration"]))
+    return store.saves(
+        Recording(
+            recording_id=doc["recording_id"],
+            object_key=f"{doc['recording_id']}.flac",
+            state="downloaded",
+            started_at=datetime.fromisoformat(doc["started_at"]).replace(tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=0,
+            duration_seconds=doc["duration"],
+        )
+    )
+
+
+def reports_boundaries(store, recording, prints):
+    proposed = store.lists(Segment, recording_id=recording.recording_id)
+    for segment in proposed:
+        graded = store.lists(Proposal, segment_id=segment.segment_id)
+        prints(
+            f"  {segment.classification:<8} {hms(segment.punch_in_seconds)} -> "
+            f"{hms(segment.punch_out_seconds)}  "
+            f"({segment.punch_out_seconds - segment.punch_in_seconds:.0f} s, "
+            f"{segment.boundary_source})"
+        )
+        for held in graded:
+            prints(
+                f"           classification {held.classification_confidence}, "
+                f"boundary {held.boundary_confidence}, "
+                f"cuts {held.punch_in_grade}/{held.punch_out_grade}"
+                + (f", missing {', '.join(held.missing_evidence)}" if held.missing_evidence else "")
+            )
+    return proposed
+
+
+def reports_error(measured, prints):
+    if not measured.found:
+        prints(
+            f"  NOT FOUND  human {measured.true_punch_in:.3f} -> "
+            f"{measured.true_punch_out:.3f} ({measured.label})"
+        )
+        return False
+    prints(
+        f"  punch-in   proposed {measured.punch_in:9.3f}  human {measured.true_punch_in:9.3f}  "
+        f"error {measured.punch_in_error:+8.3f} s  [{measured.punch_in_difficulty}]"
+    )
+    prints(
+        f"  punch-out  proposed {measured.punch_out:9.3f}  human {measured.true_punch_out:9.3f}  "
+        f"error {measured.punch_out_error:+8.3f} s  [{measured.punch_out_difficulty}]"
+    )
+    return True
+
+
+def proposes(settings=None, prints=print):
+    asked = parses_propose_command(sys.argv[1:], prints)
+    if asked is None:
+        return 1
+    corpus = Path(asked.corpus).resolve()
+    prompts = Path(asked.prompts).resolve() if asked.prompts else corpus.parent / "prompts"
+    try:
+        configuration = ReadsConfiguration(
+            resolves_settings() if settings is None else settings
+        )()
+    except MissingConfiguration as unset:
+        prints(str(unset))
+        return 1
+    BindsModelEndpoint(configuration=configuration)()
+    store = opens_store(Path(asked.store).resolve() if asked.store else configuration.data_root)
+    measures = MeasuresBoundaryError(ground_truth=corpus / "groundtruth.json")
+    found = 0
+    wanted = 0
+    try:
+        prints(f"reasoning over {configuration.model_endpoint} with {asked.model}")
+        for named in asked.recordings:
+            try:
+                recording = registers_from_transcript(store, named, corpus, asked.asr)
+            except TranscriptNotStored as missing:
+                prints(f"{named}: {missing}")
+                return 1
+            started = time.time()
+            try:
+                ProposesFromStoredTranscript(
+                    store=store,
+                    corpus_root=corpus,
+                    prompts_root=prompts,
+                    model=asked.model,
+                    summarizer=None if asked.summaries == NO_SUMMARIES else asked.summaries,
+                    asr_config=asked.asr,
+                )(recording)
+            except (ModelEndpointUnreachable, RootNotConfigured) as refused:
+                prints(f"{named}: {refused}")
+                return 1
+            prints(f"{recording.recording_id}  {time.time() - started:.1f} s")
+            proposed = reports_boundaries(store, recording, prints)
+            for measured in measures(
+                recording.recording_id,
+                [(item.punch_in_seconds, item.punch_out_seconds) for item in proposed],
+            ):
+                wanted += 1
+                found += reports_error(measured, prints)
+        return 0 if found == wanted else 1
+    finally:
+        store.close()

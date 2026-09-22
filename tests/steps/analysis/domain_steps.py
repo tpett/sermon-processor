@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
+from steps._transcripts import covering_transcript
 
 from sermon.analysis import (
     TEACHING,
@@ -16,11 +17,12 @@ from sermon.analysis import (
     ScoresProposals,
     SummarizesBlocks,
     TranscribesRecording,
-    covering_transcript,
     seeds_segment,
 )
 from sermon.analysis.io import reads_json, writes_json
-from sermon.analysis.stages import LEAD_IN_S, TAIL_S
+from sermon.pipeline.segments import TAIL_S
+
+LEAD_IN_S = 1.0
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.store import (
     Artifact,

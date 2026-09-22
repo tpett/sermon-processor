@@ -96,11 +96,6 @@ class AnalyzesRecording:
             self.stages(name)
         except StageFailed:
             if name in OPTIONAL_STAGES:
-                if name == "summarization":
-                    self.store._summaries_unavailable = True
-                    SummarizesBlocks(store=self.store)(recording)
-                if name == "diarization":
-                    self.store._no_speaker_evidence = True
                 return
             raise
         if name == "probe":
