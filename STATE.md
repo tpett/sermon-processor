@@ -4,32 +4,71 @@
 the real pipeline from a stored transcript through `qwen3.6:35b-mlx` on mac-m1 and
 prints the signed error against `groundtruth.json`. No test flag in the path.
 
-**It reproduces `FINDINGS.md`'s `u3` row cell for cell** on the eight dev
+**It reproduced `FINDINGS.md`'s `u3` row cell for cell** on the eight dev
 recordings: found 100%, both boundaries within 1 s 12%, 2 s 25%, 5 s 62%, median
-punch-in **2.20 s**, median punch-out **0.30 s**. Six of eight punch-ins match the
-stored `u3` artefact to the millisecond.
+punch-in **2.20 s**, median punch-out **0.30 s**. Six of eight punch-ins matched
+the stored `u3` artefact to the millisecond — and that turned out to be one
+favourable draw from a distribution. See the next section for the repeatable
+number, which is worse.
 
-### The finding that matters more than the number
+### The finding that mattered more than the number, and its fix
 
-**The classifier is not reproducible.** Three runs of an identical command on
-`recording_20260510_102947` — same stored transcript, same prompt, `temperature 0`,
-`seed 0` — verified by hand:
+**The classifier was not reproducible, and now is.** `temperature: 0` and
+`seed: 0` were not enough: ollama 0.34.0 returned a different block table for
+byte-identical input on nearly every call. Adding `logprobs: true` and
+`top_logprobs: 1` to the request body removes it. Measured 2026-09-22 over the
+dev eight with `--summaries none` against `qwen3.6:35b-mlx` on mac-m1, six
+passes before the change and five after, 188-220 s per pass:
 
-```
-run a   punch-in 1562.700   error -73.196 s
-run b   punch-in 1635.800   error  -0.096 s
-run c   punch-in 1562.700   error -73.196 s
-```
+| | found | &le;1 s | &le;2 s | &le;5 s | med &#124;in&#124; | med &#124;out&#124; |
+| --- | --- | --- | --- | --- | --- | --- |
+| before, 6 passes | 88-100% | 0-12% | 12-25% | 50-62% | **2.20-4.64 s** | 0.26-0.51 s |
+| after, 5 passes | 88% | 0% | 12% | 50% | **4.64 s** | 0.26 s |
 
-The model returns a different block table for byte-identical input — 13 blocks with
-the sermon at 1635.8 s, or 12 with it at 1562.7 s. Across all eight, a second pass
-gave found 88% and median punch-in 4.64 s against the first pass's 100% and 2.20 s.
+After the change every boundary of every recording was identical across all
+five passes. Before it, five of eight recordings moved, four by more than a
+minute: `20260503` -6.71 / +105.99 s, `20260510` -0.10 / -73.20 s, `20260531`
+-74.67 / +1.33 s, `20260412` -0.07 / -19.57 s, and `20260628`'s punch-out
+-965.51 / -1686.62 s while it was found in five passes of six.
 
-**That spread is as large as the gaps `FINDINGS` uses to rank configurations**
-(`u3` 2.20 s, `T0 rules` 3.76 s, `C frontier` 4.64 s), so the ranking may not be a
-ranking — and the 19.6 s mlx-versus-faster-whisper divergence attributed to the
-transcript engine is plausibly the same phenomenon. Filed P0. Do **not** re-run the
-held-out split to chase it; `test_access.log` records one shot per configuration.
+**`FINDINGS`' dev ranking does not survive this.** The three medians it ranks
+configurations by — `u3` 2.20 s, `t3` and `T0 rules` 3.76 s, `C frontier`
+4.64 s — are all values one configuration produced on different passes of the
+same command: 2.20, 3.76, 3.76, 4.64, 2.20, 3.76. The ordering is a draw from
+the noise, not a measurement of the configurations. The 19.6 s mlx-versus-
+faster-whisper divergence attributed to the transcript engine sits inside the
+same spread and is not evidence of anything either.
+
+**The repeatable number is worse than the one this file reported.** The same
+configuration, pinned, scores found 88% and median punch-in 4.64 s. The
+held-out rows were not re-run: `test_access.log`'s budget is spent, and they
+carry the same uncertainty.
+
+Ruled out, each measured: **the sampler** — `top_k` 1, `top_p` 1, `min_p` 0,
+`repeat_penalty` 1 and `presence_penalty` 0 left five reps with five distinct
+answers; **context overflow** — the largest dev prompt evaluates to 25837
+tokens against a 40960 window, so nothing is truncated; **the MLX backend
+alone** — `qwen3:4b`, GGUF, also answered differently to the same prompt;
+**prompt length** — a 36-token toy prompt varied across 8 of 8 plain calls.
+
+Still true after the change: **cache state is part of the answer.** A prompt
+served from a warm prefix cache can differ from the same prompt prefilled cold,
+and from one answered after a model reload — each reproducible within itself
+over 3-8 repetitions. Every classification in a real run prefills cold, which
+is the regime the table above measures.
+
+This is an empirical property of ollama's generation path, not a documented
+guarantee, so `tests/pipeline_behaviour_fingerprint.json` pins the request body
+and fails if `logprobs` is dropped.
+
+**The agreement badge stays out of v1.** `analysis/analysis_confidence.feature`
+defers it and `analysis_orchestration.feature` leaves the stage out of the
+table; nothing here changes that, and one thing strengthens it. Re-running the
+same model is now provably vacuous as an agreement signal — five passes agreed
+on every boundary including the two that are wrong by 106 s and 73 s, so a
+self-agreement badge would read "Looks good" on both. The deferred scenario
+already requires a *different* model, which is the only form that would carry
+information. Cut difficulty remains the v1 signal.
 
 ### State of the suite
 
@@ -55,9 +94,10 @@ this slice did not own — `discards_recording.py`, `sends_notification.py`,
   `FINDINGS` records collapsing on held-out data (3.76 → 221.14 s).
 - **Diarization has no producer**; it reads a stored artefact or raises. `FINDINGS`
   records it reaching scored output only via the `structured` strategy, unused here.
-- **The Members Meeting is still wrong.** Run 1 proposed 2628 s against a 3594 s
-  human segment (−965 s); run 2 did not overlap the truth at all. `FINDINGS` says
-  only the frontier control declined it correctly. `discarding_recordings.feature`
+- **The Members Meeting is still wrong, and now wrong repeatably.** Pinned, it
+  does not overlap the human segment at all in any of five passes; unpinned it
+  overlapped in five of six with the punch-out 965 s or 1687 s early. `FINDINGS`
+  says only the frontier control declined it correctly. `discarding_recordings.feature`
   and `approval_notifications.feature` both assume nothing-publishable means no work
   and no notification, and on this evidence they will not hold.
 
