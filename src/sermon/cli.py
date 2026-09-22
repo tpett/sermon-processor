@@ -365,6 +365,10 @@ def serves(settings=None, lists_objects=None, runs=starts, prints=print):
     return 0
 
 
+def analyzes(settings=None, arguments=None, reasons=None, prints=print):
+    return 1
+
+
 def parses_propose_command(arguments, prints):
     parser = argparse.ArgumentParser(prog="sermon-propose", usage=PROPOSE_USAGE, add_help=True)
     parser.add_argument("recordings", nargs="+")
