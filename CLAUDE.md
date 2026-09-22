@@ -80,8 +80,13 @@ bd ready                                            # what to work on next
 
 For a feature-file change, run that file's scenarios, `validate_spec.py`, and
 unit tests for modules you touched. Do not run a bare `pytest` on scenario work.
-Worktrees use the repo-root `.venv` (`../.venv/bin/python` from `worktrees/<name>`);
-never `uv pip install` a second copy.
+**A worktree needs its own `.venv`.** `uv venv --python 3.13 && uv pip install -e
+".[dev]"` inside it. The repo-root venv cannot serve a worktree: its editable
+install resolves `sermon` to the primary tree's `src/`, so tests would pass
+against code you are not editing. Pipeline tests also need
+`SERMON_SPIKE_DATA=<primary tree>/experiments/data`, and `experiments/baseline.py`
+needs `--data` pointing there, because `blocks/`, `transcripts/` and
+`diarization/` are gitignored and exist only in the primary tree.
 
 ## Running it
 
