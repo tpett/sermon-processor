@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from sermon.analysis import ClassifiesBlocks, DividesIntoBlocks, TranscribesRecording
+from sermon.analysis import (
+    ClassifiesBlocks,
+    DividesIntoBlocks,
+    ProposesSegments,
+    TranscribesRecording,
+)
 from sermon.analysis.measures_boundary_error import MeasuresBoundaryError
 from sermon.analysis.proposes_from_transcript import (
     ASR_CONFIG,
@@ -249,3 +254,15 @@ def test_a_boundary_pair_that_misses_the_human_segment_is_reported_as_not_found(
 
 def test_measuring_a_recording_the_corpus_never_labelled_reports_nothing():
     assert MeasuresBoundaryError(ground_truth=GROUND_TRUTH)("recording_19700101_000000", []) == ()
+
+
+@spike_data_required
+def test_proposing_twice_updates_the_proposal_rather_than_adding_another(store):
+    recording_id = "recording_20260412_102318"
+    _, first = proposes(store, recording_id)
+    doc = stored_transcript(recording_id)
+    recording = registers(store, recording_id, doc)
+    ProposesSegments(store=store)(recording)
+    assert [item.segment_id for item in store.lists(Segment, recording_id=recording_id)] == [
+        item.segment_id for item in first
+    ]
