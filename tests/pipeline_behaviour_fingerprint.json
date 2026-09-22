@@ -383,6 +383,7 @@
  ],
  "classify.ollama.thinking": [
   {
+   "logprobs": true,
    "model": "a-model",
    "options": {
     "num_ctx": 40960,
@@ -392,12 +393,14 @@
    },
    "prompt": "ask",
    "stream": false,
-   "think": true
+   "think": true,
+   "top_logprobs": 1
   }
  ],
  "classify.ollama.unthinking": [
   {
    "format": "json",
+   "logprobs": true,
    "model": "a-model",
    "options": {
     "num_ctx": 40960,
@@ -407,7 +410,8 @@
    },
    "prompt": "ask",
    "stream": false,
-   "think": false
+   "think": false,
+   "top_logprobs": 1
   }
  ],
  "classify.render_transcript.class": {
