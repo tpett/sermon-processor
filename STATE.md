@@ -1,3 +1,66 @@
+## SLICE 3.1 — the machine proposes, and the error is measured (2026-09-22)
+
+`sermon-propose <recording-id> --corpus <experiments/data> --summaries none` drives
+the real pipeline from a stored transcript through `qwen3.6:35b-mlx` on mac-m1 and
+prints the signed error against `groundtruth.json`. No test flag in the path.
+
+**It reproduces `FINDINGS.md`'s `u3` row cell for cell** on the eight dev
+recordings: found 100%, both boundaries within 1 s 12%, 2 s 25%, 5 s 62%, median
+punch-in **2.20 s**, median punch-out **0.30 s**. Six of eight punch-ins match the
+stored `u3` artefact to the millisecond.
+
+### The finding that matters more than the number
+
+**The classifier is not reproducible.** Three runs of an identical command on
+`recording_20260510_102947` — same stored transcript, same prompt, `temperature 0`,
+`seed 0` — verified by hand:
+
+```
+run a   punch-in 1562.700   error -73.196 s
+run b   punch-in 1635.800   error  -0.096 s
+run c   punch-in 1562.700   error -73.196 s
+```
+
+The model returns a different block table for byte-identical input — 13 blocks with
+the sermon at 1635.8 s, or 12 with it at 1562.7 s. Across all eight, a second pass
+gave found 88% and median punch-in 4.64 s against the first pass's 100% and 2.20 s.
+
+**That spread is as large as the gaps `FINDINGS` uses to rank configurations**
+(`u3` 2.20 s, `T0 rules` 3.76 s, `C frontier` 4.64 s), so the ranking may not be a
+ranking — and the 19.6 s mlx-versus-faster-whisper divergence attributed to the
+transcript engine is plausibly the same phenomenon. Filed P0. Do **not** re-run the
+held-out split to chase it; `test_access.log` records one shot per configuration.
+
+### State of the suite
+
+`tests/test_spec.py` **247 passed / 350 failed / 7 skipped**, down from 305 passed.
+**58 scenarios went red, 0 became passing, 0 errored.** Their Givens injected a test
+hook or relied on a fabricated transcript; `TranscribesRecording` now raises rather
+than inventing one, so runs stop before the stage the Then asserts on. The remaining
+work is mechanical: stage a real transcript in those Givens.
+
+31 reads and 6 writes of test-injected store attributes are gone from
+`src/sermon/analysis/` and `jobs/analyzes_recording.py`, with an AST guard that
+fails on any return, by attribute access or `getattr`. **Three remain** in modules
+this slice did not own — `discards_recording.py`, `sends_notification.py`,
+`runs_queued_jobs.py` — filed P2.
+
+### Provisional and absent
+
+- **Cut difficulty is a proxy.** The corpus grades from the audio envelope; this
+  path has no audio, so `grades_cut` measures inter-utterance quiet. The CLI prints
+  the corpus label beside it so disagreement is visible.
+- **No cue-based fallback classification.** `_type_from_transcript` was not ported —
+  its `LESSON_LEAD_IN` could move a derived punch-in, and the rules rung is the one
+  `FINDINGS` records collapsing on held-out data (3.76 → 221.14 s).
+- **Diarization has no producer**; it reads a stored artefact or raises. `FINDINGS`
+  records it reaching scored output only via the `structured` strategy, unused here.
+- **The Members Meeting is still wrong.** Run 1 proposed 2628 s against a 3594 s
+  human segment (−965 s); run 2 did not overlap the truth at all. `FINDINGS` says
+  only the frontier control declined it correctly. `discarding_recordings.feature`
+  and `approval_notifications.feature` both assume nothing-publishable means no work
+  and no notification, and on this evidence they will not hold.
+
 ## SLICE 2 is done — a publishable MP3 from real audio (2026-09-21)
 
 Verified on `recording_20260913_090014`, the 3h 3m class-plus-service recording,
