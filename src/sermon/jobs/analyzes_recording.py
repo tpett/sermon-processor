@@ -83,6 +83,7 @@ class AnalyzesRecording:
     reaches: object = None
     only: str | None = None
     measures: object = None
+    analyses: object = None
 
     def _run_stage(self, recording, name):
         cached = {
@@ -180,18 +181,21 @@ class AnalyzesRecording:
         )
         name = "envelope"
         try:
-            for name in STAGE_ORDER:
-                if name in ITERATED_STAGES:
-                    continue
-                if name == "summarization":
-                    if self._run_stage(analyzing, "blocking") == "stop":
+            if self.analyses is not None:
+                self.analyses(analyzing)
+            else:
+                for name in STAGE_ORDER:
+                    if name in ITERATED_STAGES:
+                        continue
+                    if name == "summarization":
+                        if self._run_stage(analyzing, "blocking") == "stop":
+                            return self.store.loads(Recording, recording.recording_id)
+                        if self._run_stage(analyzing, "block_classification") == "stop":
+                            return self.store.loads(Recording, recording.recording_id)
+                        self._run_stage(analyzing, "blocking")
+                        self._run_stage(analyzing, "block_classification")
+                    if self._run_stage(analyzing, name) == "stop":
                         return self.store.loads(Recording, recording.recording_id)
-                    if self._run_stage(analyzing, "block_classification") == "stop":
-                        return self.store.loads(Recording, recording.recording_id)
-                    self._run_stage(analyzing, "blocking")
-                    self._run_stage(analyzing, "block_classification")
-                if self._run_stage(analyzing, name) == "stop":
-                    return self.store.loads(Recording, recording.recording_id)
         except ModelEndpointUnreachable as error:
             self.store.saves(
                 LogEntry(
@@ -274,9 +278,15 @@ class RunsAnalyzeJob:
     reaches: object = None
     only: str | None = None
     measures: object = None
+    analyses: object = None
+    recording_id: str | None = None
 
     def __call__(self):
-        job = self.store.lists(Job, kind="analyze", state="queued")[0]
+        job = [
+            queued
+            for queued in self.store.lists(Job, kind="analyze", state="queued")
+            if self.recording_id in (None, queued.recording_id)
+        ][0]
         running = self.store.saves(replace(job, state="running", started_at=self.clock()))
         recording = self.store.loads(Recording, running.recording_id)
         try:
@@ -289,6 +299,7 @@ class RunsAnalyzeJob:
                 reaches=self.reaches,
                 only=self.only,
                 measures=self.measures,
+                analyses=self.analyses,
             )(recording)
         except StageFailed as error:
             self.store.saves(

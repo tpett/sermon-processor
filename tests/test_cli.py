@@ -1,11 +1,14 @@
+import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
+from sermon.analysis.proposes_from_transcript import ASR_CONFIG
 from sermon.cli import (
     ENVIRONMENT_FILE,
+    analyzes,
     fetches,
     lists_bucket,
     reconciles,
@@ -15,7 +18,18 @@ from sermon.cli import (
 )
 from sermon.jobs.downloads_recording import FetchesObject
 from sermon.object_store import ListsBucketObjects
-from sermon.store import DATABASE_NAME, Artifact, Recording, Segment, opens_store
+from sermon.pipeline import classify, segments
+from sermon.store import (
+    DATABASE_NAME,
+    Artifact,
+    Block,
+    Job,
+    Notification,
+    Proposal,
+    Recording,
+    Segment,
+    opens_store,
+)
 
 ENDPOINT = "https://s3.home.tpett.me"
 BUCKET = "reformation-recordings"
@@ -498,3 +512,111 @@ def test_rendering_an_object_the_bucket_does_not_hold_fails(tmp_path):
     prints = RecordsLines()
     assert rendered_by_hand(tmp_path, prints, object_key=UNSEEN) == 1
     assert f"holds no {UNSEEN}" in str(prints)
+
+
+ANALYZED = "recording_20260412_102318"
+
+
+@pytest.fixture
+def injected_roots():
+    held = (classify.ENDPOINT, classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
+    yield
+    classify.ENDPOINT, classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
+
+
+def spoken_service():
+    return {
+        "recording_id": ANALYZED,
+        "duration": 4200.0,
+        "started_at": "2026-04-12T10:23:18",
+        "utterances": [
+            {
+                "start": float(start),
+                "end": float(start) + 20.0,
+                "text": "Good morning, church. Amen.",
+                "words": [{"w": "morning", "start": float(start), "end": float(start) + 1.0}],
+            }
+            for start in range(0, 4200, 60)
+        ],
+        "silences": [],
+    }
+
+
+def reasoned_blocks(_doc=None):
+    return {
+        "blocks": [
+            {"start": 0.0, "end": 600.0, "type": "music", "confidence": 0.9},
+            {"start": 600.0, "end": 3600.0, "type": "sermon", "confidence": 0.9},
+            {"start": 3600.0, "end": 3900.0, "type": "prayer", "confidence": 0.9},
+        ],
+        "model_segments": [{"punch_in": 600.0, "punch_out": 3900.0}],
+    }
+
+
+def corpus_holding_the_transcript(root):
+    corpus = root / "corpus"
+    (corpus / "transcripts").mkdir(parents=True)
+    (corpus / "diarization").mkdir(parents=True)
+    (corpus / "transcripts" / f"{ANALYZED}.{ASR_CONFIG}.json").write_text(
+        json.dumps(spoken_service()), encoding="utf-8"
+    )
+    return corpus
+
+
+def analyses(root, printed, **overrides):
+    return analyzes(
+        settings=settings_file(root),
+        arguments=[
+            ANALYZED,
+            "--corpus",
+            str(overrides.get("corpus", corpus_holding_the_transcript(root))),
+            "--summaries",
+            "none",
+        ],
+        reasons=reasoned_blocks,
+        prints=printed,
+    )
+
+
+def test_analyzing_lands_the_blocks_and_the_proposal_in_the_configured_data_root(tmp_path, injected_roots):
+    printed = RecordsLines()
+    assert analyses(tmp_path, printed) == 0
+    store = opens_store(tmp_path / "data")
+    proposed = store.lists(Segment, recording_id=ANALYZED)
+    assert [item.type for item in store.lists(Block, recording_id=ANALYZED)] == [
+        "music",
+        "sermon",
+        "prayer",
+    ]
+    assert [(item.state, item.classification) for item in proposed] == [("proposed", "sermon")]
+    assert [item.boundary_confidence for item in store.lists(
+        Proposal, segment_id=proposed[0].segment_id
+    )] == ["high"]
+    store.close()
+
+
+def test_analyzing_leaves_the_recording_awaiting_review_and_the_job_succeeded(tmp_path, injected_roots):
+    printed = RecordsLines()
+    assert analyses(tmp_path, printed) == 0
+    store = opens_store(tmp_path / "data")
+    assert store.loads(Recording, ANALYZED).state == "awaiting_review"
+    assert [(item.kind, item.state) for item in store.lists(Job)] == [("analyze", "succeeded")]
+    assert [item.kind for item in store.lists(Notification, recording_id=ANALYZED)] == [
+        "segment_proposed"
+    ]
+    store.close()
+
+
+def test_analyzing_reports_the_state_the_boundaries_and_the_confidence(tmp_path, injected_roots):
+    printed = RecordsLines()
+    analyses(tmp_path, printed)
+    assert f"{ANALYZED} is awaiting_review" in str(printed)
+    assert "sermon   0:10:00 -> 1:04:21" in str(printed)
+    assert "classification high, boundary high" in str(printed)
+
+
+def test_analyzing_a_recording_with_no_stored_transcript_is_refused(tmp_path, injected_roots):
+    printed = RecordsLines()
+    (tmp_path / "empty" / "transcripts").mkdir(parents=True)
+    assert analyses(tmp_path, printed, corpus=tmp_path / "empty") == 1
+    assert "no whisper-large-v3-turbo+words transcript" in str(printed)

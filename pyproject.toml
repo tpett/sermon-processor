@@ -16,6 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
+sermon-analyze = "sermon.cli:analyzes"
 sermon-fetch = "sermon.cli:fetches"
 sermon-propose = "sermon.cli:proposes"
 sermon-reconcile = "sermon.cli:reconciles"

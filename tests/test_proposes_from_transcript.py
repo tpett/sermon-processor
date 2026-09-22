@@ -18,9 +18,23 @@ from sermon.analysis.proposes_from_transcript import (
     ChoosesBoundaries,
     ProposesFromStoredTranscript,
 )
-from sermon.jobs.analyzes_recording import StageFailed
+from sermon.jobs.analyzes_recording import (
+    RecordingContents,
+    RunsAnalyzeJob,
+    StageFailed,
+)
 from sermon.pipeline import segments
-from sermon.store import Block, Proposal, Recording, Segment, opens_store
+from sermon.sends_notification import SendsNotification
+from sermon.store import (
+    Block,
+    Job,
+    Notification,
+    Proposal,
+    Recording,
+    Reviewer,
+    Segment,
+    opens_store,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ANALYSIS_ROOT = PROJECT_ROOT / "src" / "sermon" / "analysis"
@@ -266,3 +280,81 @@ def test_proposing_twice_updates_the_proposal_rather_than_adding_another(store):
     assert [item.segment_id for item in store.lists(Segment, recording_id=recording_id)] == [
         item.segment_id for item in first
     ]
+
+
+NOTHING_FABRICATED = RecordingContents(segments=())
+
+
+def drains_the_analyze_job(store, recording_id, doc):
+    recording = registers(store, recording_id, doc)
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    store.saves(
+        Job(
+            recording_id=recording_id,
+            kind="analyze",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"analyze:{recording_id}",
+            queued_at=recording.started_at,
+        )
+    )
+    RunsAnalyzeJob(
+        store=store,
+        stages=lambda _name: None,
+        notifies=SendsNotification(store=store),
+        contents=NOTHING_FABRICATED,
+        recording_id=recording_id,
+        analyses=ProposesFromStoredTranscript(
+            store=store,
+            corpus_root=CORPUS,
+            prompts_root=CORPUS.parent / "prompts",
+            summarizer=None,
+            reasons=lambda _doc: stored_reasoning(recording_id),
+        ),
+    )()
+
+
+@spike_data_required
+def test_draining_the_analyze_job_leaves_the_blocks_and_the_proposal_in_the_store(store):
+    recording_id = "recording_20260412_102318"
+    drains_the_analyze_job(store, recording_id, stored_transcript(recording_id))
+    proposed = store.lists(Segment, recording_id=recording_id)
+    assert len(store.lists(Block, recording_id=recording_id)) > 1
+    assert [item.state for item in proposed] == ["proposed"]
+    assert [item.boundary_source for item in proposed] == ["model-in/refined-out"]
+    graded = store.lists(Proposal, segment_id=proposed[0].segment_id)
+    assert [item.classification_confidence for item in graded] == ["high"]
+    assert graded[0].evidence
+
+
+@spike_data_required
+def test_draining_the_analyze_job_leaves_the_recording_awaiting_review(store):
+    recording_id = "recording_20260412_102318"
+    drains_the_analyze_job(store, recording_id, stored_transcript(recording_id))
+    assert store.loads(Recording, recording_id).state == "awaiting_review"
+    assert [item.state for item in store.lists(Job, kind="analyze")] == ["succeeded"]
+    assert [item.kind for item in store.lists(Notification, recording_id=recording_id)] == [
+        "segment_proposed"
+    ]
+
+
+@spike_data_required
+def test_draining_the_analyze_job_takes_the_job_for_the_recording_it_was_asked_about(store):
+    recording_id = "recording_20260412_102318"
+    other = "recording_20260503_090012"
+    registers(store, other, stored_transcript(other))
+    store.saves(
+        Job(
+            recording_id=other,
+            kind="analyze",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"analyze:{other}",
+            queued_at=datetime(2026, 5, 3, 9, 0, 12, tzinfo=UTC),
+        )
+    )
+    drains_the_analyze_job(store, recording_id, stored_transcript(recording_id))
+    assert {item.recording_id: item.state for item in store.lists(Job, kind="analyze")} == {
+        other: "queued",
+        recording_id: "succeeded",
+    }
