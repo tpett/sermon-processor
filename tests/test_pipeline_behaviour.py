@@ -1046,6 +1046,22 @@ def test_one_generation_sends_the_body_the_fingerprint_pins(think, monkeypatch, 
     matches_the_fingerprint(expected, f"classify.ollama.{label}", host.bodies)
 
 
+def test_one_generation_asks_the_host_for_logprobs(monkeypatch):
+    classify = imports_moved("classify")
+    host = posts_one_generation(classify, monkeypatch, CONFIGURED_ENDPOINT)
+    assert host.bodies[0].get("logprobs") is True
+    assert host.bodies[0].get("top_logprobs") == 1
+
+
+def test_a_generation_retried_without_the_constraint_still_asks_for_logprobs(monkeypatch):
+    classify = imports_moved("classify")
+    host = AnswersLikeAHost(['{"ok": 1}'], refuse_format=True)
+    monkeypatch.setattr(classify, "ENDPOINT", CONFIGURED_ENDPOINT)
+    monkeypatch.setattr(classify.urllib.request, "urlopen", host)
+    assert classify.ollama("a-model", "ask") == '{"ok": 1}'
+    assert [body.get("logprobs") for body in host.bodies] == [True, True]
+
+
 def test_a_host_refusing_structured_output_is_retried_without_the_constraint(
     monkeypatch, capsys
 ):
