@@ -17,6 +17,7 @@ from step_integrity import (
     UNFALSIFIABLE_ASSERTION,
     UNREADABLE_NAME,
     UNTYPED_DECORATOR,
+    VIEW_MODEL_THEN,
     finds_stale_permissions,
     judges_step_tree,
     measures_spec_damage,
@@ -93,6 +94,51 @@ EVASIONS = (
     ('@step("it holds")\ndef _():\n    assert 0\n', UNTYPED_DECORATOR),
     ('@then(ELSEWHERE)\ndef _():\n    assert 0\n', UNREADABLE_NAME),
 )
+
+RENDERED_MODULE = '''
+from pytest_bdd import then, when
+
+from sermon.store import Recording
+from sermon.web import creates_app
+
+
+@when("I open the Recording detail view", target_fixture="detail_page")
+def _(store):
+    recording = store.lists(Recording)[0]
+    response = creates_app(store=store).test_client().get(f"/recordings/{recording.recording_id}")
+    return response.get_data(as_text=True)
+
+
+@when("I visit the recordings list", target_fixture="view_model")
+def _(store):
+    return creates_app(store=store).test_client().get("/api/recordings").get_json()
+
+
+@then("the Segments are listed in order")
+def _(detail_page):
+    assert "lesson" in detail_page
+
+
+@then("the Segments came back in order")
+def _(view_model):
+    assert view_model["segments"]
+
+
+@then("the rows came back")
+def _(store):
+    body = creates_app(store=store).test_client().get("/api/recordings").get_json()
+    assert body["recordings"]
+'''
+
+VIEW_MODEL_READERS = ("the Segments came back in order", "the rows came back")
+
+
+def plants_an_interface_module(tmp_path, source):
+    nested = tmp_path / "interface"
+    nested.mkdir()
+    (nested / "planted_steps.py").write_text(textwrap.dedent(source))
+    return judges_step_tree(tmp_path, tmp_path)
+
 
 @cache
 def reads_the_tree():
@@ -201,6 +247,28 @@ def test_the_guard_condemns_a_step_module_that_asserts_nothing(tmp_path):
 def test_the_guard_condemns_one_way_of_asserting_nothing(tmp_path, source, fault):
     found = plants(tmp_path, HOLLOW_PREAMBLE + "\n\n" + source)
     assert [fault in one.faults for one in found] == [True]
+
+
+def test_no_interface_then_reads_the_view_model():
+    refuses(VIEW_MODEL_THEN)
+
+
+def test_the_guard_condemns_an_interface_then_that_reads_the_view_model(tmp_path):
+    planted = plants_an_interface_module(tmp_path, RENDERED_MODULE)
+    condemned = [one.text for one in planted if VIEW_MODEL_THEN in one.faults]
+    assert sorted(condemned) == sorted(VIEW_MODEL_READERS)
+
+
+def test_the_guard_clears_an_interface_then_that_reads_the_rendered_page(tmp_path):
+    planted = plants_an_interface_module(tmp_path, RENDERED_MODULE)
+    rendered = [one for one in planted if one.text == "the Segments are listed in order"]
+    assert [one.faults for one in rendered] == [()]
+
+
+def test_the_view_model_guard_leaves_steps_outside_the_interface_alone(tmp_path):
+    (tmp_path / "planted_steps.py").write_text(textwrap.dedent(RENDERED_MODULE))
+    planted = judges_step_tree(tmp_path, tmp_path)
+    assert [one for one in planted if VIEW_MODEL_THEN in one.faults] == []
 
 
 def test_the_spec_rests_on_no_condemned_step():
