@@ -19,6 +19,9 @@ from sermon.store import Block, Proposal, Recording, Segment, opens_store
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ANALYSIS_ROOT = PROJECT_ROOT / "src" / "sermon" / "analysis"
+ANALYSIS_PATH = sorted(ANALYSIS_ROOT.glob("*.py")) + [
+    PROJECT_ROOT / "src" / "sermon" / "jobs" / "analyzes_recording.py"
+]
 CORPUS = Path(os.environ.get("SERMON_SPIKE_DATA") or PROJECT_ROOT / "experiments" / "data")
 GROUND_TRUTH = CORPUS / "groundtruth.json"
 SPIKE_CONFIG = "u3-qwen3.6.whole.v2"
@@ -129,14 +132,9 @@ def test_the_guard_leaves_a_private_method_of_the_stage_alone():
     assert finds_private_store_attributes("self._records_punch_in_evidence(item, word)") == []
 
 
-@pytest.mark.parametrize(
-    "module", sorted(path.name for path in ANALYSIS_ROOT.glob("*.py"))
-)
+@pytest.mark.parametrize("module", ANALYSIS_PATH, ids=[path.name for path in ANALYSIS_PATH])
 def test_no_analysis_stage_branches_on_an_attribute_injected_onto_the_store(module):
-    found = finds_private_store_attributes(
-        (ANALYSIS_ROOT / module).read_text(encoding="utf-8")
-    )
-    assert found == []
+    assert finds_private_store_attributes(module.read_text(encoding="utf-8")) == []
 
 
 def test_transcription_refuses_a_recording_whose_transcript_was_never_stored(store):
