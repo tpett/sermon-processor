@@ -14,7 +14,9 @@ from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
 from sermon.config import ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording
+from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
 from sermon.jobs.renders_mp3 import ChannelsNeedReview, RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
@@ -26,6 +28,7 @@ from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
 from sermon.store import (
     Artifact,
+    Block,
     Discovery,
     Job,
     Proposal,
@@ -46,12 +49,18 @@ RENDER_USAGE = (
     "sermon-render <object-key-or-recording-id> "
     "--from <h:mm:ss> --to <h:mm:ss> --label <text> [--date <yyyy-mm-dd>]"
 )
+ANALYZE_USAGE = (
+    "sermon-analyze <recording-id> --corpus <path-to-experiments/data> "
+    "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] [--asr <config>]"
+)
 PROPOSE_USAGE = (
     "sermon-propose <recording-id> [<recording-id> ...] --corpus <path-to-experiments/data> "
     "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] "
     "[--asr <config>] [--store <data-root>]"
 )
 NO_SUMMARIES = "none"
+NOTHING_FABRICATED = RecordingContents(segments=())
+JOB_ATTEMPTS = 5
 BIND_HOST = "SERMON_BIND_HOST"
 PORT = "SERMON_PORT"
 DEFAULT_PORT = 8000
@@ -365,8 +374,86 @@ def serves(settings=None, lists_objects=None, runs=starts, prints=print):
     return 0
 
 
+def parses_analyze_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-analyze", usage=ANALYZE_USAGE, add_help=True)
+    parser.add_argument("recording")
+    parser.add_argument("--corpus", required=True)
+    parser.add_argument("--prompts")
+    parser.add_argument("--model", default=CLASSIFIER)
+    parser.add_argument("--summaries", default=SUMMARIZER)
+    parser.add_argument("--asr", default=ASR_CONFIG)
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {ANALYZE_USAGE}")
+        return None
+
+
+def queues_analysis(store, recording):
+    return EnqueuesJob(store=store)(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="queued",
+            max_attempts=JOB_ATTEMPTS,
+            dedupe_key=f"analyze:{recording.recording_id}",
+            queued_at=datetime.now(UTC),
+        )
+    )
+
+
+def reports_analysis(store, recording, prints):
+    settled = store.loads(Recording, recording.recording_id)
+    job = store.lists(Job, recording_id=settled.recording_id, kind="analyze")[-1]
+    prints(f"{settled.recording_id} is {settled.state}, the analyze job {job.state}")
+    prints(f"  {len(store.lists(Block, recording_id=settled.recording_id))} blocks")
+    if job.last_error:
+        prints(f"  {job.last_error}")
+    return reports_boundaries(store, settled, prints)
+
+
 def analyzes(settings=None, arguments=None, reasons=None, prints=print):
-    return 1
+    asked = parses_analyze_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    corpus = Path(asked.corpus).resolve()
+    prompts = Path(asked.prompts).resolve() if asked.prompts else corpus.parent / "prompts"
+    try:
+        configuration = ReadsConfiguration(
+            resolves_settings() if settings is None else settings
+        )()
+    except MissingConfiguration as unset:
+        prints(str(unset))
+        return 1
+    BindsModelEndpoint(configuration=configuration)()
+    store = opens_store(configuration.data_root)
+    try:
+        try:
+            recording = registers_from_transcript(store, asked.recording, corpus, asked.asr)
+        except TranscriptNotStored as missing:
+            prints(f"{asked.recording}: {missing}")
+            return 1
+        prints(f"reasoning over {configuration.model_endpoint} with {asked.model}")
+        queues_analysis(store, recording)
+        RunsAnalyzeJob(
+            store=store,
+            stages=lambda _name: None,
+            notifies=SendsNotification(store=store),
+            contents=NOTHING_FABRICATED,
+            recording_id=recording.recording_id,
+            analyses=ProposesFromStoredTranscript(
+                store=store,
+                corpus_root=corpus,
+                prompts_root=prompts,
+                model=asked.model,
+                summarizer=None if asked.summaries == NO_SUMMARIES else asked.summaries,
+                asr_config=asked.asr,
+                reasons=reasons,
+            ),
+        )()
+        return 0 if reports_analysis(store, recording, prints) else 1
+    finally:
+        store.close()
 
 
 def parses_propose_command(arguments, prints):

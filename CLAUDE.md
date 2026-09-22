@@ -95,6 +95,7 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-render recording_20260823_103015 \
     --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
 .venv/bin/sermon-propose recording_20260412_102318 --corpus experiments/data
+.venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
 ```
 
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
@@ -113,6 +114,13 @@ at the tree holding `transcripts/`, `blocks/`, `diarization/` and
 `groundtruth.json`; `--summaries none` skips the per-block summary calls;
 `--store` puts the Blocks, Segments and Proposals somewhere other than the data
 root. It exits non-zero when a labelled Segment was not found.
+
+`sermon-analyze` is `sermon-propose` without the corpus grading and with the
+store the server reads: it registers the Recording from the stored transcript,
+queues an `analyze` job for it, drains that one job through the same analysis
+stages, and leaves the Blocks, the Segment, the Proposal and the reviewer
+notification in the configured data root with the Recording `awaiting_review`.
+One recording id per invocation. It exits non-zero when nothing was proposed.
 
 `sermon-render` is the whole cut in one command: it fetches and probes the source
 if it is not already local, creates the Segment from the boundaries you gave it,

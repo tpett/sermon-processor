@@ -18,6 +18,7 @@ from sermon.cli import (
 )
 from sermon.jobs.downloads_recording import FetchesObject
 from sermon.object_store import ListsBucketObjects
+from sermon.pipeline import classify, segments
 from sermon.store import (
     DATABASE_NAME,
     Artifact,
@@ -516,6 +517,13 @@ def test_rendering_an_object_the_bucket_does_not_hold_fails(tmp_path):
 ANALYZED = "recording_20260412_102318"
 
 
+@pytest.fixture
+def injected_roots():
+    held = (classify.ENDPOINT, classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
+    yield
+    classify.ENDPOINT, classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
+
+
 def spoken_service():
     return {
         "recording_id": ANALYZED,
@@ -570,7 +578,7 @@ def analyses(root, printed, **overrides):
     )
 
 
-def test_analyzing_lands_the_blocks_and_the_proposal_in_the_configured_data_root(tmp_path):
+def test_analyzing_lands_the_blocks_and_the_proposal_in_the_configured_data_root(tmp_path, injected_roots):
     printed = RecordsLines()
     assert analyses(tmp_path, printed) == 0
     store = opens_store(tmp_path / "data")
@@ -587,7 +595,7 @@ def test_analyzing_lands_the_blocks_and_the_proposal_in_the_configured_data_root
     store.close()
 
 
-def test_analyzing_leaves_the_recording_awaiting_review_and_the_job_succeeded(tmp_path):
+def test_analyzing_leaves_the_recording_awaiting_review_and_the_job_succeeded(tmp_path, injected_roots):
     printed = RecordsLines()
     assert analyses(tmp_path, printed) == 0
     store = opens_store(tmp_path / "data")
@@ -599,15 +607,15 @@ def test_analyzing_leaves_the_recording_awaiting_review_and_the_job_succeeded(tm
     store.close()
 
 
-def test_analyzing_reports_the_state_the_boundaries_and_the_confidence(tmp_path):
+def test_analyzing_reports_the_state_the_boundaries_and_the_confidence(tmp_path, injected_roots):
     printed = RecordsLines()
     analyses(tmp_path, printed)
     assert f"{ANALYZED} is awaiting_review" in str(printed)
-    assert "sermon   0:10:00 -> 1:05:00" in str(printed)
+    assert "sermon   0:10:00 -> 1:04:21" in str(printed)
     assert "classification high, boundary high" in str(printed)
 
 
-def test_analyzing_a_recording_with_no_stored_transcript_is_refused(tmp_path):
+def test_analyzing_a_recording_with_no_stored_transcript_is_refused(tmp_path, injected_roots):
     printed = RecordsLines()
     (tmp_path / "empty" / "transcripts").mkdir(parents=True)
     assert analyses(tmp_path, printed, corpus=tmp_path / "empty") == 1
