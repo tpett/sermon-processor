@@ -8,8 +8,15 @@ from sermon.approves_segment import ApprovesSegment, ReviewSession
 from sermon.skips_segment import SkipsSegment
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.store import Block, Job, Proposal, Recording, Segment
+from sermon.web import creates_app
+from steps._markup import reads_rows
 
 READS = ReadsTimecode()
+
+
+def renders_detail(store, recording):
+    response = creates_app(store=store).test_client().get(f"/recordings/{recording.recording_id}")
+    return response.get_data(as_text=True)
 
 
 @pytest.fixture
@@ -74,6 +81,7 @@ def _(store, recording):
                 start_seconds=start,
                 end_seconds=start + 60.0,
                 type=block_type,
+                summary=f"the {block_type}",
             )
         )
         start += 60.0
@@ -188,15 +196,40 @@ def _(store, recording):
 
 @then("it remains visible on the Recording detail view")
 def _(store, recording):
-    from sermon.web import creates_app
+    rows = reads_rows(renders_detail(store, recording), "segment")
+    assert [row for row in rows if row["segment-state"] == "skipped"]
 
-    detail = (
-        creates_app(store=store)
-        .test_client()
-        .get(f"/api/recordings/{recording.recording_id}")
-        .get_json()
-    )
-    assert detail["segments"]
+
+@then("I see every Block in order with its type and its one-line summary")
+def _(store, recording):
+    blocks = sorted(store.lists(Block, recording_id=recording.recording_id), key=lambda one: one.start_seconds)
+    rows = reads_rows(renders_detail(store, recording), "block")
+    assert [row["block-type"] for row in rows] == [block.type for block in blocks]
+    assert all(row["block-summary"] for row in rows)
+
+
+@then("I can see the whole shape of the service without playing anything")
+def _(store, recording):
+    page = renders_detail(store, recording)
+    assert all(row["block-span"] for row in reads_rows(page, "block"))
+
+
+@then("the music Blocks are shown in the anatomy of the Recording")
+def _(store, recording):
+    rows = reads_rows(renders_detail(store, recording), "block")
+    assert [row for row in rows if row["block-type"] == "music"]
+
+
+@then("no Segment was proposed for them")
+def _(store, recording):
+    segments = store.lists(Segment, recording_id=recording.recording_id)
+    assert [one for one in segments if one.classification == "music"] == []
+
+
+@then("nothing offers them for publication")
+def _(store, recording):
+    rows = reads_rows(renders_detail(store, recording), "segment")
+    assert [row for row in rows if row["classification"] == "music"] == []
 
 
 @then("I can approve it at any point in the future")
