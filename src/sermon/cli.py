@@ -50,11 +50,11 @@ RENDER_USAGE = (
     "--from <h:mm:ss> --to <h:mm:ss> --label <text> [--date <yyyy-mm-dd>]"
 )
 ANALYZE_USAGE = (
-    "sermon-analyze <recording-id> --corpus <path-to-experiments/data> "
+    "sermon-analyze <recording-id> --corpus <corpus-root> "
     "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] [--asr <config>]"
 )
 PROPOSE_USAGE = (
-    "sermon-propose <recording-id> [<recording-id> ...] --corpus <path-to-experiments/data> "
+    "sermon-propose <recording-id> [<recording-id> ...] --corpus <corpus-root> "
     "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] "
     "[--asr <config>] [--store <data-root>]"
 )
