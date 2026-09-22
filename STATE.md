@@ -8,67 +8,127 @@ prints the signed error against `groundtruth.json`. No test flag in the path.
 recordings: found 100%, both boundaries within 1 s 12%, 2 s 25%, 5 s 62%, median
 punch-in **2.20 s**, median punch-out **0.30 s**. Six of eight punch-ins matched
 the stored `u3` artefact to the millisecond — and that turned out to be one
-favourable draw from a distribution. See the next section for the repeatable
-number, which is worse.
+favourable draw from a distribution. There is no repeatable number to put beside
+it: see the next section.
 
-### The finding that mattered more than the number, and its fix
+### The classifier is not reproducible, and cannot be made so from this side
 
-**The classifier was not reproducible, and now is.** `temperature: 0` and
-`seed: 0` were not enough: ollama 0.34.0 returned a different block table for
-byte-identical input on nearly every call. Adding `logprobs: true` and
-`top_logprobs: 1` to the request body removes it. Measured 2026-09-22 over the
-dev eight with `--summaries none` against `qwen3.6:35b-mlx` on mac-m1, six
-passes before the change and five after, 188-220 s per pass:
+**The punch-in is a draw from a distribution. The punch-out is a point on seven
+recordings of eight.** Measured 2026-09-22 over the dev eight against
+`qwen3.6:35b-mlx` on mac-m1 with `temperature: 0`, `seed: 0` and `logprobs: true`
+already in the request body: six interleaved passes plus a paired cold/warm probe
+per recording, 65 classifications in all.
 
-| | found | &le;1 s | &le;2 s | &le;5 s | med &#124;in&#124; | med &#124;out&#124; |
-| --- | --- | --- | --- | --- | --- | --- |
-| before, 6 passes | 88-100% | 0-12% | 12-25% | 50-62% | **2.20-4.64 s** | 0.26-0.51 s |
-| after, 5 passes | 88% | 0% | 12% | 50% | **4.64 s** | 0.26 s |
+| recording | punch-in values drawn (error, count) | punch-out |
+| --- | --- | --- |
+| `20260412` | 2021.0 (-0.08) x8 | one value, -2.21 |
+| `20260503` | 112.7 (**+105.99**) x6, 0.0 (-6.71) x2 | one value, -0.07 |
+| `20260510` | 1635.8 (-0.10) x7, 1562.7 (**-73.20**) x2 | one value, +0.26 |
+| `20260531` | 1389.4 (**-74.67**) x5, 1465.4 (+1.33) x3 | one value, -0.12 |
+| `20260614` | 4199.9 (-9.23) x7, 4199.0 (-10.13) x1 | one value, +0.68 |
+| `20260628` | 1.52 (+1.52) x8 | 1908.0 (**-1686.6**) x7, 2629.1 (-965.5) x1 |
+| `20260712` | 1165.7 (-2.18) x6, 1165.0 (-2.88) x2 | one value, +0.10 |
+| `20260809` | 1571.0 (-4.64) x8 | one value, +0.34 |
 
-After the change every boundary of every recording was identical across all
-five passes. Before it, five of eight recordings moved, four by more than a
-minute: `20260503` -6.71 / +105.99 s, `20260510` -0.10 / -73.20 s, `20260531`
--74.67 / +1.33 s, `20260412` -0.07 / -19.57 s, and `20260628`'s punch-out
--965.51 / -1686.62 s while it was found in five passes of six.
+Pooled over all 65 draws: median |punch-in| **2.88 s**, median |punch-out|
+**0.34 s**. The per-recording envelope is what matters more — take the best
+reachable value on every recording and the median is **1.85 s** with 6 of 8
+within 5 s; take the worst and it is **7.38 s** with 4 of 8. **Six punch-ins of
+eight have more than one reachable value and three of those differ by more than
+70 s**, which is the difference between a shippable cut and one that opens
+mid-scripture-reading.
 
-**`FINDINGS`' dev ranking does not survive this.** The three medians it ranks
-configurations by — `u3` 2.20 s, `t3` and `T0 rules` 3.76 s, `C frontier`
-4.64 s — are all values one configuration produced on different passes of the
-same command: 2.20, 3.76, 3.76, 4.64, 2.20, 3.76. The ordering is a draw from
-the noise, not a measurement of the configurations. The 19.6 s mlx-versus-
-faster-whisper divergence attributed to the transcript engine sits inside the
-same spread and is not evidence of anything either.
+**Where the variance enters: the model's block table, not the seed choice and not
+the post-processing.** `choose` reports `model-in/refined-out`, and that is
+literal. The punch-in is `model_segments[0]["punch_in"]`, which on every draw
+equals the start of the teaching block in the model's own table; the punch-out is
+`refine_out` plus `add_tail`, computed from the transcript by `segments.py`. So
+the deterministic half is stable and the model's direct answer is not. Two tables
+for `20260510`, same prompt, byte for byte:
 
-**The repeatable number is worse than the one this file reported.** The same
-configuration, pinned, scores found 88% and median punch-in 4.64 s. The
-held-out rows were not re-run: `test_access.log`'s budget is spent, and they
-carry the same uncertainty.
+```
+12 blocks                             19 blocks
+  774.7 1323.3 prayer                   774.7 1323.3 other
+ 1323.3 1562.7 scripture_reading       1323.3 1430.2 other (x3)
+ 1562.7 5021.1 sermon                  1430.2 1559.2 prayer
+                                       1559.2 1635.8 scripture_reading
+                                       1635.8 4961.6 sermon
+                                       4961.6 5021.1 prayer
+```
 
-Ruled out, each measured: **the sampler** — `top_k` 1, `top_p` 1, `min_p` 0,
-`repeat_penalty` 1 and `presence_penalty` 0 left five reps with five distinct
-answers; **context overflow** — the largest dev prompt evaluates to 25837
-tokens against a 40960 window, so nothing is truncated; **the MLX backend
-alone** — `qwen3:4b`, GGUF, also answered differently to the same prompt;
-**prompt length** — a 36-token toy prompt varied across 8 of 8 plain calls.
+The sermon starts 73.1 s apart; the punch-out is 5020.68 either way, because
+`refine_out` anchors on the communion invitation in the transcript rather than on
+the block edge. **No block table was identical across all six passes on any of
+the eight recordings** — 2 or 3 distinct tables each — so the instability is
+total, and the punch-in only moves when the disagreement happens to touch the
+leading edge of the teaching block.
 
-Still true after the change: **cache state is part of the answer.** A prompt
-served from a warm prefix cache can differ from the same prompt prefilled cold,
-and from one answered after a model reload — each reproducible within itself
-over 3-8 repetitions. Every classification in a real run prefills cold, which
-is the regime the table above measures.
+**The two implausibility tests in `segment_proposal.feature` that are not
+implemented would not have caught any of it**: every drawn punch-in *is* a block
+edge and *is* inside its seeded block, by construction.
 
-This is an empirical property of ollama's generation path, not a documented
-guarantee, so `tests/pipeline_behaviour_fingerprint.json` pins the request body
-and fails if `logprobs` is dropped.
+### The state of the host is part of the answer, which is how the pin was faked
+
+A forced unload and reload flips the table and the new answer then repeats; so
+does a warm prefix cache against a cold prefill, on 2 of 3 recordings probed.
+Neither state variable explains the other, and together they do not explain
+everything — `20260531` answered 1389.4 both cold and warm before an unload and
+1465.4 both cold and warm after one:
+
+```
+20260510  cold prefill (cached=0)      12 blocks  punch-in 1562.7  -73.196 s
+          warm prefix (cached=25832)   19 blocks  punch-in 1635.8   -0.096 s
+20260531  warm, before an unload        8 blocks  punch-in 1389.4  -74.674 s
+          cold, after the unload       11 blocks  punch-in 1465.4   +1.326 s
+          warm, after the unload       11 blocks  punch-in 1465.4   +1.326 s
+```
+
+Each regime is reproducible within itself over 3 to 6 repetitions. **So a run of
+identical consecutive calls is evidence of nothing**, and neither is a pass over
+the set whose calls all share host state. That is how nine reps of one recording
+read as a pin, and it is why the two figures this file reported as a before and
+an after are two regimes of one configuration: the whole dev eight scores median
+punch-in **2.20 s** warm and **3.41 s** cold, and `FINDINGS`' ranked `u3` 2.20 s,
+`t3` 3.76 s and `C frontier` 4.64 s all sit inside that.
+
+`logprobs: true` did not fix this. The reply's logprobs are read by nothing, the
+table still moves, and the emitted token differs from the reported top-1 at 5 to
+15 positions of 455 to 1422 — consistently within a regime, so not sampling, but
+not greedy against the reported distribution either. The request-body pin in
+`tests/pipeline_behaviour_fingerprint.json` stands as a record of the body that
+produced these numbers; its stated rationale does not.
+
+### Not pinnable, and best-of-n does not rescue it
+
+**Nothing downstream of the model can pin the punch-in**, because the punch-in is
+the model's own number and its block table is a function of host state that this
+code neither sets nor observes. The three candidates each fail for a stated
+reason: deriving the punch-in from the seed rule returns the same number, since
+the model already applies that rule to its own table; snapping does not close a
+73 s gap; and replacing it with `refine_in` is the `T0 rules` path that `FINDINGS`
+records collapsing from 3.76 s to 221.14 s on held-out data.
+
+**Best-of-n is not worth building.** Over the six-pass data, an oracle that picks
+the best of three draws moves the median from 3.47 s to 3.41 s and changes no
+recording's `@5s` verdict. Worse, **the modal draw is the wrong one on both
+recordings where the gap is large** — `20260503` answers +105.99 s six times in
+eight against -6.71 s twice, `20260531` answers -74.67 s five times against
++1.33 s three times — so a majority vote is worse than a single draw exactly where
+a selector would have to earn its place.
+
+Cross-run agreement survives as an *attention* signal rather than a selector: it
+flags the three recordings whose punch-in has a >70 s alternative, cannot say
+which of the two is right, and misses `20260628` entirely, whose punch-out is
+1686 s early and perfectly stable.
 
 **The agreement badge stays out of v1.** `analysis/analysis_confidence.feature`
 defers it and `analysis_orchestration.feature` leaves the stage out of the
-table; nothing here changes that, and one thing strengthens it. Re-running the
-same model is now provably vacuous as an agreement signal — five passes agreed
-on every boundary including the two that are wrong by 106 s and 73 s, so a
-self-agreement badge would read "Looks good" on both. The deferred scenario
-already requires a *different* model, which is the only form that would carry
-information. Cut difficulty remains the v1 signal.
+table; nothing measured here argues for pulling it forward. Re-running the same
+model does carry information — it separates the three recordings with a >70 s
+alternative from the five without — but it cannot say which alternative is right,
+it misses a punch-out that is 1686 s early and never moves, and every draw must
+come from a differently-stated host to be independent. Cut difficulty remains the
+v1 signal.
 
 ### State of the suite
 
@@ -94,9 +154,11 @@ this slice did not own — `discards_recording.py`, `sends_notification.py`,
   `FINDINGS` records collapsing on held-out data (3.76 → 221.14 s).
 - **Diarization has no producer**; it reads a stored artefact or raises. `FINDINGS`
   records it reaching scored output only via the `structured` strategy, unused here.
-- **The Members Meeting is still wrong, and now wrong repeatably.** Pinned, it
-  does not overlap the human segment at all in any of five passes; unpinned it
-  overlapped in five of six with the punch-out 965 s or 1687 s early. `FINDINGS`
+- **The Members Meeting is still wrong, and its punch-out is the one that moves.**
+  Across eight draws the punch-in is +1.52 s every time and the punch-out is
+  1686.6 s early seven times and 965.5 s early once; the model's own span is under
+  the 30-minute plausibility floor, so this is the one recording whose boundaries
+  both come from refinement. `FINDINGS`
   says only the frontier control declined it correctly. `discarding_recordings.feature`
   and `approval_notifications.feature` both assume nothing-publishable means no work
   and no notification, and on this evidence they will not hold.
