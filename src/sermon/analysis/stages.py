@@ -377,16 +377,17 @@ class ProposesSegments:
         if doc is None or not blocks:
             return ()
         derives = self.derives or self._derives()
-        preserved = [
-            item
-            for item in self.store.lists(Segment, recording_id=recording.recording_id)
-            if item.boundary_source == "human" or item.state in {"complete", "approved", "skipped"}
-        ]
+        existing = self.store.lists(Segment, recording_id=recording.recording_id)
+        preserved = [item for item in existing if _is_the_reviewers(item)]
+        superseded = [item for item in existing if not _is_the_reviewers(item)]
         produced = list(preserved)
         for span in derives(_spans_of(blocks), doc):
             if any(_overlaps(span, kept) for kept in preserved):
                 continue
-            produced.append(self._proposes(recording, span, blocks, doc))
+            standing = next((item for item in superseded if _overlaps(span, item)), None)
+            if standing is not None:
+                superseded.remove(standing)
+            produced.append(self._proposes(recording, span, blocks, doc, standing))
         return tuple(produced)
 
     def _derives(self):
@@ -394,26 +395,28 @@ class ProposesSegments:
 
         return DerivesSpans()
 
-    def _proposes(self, recording, span, blocks, doc):
+    def _proposes(self, recording, span, blocks, doc, standing=None):
         seed = _seed_of(blocks, span)
-        segment = self.store.saves(
-            Segment(
-                recording_id=recording.recording_id,
-                seed_block_id=seed.block_id if seed else None,
-                classification=(
-                    span["classification"]
-                    if span["classification"] in SEGMENT_CLASSIFICATIONS
-                    else "sermon"
-                ),
-                state="proposed",
-                span_start_seconds=span["punch_in"],
-                span_end_seconds=span["punch_out"],
-                punch_in_seconds=span["punch_in"],
-                punch_out_seconds=span["punch_out"],
-                boundary_source="model",
-            )
+        proposed = Segment(
+            recording_id=recording.recording_id,
+            seed_block_id=seed.block_id if seed else None,
+            classification=(
+                span["classification"]
+                if span["classification"] in SEGMENT_CLASSIFICATIONS
+                else "sermon"
+            ),
+            state="proposed",
+            span_start_seconds=span["punch_in"],
+            span_end_seconds=span["punch_out"],
+            punch_in_seconds=span["punch_in"],
+            punch_out_seconds=span["punch_out"],
+            boundary_source="model",
         )
-        self.store.saves(
+        segment = self.store.saves(
+            proposed if standing is None else replace(proposed, segment_id=standing.segment_id)
+        )
+        _replaces_proposal(
+            self.store,
             Proposal(
                 segment_id=segment.segment_id,
                 classification_confidence=_graded(span.get("confidence"), False),
@@ -421,9 +424,24 @@ class ProposesSegments:
                 punch_in_grade=grades_cut(span["punch_in"], doc),
                 punch_out_grade=grades_cut(span["punch_out"], doc),
                 evidence=tuple(_seeding_evidence(span, seed, blocks)),
-            )
+            ),
         )
         return segment
+
+
+def _is_the_reviewers(segment):
+    return segment.boundary_source == "human" or segment.state in {
+        "complete",
+        "approved",
+        "skipped",
+    }
+
+
+def _replaces_proposal(store, proposal):
+    standing = store.lists(Proposal, segment_id=proposal.segment_id)
+    return store.saves(
+        proposal if not standing else replace(proposal, proposal_id=standing[0].proposal_id)
+    )
 
 
 def _ordered_blocks(store, recording_id):
