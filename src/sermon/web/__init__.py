@@ -13,7 +13,7 @@ from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.lists_recordings import ListsRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.reconciles_bucket import ReconcilesBucket
-from sermon.shows_recording import ShowsRecording
+from sermon.shows_recording import ShowsRecording, formats_precise, formats_seconds
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Artifact, Discovery, Job, Recording, Segment
 
@@ -26,6 +26,8 @@ def creates_app(*, store, clock=now, lists_objects=None):
         static_folder=str(web_dir / "static"),
     )
     app.config["BIND_HOST"] = os.environ.get("SERMON_BIND_HOST", "100.64.0.1")
+    app.add_template_filter(formats_precise, "precise")
+    app.add_template_filter(formats_seconds, "seconds")
     accepts = AcceptsRecordingWebhook(store=store, clock=clock)
     lists = ListsRecordings(store=store, clock=clock)
     shows = ShowsRecording(store=store)
@@ -38,7 +40,12 @@ def creates_app(*, store, clock=now, lists_objects=None):
 
     @app.get("/")
     def home():
-        rows = lists()
+        rows = lists(
+            include_discarded=request.args.get("discarded") == "1",
+            filter_name=request.args.get("filter"),
+            classification=request.args.get("classification"),
+            q=request.args.get("q"),
+        )
         return render_template(
             "list.html",
             recordings=rows,
@@ -47,8 +54,12 @@ def creates_app(*, store, clock=now, lists_objects=None):
 
     @app.get("/recordings/<recording_id>")
     def html_detail(recording_id):
-        view = shows(recording_id, playhead_seconds=playheads.get(recording_id, 0.0))
-        return render_template("detail.html", payload=json.dumps(asdict(view)))
+        view = shows(
+            recording_id,
+            selected_segment_id=request.args.get("segment", type=int),
+            playhead_seconds=playheads.get(recording_id, 0.0),
+        )
+        return render_template("detail.html", view=view, payload=json.dumps(asdict(view)))
 
     @app.post("/api/webhooks/recordings")
     def recordings_webhook():

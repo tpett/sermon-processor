@@ -7,8 +7,21 @@ from sermon.extends_segment_span import ReadsTimecode
 from sermon.store import Proposal, Recording, Segment
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 from sermon.web import creates_app
+from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
+
+
+def renders_list(store, query=""):
+    return creates_app(store=store).test_client().get(f"/{query}").get_data(as_text=True)
+
+
+def classifications(row):
+    return row["classifications"].split()
+
+
+def finds_row(rows, recorded_at):
+    return next(row for row in rows if row["recorded-at"] == recorded_at)
 
 
 def recording_id_from(when):
@@ -67,46 +80,48 @@ def _(store, datatable):
         seeds_segments(store, recording, segments)
 
 
-@when("I visit the recordings list", target_fixture="recordings_list")
+@when("I visit the recordings list", target_fixture="list_page")
 def _(store):
-    return creates_app(store=store).test_client().get("/api/recordings").get_json()
+    return renders_list(store)
 
 
 @then(parsers.parse("I see {count:d} recordings"))
-def _(recordings_list, count):
-    assert len(recordings_list["recordings"]) == count
+def _(list_page, count):
+    assert len(reads_rows(list_page, "recording")) == count
 
 
 @then("each row shows the recording date and time")
-def _(recordings_list):
-    assert all(row["recorded_at"] for row in recordings_list["recordings"])
+def _(list_page):
+    rows = reads_rows(list_page, "recording")
+    assert rows
+    assert all(row["recorded-at"] for row in rows)
 
 
 @then("each row shows the source duration")
-def _(recordings_list):
-    assert all(row["duration"] for row in recordings_list["recordings"])
+def _(list_page):
+    rows = reads_rows(list_page, "recording")
+    assert rows
+    assert all(row["duration"] for row in rows)
 
 
 @then("each row shows the current state")
-def _(recordings_list):
-    assert all(row["state"] for row in recordings_list["recordings"])
+def _(list_page):
+    rows = reads_rows(list_page, "recording")
+    assert rows
+    assert all(row["state"] for row in rows)
 
 
 @then("each row summarises the Segments found inside it by classification")
-def _(recordings_list):
-    sermon = next(
-        row
-        for row in recordings_list["recordings"]
-        if row["recorded_at"] == "2026-08-23 10:29 AM"
-    )
-    classes = [item[0] for item in sermon["segments"]]
-    assert "sermon" in classes
+def _(list_page):
+    sermon = finds_row(reads_rows(list_page, "recording"), "2026-08-23 10:29 AM")
+    assert "sermon" in classifications(sermon)
 
 
 @then("each row shows the confidence of its most publishable Segment")
-def _(recordings_list):
-    with_segments = [row for row in recordings_list["recordings"] if row["segments"]]
-    assert all(row["confidence"] for row in with_segments)
+def _(list_page):
+    rows = [row for row in reads_rows(list_page, "recording") if classifications(row)]
+    assert rows
+    assert all(row["confidence"] for row in rows)
 
 
 @then(
@@ -114,39 +129,33 @@ def _(recordings_list):
         'the row for "{when}" shows that it contains a lesson and a sermon'
     )
 )
-def _(recordings_list, when):
-    row = next(item for item in recordings_list["recordings"] if item["recorded_at"] == when)
-    classes = {item[0] for item in row["segments"]}
-    assert classes == {"lesson", "sermon"}
+def _(list_page, when):
+    row = finds_row(reads_rows(list_page, "recording"), when)
+    assert set(classifications(row)) == {"lesson", "sermon"}
 
 
 @then("I can see at a glance that both still need dispositioning")
-def _(recordings_list):
-    row = next(
-        item
-        for item in recordings_list["recordings"]
-        if item["recorded_at"] == "2026-08-16 09:00 AM"
-    )
-    assert row["awaiting_disposition"] == 2
-    assert row["needs_attention"] is True
+def _(list_page):
+    row = finds_row(reads_rows(list_page, "recording"), "2026-08-16 09:00 AM")
+    assert row["awaiting"] == "2"
+    assert row["attention"] == "true"
 
 
 @then("recordings with undispositioned publishable Segments are visually distinguished")
-def _(recordings_list):
-    flagged = [row for row in recordings_list["recordings"] if row["needs_attention"]]
-    assert flagged
+def _(list_page):
+    assert [row for row in reads_rows(list_page, "recording") if row["attention"] == "true"]
 
 
 @then('recordings in "analysis_failed" are visually distinguished')
-def _(recordings_list):
-    failed = [row for row in recordings_list["recordings"] if row["failed"]]
+def _(list_page):
+    failed = [row for row in reads_rows(list_page, "recording") if row["failed"] == "true"]
     assert failed
     assert all(row["state"] == "analysis_failed" for row in failed)
 
 
 @then("the count of Segments awaiting disposition is shown")
-def _(recordings_list):
-    assert recordings_list["awaiting_disposition"] >= 1
+def _(list_page):
+    assert int(reads_field(list_page, "awaiting")) >= 1
 
 
 @given(parsers.parse('the recording from "{when}" has kind "{kind}"'))
@@ -174,95 +183,66 @@ def _(store):
 
 
 @then("it is not counted as needing attention")
-def _(recordings_list):
-    rehearsal = next(
-        (
-            row
-            for row in recordings_list["recordings"]
-            if row["recorded_at"] == "2026-08-16 08:15 AM"
-        ),
-        None,
-    )
-    if rehearsal is not None:
-        assert rehearsal["needs_attention"] is False
+def _(list_page):
+    rehearsal = finds_row(reads_rows(list_page, "recording"), "2026-08-16 08:15 AM")
+    assert rehearsal["attention"] == "false"
 
 
 @then("it is still visible in the list")
-def _(recordings_list):
-    assert any(
-        row["recorded_at"] == "2026-08-16 08:15 AM" for row in recordings_list["recordings"]
-    )
+def _(list_page):
+    rows = reads_rows(list_page, "recording")
+    assert [row for row in rows if row["recorded-at"] == "2026-08-16 08:15 AM"]
 
 
 @then("the recordings are ordered by recording date, newest first")
-def _(recordings_list):
-    times = [row["recorded_at"] for row in recordings_list["recordings"]]
+def _(list_page):
+    times = [row["recorded-at"] for row in reads_rows(list_page, "recording")]
     assert times == sorted(times, reverse=True)
 
 
 @then(parsers.parse('the discarded recording from "{day}" is not shown'))
-def _(recordings_list, day):
-    assert all(day not in row["recorded_at"] for row in recordings_list["recordings"])
+def _(list_page, day):
+    assert all(day not in row["recorded-at"] for row in reads_rows(list_page, "recording"))
 
 
 @then("I can reveal it by including discarded recordings in the filter")
 def _(store, day="2026-07-26"):
-    body = (
-        creates_app(store=store)
-        .test_client()
-        .get("/api/recordings?discarded=1")
-        .get_json()
-    )
-    assert any(day in row["recorded_at"] for row in body["recordings"])
+    rows = reads_rows(renders_list(store, "?discarded=1"), "recording")
+    assert [row for row in rows if day in row["recorded-at"]]
 
 
-@when(parsers.parse('I search for "{query}"'), target_fixture="recordings_list")
+@when(parsers.parse('I search for "{query}"'), target_fixture="list_page")
 def _(store, query):
-    return (
-        creates_app(store=store)
-        .test_client()
-        .get(f"/api/recordings?q={query}")
-        .get_json()
-    )
+    return renders_list(store, f"?q={query}")
 
 
 @then("I see recordings whose label or summary matches")
-def _(recordings_list):
-    assert "recordings" in recordings_list
+def _(list_page):
+    assert reads_rows(list_page, "recording") or reads_field(list_page, "empty")
 
 
-@when(parsers.parse('I filter the list by "{filter_name}"'), target_fixture="recordings_list")
+@when(parsers.parse('I filter the list by "{filter_name}"'), target_fixture="list_page")
 def _(store, filter_name):
-    return (
-        creates_app(store=store)
-        .test_client()
-        .get(f"/api/recordings?filter={filter_name}")
-        .get_json()
-    )
+    return renders_list(store, f"?filter={filter_name}")
 
 
 @when(
     parsers.parse('I filter the list by the classification "{classification}"'),
-    target_fixture="recordings_list",
+    target_fixture="list_page",
 )
 def _(store, classification):
-    return (
-        creates_app(store=store)
-        .test_client()
-        .get(f"/api/recordings?classification={classification}")
-        .get_json()
-    )
+    return renders_list(store, f"?classification={classification}")
 
 
 @then(parsers.parse('I see only recordings matching "{meaning}"'))
-def _(recordings_list, meaning):
-    assert recordings_list["recordings"] or meaning
+def _(list_page, meaning):
+    assert reads_rows(list_page, "recording") or reads_field(list_page, "empty")
 
 
 @then(parsers.parse('I see only recordings containing a Segment classified "{classification}"'))
-def _(recordings_list, classification):
-    for row in recordings_list["recordings"]:
-        assert any(item[0] == classification for item in row["segments"])
+def _(list_page, classification):
+    for row in reads_rows(list_page, "recording"):
+        assert classification in classifications(row)
 
 
 @given(
@@ -281,13 +261,14 @@ def _(store, when, classification):
 
 
 @then("I see that recording")
-def _(recordings_list):
-    assert recordings_list["recordings"]
+def _(list_page):
+    assert reads_rows(list_page, "recording")
 
 
 @then("I can open it and approve the skipped Segment")
-def _(recordings_list):
-    assert recordings_list["recordings"][0]["recording_id"]
+def _(list_page):
+    rows = reads_rows(list_page, "recording")
+    assert [f"/recordings/{rows[0]['id']}"] == [link for link in rows[0]["links"]]
 
 
 @given("500 Recordings exist")
@@ -311,8 +292,8 @@ def _(store):
 
 
 @then("the list is paginated")
-def _(recordings_list):
-    assert len(recordings_list["recordings"]) <= 50 or "recordings" in recordings_list
+def _(list_page):
+    assert 0 < len(reads_rows(list_page, "recording")) <= 50
 
 
 @given("no Recordings exist")
@@ -334,22 +315,22 @@ def _(store):
 
 
 @then("I see a message explaining that recordings appear here once the recorder uploads them")
-def _(recordings_list):
-    assert recordings_list["recordings"] == []
+def _(list_page):
+    assert "once the recorder uploads them" in reads_field(list_page, "empty")
 
 
 @when(
     parsers.parse('I click the row for the recording from "{day}"'),
-    target_fixture="recording_detail",
+    target_fixture="detail_page",
 )
 def _(store, day):
     client = creates_app(store=store).test_client()
-    rows = client.get("/api/recordings").get_json()["recordings"]
-    row = next(item for item in rows if day in item["recorded_at"])
-    return client.get(f"/api/recordings/{row['recording_id']}").get_json()
+    rows = reads_rows(client.get("/").get_data(as_text=True), "recording")
+    row = next(item for item in rows if day in item["recorded-at"])
+    return client.get(row["links"][0]).get_data(as_text=True)
 
 
 @then("I am taken to that Recording's detail view")
-def _(recording_detail):
-    assert recording_detail["recording_id"]
-    assert "segments" in recording_detail
+def _(store, detail_page):
+    assert reads_field(detail_page, "object-key")
+    assert reads_field(detail_page, "state")

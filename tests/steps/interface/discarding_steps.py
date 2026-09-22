@@ -7,6 +7,7 @@ from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
+from steps._markup import reads_rows
 
 
 @given(
@@ -82,13 +83,13 @@ def _(store, recording):
 
 @then("it is listed on the Recording detail view as available")
 def _(store, recording):
-    detail = (
+    page = (
         creates_app(store=store)
         .test_client()
-        .get(f"/api/recordings/{recording.recording_id}")
-        .get_json()
+        .get(f"/recordings/{recording.recording_id}")
+        .get_data(as_text=True)
     )
-    assert any(item["state"] == "skipped" for item in detail["segments"])
+    assert [row for row in reads_rows(page, "segment") if row["segment-state"] == "skipped"]
 
 
 @then("I can approve it at any time without re-running Analysis")
@@ -169,8 +170,8 @@ def _(store, recording, clock):
 
 @then("it no longer appears in the default list")
 def _(store, recording):
-    body = creates_app(store=store).test_client().get("/api/recordings").get_json()
-    assert all(row["recording_id"] != recording.recording_id for row in body["recordings"])
+    page = creates_app(store=store).test_client().get("/").get_data(as_text=True)
+    assert all(row["id"] != recording.recording_id for row in reads_rows(page, "recording"))
 
 
 @then("the reason and who discarded it are recorded")

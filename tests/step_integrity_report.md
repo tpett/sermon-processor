@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1107 step definitions read from `tests/steps`
+- 1115 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 456 non-deferred scenarios rest on at least one condemned step
 - 0 of 597 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 43 Gherkin steps matched more than one definition
-- 529 Gherkin steps matched no definition
+- 521 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -20,6 +20,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | --- | --- |
 | a Then with an empty body | 0 |
 | a Then whose body never asserts | 0 |
+| an interface Then that reads the view model rather than the rendered page | 0 |
 | an assertion that cannot fail | 0 |
 | a boolean operand of True, which neutralises what it joins | 0 |
 | a When with an empty body | 0 |
@@ -50,9 +51,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 7 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 8 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 14 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 19 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 24 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 47 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 11 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -331,9 +332,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:76 then the highlighted region updates`
 - `interface/punch_point_adjustment.feature:77 then the segment length updates to "0:43:15.500"`
 - `interface/punch_point_adjustment.feature:82 then the punch-out becomes "2:43:30.250"`
-- `interface/recording_detail.feature:100 then I can download the original FLAC regardless of the Recording's state`
-- `interface/recording_detail.feature:20 then I see:`
-- `interface/recording_detail.feature:34 then it explains that this originates at the recorder and cannot be repaired here`
 - `interface/recording_detail.feature:49 then I see which stages have completed`
 - `interface/recording_detail.feature:56 then I see the failure reason`
 - `interface/recording_detail.feature:57 then I can retry Analysis`
@@ -353,8 +351,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:106 then boundary editing is available but not required`
 - `interface/segment_review.feature:112 then I am told the punch-in needs checking and why`
 - `interface/segment_review.feature:113 then the waveform editor is opened ready for the adjustment`
-- `interface/segment_review.feature:120 then I see every Block in order with its type and its one-line summary`
-- `interface/segment_review.feature:121 then I can see the whole shape of the service without playing anything`
 - `interface/segment_review.feature:128 when I press Preview on a Block`
 - `interface/segment_review.feature:129 then playback starts at that Block's cue excerpt`
 - `interface/segment_review.feature:130 then it stops at the end of the excerpt`
@@ -383,9 +379,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:195 when I confirm or correct who was preaching`
 - `interface/segment_review.feature:196 then that Segment strengthens or creates that speaker's profile`
 - `interface/segment_review.feature:197 then no separate enrolment session is ever required`
-- `interface/segment_review.feature:205 then the music Blocks are shown in the anatomy of the Recording`
-- `interface/segment_review.feature:206 then no Segment was proposed for them`
-- `interface/segment_review.feature:207 then nothing offers them for publication`
 - `interface/segment_review.feature:213 then it still appears as needing attention`
 - `interface/segment_review.feature:214 then I am not forced to disposition everything in one sitting`
 - `interface/segment_review.feature:218 given a Recording in "awaiting_review" containing 0 Segments`

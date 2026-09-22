@@ -4,6 +4,7 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.store import Artifact, Recording, Segment
 from sermon.web import creates_app
+from steps._markup import reads_rows
 
 
 @given(
@@ -137,8 +138,8 @@ def _(store, segment, state):
 
 
 @then("each Segment offers its own MP3 download")
-def _(store, recording_detail):
-    assert len(recording_detail["segments"]) >= 1
+def _(store, detail_page):
+    assert len(reads_rows(detail_page, "segment")) >= 1
 
 
 @then("the filenames differ")

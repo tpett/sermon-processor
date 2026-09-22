@@ -36,6 +36,8 @@ PARSER_MAKERS = {
     "re": parsers.re,
     "string": parsers.string,
 }
+INTERFACE_DIRECTORY = "interface"
+PAYLOAD_READER = "get_json"
 ASSERTING_PYTEST_CALLS = frozenset({"raises", "warns", "fail"})
 NEUTERING_PYTEST_CALLS = frozenset({"skip", "xfail", "importorskip"})
 GHERKIN_BLOCK_ARGUMENTS = frozenset({"datatable", "docstring"})
@@ -43,6 +45,7 @@ SERMON_PACKAGE = "sermon"
 
 HOLLOW_THEN = "a Then with an empty body"
 INERT_THEN = "a Then whose body never asserts"
+VIEW_MODEL_THEN = "an interface Then that reads the view model rather than the rendered page"
 HOLLOW_WHEN = "a When with an empty body"
 INERT_WHEN = "a When whose body never acts"
 UNENUMERATED_GIVEN = "an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate"
@@ -55,6 +58,7 @@ UNTYPED_DECORATOR = "a step decorator that declares no Given, When or Then"
 FAULT_ORDER = (
     HOLLOW_THEN,
     INERT_THEN,
+    VIEW_MODEL_THEN,
     UNFALSIFIABLE_ASSERTION,
     TRUE_OPERAND,
     HOLLOW_WHEN,
@@ -118,6 +122,64 @@ def reads_step_decorators(node: ast.FunctionDef):
         argument = decorator.args[0] if decorator.args else None
         found.append((name, builds_step_parser(argument), decorator.lineno))
     return found
+
+
+def names_target_fixture(node: ast.FunctionDef) -> str | None:
+    for decorator in node.decorator_list:
+        if not isinstance(decorator, ast.Call):
+            continue
+        if names_decorator(decorator.func) not in (*STEP_DECORATORS, GENERIC_DECORATOR):
+            continue
+        for keyword in decorator.keywords:
+            if keyword.arg == "target_fixture" and isinstance(keyword.value, ast.Constant):
+                return keyword.value.value
+    return None
+
+
+def reads_a_payload(node: ast.FunctionDef, helpers: dict[str, ast.FunctionDef], depth: int = 0) -> bool:
+    for statement in ast.walk(node):
+        if not isinstance(statement, ast.Call):
+            continue
+        called = statement.func
+        if isinstance(called, ast.Attribute) and called.attr == PAYLOAD_READER:
+            return True
+        if depth == 0 and isinstance(called, ast.Name) and called.id in helpers:
+            if reads_a_payload(helpers[called.id], helpers, depth + 1):
+                return True
+    return False
+
+
+def finds_payload_names(step_root: Path) -> frozenset[str]:
+    names = set()
+    for path in sorted(step_root.rglob("*.py")):
+        tree = ast.parse(path.read_text())
+        helpers = finds_module_helpers(tree)
+        hidden = path.name.startswith("_")
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if not reads_a_payload(node, helpers):
+                continue
+            if hidden:
+                names.add(node.name)
+            elif INTERFACE_DIRECTORY in path.parts:
+                fixture = names_target_fixture(node)
+                if fixture is not None:
+                    names.add(fixture)
+    return frozenset(names)
+
+
+def reads_the_view_model(node, helpers, payloads: frozenset[str]) -> bool:
+    if reads_a_payload(node, helpers):
+        return True
+    if names_parameters(node) & payloads:
+        return True
+    return any(
+        isinstance(statement, ast.Call)
+        and isinstance(statement.func, ast.Name)
+        and statement.func.id in payloads
+        for statement in ast.walk(node)
+    )
 
 
 def names_gherkin_arguments(parser) -> frozenset[str]:
@@ -343,7 +405,9 @@ def names_parameters(node: ast.FunctionDef) -> frozenset[str]:
     return frozenset(argument.arg for argument in named)
 
 
-def judges_definition(kind, parser, node, helpers, truths, sermon_names) -> tuple[str, ...]:
+def judges_definition(
+    kind, parser, node, helpers, truths, sermon_names, payloads=frozenset(), rendered=False
+) -> tuple[str, ...]:
     faults = []
     gherkin = names_gherkin_arguments(parser)
     bodies = reaches_bodies(node, helpers)
@@ -362,6 +426,8 @@ def judges_definition(kind, parser, node, helpers, truths, sermon_names) -> tupl
             faults.append(HOLLOW_THEN)
         elif not asserts_something(node, helpers):
             faults.append(INERT_THEN)
+        if rendered and reads_the_view_model(node, helpers, payloads):
+            faults.append(VIEW_MODEL_THEN)
     elif kind == "when":
         if omits_a_body(node):
             faults.append(HOLLOW_WHEN)
@@ -372,12 +438,13 @@ def judges_definition(kind, parser, node, helpers, truths, sermon_names) -> tupl
     return tuple(faults)
 
 
-def judges_step_module(path: Path, root: Path) -> list[Definition]:
+def judges_step_module(path: Path, root: Path, payloads=frozenset()) -> list[Definition]:
     tree = ast.parse(path.read_text())
     helpers = finds_module_helpers(tree)
     truths = finds_module_truths(tree)
     sermon_names = finds_sermon_names(tree)
     module = path.relative_to(root).as_posix()
+    rendered = INTERFACE_DIRECTORY in path.parts
     found = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -389,7 +456,9 @@ def judges_step_module(path: Path, root: Path) -> list[Definition]:
                     text=parser.name if parser is not None else ast.unparse(node.decorator_list[0]),
                     module=module,
                     line=line,
-                    faults=judges_definition(kind, parser, node, helpers, truths, sermon_names),
+                    faults=judges_definition(
+                        kind, parser, node, helpers, truths, sermon_names, payloads, rendered
+                    ),
                     omitted=omits_a_body(node),
                     parser=parser,
                 )
@@ -399,9 +468,10 @@ def judges_step_module(path: Path, root: Path) -> list[Definition]:
 
 def judges_step_tree(step_root: Path = STEP_ROOT, root: Path | None = None) -> list[Definition]:
     base = root if root is not None else PROJECT_ROOT
+    payloads = finds_payload_names(step_root)
     found = []
     for path in sorted(step_root.rglob("[!_]*.py")):
-        found += judges_step_module(path, base)
+        found += judges_step_module(path, base, payloads)
     return sorted(found, key=lambda one: (one.module, one.line, one.kind, one.text))
 
 

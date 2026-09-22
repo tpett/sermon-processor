@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
@@ -6,8 +7,11 @@ from sermon.extends_segment_span import ReadsTimecode
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Artifact, Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
+from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
+HUNDREDTHS = re.compile(r"\d+:\d{2}:\d{2}\.\d{2}")
+BOUNDARY_CLAIMS = ("correct", "accurate", "right boundary", "verified")
 
 
 def peaks_for(duration):
@@ -15,14 +19,10 @@ def peaks_for(duration):
     return ",".join(str((index % 10) / 10) for index in range(count))
 
 
-def current_detail(store):
+def renders_detail(store, query=""):
     recording_id = store.lists(Recording)[0].recording_id
-    return (
-        creates_app(store=store)
-        .test_client()
-        .get(f"/api/recordings/{recording_id}")
-        .get_json()
-    )
+    response = creates_app(store=store).test_client().get(f"/recordings/{recording_id}{query}")
+    return response.get_data(as_text=True)
 
 
 @given(
@@ -128,46 +128,47 @@ def _(store, recording, punch_in, punch_out):
 
 
 @then(parsers.parse("I see a waveform spanning the full {length} of the source"))
-def _(recording_detail, length):
-    assert recording_detail["duration"] == length.replace(":", ":")
-    assert recording_detail["peaks"]
+def _(detail_page, length):
+    assert f'data-role="waveform" data-spans="{length}"' in detail_page
 
 
 @then("every Block is drawn as a band along the waveform, coloured by its type")
-def _(recording_detail):
-    types = {item[0] for item in recording_detail["blocks"]}
-    assert types
+def _(detail_page):
+    bands = reads_rows(detail_page, "band")
+    assert bands
+    assert all(band["band-type"] and band["band-colour"] for band in bands)
 
 
 @then("proposed Segments are drawn as spans above the Block bands")
-def _(recording_detail):
-    assert recording_detail["segments"]
+def _(detail_page):
+    assert reads_rows(detail_page, "segment-span")
 
 
 @then("a time ruler is shown, labelled with wall-clock time as well as elapsed time")
-def _(recording_detail):
-    assert recording_detail["recorded_at"]
-    assert recording_detail["duration"]
+def _(detail_page):
+    ruler = reads_rows(detail_page, "ruler-mark")
+    assert ruler
+    assert all(mark["ruler-elapsed"] and mark["ruler-wall-clock"] for mark in ruler)
 
 
-@when("I select a Segment", target_fixture="recording_detail")
+@when("I select a Segment", target_fixture="detail_page")
 def _(store, segment):
-    return (
+    response = (
         creates_app(store=store)
         .test_client()
-        .get(f"/api/recordings/{segment.recording_id}?segment={segment.segment_id}")
-        .get_json()
+        .get(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
     )
+    return response.get_data(as_text=True)
 
 
 @then("the region between its punch-in and punch-out is visually highlighted")
-def _(recording_detail):
-    assert recording_detail["selected_segment_id"]
+def _(detail_page):
+    assert 'data-role="highlighted-cut"' in detail_page
 
 
 @then("the rest of the Recording is visually de-emphasised")
-def _(recording_detail):
-    assert recording_detail["selected_segment_id"]
+def _(detail_page):
+    assert 'data-role="de-emphasised"' in detail_page
 
 
 @then("markers appear at each piece of evidence for the selected Segment")
@@ -178,33 +179,30 @@ def _(store, segment):
 
 @then("a speaker track is shown beneath the waveform")
 def _(store):
-    detail = current_detail(store)
-    assert detail["blocks"] or detail["peaks"]
+    assert reads_rows(renders_detail(store), "speaker-span")
 
 
 @then("non-speech regions such as music are visually distinct")
 def _(store):
-    assert any(item[0] == "music" for item in current_detail(store)["blocks"])
+    bands = reads_rows(renders_detail(store), "band")
+    assert [band for band in bands if band["band-type"] == "music"]
 
 
-@when("I click a point on the waveform", target_fixture="recording_detail")
+@when("I click a point on the waveform", target_fixture="detail_page")
 def _(store, recording):
-    return (
-        creates_app(store=store)
-        .test_client()
-        .post(f"/api/recordings/{recording.recording_id}/seek", json={"seconds": 120.0})
-        .get_json()
-    )
+    client = creates_app(store=store).test_client()
+    client.post(f"/api/recordings/{recording.recording_id}/seek", json={"seconds": 120.0})
+    return client.get(f"/recordings/{recording.recording_id}").get_data(as_text=True)
 
 
 @then("playback seeks to that point")
-def _(recording_detail):
-    assert recording_detail["playhead_seconds"] == 120.0
+def _(detail_page):
+    assert reads_field(detail_page, "playhead") == "0:02:00.00"
 
 
 @then("a playhead follows playback along the waveform")
-def _(recording_detail):
-    assert "playhead_seconds" in recording_detail
+def _(detail_page):
+    assert 'data-role="playhead-marker"' in detail_page
 
 
 @then("playback starts 5 seconds before the punch-in")
@@ -232,19 +230,17 @@ def _(preview):
     assert preview["out"]
 
 
-@when("I play the audio", target_fixture="recording_detail")
+@when("I play the audio", target_fixture="detail_page")
 def _(store, recording):
-    return (
-        creates_app(store=store)
-        .test_client()
-        .get(f"/api/recordings/{recording.recording_id}")
-        .get_json()
-    )
+    response = creates_app(store=store).test_client().get(f"/recordings/{recording.recording_id}")
+    return response.get_data(as_text=True)
 
 
 @then("the browser plays the preview rendition, not the source FLAC")
-def _(recording_detail):
-    assert recording_detail["preview_kind"] == "preview"
+def _(detail_page):
+    source = reads_field(detail_page, "audio-source")
+    assert source is not None
+    assert ".flac" not in source.lower()
 
 
 @then("the overview still shows the whole recording")
@@ -274,35 +270,41 @@ def _(zoom):
 
 @then("the zoom steps offered are:")
 def _(store, datatable):
-    expected = [row[0] for row in datatable[1:]]
-    assert list(current_detail(store)["zoom_steps"]) == expected
+    offered = [row["zoom-step"] for row in reads_rows(renders_detail(store), "zoom-step")]
+    assert offered == [row[0] for row in datatable[1:]]
 
 
 @then("each step states what it is for")
 def _(store):
-    assert current_detail(store)["zoom_steps"]
+    steps = reads_rows(renders_detail(store), "zoom-step")
+    assert steps
+    assert all(step["zoom-purpose"] for step in steps)
 
 
 @then("the three-second step is the one that places a cut")
 def _(store):
-    assert current_detail(store)["zoom_steps"][-1] == "three seconds"
+    steps = reads_rows(renders_detail(store), "zoom-step")
+    placing = [step["zoom-step"] for step in steps if step.get("zoom-places-the-cut") == "true"]
+    assert placing == ["three seconds"]
 
 
 @then("the punch-in, the punch-out and the length are shown to hundredths")
 def _(store):
-    detail = current_detail(store)
-    assert detail["punch_in_seconds"] is not None
-    assert detail["length_seconds"] is not None
+    page = renders_detail(store)
+    for field in ("punch-in", "punch-out", "length"):
+        shown = reads_field(page, field)
+        assert HUNDREDTHS.fullmatch(shown or ""), f"{field}: {shown!r}"
 
 
 @then("the gap between the punch-out and whatever follows is shown")
 def _(store):
-    assert "gap_seconds" in current_detail(store)
+    assert reads_field(renders_detail(store), "gap")
 
 
 @then("nothing claims the boundary is correct")
 def _(store):
-    assert "correct" not in current_detail(store)
+    page = renders_detail(store).lower()
+    assert not [claim for claim in BOUNDARY_CLAIMS if claim in page]
 
 
 @when(parsers.parse('I drag the punch-in handle to "{timecode}"'), target_fixture="segment")

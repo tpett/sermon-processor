@@ -5,7 +5,7 @@ from sermon.web import creates_app
 
 
 PAGES = {
-    "the recordings list": "/api/recordings",
+    "the recordings list": "/",
     "a recording detail view": None,
     "an artifact download": None,
     "the system health view": "/api/health",
@@ -32,7 +32,7 @@ def _(store, page, recording=None):
                     )
                 )
             ]
-        return client.get(f"/api/recordings/{recordings[0].recording_id}")
+        return client.get(f"/recordings/{recordings[0].recording_id}")
     if page == "an artifact download":
         artifacts = store.lists(Artifact)
         path = artifacts[0].path if artifacts else "missing.mp3"
