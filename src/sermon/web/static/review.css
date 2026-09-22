@@ -117,3 +117,7 @@ canvas {
   display: block;
   max-width: 100%;
 }
+
+.quiet {
+  color: var(--quiet);
+}
