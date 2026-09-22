@@ -603,3 +603,39 @@ Two published pages, both private:
 
 Live watches on both have ended; republishing from a new session needs the URL
 passed explicitly or it creates a separate artifact.
+
+## Verified 2026-09-22 — the detail page renders
+
+Server: `SERMON_BIND_HOST=127.0.0.1 SERMON_PORT=8000 SERMON_DATA_ROOT=$(pwd)/data .venv/bin/sermon-serve`
+(the default bind host is `100.64.0.1`, a Tailscale address that does not exist on this
+machine — without the override the server exits `Can't assign requested address`).
+List at `/`, detail at `/recordings/<id>`. There is no `/recordings` route.
+
+`/recordings/recording_20260712_103000` returns 200 and 170808 bytes of server-rendered
+markup: state `awaiting_review`, source duration 1:29:51, 665.7 MB, one sermon Segment at
+0:19:25 – 1:10:43 with punch-in 0:19:25.70 and punch-out 1:10:43.78, 10 Blocks in order,
+856 transcript utterances, 6 actions, and the specified degraded waveform listing.
+
+Suite, scenario level (the 604 pin): **248 passed / 349 failed / 7 skipped**. The whole-file
+`pytest -q` reports 1177 passed — that number includes the pipeline unit tests and is not a
+measure of scenario progress. Do not quote it as one.
+
+Eight non-scenario failures (7 in `test_analyzes_recording.py`, 1 in `test_three_click_week.py`)
+**pre-date** the detail merge — confirmed by running them at `ea9fede^1`.
+
+Guards green: `test_pipeline_library.py`, `test_pipeline_behaviour.py`, `test_step_integrity.py`
+(293 passed), `experiments/baseline.py` exit 0, `test_access.log` md5 unchanged.
+
+The view-model guard was proven to fire on both arms: a Then calling `.get_json()` directly,
+and a Then consuming a fixture whose producer calls it. The payload-fixture set is currently
+**empty** — no interface step produces a JSON fixture any more — so the second arm is vacuous
+until someone reintroduces one, at which point it repopulates automatically.
+
+### What the page still does not show
+- **No Proposal.** The store holds proposal 1 on segment 3 (high/high, easy/easy) with 4
+  `proposal_evidence` and 27 `block_evidence` rows. None of it reaches the page, so a reviewer
+  sees a cut with no case for it. Filed P1.
+- **No block summaries.** All 10 blocks store NULL; the page honestly says "no summary yet".
+  Filed P2.
+- An unknown recording id answers 500, not 404. Filed P2.
+- The FLAC download link 404s for the 91 recordings never fetched locally. Filed P3.
