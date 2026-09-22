@@ -11,11 +11,11 @@ from sermon.analysis import (
     RefinesPunchOut,
     ScoresProposals,
     SummarizesBlocks,
-    covering_transcript,
     seeds_segment,
 )
 from sermon.analysis.io import writes_json
-from sermon.analysis.stages import CorrectsBlockSummary, TAIL_S
+from sermon.analysis.stages import CorrectsBlockSummary
+from sermon.pipeline.segments import TAIL_S
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.lists_recordings import ListsRecordings
 from sermon.shows_recording import ShowsRecording

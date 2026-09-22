@@ -14,6 +14,7 @@ from sermon.analysis.proposes_from_transcript import (
     ProposesFromStoredTranscript,
 )
 from sermon.jobs.analyzes_recording import StageFailed
+from sermon.pipeline import segments
 from sermon.store import Block, Proposal, Recording, Segment, opens_store
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -192,14 +193,19 @@ def test_classification_keeps_the_types_the_reasoning_stage_reported(store, reco
 
 @spike_data_required
 @pytest.mark.parametrize("recording_id", DEV_RECORDINGS)
-def test_the_proposed_boundaries_reproduce_the_ones_the_spike_measured(store, recording_id):
+def test_the_proposed_boundaries_are_the_ones_the_pipeline_library_derives(store, recording_id):
     answer, proposed = proposes(store, recording_id)
+    doc = stored_transcript(recording_id)
+    segments.DATA_ROOT = CORPUS
+    segments._EDGE_CACHE.clear()
+    expected = segments.choose(
+        answer.get("model_segments") or [], segments.derive(answer["blocks"], doc), doc
+    )
     assert [
         (item.punch_in_seconds, item.punch_out_seconds, item.boundary_source)
         for item in proposed
     ] == [
-        (item["punch_in"], item["punch_out"], item["boundary_source"])
-        for item in answer["segments"]
+        (item["punch_in"], item["punch_out"], item["boundary_source"]) for item in expected
     ]
 
 
