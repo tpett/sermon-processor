@@ -53,7 +53,8 @@ def ollama(model: str, prompt: str, think: bool = False) -> str:
     """
     opts = {"temperature": 0, "seed": 0, "num_ctx": 40960,
             "num_predict": 16384 if think else 8192}
-    body = {"model": model, "prompt": prompt, "stream": False, "options": opts}
+    body = {"model": model, "prompt": prompt, "stream": False, "options": opts,
+            "logprobs": True, "top_logprobs": 1}
     if think:
         body["think"] = True
     else:
