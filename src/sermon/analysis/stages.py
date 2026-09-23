@@ -97,13 +97,36 @@ class TranscribesRecording:
     transcribes: object = None
 
     def __call__(self, recording):
+        from sermon.analysis.transcribes_audio import TranscriptionUnavailable
+
         doc = reads_json(self.store, recording, "transcript")
         if doc is None and self.transcribes is not None:
-            doc = self.transcribes(recording)
+            try:
+                doc = self.transcribes(recording)
+            except TranscriptionUnavailable as unavailable:
+                raise stage_failed("transcription", str(unavailable)) from unavailable
             writes_json(self.store, recording, "transcript", doc)
         if doc is None:
             raise stage_failed("transcription", "no transcript is stored for this Recording")
-        return recording
+        return self._flags(recording, doc)
+
+    def _flags(self, recording, doc):
+        """What the transcript says about itself. Neither flag stops Analysis."""
+        from sermon.analysis.transcribes_audio import POOR_CONFIDENCE, EXPECTED_LANGUAGE
+
+        stored = self.store.loads(Recording, recording.recording_id) or recording
+        warnings = list(stored.warnings)
+        spoken = doc.get("language")
+        if spoken is not None and spoken != EXPECTED_LANGUAGE:
+            if "unexpected language" not in warnings:
+                warnings.append("unexpected language")
+        measured = doc.get("speech_confidence", doc.get("average_confidence"))
+        if measured is not None and measured < POOR_CONFIDENCE:
+            if "low transcript quality" not in warnings:
+                warnings.append("low transcript quality")
+        if tuple(warnings) == stored.warnings:
+            return stored
+        return self.store.saves(replace(stored, warnings=tuple(warnings)))
 
 
 @dataclass(frozen=True)

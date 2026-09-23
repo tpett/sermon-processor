@@ -85,6 +85,7 @@ class AnalyzesRecording:
     only: str | None = None
     measures: object = None
     analyses: object = None
+    transcribes: object = None
 
     def _run_stage(self, recording, name):
         cached = {
@@ -128,10 +129,13 @@ class AnalyzesRecording:
                 return
             return
         if name == "transcription":
-            TranscribesRecording(store=self.store)(recording)
+            TranscribesRecording(store=self.store, transcribes=self.transcribes)(recording)
             return
         if name == "diarization":
-            DiarizesRecording(store=self.store)(recording)
+            try:
+                DiarizesRecording(store=self.store)(recording)
+            except StageFailed:
+                pass
             return
         if name == "blocking":
             DividesIntoBlocks(store=self.store)(recording)
@@ -283,6 +287,7 @@ class RunsAnalyzeJob:
     only: str | None = None
     measures: object = None
     analyses: object = None
+    transcribes: object = None
     recording_id: str | None = None
 
     def __call__(self):
@@ -304,6 +309,7 @@ class RunsAnalyzeJob:
                 only=self.only,
                 measures=self.measures,
                 analyses=self.analyses,
+                transcribes=self.transcribes,
             )(recording)
         except StageFailed as error:
             self.store.saves(
