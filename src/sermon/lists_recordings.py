@@ -3,13 +3,28 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sermon.store import Proposal, Recording, Segment, Store
+from sermon.forces_ingestion import (
+    INGEST_ACTION,
+    NOTHING_QUEUED,
+    RUNNING,
+    WAITING,
+    reads_standing,
+)
+from sermon.store import Job, Proposal, Recording, Segment, Store
 
 
 def now():
     return datetime.now(UTC)
 
 CONFIDENCE_RANK = {"high": 0, "medium": 1, "low": 2}
+
+INGEST_STATE = "discovered"
+
+INGEST_STANDINGS = {
+    NOTHING_QUEUED: "Nothing is queued for this Recording yet",
+    WAITING: "Queued for download, waiting for the worker",
+    RUNNING: "The download is running now",
+}
 
 
 def formats_clock(seconds):
@@ -30,6 +45,37 @@ def formats_recorded_at(moment):
 
 
 @dataclass(frozen=True)
+class IngestView:
+    outcome: str
+    position: int | None
+    queued_count: int
+    since: str | None
+    standing: str
+    url: str
+
+
+def reads_ingest(store, recording, queued=None):
+    if recording.state != INGEST_STATE:
+        return None
+    standing = reads_standing(store, recording, queued=queued)
+    described = INGEST_STANDINGS[standing.outcome]
+    if standing.outcome == WAITING and standing.position is not None:
+        described = (
+            f"{described} — {standing.position} of {standing.queued_count} queued jobs"
+        )
+    if standing.since is not None:
+        described = f"{described}, since {formats_recorded_at(standing.since)}"
+    return IngestView(
+        outcome=standing.outcome,
+        position=standing.position,
+        queued_count=standing.queued_count,
+        since=None if standing.since is None else formats_recorded_at(standing.since),
+        standing=described,
+        url=f"/recordings/{recording.recording_id}/actions/{INGEST_ACTION}",
+    )
+
+
+@dataclass(frozen=True)
 class RecordingRow:
     recording_id: str
     recorded_at: str
@@ -41,6 +87,7 @@ class RecordingRow:
     failed: bool
     awaiting_disposition: int
     labels: tuple
+    ingest: IngestView | None = None
 
 
 @dataclass(frozen=True)
@@ -55,7 +102,12 @@ class ListsRecordings:
             if include_discarded or recording.state != "discarded"
         ]
         recordings.sort(key=lambda recording: recording.started_at, reverse=True)
-        rows = tuple(self._row(recording) for recording in recordings)
+        queued = (
+            self.store.lists(Job, state="queued")
+            if any(recording.state == INGEST_STATE for recording in recordings)
+            else ()
+        )
+        rows = tuple(self._row(recording, queued) for recording in recordings)
         if classification:
             rows = tuple(
                 row for row in rows if any(item[0] == classification for item in row.segments)
@@ -91,7 +143,7 @@ class ListsRecordings:
             )
         return rows[:50]
 
-    def _row(self, recording):
+    def _row(self, recording, queued=()):
         segments = self.store.lists(Segment, recording_id=recording.recording_id)
         summaries = []
         awaiting = 0
@@ -121,4 +173,5 @@ class ListsRecordings:
             failed=recording.state == "analysis_failed",
             awaiting_disposition=awaiting,
             labels=labels,
+            ingest=reads_ingest(self.store, recording, queued=queued),
         )

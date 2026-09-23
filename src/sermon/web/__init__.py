@@ -24,6 +24,7 @@ from sermon.discards_recording import (
 )
 from sermon.draws_waveform import words_across
 from sermon.extends_segment_span import SpanWouldOverlapNeighbour
+from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.lists_recordings import ListsRecordings
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import RecordsPublicationDetails
@@ -73,6 +74,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
     discards = DiscardsRecording(store=store, clock=clock)
     restores = RestoresRecording(store=store, clock=clock)
     reconciles = ReconcilesBucket(store=store, lists_objects=lists_objects, clock=clock)
+    forces = ForcesIngestion(store=store, clock=clock)
     archives = ArchivesWholeRecording(store=store, clock=clock)
     reopens = ReopensSegment(store=store, clock=clock)
     reruns = RerunsAnalysis(store=store, clock=clock)
@@ -382,6 +384,8 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
         if action == "archive-whole-recording":
             archives(recording)
             return "archived"
+        if action == INGEST_ACTION:
+            return f"ingest-{forces(recording).outcome}"
         if action in {"re-run-analysis", "retry-analysis", "retry-ingestion"}:
             reruns(recording)
             return "reanalysis-queued"
