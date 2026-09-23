@@ -1,0 +1,10 @@
+.git
+.venv
+worktrees/
+data/
+experiments/
+.beads/
+*.sqlite3
+.playwright-mcp/
+__pycache__/
+*.pyc
