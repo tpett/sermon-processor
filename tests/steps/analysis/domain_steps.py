@@ -1125,6 +1125,19 @@ def _(store):
     assert any(item.label and "Hebrews 12" in item.label for item in store.lists(Segment))
 
 
+@then("the reviewer can correct it")
+def _(store):
+    from datetime import date
+
+    from sermon.records_publication_details import RecordsPublicationDetails
+
+    segment = store.lists(Segment)[0]
+    corrected = RecordsPublicationDetails(store=store).saves(
+        segment, publication_date=date(2026, 8, 23), label="Hebrews 12.4-11"
+    )
+    assert store.loads(Segment, corrected.segment_id).label == "Hebrews 12.4-11"
+
+
 @then("those words are located in the word-level transcript")
 def _(store):
     assert any(block.cue_start_seconds is not None for block in store.lists(Block)) or store.lists(Block)
