@@ -9,7 +9,7 @@ MINIMUM_SPAN_SECONDS = 1.0
 EXPECTED_SPAN_SECONDS = (1800.0, 4500.0)
 QUIET_MARGIN_SECONDS = 0.25
 NUDGE_STEPS = ("50 ms", "0.1 s", "1 s", "10 s")
-NUDGE_SECONDS = {"50 ms": 0.05, "0.1 s": 0.1, "1 s": 1.0, "10 s": 10.0}
+NUDGE_UNITS = {"ms": 0.001, "s": 1.0}
 EDITABLE_STATES = frozenset({"proposed", "skipped", "recut"})
 MACHINE_SOURCES = frozenset({"model", "refined", "model-in/refined-out"})
 BOUNDARY_CHANGE = "boundary_change"
@@ -46,6 +46,11 @@ class BoundariesAreLocked(BoundaryRejected):
 class NoProposalToRevertTo(BoundaryRejected):
     def __init__(self):
         super().__init__("no machine proposal is recorded for this Segment")
+
+
+def reads_nudge_amount(text):
+    number, unit = str(text).split()
+    return float(number) * NUDGE_UNITS[unit]
 
 
 def warns_about_length(punch_in_seconds, punch_out_seconds):

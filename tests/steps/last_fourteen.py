@@ -7,18 +7,6 @@ from sermon.approves_segment import ApprovesSegment
 from sermon.store import Proposal, Recording, Segment
 
 
-@when("I choose that alternative")
-def _(store, segment):
-    from sermon.places_punch_in import PlacesPunchIn
-    from sermon.store import Proposal
-
-    proposals = store.lists(Proposal, segment_id=segment.segment_id)
-    if proposals and proposals[0].punch_in_candidates:
-        PlacesPunchIn(store=store)(
-            segment, punch_in_seconds=proposals[0].punch_in_candidates[0].timecode
-        )
-
-
 @given("a Recording of 104 minutes")
 def _(store):
     store.saves(

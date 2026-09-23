@@ -9,10 +9,10 @@ from flask import Flask, redirect, render_template, request, send_file, url_for
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.adjusts_punch_point import (
-    NUDGE_SECONDS,
     AdjustsPunchPoint,
     BoundaryRejected,
     RevertsToProposal,
+    reads_nudge_amount,
 )
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
 from sermon.archives_whole_recording import ArchivesWholeRecording
@@ -402,7 +402,7 @@ def creates_app(*, store, clock=now, lists_objects=None):
         if action == "playhead":
             return playheads.get(segment.recording_id, 0.0)
         if action == "nudge":
-            step = NUDGE_SECONDS[request.form["amount"]]
+            step = reads_nudge_amount(request.form["amount"])
             return held - step if request.form["direction"] == "earlier" else held + step
         raise ValueError("no such boundary action")
 
