@@ -10,7 +10,9 @@ from sermon.adjusts_punch_point import (
     warns_about_length,
 )
 from sermon.analysis.io import reads_json
+from sermon.analysis.progress import reads_stage_progress, reads_transcription_progress
 from sermon.draws_waveform import DrawsWaveform, WaveformView
+from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.lists_recordings import formats_clock, formats_precise, formats_recorded_at
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.store import Artifact, Block, Job, Proposal, Recording, Segment, Store
@@ -23,6 +25,24 @@ PRE_REVIEW_PROGRESS = {
     "downloading": "The source is being downloaded",
     "analyzing": "Analysis is running",
 }
+
+ANALYSIS_STAGE_LABELS = {
+    "envelope": "measuring the audio envelope",
+    "probe": "probing the source",
+    "waveform": "drawing the waveform",
+    "preview": "rendering the seekable preview",
+    "transcription": "transcribing the audio",
+    "diarization": "separating the speakers",
+    "blocking": "dividing the service into blocks",
+    "block_classification": "classifying each block",
+    "summarization": "summarising each block",
+    "segment_proposal": "proposing Segments",
+    "boundary_refinement": "refining the boundaries",
+    "scoring": "scoring the proposals",
+}
+
+STAGES_WORTH_SHOWING = frozenset({"analyzing", "analysis_failed"})
+NOT_PICKED_UP_YET = "no stage has started yet; the worker has not picked this up"
 
 SHORT_TAIL_SECONDS = 1.5
 
@@ -168,6 +188,48 @@ def formats_signed(seconds):
     return f"{sign}{abs(value):.2f} s"
 
 
+def formats_recognised(reported):
+    """What transcription has heard so far, as the worker last wrote it down."""
+    if not reported:
+        return None
+    said = []
+    if reported.get("chunks"):
+        said.append(f"chunk {reported.get('chunk')} of {reported.get('chunks')}")
+    if reported.get("fraction") is not None:
+        said.append(f"{round(reported['fraction'] * 100)}% of the audio recognised")
+    if reported.get("recognised_seconds") is not None:
+        said.append(
+            f"{formats_clock(reported['recognised_seconds'])} "
+            f"of {formats_clock(reported.get('duration_seconds') or 0)}"
+        )
+    return ", ".join(said) or None
+
+
+def formats_took(seconds):
+    if seconds is None:
+        return None
+    if seconds < 60:
+        return f"{round(float(seconds), 1):g} s"
+    return formats_clock(seconds)
+
+
+def running_stage(stages):
+    return next((stage for stage in stages if stage.state == "running"), None)
+
+
+def names_running_stage(stages, running):
+    if not stages:
+        return None
+    return NOT_PICKED_UP_YET if running is None else running.label
+
+
+def counts_complete(stages):
+    if not stages:
+        return None
+    done = len([stage for stage in stages if stage.state == "complete"])
+    return f"{done} of {len(stages)} stages complete"
+
+
 def artifact_url(path):
     return f"/api/artifacts/{path}"
 
@@ -279,6 +341,15 @@ class ProposalView:
 
 
 @dataclass(frozen=True)
+class StageView:
+    name: str
+    label: str
+    state: str
+    detail: str | None
+    took: str | None
+
+
+@dataclass(frozen=True)
 class SegmentView:
     segment_id: int
     classification: str
@@ -356,6 +427,10 @@ class RecordingView:
     processing_progress: str | None
     cut_light: CutLightView | None = None
     proposal: ProposalView | None = None
+    analysis_stages: tuple = ()
+    analysis_stage: str | None = None
+    analysis_detail: str | None = None
+    analysis_completed: str | None = None
 
 
 @dataclass(frozen=True)
@@ -438,6 +513,8 @@ class ShowsRecording:
         gap = self._gap(selected, segments, transcript)
         proposal = self._proposal(selected)
         step, progress = self._progress(selected)
+        stages = self._analysis_stages(recording)
+        running = running_stage(stages)
         cut_light = self._cut_light(selected, playhead_seconds)
         proposal_view = None
         if selected is not None:
@@ -535,6 +612,10 @@ class ShowsRecording:
             processing_progress=progress,
             cut_light=cut_light,
             proposal=proposal_view,
+            analysis_stages=stages,
+            analysis_stage=names_running_stage(stages, running),
+            analysis_detail=None if running is None else running.detail,
+            analysis_completed=counts_complete(stages),
         )
 
     def _recording_actions(self, recording):
@@ -710,6 +791,34 @@ class ShowsRecording:
             for proposal in self.store.lists(Proposal, segment_id=selected.segment_id)
             for candidate in proposal.punch_in_candidates
         )
+
+    def _analysis_stages(self, recording):
+        """The checklist the worker's log supports, never work done here."""
+        if recording.state not in STAGES_WORTH_SHOWING:
+            return ()
+        logged = reads_stage_progress(self.store, recording)
+        stages = []
+        for name in STAGE_ORDER:
+            recorded = logged.get(name)
+            state = "pending" if recorded is None else recorded["state"]
+            if state == "running" and recording.state == "analysis_failed":
+                state = "failed"
+            took = None if recorded is None else recorded["duration_seconds"]
+            stages.append(
+                StageView(
+                    name=name,
+                    label=ANALYSIS_STAGE_LABELS[name],
+                    state=state,
+                    detail=self._stage_detail(recording, name, state),
+                    took=formats_took(took),
+                )
+            )
+        return tuple(stages)
+
+    def _stage_detail(self, recording, name, state):
+        if name != "transcription" or state != "running":
+            return None
+        return formats_recognised(reads_transcription_progress(self.store, recording))
 
     def _progress(self, selected):
         if selected is None:

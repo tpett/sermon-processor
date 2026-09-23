@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1242 step definitions read from `tests/steps`
-- 0 condemned
-- 0 of 458 non-deferred scenarios rest on at least one condemned step
-- 0 of 599 expanded scenario tests likewise
+- 1244 step definitions read from `tests/steps`
+- 1 condemned
+- 9 of 458 non-deferred scenarios rest on at least one condemned step
+- 12 of 599 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 393 Gherkin steps matched no definition
+- 391 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -25,7 +25,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | a boolean operand of True, which neutralises what it joins | 0 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
-| an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate | 0 |
+| an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate | 1 |
 | a step that skips or xfails instead of running | 0 |
 | a step name the guard cannot read from the source | 0 |
 | a step decorator that declares no Given, When or Then | 0 |
@@ -43,7 +43,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/catch_all_thens.py` (named) | 3 | 0 | sound |
 | `tests/steps/discovery_steps.py` | 2 | 0 | sound |
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
-| `tests/steps/ingestion/s3_reconciliation_steps.py` | 30 | 0 | sound |
+| `tests/steps/ingestion/s3_reconciliation_steps.py` | 31 | 1 | partly condemned |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 34 | 0 | sound |
 | `tests/steps/interface/approval_steps.py` | 48 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
@@ -53,7 +53,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
@@ -69,15 +69,17 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## Condemned outside the six named files
 
-0 definitions.
+1 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
+| `tests/steps/ingestion/s3_reconciliation_steps.py:23` | given | `it contains a bucket "{name}"` | an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate |
 
 ## Every condemned definition
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
+| `tests/steps/ingestion/s3_reconciliation_steps.py:23` | given | `it contains a bucket "{name}"` | an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate |
 
 ## Scenarios whose every Then is condemned
 
@@ -242,7 +244,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences, or the stated main point"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the passage announcement"`
-- `ingestion/s3_reconciliation.feature:12 given it contains a bucket "sermons"`
 - `ingestion/s3_reconciliation.feature:64 then the next scheduled scan runs normally`
 - `ingestion/webhook_notification.feature:112 given the Sermon Processor is unreachable`
 - `ingestion/webhook_notification.feature:113 when the Recorder attempts to deliver a webhook`
@@ -276,7 +277,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:137 then I can override the warning if I mean it`
 - `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
 - `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
-- `interface/recording_detail.feature:49 then I see which stages have completed`
 - `interface/recording_detail.feature:62 when I expand the processing log`
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`

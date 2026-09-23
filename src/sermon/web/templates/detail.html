@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if view.progress %}<meta http-equiv="refresh" content="20">{% endif %}
   <title>{{ view.recorded_at }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
 </head>
@@ -33,6 +34,27 @@
   {% endfor %}
   </ul>
   <p data-field="warning-origin">These originate at the recorder and cannot be repaired here.</p>
+</section>
+{% endif %}
+
+{% if view.analysis_stages %}
+<section class="analysis" data-role="analysis-progress">
+  <h2>Analysis</h2>
+  <p>running now <span data-field="analysis-stage">{{ view.analysis_stage }}</span></p>
+  {% if view.analysis_detail %}
+  <p class="mono" data-field="analysis-detail">{{ view.analysis_detail }}</p>
+  {% endif %}
+  <p class="quiet" data-field="analysis-completed">{{ view.analysis_completed }}</p>
+  <ul class="stages">
+  {% for stage in view.analysis_stages %}
+    <li data-row="stage" data-stage="{{ stage.name }}" data-state="{{ stage.state }}">
+      <span data-field="stage-state">{{ stage.state }}</span>
+      <span data-field="stage-name">{{ stage.label }}</span>
+      {% if stage.detail %}<span data-field="stage-detail">{{ stage.detail }}</span>{% endif %}
+      {% if stage.took %}<span class="quiet">took <span data-field="stage-took">{{ stage.took }}</span></span>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
 </section>
 {% endif %}
 
