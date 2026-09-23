@@ -166,6 +166,35 @@ class SpeakerSpan:
     width: float
 
 
+def words_across(transcript, start_seconds, seconds):
+    """The words spoken in a stretch of the recording, placed across it.
+
+    The playhead outruns the window the page was rendered for, so the client
+    asks for the next stretch rather than reloading. Both paths come through
+    here so a word never lands in a different place depending on who placed it.
+    """
+    finish = start_seconds + seconds
+    drawn = []
+    for start, end, text, _ in transcript:
+        if end < start_seconds or start > finish:
+            continue
+        spoken = text.split()
+        for index, word in enumerate(spoken):
+            at = start + (end - start) * index / max(len(spoken), 1)
+            if not start_seconds <= at <= finish:
+                continue
+            drawn.append(
+                WordView(
+                    text=word,
+                    at=formats_precise(at),
+                    at_seconds=round(at, 2),
+                    left=round(clamps(100.0 * (at - start_seconds) / seconds), 4),
+                    relation="",
+                )
+            )
+    return tuple(drawn[:WORDS_DRAWN])
+
+
 @dataclass(frozen=True)
 class WordView:
     text: str
@@ -547,26 +576,8 @@ class DrawsWaveform:
     def _words(self, transcript, window, marks):
         if window is None or window.seconds > WORDS_WINDOW_SECONDS:
             return ()
-        finish = window.start_seconds + window.seconds
-        drawn = []
-        for start, end, text, _ in transcript:
-            if end < window.start_seconds or start > finish:
-                continue
-            spoken = text.split()
-            for index, word in enumerate(spoken):
-                at = start + (end - start) * index / max(len(spoken), 1)
-                if not window.start_seconds <= at <= finish:
-                    continue
-                drawn.append(
-                    WordView(
-                        text=word,
-                        at=formats_precise(at),
-                        at_seconds=round(at, 2),
-                        left=round(clamps(100.0 * (at - window.start_seconds) / window.seconds), 4),
-                        relation="",
-                    )
-                )
-        return relates(tuple(drawn[:WORDS_DRAWN]), marks)
+        drawn = words_across(transcript, window.start_seconds, window.seconds)
+        return relates(drawn, marks)
 
     def _window(self, duration, selected, zoom, centre_seconds, needs_placing=None):
         if duration <= 0:

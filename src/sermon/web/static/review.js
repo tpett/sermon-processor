@@ -145,6 +145,12 @@ function acrossWindow(seconds) {
   return Math.min(Math.max((100 * (seconds - from)) / span, 0), 100);
 }
 
+function windowPosition(seconds) {
+  const from = Number(detailPane.dataset.windowStartSeconds);
+  const span = Number(detailPane.dataset.windowSeconds);
+  return (100 * (seconds - from)) / span;
+}
+
 function movesPlayhead(seconds) {
   if (detailMarker && detailPane) {
     detailMarker.style.left = `${acrossWindow(seconds)}%`;
@@ -197,12 +203,14 @@ function settles() {
     handle.hidden = at < from || at > from + span;
     handle.style.left = `${acrossWindow(at)}%`;
   });
+  packsWords();
 }
 
-function recentres(seconds) {
+function recentres(seconds, at) {
   if (!detailPane) return;
   const span = Number(detailPane.dataset.windowSeconds);
-  const from = Math.max(0, Math.min(seconds - span / 2, duration - span));
+  const lands = typeof at === "number" ? at : 0.5;
+  const from = Math.max(0, Math.min(seconds - span * lands, duration - span));
   detailPane.dataset.windowStartSeconds = String(from);
   detailPane.dataset.windowCentreSeconds = String(seconds);
   if (windowMarker && duration > 0) {
@@ -212,6 +220,7 @@ function recentres(seconds) {
   }
   settles();
   draws();
+  fetchesWords();
 }
 
 if (wave) {
@@ -301,14 +310,30 @@ document.querySelectorAll('[data-role="evidence-seek"]').forEach((link) => {
 });
 
 document.addEventListener("audio:timeupdate", (event) => {
-  movesPlayhead(Number(event.detail.seconds));
+  const seconds = Number(event.detail.seconds);
+  movesPlayhead(seconds);
+  keepsInView(seconds);
+  speaking(seconds);
 });
 
 let following = 0;
 
+let spokenLine = null;
+
 function follows() {
   const audio = document.querySelector("audio");
-  if (audio && !audio.paused) movesPlayhead(audio.currentTime);
+  if (audio && !audio.paused) {
+    const seconds = audio.currentTime;
+    movesPlayhead(seconds);
+    keepsInView(seconds);
+    const line = speaking(seconds);
+    // Only chase the transcript when the line actually changes, so a reader
+    // scrolling it by hand is not fought sixty times a second.
+    if (line && line !== spokenLine) {
+      spokenLine = line;
+      scrolls(line);
+    }
+  }
   following = requestAnimationFrame(follows);
 }
 
@@ -344,8 +369,19 @@ function packsWords() {
   if (!across) return;
   const filled = LANES.map(() => -Infinity);
   [...words.children].forEach((word) => {
+    // data-word-left is the server's placement for the window it rendered. Once
+    // the window has moved under us it is a different stretch of the recording,
+    // so the position has to come from the word's own timecode.
+    const position = detailPane
+      ? windowPosition(Number(word.dataset.wordAtSeconds))
+      : Number(word.dataset.wordLeft);
+    if (position < 0 || position > 100) {
+      word.hidden = true;
+      return;
+    }
     word.hidden = false;
-    const left = (Number(word.dataset.wordLeft) / 100) * across;
+    word.style.left = `${position}%`;
+    const left = (position / 100) * across;
     const lane = filled.findIndex((edge) => left >= edge);
     if (lane < 0) {
       word.hidden = true;
@@ -354,6 +390,86 @@ function packsWords() {
     word.style.top = `${LANES[lane]}px`;
     filled[lane] = left + word.getBoundingClientRect().width + 5;
   });
+}
+
+const listen = document.querySelector('[data-role="listen"]');
+const recordingId = listen ? listen.dataset.recording : null;
+let fetchedFor = null;
+
+// The page is rendered with the words for one window. Once the playhead has
+// carried the window somewhere else, the words for that stretch have to be
+// asked for, the same way the peaks are.
+async function fetchesWords() {
+  if (!words || !detailPane || !recordingId || !window.fetch) return;
+  const from = Number(detailPane.dataset.windowStartSeconds);
+  const seconds = Number(detailPane.dataset.windowSeconds);
+  const wanted = `${from.toFixed(2)}/${seconds}`;
+  if (wanted === fetchedFor) return;
+  fetchedFor = wanted;
+  let payload;
+  try {
+    const answer = await fetch(
+      `/api/recordings/${recordingId}/words?from=${from}&seconds=${seconds}`
+    );
+    if (!answer.ok) return;
+    payload = await answer.json();
+  } catch (ignored) {
+    return;
+  }
+  if (`${from.toFixed(2)}/${seconds}` !== fetchedFor) return;
+  const shape = words.firstElementChild;
+  words.replaceChildren(
+    ...payload.words.map((word) => {
+      const line = shape ? shape.cloneNode(true) : document.createElement("li");
+      line.dataset.row = "transcript-word";
+      line.dataset.wordAt = word.at;
+      line.dataset.wordAtSeconds = String(word.at_seconds);
+      line.dataset.wordLeft = String(word.left);
+      line.hidden = false;
+      const label = line.querySelector('[data-field="word-text"]');
+      if (label) label.textContent = word.text;
+      const timecode = line.querySelector('input[name="timecode"]');
+      if (timecode) timecode.value = word.at;
+      return line;
+    })
+  );
+  packsWords();
+}
+
+const utterances = [...document.querySelectorAll('[data-row="utterance"]')];
+
+function speaking(seconds) {
+  if (words) {
+    let current = null;
+    [...words.children].forEach((word) => {
+      delete word.dataset.wordCurrent;
+      if (Number(word.dataset.wordAtSeconds) <= seconds) current = word;
+    });
+    if (current) current.dataset.wordCurrent = "true";
+  }
+  if (!utterances.length) return null;
+  let spoken = null;
+  utterances.forEach((line) => {
+    delete line.dataset.utteranceCurrent;
+    if (Number(line.dataset.utteranceAtSeconds) <= seconds) spoken = line;
+  });
+  if (spoken) spoken.dataset.utteranceCurrent = "true";
+  return spoken;
+}
+
+function scrolls(line) {
+  const panel = line && line.parentElement;
+  if (!panel) return;
+  const top = line.offsetTop - panel.clientHeight / 2 + line.clientHeight / 2;
+  panel.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
+// Turn the page rather than sliding every frame: a window that scrolls
+// continuously under a still playhead is hard to read a waveform on.
+function keepsInView(seconds) {
+  if (!detailPane) return;
+  const position = windowPosition(seconds);
+  if (position > 75 || position < 0) recentres(seconds, 0.25);
 }
 
 packsWords();

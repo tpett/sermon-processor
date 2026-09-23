@@ -430,7 +430,7 @@
   {% if view.selected_transcript %}
   <ol>
   {% for utterance in view.selected_transcript %}
-    <li data-row="utterance">
+    <li data-row="utterance" data-utterance-at-seconds="{{ utterance[0] }}" data-utterance-end-seconds="{{ utterance[1] }}">
       <span data-field="utterance-at">{{ utterance[0]|precise }}</span>
       <span data-field="utterance-text">{{ utterance[2] }}</span>
     </li>

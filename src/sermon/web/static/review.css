@@ -1308,3 +1308,21 @@ details summary {
     transition: none !important;
   }
 }
+
+/* What is being said right now, in both transcripts. */
+.waveform .words li[data-word-current] span,
+.waveform .words li[data-word-current] button {
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-radius: 2px;
+}
+
+.transcript li[data-utterance-current] {
+  background: var(--accent-soft);
+  border-radius: 3px;
+}
+
+.transcript li[data-utterance-current] [data-field="utterance-at"] {
+  color: var(--accent);
+  font-weight: 600;
+}

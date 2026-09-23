@@ -22,6 +22,7 @@ from sermon.discards_recording import (
     PublishedSegmentExists,
     RestoresRecording,
 )
+from sermon.draws_waveform import words_across
 from sermon.extends_segment_span import SpanWouldOverlapNeighbour
 from sermon.lists_recordings import ListsRecordings
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
@@ -147,6 +148,35 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             "full_scale": payload.get("full_scale"),
             "resolution": wanted,
         } | resolutions[wanted]
+
+    @app.get("/api/recordings/<recording_id>/words")
+    def recording_words(recording_id):
+        recording = store.loads(Recording, recording_id)
+        if recording is None:
+            return ("", 404)
+        document = reads_json(store, recording, "transcript") or {}
+        transcript = tuple(
+            (item["start"], item["end"], item.get("text", ""), item.get("speaker"))
+            for item in document.get("utterances", [])
+        )
+        start = request.args.get("from", type=float)
+        seconds = request.args.get("seconds", type=float)
+        if start is None or seconds is None or seconds <= 0:
+            return ("", 400)
+        return {
+            "recording_id": recording_id,
+            "from_seconds": start,
+            "seconds": seconds,
+            "words": [
+                {
+                    "text": word.text,
+                    "at": word.at,
+                    "at_seconds": word.at_seconds,
+                    "left": word.left,
+                }
+                for word in words_across(transcript, start, seconds)
+            ],
+        }
 
     @app.post("/api/webhooks/recordings")
     def recordings_webhook():
