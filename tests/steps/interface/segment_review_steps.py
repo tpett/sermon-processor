@@ -5,10 +5,13 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment, ReviewSession
-from sermon.skips_segment import SkipsSegment
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.reopens_segment import ReopensSegment
+from sermon.settles_recording import SettlesRecording
+from sermon.skips_segment import SkipsSegment
 from sermon.store import Block, Job, Proposal, Recording, Segment
 from sermon.web import creates_app
+from steps import _web
 from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
@@ -253,3 +256,20 @@ def _(store, segment):
     assert "punch-in" in said, said
     grade = store.lists(Proposal, segment_id=segment.segment_id)[0].punch_in_grade
     assert grade in said, said
+@given('a Recording returned to "awaiting_review" by a revisit', target_fixture="revisited")
+def _(store, recording, clock):
+    skips = SkipsSegment(store=store, clock=clock)
+    skipped = [skips(one) for one in store.lists(Segment, recording_id=recording.recording_id)]
+    assert store.loads(Recording, recording.recording_id).state == "reviewed"
+    return ReopensSegment(store=store, clock=clock)(skipped[0])
+
+
+@when("I dispose of that Segment", target_fixture="detail_page")
+def _(store, revisited, clock):
+    return _web.posts(store, _web.segment_action(revisited, "skip"), clock=clock)
+
+
+@then('the Recording returns to "reviewed"')
+def _(store, revisited, detail_page):
+    assert reads_field(detail_page, "state") == "reviewed"
+    assert store.loads(Recording, revisited.recording_id).state == "reviewed"

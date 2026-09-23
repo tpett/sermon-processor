@@ -21,17 +21,22 @@ class SettlesRecording:
             for segment in self.store.lists(Segment, recording_id=recording_id)
             if segment.state == "proposed"
         ]
-        if remaining:
-            return self.store.loads(Recording, recording_id)
         recording = self.store.loads(Recording, recording_id)
-        reviewed = self.store.saves(replace(recording, state="reviewed"))
+        if remaining:
+            if recording.state != "reviewed":
+                return recording
+            return self._enters(recording, "awaiting_review")
+        return self._enters(recording, "reviewed")
+
+    def _enters(self, recording, state):
+        entered = self.store.saves(replace(recording, state=state))
         self.store.saves(
             LogEntry(
-                recording_id=recording_id,
+                recording_id=recording.recording_id,
                 kind="state_change",
                 occurred_at=self.clock(),
-                correlation_id=f"settle:{recording_id}",
-                entered_state="reviewed",
+                correlation_id=f"settle:{recording.recording_id}",
+                entered_state=state,
             )
         )
-        return reviewed
+        return entered

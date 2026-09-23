@@ -3,12 +3,18 @@ from dataclasses import replace
 import pytest
 from pytest_bdd import given, parsers, then, when
 
-from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
+from sermon.approves_segment import ApprovesSegment
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.places_punch_in import PlacesPunchIn
+from sermon.shows_recording import NOTICES
 from sermon.store import Job, LogEntry, Proposal, Recording, Segment
+from steps import _web
+from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
+APPROVED = NOTICES["approved"]
+NOT_READY = NOTICES["not-ready"]
+ALREADY_APPROVED = NOTICES["already-approved"]
+LABEL_REQUIRED = NOTICES["label-required"]
 
 
 @given(
@@ -23,8 +29,8 @@ def _(store, recording, classification, punch_in, punch_out):
             recording_id=recording.recording_id,
             classification=classification,
             state="proposed",
-            span_start_seconds=READS(punch_in),
-            span_end_seconds=READS(punch_out),
+            span_start_seconds=0.0,
+            span_end_seconds=recording.duration_seconds,
             punch_in_seconds=READS(punch_in),
             punch_out_seconds=READS(punch_out),
         )
@@ -41,28 +47,19 @@ def _(store, recording, classification, punch_in, punch_out):
     return segment
 
 
-@when("I approve the Segment", target_fixture="approval")
+@when("I approve the Segment", target_fixture="detail_page")
 def _(store, segment, clock):
-    try:
-        return {"segment": ApprovesSegment(store=store, clock=clock)(segment), "error": None}
-    except (PublicationLabelRequired, SegmentNotReady) as error:
-        return {"segment": segment, "error": error}
+    return _web.posts(store, _web.segment_action(segment, "approve"), clock=clock)
 
 
-@when("I approve it", target_fixture="approval")
+@when("I approve it", target_fixture="detail_page")
 def _(store, segment, clock):
-    try:
-        return {"segment": ApprovesSegment(store=store, clock=clock)(segment), "error": None}
-    except (PublicationLabelRequired, SegmentNotReady) as error:
-        return {"segment": segment, "error": error}
+    return _web.posts(store, _web.segment_action(segment, "approve"), clock=clock)
 
 
-@when("I attempt to approve it", target_fixture="approval")
+@when("I attempt to approve it", target_fixture="detail_page")
 def _(store, segment, clock):
-    try:
-        return {"segment": ApprovesSegment(store=store, clock=clock)(segment), "error": None}
-    except (PublicationLabelRequired, SegmentNotReady) as error:
-        return {"segment": store.loads(Segment, segment.segment_id), "error": error}
+    return _web.posts(store, _web.segment_action(segment, "approve"), clock=clock)
 
 
 @then("a processing job is queued for that Segment")
@@ -95,7 +92,8 @@ def _(store, segment, punch_in, punch_out):
 
 @given(parsers.parse('I adjusted the punch-in to "{timecode}"'), target_fixture="segment")
 def _(store, segment, timecode):
-    return PlacesPunchIn(store=store)(segment, punch_in_seconds=READS(timecode))
+    _web.posts(store, _web.boundary_action(segment, "punch-in"), do="set", timecode=timecode)
+    return store.loads(Segment, segment.segment_id)
 
 
 @then(parsers.parse('the approved punch-in is "{timecode}"'))
@@ -122,14 +120,16 @@ def _(store, segment):
 
 
 @then("the boundary controls are read-only")
-def _(opened_segment):
-    assert opened_segment.state in {"approved", "processing", "complete"}
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "boundary-controls") == "read-only"
+    assert reads_rows(page, "boundary") == []
 
 
 @then("I see that processing is in progress")
-def _(store, opened_segment):
-    jobs = store.lists(Job, segment_id=opened_segment.segment_id, kind="render")
-    assert jobs[0].state in {"queued", "running"}
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "processing-step") in {"queued for processing", "rendering the MP3"}
 
 
 @when("processing is running")
@@ -142,12 +142,14 @@ def _(store, segment):
 
 @then("I see the current processing step")
 def _(store, segment):
-    assert store.loads(Segment, segment.segment_id).state in {"approved", "processing"}
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "processing-step") == "rendering the MP3"
 
 
 @then("I see an indication of progress")
 def _(store, segment):
-    assert store.lists(Job, segment_id=segment.segment_id, kind="render")
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "processing-progress").startswith("attempt ")
 
 
 @then("other Segments in the same Recording remain fully editable")
@@ -166,13 +168,13 @@ def _(store, segment, state):
 
 
 @then("the approval is rejected")
-def _(approval):
-    assert approval["error"] is not None
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") in {NOT_READY, ALREADY_APPROVED}
 
 
 @then("I am told the Segment is not ready for approval")
-def _(approval):
-    assert isinstance(approval["error"], SegmentNotReady)
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == NOT_READY
 
 
 @then("it enters \"approved\" and is queued for processing")
@@ -200,8 +202,9 @@ def _(store, segment):
 
 
 @then("I am prompted for the label")
-def _(approval):
-    assert isinstance(approval["error"], PublicationLabelRequired)
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == LABEL_REQUIRED
+    assert 'name="label"' in detail_page
 
 
 @then("the approval does not proceed until it is supplied")
@@ -210,8 +213,8 @@ def _(store, segment):
 
 
 @then("no label is required")
-def _(approval):
-    assert approval["error"] is None
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == APPROVED
 
 
 @then("the output is named from the recording date alone")
@@ -237,15 +240,17 @@ def _(store, segment, classification):
 
 
 @then('the intent is prefilled as "publish"')
-def _(segment):
-    suggested = "publish" if segment.classification == "sermon" else (segment.intent or "archive")
-    assert suggested == "publish" or segment.classification != "sermon"
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "intent") == "publish"
+    assert '<option value="publish" selected>' in page
 
 
 @then("the intent I approved with is recorded")
 def _(store, segment):
-    stored = store.loads(Segment, segment.segment_id)
-    assert stored.intent in {None, "publish", "archive"} or stored.state == "proposed"
+    page = _web.posts(store, _web.segment_action(segment, "approve"), intent="archive")
+    assert reads_field(page, "intent") == "archive"
+    assert store.loads(Segment, segment.segment_id).intent == "archive"
 
 
 @then("no Segment is ever rendered without a human approving it")
@@ -261,8 +266,8 @@ def _(store, segment, clock):
 
 
 @then("I am told it has already been approved")
-def _(approval):
-    assert isinstance(approval["error"], SegmentNotReady)
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == ALREADY_APPROVED
 
 
 @then("no second processing job is queued")
@@ -276,19 +281,17 @@ def _(store, segment):
     return store.saves(replace(segment, intent="archive"))
 
 
-@when('I set the intent to "archive" and approve', target_fixture="approval")
+@when('I set the intent to "archive" and approve', target_fixture="detail_page")
 def _(store, segment, clock):
-    updated = store.saves(replace(segment, intent="archive"))
-    try:
-        return {"segment": ApprovesSegment(store=store, clock=clock)(updated), "error": None}
-    except (PublicationLabelRequired, SegmentNotReady) as error:
-        return {"segment": updated, "error": error}
+    return _web.posts(
+        store, _web.segment_action(segment, "approve"), clock=clock, intent="archive"
+    )
 
 
 @then("the Segment renders as an archive copy")
-def _(approval):
-    assert approval["error"] is None
-    assert approval["segment"].intent == "archive"
+def _(store, segment, detail_page):
+    assert reads_field(detail_page, "action-notice") == APPROVED
+    assert store.loads(Segment, segment.segment_id).intent == "archive"
 
 
 @then("it is not presented as a published product")
@@ -297,20 +300,55 @@ def _(store, segment):
     assert stored.intent == "archive"
 
 
-@when('I change the intent to "publish" and approve', target_fixture="approval")
+@when('I change the intent to "publish" and approve', target_fixture="detail_page")
 def _(store, segment, clock):
-    updated = store.saves(replace(segment, intent="publish", label=None))
-    try:
-        return {"segment": ApprovesSegment(store=store, clock=clock)(updated), "error": None}
-    except (PublicationLabelRequired, SegmentNotReady) as error:
-        return {"segment": updated, "error": error}
+    return _web.posts(
+        store, _web.segment_action(segment, "approve"), clock=clock, intent="publish", label=""
+    )
 
 
 @then("the Segment renders with the full publication treatment")
-def _(approval):
-    assert approval["error"] is None or isinstance(approval["error"], PublicationLabelRequired)
+def _(store, segment, detail_page):
+    assert reads_field(detail_page, "action-notice") in {APPROVED, LABEL_REQUIRED}
+    assert store.loads(Segment, segment.segment_id).intent == "publish"
 
 
 @then("I am asked for a label")
-def _(approval):
-    assert isinstance(approval["error"], PublicationLabelRequired) or approval["segment"].label
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == LABEL_REQUIRED
+    assert 'name="label"' in detail_page
+
+
+@then("no Segment is ever published on classification alone")
+def _(store):
+    for job in store.lists(Job, kind="render"):
+        segment = store.loads(Segment, job.segment_id)
+        assert segment.intent is not None
+        assert segment.disposition_at is not None
+
+
+@then('I can change it to "archive" before approving')
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "intent-choices") == "publish, archive"
+    assert '<option value="archive">archive</option>' in page
+
+
+@then("the processing job stops")
+def _(store, segment, detail_page):
+    assert reads_field(detail_page, "segment-state") == "proposed"
+    assert [job.state for job in store.lists(Job, segment_id=segment.segment_id)] == ["cancelled"]
+
+
+@then("any partial output is discarded")
+def _(store, segment):
+    from sermon.store import Artifact
+
+    assert store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3") == []
+
+
+@then("the queued processing job is cancelled")
+def _(store, recording):
+    jobs = store.lists(Job, recording_id=recording.recording_id, kind="render")
+    assert jobs
+    assert all(job.state == "cancelled" for job in jobs)

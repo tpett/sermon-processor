@@ -2,12 +2,23 @@ from dataclasses import replace
 
 from pytest_bdd import given, parsers, then, when
 
+from sermon import object_store
 from sermon.approves_segment import ApprovesSegment
-from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps._markup import reads_rows
+from steps import _web
+from steps._markup import reads_field, reads_rows
+
+MUTATIONS = ("put", "delete", "removes", "writes", "uploads", "moves")
+
+
+def names_mutating_operations(module):
+    return [
+        name
+        for name in dir(module)
+        if not name.startswith("_") and any(word in name.lower() for word in MUTATIONS)
+    ]
 
 
 @given(
@@ -158,14 +169,16 @@ def _(store, minutes, count):
     )
 
 
-@when(parsers.parse('I discard it with the reason "{reason}"'))
+@when(parsers.parse('I discard it with the reason "{reason}"'), target_fixture="detail_page")
 def _(store, recording, reason, clock):
-    DiscardsRecording(store=store, clock=clock)(recording, reason=reason)
+    return _web.posts(
+        store, _web.recording_action(recording, "discard"), clock=clock, reason=reason
+    )
 
 
-@when("I discard it")
+@when("I discard it", target_fixture="detail_page")
 def _(store, recording, clock):
-    DiscardsRecording(store=store, clock=clock)(recording)
+    return _web.posts(store, _web.recording_action(recording, "discard"), clock=clock)
 
 
 @then("it no longer appears in the default list")
@@ -192,9 +205,9 @@ def _(store, recording):
     assert all(job.state == "cancelled" for job in jobs) or jobs == []
 
 
-@when("I restore it")
+@when("I restore it", target_fixture="detail_page")
 def _(store, recording, clock):
-    RestoresRecording(store=store, clock=clock)(store.loads(Recording, recording.recording_id))
+    return _web.posts(store, _web.recording_action(recording, "restore"), clock=clock)
 
 
 @then("it returns to the state it was in before it was discarded")
@@ -205,3 +218,17 @@ def _(store, recording):
 @then("the Recording's record and analysis artifacts are retained")
 def _(store, recording):
     assert store.loads(Recording, recording.recording_id) is not None
+
+
+@then("its Segments are intact")
+def _(store, recording, detail_page):
+    held = store.lists(Segment, recording_id=recording.recording_id)
+    listed = reads_rows(detail_page, "segment")
+    assert len(listed) == len(held)
+    assert [row["segment-state"] for row in listed] == [one.state for one in held]
+
+
+@then("the source object in the object store is untouched")
+def _(store, recording):
+    assert names_mutating_operations(object_store) == []
+    assert store.loads(Recording, recording.recording_id).object_key == recording.object_key

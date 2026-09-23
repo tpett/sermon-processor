@@ -1,21 +1,40 @@
 import json
 import os
 import shutil
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date
 from pathlib import Path
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, redirect, render_template, request, send_file, url_for
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
+from sermon.adjusts_punch_point import (
+    AdjustsPunchPoint,
+    BoundaryRejected,
+    RevertsToProposal,
+    reads_nudge_amount,
+)
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
-from sermon.discards_recording import DiscardsRecording, RestoresRecording
+from sermon.archives_whole_recording import ArchivesWholeRecording
+from sermon.discards_recording import (
+    DiscardsRecording,
+    PublishedSegmentExists,
+    RestoresRecording,
+)
+from sermon.extends_segment_span import SpanWouldOverlapNeighbour
 from sermon.lists_recordings import ListsRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.reconciles_bucket import ReconcilesBucket
+from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
+from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import ShowsRecording, formats_precise, formats_seconds
 from sermon.skips_segment import SkipsSegment
+from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
+from sermon.splits_segment import NothingToMerge
 from sermon.store import Artifact, Discovery, Job, Recording, Segment
+
+
+BOUNDARIES = ("punch-in", "punch-out")
 
 
 def creates_app(*, store, clock=now, lists_objects=None):
@@ -36,7 +55,36 @@ def creates_app(*, store, clock=now, lists_objects=None):
     discards = DiscardsRecording(store=store, clock=clock)
     restores = RestoresRecording(store=store, clock=clock)
     reconciles = ReconcilesBucket(store=store, lists_objects=lists_objects, clock=clock)
+    archives = ArchivesWholeRecording(store=store, clock=clock)
+    reopens = ReopensSegment(store=store, clock=clock)
+    reruns = RerunsAnalysis(store=store, clock=clock)
+    adjusts = AdjustsPunchPoint(store=store, clock=clock)
+    reverts = RevertsToProposal(store=store, clock=clock)
+    splits = SplitsSegment(store=store)
+    merges = MergesSegments(store=store)
+    creates = CreatesSegment(store=store)
     playheads = {}
+
+    def returns_to(recording_id, notice, segment_id=None, focus=None):
+        return redirect(
+            url_for(
+                "html_detail",
+                recording_id=recording_id,
+                notice=notice,
+                segment=segment_id,
+                focus=focus,
+            ),
+            code=303,
+        )
+
+    def reads_timecode(text):
+        parts = [part for part in str(text).strip().split(":") if part != ""]
+        if not parts:
+            raise ValueError("no timecode was given")
+        seconds = float(parts[-1])
+        for place, part in enumerate(reversed(parts[:-1]), start=1):
+            seconds += int(part) * 60**place
+        return seconds
 
     @app.get("/")
     def home():
@@ -58,7 +106,11 @@ def creates_app(*, store, clock=now, lists_objects=None):
             recording_id,
             selected_segment_id=request.args.get("segment", type=int),
             playhead_seconds=playheads.get(recording_id, 0.0),
+            notice=request.args.get("notice"),
+            focused_boundary=request.args.get("focus"),
         )
+        if view is None:
+            return ("", 404)
         return render_template("detail.html", view=view, payload=json.dumps(asdict(view)))
 
     @app.post("/api/webhooks/recordings")
@@ -163,14 +215,14 @@ def creates_app(*, store, clock=now, lists_objects=None):
 
     @app.get("/api/recordings/<recording_id>")
     def recording_detail(recording_id):
-        selected = request.args.get("segment", type=int)
-        return asdict(
-            shows(
-                recording_id,
-                selected_segment_id=selected,
-                playhead_seconds=playheads.get(recording_id, 0.0),
-            )
+        view = shows(
+            recording_id,
+            selected_segment_id=request.args.get("segment", type=int),
+            playhead_seconds=playheads.get(recording_id, 0.0),
         )
+        if view is None:
+            return ({"error": "no such recording"}, 404)
+        return asdict(view)
 
     @app.post("/api/recordings/<recording_id>/seek")
     def seek(recording_id):
@@ -212,6 +264,152 @@ def creates_app(*, store, clock=now, lists_objects=None):
         segment = store.loads(Segment, segment_id)
         skipped = skips(segment)
         return asdict(shows(skipped.recording_id))
+
+    @app.post("/recordings/<recording_id>/actions/<action>")
+    def recording_action(recording_id, action):
+        recording = store.loads(Recording, recording_id)
+        if recording is None:
+            return ("", 404)
+        selected = request.form.get("segment", type=int)
+        try:
+            notice = performs_recording_action(recording, action, selected)
+        except (BoundaryRejected, SpanWouldOverlapNeighbour, ValueError) as refusal:
+            return returns_to(recording_id, str(refusal), selected)
+        if notice is None:
+            return ("", 404)
+        return returns_to(recording_id, notice, selected)
+
+    def performs_recording_action(recording, action, selected):
+        if action == "discard":
+            try:
+                discards(
+                    recording,
+                    reason=request.form.get("reason") or None,
+                    confirm=request.form.get("confirm") == "yes",
+                )
+            except PublishedSegmentExists:
+                return "discard-needs-confirm"
+            return "discarded"
+        if action == "restore":
+            restores(recording)
+            return "restored"
+        if action == "archive-whole-recording":
+            archives(recording)
+            return "archived"
+        if action in {"re-run-analysis", "retry-analysis", "retry-ingestion"}:
+            reruns(recording)
+            return "reanalysis-queued"
+        if action == "create-segment":
+            creates(
+                recording,
+                from_seconds=reads_timecode(request.form["from"]),
+                to_seconds=reads_timecode(request.form["to"]),
+            )
+            return "created"
+        if action == "split-segment":
+            splits(store.loads(Segment, selected), at_seconds=reads_timecode(request.form["at"]))
+            return "split"
+        if action == "merge-segments":
+            merges(store.loads(Segment, selected), neighbour_of(recording, selected))
+            return "merged"
+        return None
+
+    def neighbour_of(recording, segment_id):
+        held = sorted(
+            store.lists(Segment, recording_id=recording.recording_id),
+            key=lambda one: one.punch_in_seconds,
+        )
+        chosen = [one for one in held if one.segment_id == segment_id]
+        if not chosen:
+            raise NothingToMerge()
+        following = [one for one in held if one.punch_in_seconds > chosen[0].punch_in_seconds]
+        if not following:
+            raise NothingToMerge()
+        return following[0]
+
+    @app.post("/recordings/<recording_id>/segments/<int:segment_id>/<action>")
+    def segment_action(recording_id, segment_id, action):
+        segment = store.loads(Segment, segment_id)
+        if segment is None or segment.recording_id != recording_id:
+            return ("", 404)
+        focus = request.form.get("focus")
+        try:
+            notice = performs_segment_action(segment, action)
+        except PublicationLabelRequired:
+            return returns_to(recording_id, "label-required", segment_id, focus)
+        except SegmentNotReady:
+            return returns_to(recording_id, refusal_for(segment), segment_id, focus)
+        except (BoundaryRejected, SegmentAlreadyRendered) as refusal:
+            return returns_to(recording_id, str(refusal), segment_id, focus)
+        if notice is None:
+            return ("", 404)
+        return returns_to(recording_id, notice, segment_id, focus)
+
+    def refusal_for(segment):
+        queued = store.lists(Job, segment_id=segment.segment_id, kind="render")
+        if segment.state == "approved" and queued:
+            return "already-approved"
+        return "not-ready"
+
+    def performs_segment_action(segment, action):
+        if action == "approve":
+            approves(chosen_intent(segment))
+            return "approved"
+        if action == "skip":
+            skips(segment)
+            return "skipped"
+        if action == "reopen":
+            reopens(segment)
+            return "reopened"
+        if action == "revert":
+            reverts(segment)
+            return "reverted"
+        return None
+
+    def chosen_intent(segment):
+        intent = request.form.get("intent")
+        label = request.form.get("label")
+        if intent is None and label is None:
+            return segment
+        return store.saves(
+            replace(
+                segment,
+                intent=intent or segment.intent,
+                label=(label or None) if label is not None else segment.label,
+            )
+        )
+
+    @app.post("/recordings/<recording_id>/segments/<int:segment_id>/boundaries/<boundary>")
+    def boundary_action(recording_id, segment_id, boundary):
+        segment = store.loads(Segment, segment_id)
+        if segment is None or segment.recording_id != recording_id or boundary not in BOUNDARIES:
+            return ("", 404)
+        try:
+            moved = moves_boundary(segment, boundary)
+        except (BoundaryRejected, ValueError) as refusal:
+            return returns_to(recording_id, str(refusal), segment_id, boundary)
+        return returns_to(recording_id, moved, segment_id, boundary)
+
+    def moves_boundary(segment, boundary):
+        action = request.form["do"]
+        if action == "focus":
+            return "focused"
+        if action == "revert":
+            reverts(segment)
+            return "reverted"
+        adjusts(segment, **{f"{boundary.replace('-', '_')}_seconds": offered(segment, boundary, action)})
+        return "adjusted"
+
+    def offered(segment, boundary, action):
+        held = getattr(segment, f"{boundary.replace('-', '_')}_seconds")
+        if action == "set":
+            return reads_timecode(request.form["timecode"])
+        if action == "playhead":
+            return playheads.get(segment.recording_id, 0.0)
+        if action == "nudge":
+            step = reads_nudge_amount(request.form["amount"])
+            return held - step if request.form["direction"] == "earlier" else held + step
+        raise ValueError("no such boundary action")
 
     @app.put("/api/segments/<int:segment_id>/publication")
     def publication_details(segment_id):
