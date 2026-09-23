@@ -43,13 +43,154 @@
   <p><a href="/api/artifacts/{{ view.object_key }}" data-field="source-download">Download the original {{ view.container }}</a></p>
 </section>
 
+<section class="listen" data-role="listen" data-recording="{{ view.recording_id }}">
+  <h2>Listen</h2>
+  {% if view.preview_ready %}
+  <audio id="preview-audio" controls preload="metadata" data-role="preview-audio" data-duration="{{ view.preview_duration_seconds or view.duration_seconds }}">
+    <source src="{{ view.preview_url }}" type="{{ view.preview_media_type }}">
+  </audio>
+  <p class="previews">
+  {% for window in view.preview_windows %}
+    <button type="button" class="primary" data-role="preview-{{ window.kind }}" data-kind="{{ window.kind }}" data-at="{{ window.at_seconds }}" data-start="{{ window.start_seconds }}" data-end="{{ window.end_seconds }}">{{ window.label }}</button>
+  {% endfor %}
+  {% if view.preview_windows %}
+    <button type="button" data-role="preview-cut" data-kind="cut" data-in-start="{{ view.preview_windows[0].start_seconds }}" data-in-end="{{ view.preview_windows[0].end_seconds }}" data-out-start="{{ view.preview_windows[1].start_seconds }}" data-out-end="{{ view.preview_windows[1].end_seconds }}">Preview the cut</button>
+  {% endif %}
+  </p>
+  <p class="position">
+    <span class="track" data-role="playback-track" data-duration="{{ view.preview_duration_seconds or view.duration_seconds }}"><span class="marker" data-role="playhead-marker" data-seconds="{{ view.playhead_seconds }}" style="left: {{ (100.0 * view.playhead_seconds / (view.duration_seconds or 1))|round(4) }}%"></span></span>
+    <span class="label">at</span> <span data-field="listen-playhead">{{ view.playhead_seconds|precise }}</span>
+  </p>
+  <dl>
+    <dt>Playing</dt><dd data-field="audio-source">{{ view.preview_url }}</dd>
+    <dt>Preview length</dt><dd data-field="preview-length">{{ (view.preview_duration_seconds or view.duration_seconds)|precise }}</dd>
+    <dt>Audition window</dt><dd data-field="preview-lead">{{ view.preview_lead_seconds|seconds }} either side of the boundary</dd>
+  </dl>
+  {% else %}
+  <p data-field="preview-state">{{ view.preview_unavailable }}</p>
+  {% endif %}
+  <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
+</section>
+
 <section class="actions">
   <h2>Actions</h2>
+  {% if view.notice %}
+  <p class="notice" data-field="action-notice">{{ view.notice }}</p>
+  {% endif %}
   <ul>
-  {% for action in view.actions.split(", ") %}
-    <li data-row="action" data-action="{{ action }}">{{ action }}</li>
+  {% for action in view.recording_actions %}
+    <li data-row="action" data-action="{{ action.name }}">
+      <form method="post" action="{{ action.url }}">
+        {% if view.selected_segment_id is not none %}<input type="hidden" name="segment" value="{{ view.selected_segment_id }}">{% endif %}
+        {% for prompt in action.prompts %}<label>{{ prompt }} <input type="text" name="{{ prompt }}"></label>
+        {% endfor %}{% if action.name == "Discard" %}<input type="hidden" name="confirm" value="{{ 'yes' if view.notice == 'it contains a published segment; confirm to discard it' else 'no' }}">
+        {% endif %}<button type="submit" data-field="action-control">{{ action.name }}</button>
+      </form>
+    </li>
   {% endfor %}
   </ul>
+
+  {% if view.selected_segment_id is none %}
+  <p data-field="segment-actions-state">No Segment is selected, so no Segment action is offered</p>
+  {% else %}
+  <h3>This Segment</h3>
+  <p>Intent <span data-field="intent">{{ view.intent }}</span>
+     of <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span></p>
+  <p>Publication label <span data-field="label">{{ view.label or "none entered" }}</span></p>
+  <ul>
+  {% for action in view.segment_actions %}
+    <li data-row="segment-action" data-action="{{ action.name }}" data-segment="{{ view.selected_segment_id }}">
+      {% if action.name == "Approve" %}
+      <form method="post" action="{{ action.url }}">
+        <label>Intent
+          <select name="intent">
+          {% for choice in view.intent_choices %}
+            <option value="{{ choice }}"{% if choice == view.intent %} selected{% endif %}>{{ choice }}</option>
+          {% endfor %}
+          </select>
+        </label>
+        <label>Publication label <input type="text" name="label" value="{{ view.label or '' }}"></label>
+        <button type="submit" data-field="action-control">Approve</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ action.url }}">
+        <button type="submit" data-field="action-control">{{ action.name }}</button>
+      </form>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+
+  <h3>Boundaries</h3>
+  <p data-field="boundary-controls">{{ view.boundary_controls }}</p>
+  {% if view.boundary_controls == "read-only" %}
+  <p data-field="processing-step">{{ view.processing_step }}</p>
+  <p data-field="processing-progress">{{ view.processing_progress }}</p>
+  {% else %}
+  {% if view.whole_span_note %}
+  <p data-field="whole-span-note">{{ view.whole_span_note }}</p>
+  <details><summary data-field="expand-boundaries">Trim it anyway</summary>
+  {% endif %}
+  <p data-field="focus-state">{% if view.focused_boundary %}the keyboard will move the {{ view.focused_boundary }}{% else %}no boundary has focus, so the keyboard will move nothing{% endif %}</p>
+  <p data-field="nudge-steps">{{ view.nudge_steps|join(", ") }}</p>
+  {% if view.length_warning %}
+  <p data-field="length-warning">{{ view.length_warning }}</p>
+  {% endif %}
+  <ul>
+  {% for boundary in view.boundaries %}
+    <li data-row="boundary" data-boundary="{{ boundary.field }}" data-focused="{{ 'true' if boundary.focused else 'false' }}">
+      <span data-field="boundary-at">{{ boundary.seconds|precise }}</span>
+      {% if boundary.focused %}<span data-field="boundary-focus">the keyboard will move this boundary</span>{% endif %}
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="focus">
+        <button type="submit" data-field="focus-control">Focus the {{ boundary.field }}</button>
+      </form>
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="set">
+        <label>Timecode <input type="text" name="timecode" value="{{ boundary.seconds|precise }}"></label>
+        <button type="submit" data-field="set-control">Set the {{ boundary.field }}</button>
+      </form>
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="playhead">
+        <button type="submit" data-field="playhead-control">Set the {{ boundary.field }} from the playhead</button>
+      </form>
+      {% for direction in ("earlier", "later") %}
+      {% for step in view.nudge_steps %}
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="nudge">
+        <input type="hidden" name="direction" value="{{ direction }}">
+        <input type="hidden" name="amount" value="{{ step }}">
+        <button type="submit" data-nudge="{{ direction }} {{ step }}" data-field="nudge-control">{{ direction }} by {{ step }}</button>
+      </form>
+      {% endfor %}
+      {% endfor %}
+    </li>
+  {% endfor %}
+  </ul>
+  <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in">
+    <input type="hidden" name="do" value="revert">
+    <button type="submit" data-field="revert-control">Revert to the machine proposal</button>
+  </form>
+  <p data-field="proposed-boundaries">{{ view.proposed_punch_in_seconds|precise }} – {{ view.proposed_punch_out_seconds|precise }}</p>
+  {% if view.alternatives %}
+  <ul>
+  {% for timecode, because in view.alternatives %}
+    <li data-row="alternative" data-at="{{ timecode }}">
+      <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in">
+        <input type="hidden" name="do" value="set">
+        <input type="hidden" name="timecode" value="{{ timecode }}">
+        <button type="submit" data-field="alternative-control">{{ timecode|precise }}</button>
+      </form>
+      <span data-field="alternative-because">{{ because }}</span>
+    </li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+  {% if view.whole_span_note %}
+  </details>
+  {% endif %}
+  {% endif %}
+  {% endif %}
 </section>
 
 <section class="segments">
@@ -212,10 +353,12 @@
   {% if view.blocks %}
   <ol>
   {% for block in view.blocks %}
-    <li data-row="block" data-block-type="{{ block.type }}">
+    <li data-row="block" data-block-type="{{ block.type }}" data-cue-start="{{ block.cue_start_seconds }}" data-cue-end="{{ block.cue_end_seconds }}">
       <span data-field="block-type">{{ block.type }}</span>
       <span data-field="block-span">{{ block.span }}</span>
       <span data-field="block-summary">{{ block.summary or "" }}</span>{% if not block.summary %}<span class="quiet">no summary yet</span>{% endif %}
+      {% if view.preview_ready and block.cue_start_seconds is not none %}<button type="button" data-role="preview-cue-excerpt" data-kind="cue" data-start="{{ block.cue_start_seconds }}" data-end="{{ block.cue_end_seconds }}">Preview</button>
+      <button type="button" data-role="start-at-block" data-kind="seek" data-start="{{ block.start_seconds }}" data-end="{{ block.end_seconds }}">Start here</button>{% endif %}
     </li>
   {% endfor %}
   </ol>

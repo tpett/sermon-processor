@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 
 from pytest_bdd import given, parsers, then, when
 
+from steps import _web
+
 from sermon.approves_segment import ApprovesSegment
 from sermon.discards_recording import DiscardsRecording, PublishedSegmentExists
 from sermon.extends_segment_span import ReadsTimecode
@@ -177,7 +179,13 @@ def _(store):
 
 @given("the local FLAC has been removed to save disk")
 def _(store):
+    from sermon.jobs.downloads_recording import FetchesObject
+
     recording = ensure_recording(store)
+    local = store.resolves(recording)
+    store._objects = FetchesObject()
+    store._objects.stores(recording.object_key, local.read_bytes())
+    local.unlink()
     store.saves(replace(recording, local_path=None))
 
 
@@ -464,11 +472,9 @@ def _(store):
     assert any(item.state == "processing" for item in store.lists(Segment))
 
 
-@when("I cancel processing")
+@when("I cancel processing", target_fixture="detail_page")
 def _(store, segment):
-    for job in store.lists(Job, segment_id=segment.segment_id):
-        store.saves(replace(job, state="cancelled"))
-    store.saves(replace(store.loads(Segment, segment.segment_id), state="proposed"))
+    return _web.posts(store, _web.segment_action(segment, "reopen"))
 
 
 @then('the Segment returns to "proposed"')
@@ -518,13 +524,6 @@ def _(store, segment):
     return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds)
 
 
-@when("I move the punch-in past it", target_fixture="segment")
-def _(store, segment):
-    from sermon.places_punch_in import PlacesPunchIn
-
-    return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 1)
-
-
 @then("it survives me reloading the page")
 def _(store, segment):
     assert store.loads(Segment, segment.segment_id)
@@ -532,14 +531,7 @@ def _(store, segment):
 
 @then('the punch-in returns to "2:00:20.000"')
 def _(store, segment):
-    assert store.loads(Segment, segment.segment_id)
-
-
-@when("I adjust this Segment's punch-in", target_fixture="segment")
-def _(store, segment):
-    from sermon.places_punch_in import PlacesPunchIn
-
-    return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 0.5)
+    assert store.loads(Segment, segment.segment_id).punch_in_seconds == 7220.0
 
 
 @given("no Segment was proposed")
@@ -550,19 +542,28 @@ def _(store):
         store.saves(replace(item, state="skipped"))
 
 
+def downloads(store, path):
+    return creates_app(
+        store=store, fetches_object=getattr(store, "_objects", None)
+    ).test_client().get(f"/api/artifacts/{path}")
+
+
 @when("I download it")
 def _(store):
-    store._downloaded = True
+    recording = store.lists(Recording)[0]
+    store._downloaded = downloads(store, recording.local_path or recording.object_key)
 
 
 @when("I download the original FLAC")
 def _(store):
-    store._downloaded = True
+    recording = store.lists(Recording)[0]
+    store._downloaded = downloads(store, recording.local_path or recording.object_key)
 
 
 @when("I attempt to download it")
 def _(store):
-    store._download_error = True
+    artifact = store.lists(Artifact, kind="rendered_mp3")[0]
+    store._download_error = downloads(store, artifact.path)
 
 
 @when("I approve it without entering a label", target_fixture="approval")

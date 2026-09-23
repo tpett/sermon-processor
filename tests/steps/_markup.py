@@ -7,6 +7,7 @@ FIELD = re.compile(r'data-field="([a-z0-9_-]+)">(.*?)<', re.S)
 PAIR = re.compile(r"<dt>(.*?)</dt>\s*<dd[^>]*>(.*?)</dd>", re.S)
 HREF = re.compile(r'href="([^"]*)"')
 TAG = re.compile(r"<[^>]+>")
+ROLE = re.compile(r'<[a-z]+\b([^>]*\bdata-role="([a-z0-9_-]+)"[^>]*)>')
 
 
 def reads_page(response):
@@ -48,3 +49,11 @@ def reads_pairs(page):
 
 def reads_links(page):
     return HREF.findall(page)
+
+
+def reads_roles(page):
+    return {role: dict(DATA.findall(attributes)) for attributes, role in ROLE.findall(page)}
+
+
+def reads_role(page, role):
+    return reads_roles(page).get(role)

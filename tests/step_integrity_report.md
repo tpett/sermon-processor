@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1153 step definitions read from `tests/steps`
+- 1223 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 457 non-deferred scenarios rest on at least one condemned step
 - 0 of 598 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
-- 47 Gherkin steps matched more than one definition
-- 484 Gherkin steps matched no definition
+- 48 Gherkin steps matched more than one definition
+- 410 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -37,7 +37,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
 | `tests/steps/analysis/domain_steps.py` | 205 | 0 | sound |
-| `tests/steps/analysis/preview_audio_steps.py` | 29 | 0 | sound |
+| `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 198 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
 | `tests/steps/catch_all_thens.py` (named) | 3 | 0 | sound |
@@ -45,25 +45,26 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
 | `tests/steps/ingestion/s3_reconciliation_steps.py` | 30 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 34 | 0 | sound |
-| `tests/steps/interface/approval_steps.py` | 43 | 0 | sound |
+| `tests/steps/interface/approval_steps.py` | 48 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
-| `tests/steps/interface/discarding_steps.py` | 18 | 0 | sound |
+| `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
+| `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
-| `tests/steps/interface/punch_nudge_steps.py` | 7 | 0 | sound |
-| `tests/steps/interface/punch_point_adjustment_steps.py` | 8 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 17 | 0 | sound |
+| `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
+| `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 25 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 84 | 0 | sound |
-| `tests/steps/last_fourteen.py` (named) | 11 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 77 | 0 | sound |
+| `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
 | `tests/steps/notifications/notification_steps.py` | 8 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 13 | 0 | sound |
-| `tests/steps/processing/artifact_downloads_steps.py` | 15 | 0 | sound |
+| `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 132 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 130 | 0 | sound |
 
 ## Condemned outside the six named files
 
@@ -180,8 +181,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/detection_accuracy.feature:272 then it reports that it was skipped`
 - `analysis/detection_accuracy.feature:273 then it does not report a pass`
 - `analysis/detection_accuracy.feature:81 then a legitimate untrimmed archive is flagged the same way`
-- `analysis/preview_audio.feature:40 then playback begins within 2 seconds`
-- `analysis/preview_audio.feature:41 then the earlier part of the recording is never downloaded`
 - `analysis/punch_in_detection.feature:107 then the punch-in is placed immediately before "good morning"`
 - `analysis/punch_in_detection.feature:114 then the punch-in is placed immediately before that phrase`
 - `analysis/punch_in_detection.feature:115 then that counts as evidence for the punch-in`
@@ -255,17 +254,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `ingestion/webhook_notification.feature:116 then the Recording is still ingested later by S3 reconciliation`
 - `ingestion/webhook_notification.feature:76 then a Recording is uniquely identified by its bucket and object key`
 - `ingestion/webhook_notification.feature:77 then the same key always refers to the same audio`
-- `interface/approval.feature:122 then no Segment is ever published on classification alone`
-- `interface/approval.feature:131 then the processing job stops`
-- `interface/approval.feature:133 then any partial output is discarded`
-- `interface/approval.feature:99 then I can change it to "archive" before approving`
 - `interface/discarding_recordings.feature:106 then I do not have to discard it for the queue to stay clean`
 - `interface/discarding_recordings.feature:107 then it remains available if I ever want it`
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`
 - `interface/discarding_recordings.feature:116 then it never appears as work`
 - `interface/discarding_recordings.feature:117 then I can still find and restore it if the machine was wrong`
-- `interface/discarding_recordings.feature:57 then its Segments are intact`
-- `interface/discarding_recordings.feature:72 then the source object in the object store is untouched`
 - `interface/publication_details.feature:107 then the stored details are updated`
 - `interface/publication_details.feature:108 then the downloadable file is renamed`
 - `interface/publication_details.feature:109 then the audio is not re-encoded`
@@ -281,7 +274,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/publication_details.feature:87 then I can change the label or confirm that this replaces the previous file`
 - `interface/punch_point_adjustment.feature:118 then the punch-in moves to the nearest silence gap boundary`
 - `interface/punch_point_adjustment.feature:119 then the amount it moved is shown`
-- `interface/punch_point_adjustment.feature:126 then the evidence panel shows why that candidate was considered`
 - `interface/punch_point_adjustment.feature:135 then I am warned that the cut is too close to the audio`
 - `interface/punch_point_adjustment.feature:136 then I am offered the nearest point with a 250 ms margin`
 - `interface/punch_point_adjustment.feature:137 then I can override the warning if I mean it`
@@ -290,9 +282,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:143 then I can drop a boundary into one with a single click`
 - `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
 - `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
-- `interface/punch_point_adjustment.feature:158 given the opening contains a throat-clear before the first real words`
-- `interface/punch_point_adjustment.feature:160 then the adjustment is accepted without warning`
-- `interface/punch_point_adjustment.feature:161 then the machine proposal remains available to revert to`
 - `interface/punch_point_adjustment.feature:169 when I zoom in around a boundary`
 - `interface/punch_point_adjustment.feature:170 then the transcript words are shown aligned to their position on the waveform`
 - `interface/punch_point_adjustment.feature:171 then I can see exactly which word each boundary falls before or after`
@@ -300,53 +289,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:176 given I am viewing the whole recording at overview resolution`
 - `interface/punch_point_adjustment.feature:177 then individual words are not drawn`
 - `interface/punch_point_adjustment.feature:178 then the Block types and summaries are shown instead`
-- `interface/punch_point_adjustment.feature:185 then the change is rejected`
-- `interface/punch_point_adjustment.feature:186 then I am told the punch-out must be after the punch-in`
-- `interface/punch_point_adjustment.feature:187 then the punch-out remains "2:43:32.000"`
-- `interface/punch_point_adjustment.feature:192 then the change is rejected`
-- `interface/punch_point_adjustment.feature:193 then I am told the boundary must fall within the Segment`
-- `interface/punch_point_adjustment.feature:209 when I try to set a span shorter than 1 second`
-- `interface/punch_point_adjustment.feature:210 then the change is rejected`
-- `interface/punch_point_adjustment.feature:211 then I am told the selection is too short`
-- `interface/punch_point_adjustment.feature:217 then the change is accepted`
-- `interface/punch_point_adjustment.feature:218 then I am warned that the length is outside the expected range`
-- `interface/punch_point_adjustment.feature:219 then I can approve anyway`
-- `interface/punch_point_adjustment.feature:237 then my discarded adjustment is recorded in the history`
-- `interface/punch_point_adjustment.feature:242 when Analysis is re-run`
-- `interface/punch_point_adjustment.feature:243 then my adjustment survives`
-- `interface/punch_point_adjustment.feature:244 then the new machine proposal is offered beside it, not applied over it`
-- `interface/punch_point_adjustment.feature:250 then the other Segment's boundaries are unchanged`
-- `interface/punch_point_adjustment.feature:258 then the boundary controls are collapsed`
-- `interface/punch_point_adjustment.feature:259 then I am told the whole span will be kept`
-- `interface/punch_point_adjustment.feature:260 then I can still expand the controls and trim it if I want to`
-- `interface/punch_point_adjustment.feature:51 when I focus the punch-in`
-- `interface/punch_point_adjustment.feature:52 then the punch-in is visibly marked as the one the keyboard will move`
-- `interface/punch_point_adjustment.feature:53 then the punch-out is visibly not`
-- `interface/punch_point_adjustment.feature:54 then the marking survives my scrolling or zooming the waveform`
-- `interface/punch_point_adjustment.feature:58 given the punch-in has focus`
-- `interface/punch_point_adjustment.feature:59 when I move focus to the punch-out`
-- `interface/punch_point_adjustment.feature:60 then the punch-out becomes the boundary the keyboard moves`
-- `interface/punch_point_adjustment.feature:61 then the change is apparent without my having to test it with a nudge`
-- `interface/punch_point_adjustment.feature:65 then the available nudge steps are shown alongside the boundary`
-- `interface/punch_point_adjustment.feature:66 then they read as 50 ms, 0.1 s, 1 s and 10 s`
 - `interface/punch_point_adjustment.feature:76 then the highlighted region updates`
 - `interface/punch_point_adjustment.feature:77 then the segment length updates to "0:43:15.500"`
-- `interface/punch_point_adjustment.feature:82 then the punch-out becomes "2:43:30.250"`
 - `interface/recording_detail.feature:49 then I see which stages have completed`
-- `interface/recording_detail.feature:56 then I see the failure reason`
-- `interface/recording_detail.feature:57 then I can retry Analysis`
-- `interface/recording_detail.feature:58 then I can create a Segment by hand instead`
 - `interface/recording_detail.feature:62 when I expand the processing log`
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
 - `interface/recording_detail.feature:65 then I see who performed each human action, against which Segment`
-- `interface/recording_detail.feature:88 when I choose to archive the whole recording`
-- `interface/recording_detail.feature:89 then a Segment is created spanning the entire Recording`
-- `interface/recording_detail.feature:94 then its intent is "archive"`
-- `interface/recording_detail.feature:95 then it is approved for processing without asking me for boundaries`
 - `interface/recording_list.feature:130 then the page loads in under 2 seconds`
 - `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
-- `interface/segment_review.feature:104 then previewing the punch-in and previewing the punch-out are the most prominent actions`
 - `interface/segment_review.feature:105 then approving is available without any further step`
 - `interface/segment_review.feature:106 then boundary editing is available but not required`
 - `interface/segment_review.feature:128 when I press Preview on a Block`
@@ -395,25 +346,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:251 then the waveform, zooming, word alignment and nudge controls are all available`
 - `interface/segment_review.feature:256 when a Segment is complete`
 - `interface/segment_review.feature:257 then I can download the MP3`
-- `interface/segment_review.feature:42 given a Recording returned to "awaiting_review" by a revisit`
-- `interface/segment_review.feature:43 when I dispose of that Segment`
-- `interface/segment_review.feature:44 then the Recording returns to "reviewed"`
 - `interface/segment_review.feature:74 given Segment 1 was skipped on "2026-08-16"`
 - `interface/segment_review.feature:75 when I open the Recording on "2026-11-04" and approve Segment 1`
 - `interface/segment_review.feature:76 then it is processed using its stored boundaries`
 - `interface/segment_review.feature:77 then Analysis does not need to run again`
 - `interface/segment_review.feature:78 then the resulting MP3 is identical to what it would have been in August`
-- `interface/segment_review.feature:84 then the queued processing job is cancelled`
-- `interface/waveform_review.feature:100 when I choose to preview the punch-in`
-- `interface/waveform_review.feature:111 when I choose to preview the punch-in`
-- `interface/waveform_review.feature:120 when I choose to preview the cut`
-- `interface/waveform_review.feature:129 then only the region being played is fetched`
-- `interface/waveform_review.feature:130 then playback begins within 2 seconds of pressing play`
-- `interface/waveform_review.feature:244 given the seekable preview has not been rendered`
-- `interface/waveform_review.feature:245 when I try to audition the punch-in`
-- `interface/waveform_review.feature:246 then I am told the preview is not ready rather than left with a dead control`
-- `interface/waveform_review.feature:247 then the waveform and the transcript remain usable`
-- `interface/waveform_review.feature:248 then the boundaries can still be adjusted and approved`
 - `interface/waveform_review.feature:255 given the configured model endpoint does not answer`
 - `interface/waveform_review.feature:256 then reviewing, adjusting and approving continue to work`
 - `interface/waveform_review.feature:257 then only the actions that need a model are shown as unavailable`
@@ -455,22 +392,12 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `operations/system_health.feature:59 when I open its processing log`
 - `operations/system_health.feature:60 then I see every job attempt with its timestamp, duration and error`
 - `operations/system_health.feature:61 then I can correlate an entry to the application logs`
-- `processing/artifact_downloads.feature:103 given the rendered MP3 file cannot be found`
-- `processing/artifact_downloads.feature:105 then I am told the artifact is unavailable`
-- `processing/artifact_downloads.feature:106 then I am offered the option to re-process the Segment`
 - `processing/artifact_downloads.feature:42 then I can download "the transcript as plain text"`
 - `processing/artifact_downloads.feature:42 then I can download "the transcript with timecodes"`
 - `processing/artifact_downloads.feature:52 then I can read its transcript without downloading anything`
 - `processing/artifact_downloads.feature:53 then the transcript covers the approved span`
 - `processing/artifact_downloads.feature:54 then I can expand to the full Recording transcript`
-- `processing/artifact_downloads.feature:69 then the file is streamed`
-- `processing/artifact_downloads.feature:70 then the application does not load the whole file into memory`
-- `processing/artifact_downloads.feature:74 given a download was interrupted at 300 MB`
-- `processing/artifact_downloads.feature:75 when my browser resumes it`
-- `processing/artifact_downloads.feature:76 then the download continues from where it stopped`
 - `processing/artifact_downloads.feature:84 then the MP3 download is not offered`
-- `processing/artifact_downloads.feature:98 then it is fetched from the object store`
-- `processing/artifact_downloads.feature:99 then the download still succeeds`
 - `processing/audio_rendering.feature:102 given the Segment contains passages 18 dB quieter than the loudest passage`
 - `processing/audio_rendering.feature:104 then the quiet passages are audible at a normal listening volume`
 - `processing/audio_rendering.feature:105 then the loudest passages are not clipped`

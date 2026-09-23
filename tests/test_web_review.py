@@ -51,3 +51,15 @@ def test_approve_via_http_queues_render(store):
     assert body["segments"][0]["state"] == "approved"
     jobs = store.lists(Job, segment_id=segment.segment_id, kind="render")
     assert jobs[0].state == "queued"
+
+
+def test_an_unknown_recording_id_is_not_found_on_the_html_route(store):
+    client = creates_app(store=store).test_client()
+    assert client.get("/recordings/recording_20260101_000000").status_code == 404
+
+
+def test_an_unknown_recording_id_is_not_found_on_the_api_route(store):
+    client = creates_app(store=store).test_client()
+    response = client.get("/api/recordings/recording_20260101_000000")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "no such recording"}

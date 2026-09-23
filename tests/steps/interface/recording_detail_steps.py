@@ -4,7 +4,8 @@ from datetime import UTC, datetime, timedelta
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.store import Proposal, Recording, Segment
+from sermon.store import Job, Proposal, Recording, Segment
+from steps import _web
 from sermon.web import creates_app
 from steps._markup import reads_field, reads_pairs, reads_rows
 
@@ -168,3 +169,68 @@ def _(store, detail_page):
     recording = store.lists(Recording)[0]
     assert reads_field(detail_page, "source-download") == "Download the original FLAC"
     assert f"/api/artifacts/{recording.object_key}" in detail_page
+
+
+@when("I choose to archive the whole recording", target_fixture="detail_page")
+def _(store, recording):
+    return _web.posts(store, _web.recording_action(recording, "archive-whole-recording"))
+
+
+@then("a Segment is created spanning the entire Recording")
+def _(store, recording, detail_page):
+    archived = [
+        one
+        for one in store.lists(Segment, recording_id=recording.recording_id)
+        if one.classification == "meeting"
+    ]
+    assert [(one.punch_in_seconds, one.punch_out_seconds) for one in archived] == [
+        (0.0, recording.duration_seconds)
+    ]
+    assert [row["classification"] for row in reads_rows(detail_page, "segment")].count("meeting") == 1
+
+
+@then('its intent is "archive"')
+def _(store, recording):
+    archived = [
+        one
+        for one in store.lists(Segment, recording_id=recording.recording_id)
+        if one.classification == "meeting"
+    ]
+    assert [one.intent for one in archived] == ["archive"]
+
+
+@then("it is approved for processing without asking me for boundaries")
+def _(store, recording, detail_page):
+    archived = [
+        one
+        for one in store.lists(Segment, recording_id=recording.recording_id)
+        if one.classification == "meeting"
+    ]
+    assert [one.state for one in archived] == ["approved"]
+    assert reads_field(detail_page, "action-notice") == "the whole Recording is kept as an archive copy"
+    assert store.lists(Job, segment_id=archived[0].segment_id, kind="render")
+
+
+@then("I see the failure reason")
+def _(detail_page):
+    assert reads_field(detail_page, "reason") == "transcription timed out"
+
+
+@then("I can retry Analysis")
+def _(store, detail_page):
+    retry = [row for row in reads_rows(detail_page, "action") if row["action"] == "Retry analysis"]
+    assert [row["action-control"] for row in retry] == ["Retry analysis"]
+    recording = store.lists(Recording)[0]
+    assert f"/recordings/{recording.recording_id}/actions/retry-analysis" in detail_page
+
+
+@then("I can create a Segment by hand instead")
+def _(store, detail_page):
+    drawn = [
+        row
+        for row in reads_rows(detail_page, "action")
+        if row["action"] == "Create segment by hand"
+    ]
+    assert [row["action-control"] for row in drawn] == ["Create segment by hand"]
+    recording = store.lists(Recording)[0]
+    assert f"/recordings/{recording.recording_id}/actions/create-segment" in detail_page

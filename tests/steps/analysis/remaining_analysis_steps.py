@@ -19,6 +19,7 @@ from sermon.pipeline.segments import TAIL_S
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.lists_recordings import ListsRecordings
 from sermon.shows_recording import ShowsRecording
+from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.store import Block, CorpusPair, Evidence, Proposal, Recording, Segment
 from sermon.store.vocabularies import BLOCK_TYPES, CUT_DIFFICULTIES, RECORDING_KINDS
 
@@ -662,19 +663,7 @@ def _(store):
 
 @when(parsers.parse('the reviewer splits a Segment at "{timecode}"'))
 def _(store, timecode):
-    segment = ensure_segment(store)
-    store.saves(replace(segment, span_end_seconds=READS(timecode), punch_out_seconds=READS(timecode)))
-    store.saves(
-        Segment(
-            recording_id=segment.recording_id,
-            classification=segment.classification,
-            state="proposed",
-            span_start_seconds=READS(timecode),
-            span_end_seconds=segment.span_end_seconds,
-            punch_in_seconds=READS(timecode),
-            punch_out_seconds=segment.punch_out_seconds,
-        )
-    )
+    SplitsSegment(store=store)(ensure_segment(store), at_seconds=READS(timecode))
 
 
 @when("the reviewer merges two adjacent Segments")
@@ -707,14 +696,7 @@ def _(store):
             ),
         ]
     first, second = sorted(segments, key=lambda item: item.span_start_seconds)[:2]
-    store.saves(
-        replace(
-            first,
-            span_end_seconds=second.span_end_seconds,
-            punch_out_seconds=second.punch_out_seconds,
-        )
-    )
-    store._merged_span = (first.punch_in_seconds, second.punch_out_seconds)
+    MergesSegments(store=store)(first, second)
 
 
 @then("the Segment does not claim more certainty than one analysis supports")
@@ -1171,20 +1153,8 @@ def _(store):
 
 @when(parsers.parse('the reviewer draws a Segment from "{start}" to "{end}"'))
 def _(store, start, end):
-    recording = rec(store)
     store._drawn = (READS(start), READS(end))
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="proposed",
-            span_start_seconds=READS(start),
-            span_end_seconds=READS(end),
-            punch_in_seconds=READS(start),
-            punch_out_seconds=READS(end),
-            boundary_source="human",
-        )
-    )
+    CreatesSegment(store=store)(rec(store), from_seconds=READS(start), to_seconds=READS(end))
 
 
 @when("the reviewer presses Preview on that Block")

@@ -356,3 +356,50 @@ canvas {
 .waveform .wave[data-auditioning] .playhead {
   border-left-width: 2px;
 }
+
+.listen audio {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0 0 0.75rem;
+}
+
+.listen .previews button {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  background: #fff;
+  padding: 0.5rem 0.9rem;
+  margin: 0 0.5rem 0.5rem 0;
+  cursor: pointer;
+}
+
+.listen .previews button.primary {
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
+.listen .position {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.listen .track {
+  position: relative;
+  display: block;
+  flex: 1;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--line);
+  cursor: pointer;
+}
+
+.listen .track .marker {
+  position: absolute;
+  top: -0.25rem;
+  width: 2px;
+  height: 1rem;
+  background: var(--flag);
+}
