@@ -8,6 +8,7 @@ from pathlib import Path
 from flask import Flask, render_template, request, send_file
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
+from sermon.analysis.io import reads_json
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
 from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.lists_recordings import ListsRecordings
@@ -58,8 +59,25 @@ def creates_app(*, store, clock=now, lists_objects=None):
             recording_id,
             selected_segment_id=request.args.get("segment", type=int),
             playhead_seconds=playheads.get(recording_id, 0.0),
+            zoom=request.args.get("zoom"),
+            centre_seconds=request.args.get("centre", type=float),
         )
         return render_template("detail.html", view=view, payload=json.dumps(asdict(view)))
+
+    @app.get("/api/recordings/<recording_id>/peaks")
+    def recording_peaks(recording_id):
+        recording = store.loads(Recording, recording_id)
+        payload = reads_json(store, recording, "waveform_peaks") or {}
+        resolutions = payload.get("resolutions") or {}
+        wanted = request.args.get("resolution", "overview")
+        if wanted not in resolutions:
+            return ("", 404)
+        return {
+            "recording_id": recording_id,
+            "duration_seconds": payload.get("duration_seconds"),
+            "full_scale": payload.get("full_scale"),
+            "resolution": wanted,
+        } | resolutions[wanted]
 
     @app.post("/api/webhooks/recordings")
     def recordings_webhook():
