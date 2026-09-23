@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1242 step definitions read from `tests/steps`
+- 1243 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 393 Gherkin steps matched no definition
+- 392 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -43,7 +43,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/catch_all_thens.py` (named) | 3 | 0 | sound |
 | `tests/steps/discovery_steps.py` | 2 | 0 | sound |
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
-| `tests/steps/ingestion/s3_reconciliation_steps.py` | 30 | 0 | sound |
+| `tests/steps/ingestion/s3_reconciliation_steps.py` | 31 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 34 | 0 | sound |
 | `tests/steps/interface/approval_steps.py` | 48 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
@@ -242,7 +242,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences, or the stated main point"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the passage announcement"`
-- `ingestion/s3_reconciliation.feature:12 given it contains a bucket "sermons"`
 - `ingestion/s3_reconciliation.feature:64 then the next scheduled scan runs normally`
 - `ingestion/webhook_notification.feature:112 given the Sermon Processor is unreachable`
 - `ingestion/webhook_notification.feature:113 when the Recorder attempts to deliver a webhook`

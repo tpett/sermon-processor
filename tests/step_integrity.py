@@ -21,7 +21,7 @@ PERMITTED_EMPTY_GIVENS = {
     "I am using a desktop browser": "one layout is served; no client capability is negotiated",
     "I am using a phone": "one layout is served; no client capability is negotiated",
     "the Recorder reaches it over the tailnet": "reachability is the ambient condition of every test",
-    'it contains a bucket "sermons"': (
+    'it contains a bucket "{name}"': (
         "the fake object store is the bucket; it models no second one"
     ),
     "the object store is a Garage S3 instance reachable over the tailnet": (
