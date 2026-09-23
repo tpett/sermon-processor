@@ -43,6 +43,35 @@
   <p><a href="/api/artifacts/{{ view.object_key }}" data-field="source-download">Download the original {{ view.container }}</a></p>
 </section>
 
+<section class="listen" data-role="listen" data-recording="{{ view.recording_id }}">
+  <h2>Listen</h2>
+  {% if view.preview_ready %}
+  <audio id="preview-audio" controls preload="metadata" data-role="preview-audio" data-duration="{{ view.preview_duration_seconds or view.duration_seconds }}">
+    <source src="{{ view.preview_url }}" type="{{ view.preview_media_type }}">
+  </audio>
+  <p class="previews">
+  {% for window in view.preview_windows %}
+    <button type="button" class="primary" data-role="preview-{{ window.kind }}" data-kind="{{ window.kind }}" data-at="{{ window.at_seconds }}" data-start="{{ window.start_seconds }}" data-end="{{ window.end_seconds }}">{{ window.label }}</button>
+  {% endfor %}
+  {% if view.preview_windows %}
+    <button type="button" data-role="preview-cut" data-kind="cut" data-in-start="{{ view.preview_windows[0].start_seconds }}" data-in-end="{{ view.preview_windows[0].end_seconds }}" data-out-start="{{ view.preview_windows[1].start_seconds }}" data-out-end="{{ view.preview_windows[1].end_seconds }}">Preview the cut</button>
+  {% endif %}
+  </p>
+  <p class="position">
+    <span class="track" data-role="playback-track" data-duration="{{ view.preview_duration_seconds or view.duration_seconds }}"><span class="marker" data-role="playhead-marker" data-seconds="{{ view.playhead_seconds }}" style="left: {{ (100.0 * view.playhead_seconds / (view.duration_seconds or 1))|round(4) }}%"></span></span>
+    <span class="label">at</span> <span data-field="listen-playhead">{{ view.playhead_seconds|precise }}</span>
+  </p>
+  <dl>
+    <dt>Playing</dt><dd data-field="audio-source">{{ view.preview_url }}</dd>
+    <dt>Preview length</dt><dd data-field="preview-length">{{ (view.preview_duration_seconds or view.duration_seconds)|precise }}</dd>
+    <dt>Audition window</dt><dd data-field="preview-lead">{{ view.preview_lead_seconds|seconds }} either side of the boundary</dd>
+  </dl>
+  {% else %}
+  <p data-field="preview-state">{{ view.preview_unavailable }}</p>
+  {% endif %}
+  <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
+</section>
+
 <section class="actions">
   <h2>Actions</h2>
   <ul>
@@ -109,10 +138,12 @@
   {% if view.blocks %}
   <ol>
   {% for block in view.blocks %}
-    <li data-row="block" data-block-type="{{ block.type }}">
+    <li data-row="block" data-block-type="{{ block.type }}" data-cue-start="{{ block.cue_start_seconds }}" data-cue-end="{{ block.cue_end_seconds }}">
       <span data-field="block-type">{{ block.type }}</span>
       <span data-field="block-span">{{ block.span }}</span>
       <span data-field="block-summary">{{ block.summary or "" }}</span>{% if not block.summary %}<span class="quiet">no summary yet</span>{% endif %}
+      {% if view.preview_ready and block.cue_start_seconds is not none %}<button type="button" data-role="preview-cue-excerpt" data-kind="cue" data-start="{{ block.cue_start_seconds }}" data-end="{{ block.cue_end_seconds }}">Preview</button>
+      <button type="button" data-role="start-at-block" data-kind="seek" data-start="{{ block.start_seconds }}" data-end="{{ block.end_seconds }}">Start here</button>{% endif %}
     </li>
   {% endfor %}
   </ol>

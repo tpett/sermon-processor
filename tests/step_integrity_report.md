@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1115 step definitions read from `tests/steps`
+- 1137 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 456 non-deferred scenarios rest on at least one condemned step
 - 0 of 597 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 43 Gherkin steps matched more than one definition
-- 521 Gherkin steps matched no definition
+- 499 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -37,7 +37,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
 | `tests/steps/analysis/domain_steps.py` | 205 | 0 | sound |
-| `tests/steps/analysis/preview_audio_steps.py` | 29 | 0 | sound |
+| `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 198 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
 | `tests/steps/catch_all_thens.py` (named) | 3 | 0 | sound |
@@ -48,6 +48,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/approval_steps.py` | 43 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
 | `tests/steps/interface/discarding_steps.py` | 18 | 0 | sound |
+| `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 7 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 8 | 0 | sound |
@@ -61,7 +62,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py` | 8 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 13 | 0 | sound |
-| `tests/steps/processing/artifact_downloads_steps.py` | 15 | 0 | sound |
+| `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
 | `tests/steps/remaining_steps.py` (named) | 132 | 0 | sound |
 
@@ -180,8 +181,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/detection_accuracy.feature:272 then it reports that it was skipped`
 - `analysis/detection_accuracy.feature:273 then it does not report a pass`
 - `analysis/detection_accuracy.feature:81 then a legitimate untrimmed archive is flagged the same way`
-- `analysis/preview_audio.feature:40 then playback begins within 2 seconds`
-- `analysis/preview_audio.feature:41 then the earlier part of the recording is never downloaded`
 - `analysis/punch_in_detection.feature:107 then the punch-in is placed immediately before "good morning"`
 - `analysis/punch_in_detection.feature:114 then the punch-in is placed immediately before that phrase`
 - `analysis/punch_in_detection.feature:115 then that counts as evidence for the punch-in`
@@ -346,7 +345,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/recording_detail.feature:95 then it is approved for processing without asking me for boundaries`
 - `interface/recording_list.feature:130 then the page loads in under 2 seconds`
 - `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
-- `interface/segment_review.feature:104 then previewing the punch-in and previewing the punch-out are the most prominent actions`
 - `interface/segment_review.feature:105 then approving is available without any further step`
 - `interface/segment_review.feature:106 then boundary editing is available but not required`
 - `interface/segment_review.feature:112 then I am told the punch-in needs checking and why`
@@ -406,10 +404,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:77 then Analysis does not need to run again`
 - `interface/segment_review.feature:78 then the resulting MP3 is identical to what it would have been in August`
 - `interface/segment_review.feature:84 then the queued processing job is cancelled`
-- `interface/waveform_review.feature:100 when I choose to preview the punch-in`
-- `interface/waveform_review.feature:108 when I choose to preview the cut`
-- `interface/waveform_review.feature:117 then only the region being played is fetched`
-- `interface/waveform_review.feature:118 then playback begins within 2 seconds of pressing play`
 - `interface/waveform_review.feature:124 when I zoom the detail view into the punch-in`
 - `interface/waveform_review.feature:131 when I click a point on the overview`
 - `interface/waveform_review.feature:160 given the punch-out is 0.90 seconds before the next speech`
@@ -438,11 +432,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/waveform_review.feature:216 then no words are expected in view at that zoom`
 - `interface/waveform_review.feature:222 then its peak data is fetched per recording rather than inlined in the page`
 - `interface/waveform_review.feature:223 then it is served at progressive resolution`
-- `interface/waveform_review.feature:232 given the seekable preview has not been rendered`
-- `interface/waveform_review.feature:233 when I try to audition the punch-in`
-- `interface/waveform_review.feature:234 then I am told the preview is not ready rather than left with a dead control`
-- `interface/waveform_review.feature:235 then the waveform and the transcript remain usable`
-- `interface/waveform_review.feature:236 then the boundaries can still be adjusted and approved`
 - `interface/waveform_review.feature:243 given the configured model endpoint does not answer`
 - `interface/waveform_review.feature:244 then reviewing, adjusting and approving continue to work`
 - `interface/waveform_review.feature:245 then only the actions that need a model are shown as unavailable`
@@ -492,22 +481,12 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `operations/system_health.feature:59 when I open its processing log`
 - `operations/system_health.feature:60 then I see every job attempt with its timestamp, duration and error`
 - `operations/system_health.feature:61 then I can correlate an entry to the application logs`
-- `processing/artifact_downloads.feature:103 given the rendered MP3 file cannot be found`
-- `processing/artifact_downloads.feature:105 then I am told the artifact is unavailable`
-- `processing/artifact_downloads.feature:106 then I am offered the option to re-process the Segment`
 - `processing/artifact_downloads.feature:42 then I can download "the transcript as plain text"`
 - `processing/artifact_downloads.feature:42 then I can download "the transcript with timecodes"`
 - `processing/artifact_downloads.feature:52 then I can read its transcript without downloading anything`
 - `processing/artifact_downloads.feature:53 then the transcript covers the approved span`
 - `processing/artifact_downloads.feature:54 then I can expand to the full Recording transcript`
-- `processing/artifact_downloads.feature:69 then the file is streamed`
-- `processing/artifact_downloads.feature:70 then the application does not load the whole file into memory`
-- `processing/artifact_downloads.feature:74 given a download was interrupted at 300 MB`
-- `processing/artifact_downloads.feature:75 when my browser resumes it`
-- `processing/artifact_downloads.feature:76 then the download continues from where it stopped`
 - `processing/artifact_downloads.feature:84 then the MP3 download is not offered`
-- `processing/artifact_downloads.feature:98 then it is fetched from the object store`
-- `processing/artifact_downloads.feature:99 then the download still succeeds`
 - `processing/audio_rendering.feature:102 given the Segment contains passages 18 dB quieter than the loudest passage`
 - `processing/audio_rendering.feature:104 then the quiet passages are audible at a normal listening volume`
 - `processing/audio_rendering.feature:105 then the loudest passages are not clipped`
