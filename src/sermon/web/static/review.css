@@ -1326,3 +1326,43 @@ details summary {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* A zoom chip is a choice, not a datasheet. The precision and the words-in-view
+   stay in the markup and in the chip's title; four lines each made the
+   transport unreadable. */
+.zoom-steps li [data-field="zoom-step-precision"],
+.zoom-steps li [data-field="zoom-step-words"] {
+  display: none;
+}
+
+.zoom-steps li [data-field="zoom-step-purpose"] {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.nudges {
+  margin-top: 6px;
+}
+
+.nudges > summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.nudges[open] {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  gap: 4px;
+  align-items: center;
+}
+
+.nudges[open] > summary {
+  grid-column: 1 / -1;
+}
+
+.boundaries li[data-focused="true"] {
+  border-left: 2px solid var(--accent);
+  padding-left: 8px;
+}

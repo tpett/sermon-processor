@@ -472,6 +472,80 @@ function keepsInView(seconds) {
   if (position > 75 || position < 0) recentres(seconds, 0.25);
 }
 
+const detailLabel = document.querySelector('[data-role="detail-label"]');
+
+// Zoom used to be a link, so choosing a scale reloaded the page: the audio
+// stopped and the playhead went back to whatever the server had stored. The
+// scale is a property of the view, not of the recording, so it is changed here
+// and the audio is left alone.
+function zoomsTo(chip) {
+  if (!detailPane) return false;
+  const seconds = Number(chip.dataset.zoomWindowSeconds);
+  if (!Number.isFinite(seconds) || seconds <= 0) return false;
+  const audio = document.querySelector("audio");
+  const at =
+    audio && Number.isFinite(audio.currentTime) && audio.currentTime > 0
+      ? audio.currentTime
+      : Number(detailPane.dataset.windowCentreSeconds);
+  detailPane.dataset.windowSeconds = String(seconds);
+  detailPane.dataset.windowStep = chip.dataset.zoomStep;
+  document
+    .querySelectorAll('[data-row="zoom-step"]')
+    .forEach((one) => delete one.dataset.selected);
+  chip.dataset.selected = "true";
+  if (detailLabel) {
+    const across =
+      seconds >= 600
+        ? `${Math.round(seconds / 60)} min`
+        : `${Number(seconds.toFixed(1))} s`;
+    detailLabel.textContent = `Detail — ${chip.dataset.zoomStep} · ${across} in view`;
+  }
+  recentres(at);
+  return true;
+}
+
+document.querySelectorAll('[data-row="zoom-step"]').forEach((chip) => {
+  const link = chip.querySelector("a");
+  if (!link) return;
+  link.addEventListener("click", (event) => {
+    // Without a detail pane there is no window to rescale, so the link stands.
+    if (zoomsTo(chip)) event.preventDefault();
+  });
+});
+
+// The page has always said "the keyboard will move the punch-in". Nothing was
+// listening. The spec calls the keyboard load-bearing because dragging cannot
+// reach 50 ms at any zoom that still shows enough context to be oriented.
+const NUDGE_KEYS = { ArrowLeft: "earlier", ArrowRight: "later" };
+
+function nudges(direction, amount) {
+  const focused = document.querySelector('[data-row="boundary"][data-focused="true"]');
+  if (!focused) return false;
+  const control = [...focused.querySelectorAll("[data-nudge]")].find(
+    (one) => one.dataset.nudge === `${direction} ${amount}`
+  );
+  if (!control) return false;
+  // The controls live in a collapsed <details>, so the button is not rendered
+  // and clicking it is not guaranteed to submit. Submit its form instead.
+  const form = control.closest("form");
+  if (form) form.submit();
+  else control.click();
+  return true;
+}
+
+document.addEventListener("keydown", (event) => {
+  const direction = NUDGE_KEYS[event.key];
+  if (!direction || event.metaKey || event.ctrlKey) return;
+  const target = event.target;
+  const typing =
+    target && typeof target.closest === "function"
+      ? target.closest("input, textarea, select")
+      : null;
+  if (typing) return;
+  const amount = event.shiftKey ? "1 s" : event.altKey ? "50 ms" : "0.1 s";
+  if (nudges(direction, amount)) event.preventDefault();
+});
+
 packsWords();
 window.addEventListener("resize", packsWords);
 settles();

@@ -138,7 +138,7 @@
   {% set start = wave.window.start_seconds %}
   {% set span = wave.window.seconds %}
   <div class="panel">
-    <span class="eyebrow">Detail — {{ wave.window.step }} · {{ wave.window.seconds }} s in view</span>
+    <span class="eyebrow" data-role="detail-label">Detail — {{ wave.window.step }} · {{ wave.window.seconds }} s in view</span>
     <div class="detailwrap detail-view" data-role="detail" data-window-seconds="{{ wave.window.seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-step="{{ wave.window.step }}">
       <canvas data-role="detail-canvas" width="1100" height="180"></canvas>
       {% if view.punch_in_seconds is not none %}
@@ -179,7 +179,7 @@
     {% if wave.available %}
     <ol class="zoom-steps">
     {% for step in wave.zoom_steps %}
-      <li data-row="zoom-step" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
+      <li data-row="zoom-step" title="{{ step.purpose }} — 100 ms is {{ step.precision }}, {{ step.verdict }}; words in view: {{ step.words_in_view }}" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
         <a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}zoom={{ step.step|urlencode }}&amp;centre={{ wave.window.centre_seconds if wave.window else 0 }}" data-field="zoom-step-name">{{ step.step }}</a>
         <span data-field="zoom-step-purpose">{{ step.purpose }}</span>
         <span data-field="zoom-step-precision">100 ms is {{ step.precision }}, {{ step.verdict }}</span>
@@ -366,16 +366,19 @@
         <input type="hidden" name="do" value="playhead">
         <button type="submit" data-field="playhead-control">Set the {{ boundary.field }} from the playhead</button>
       </form>
+      <details class="nudges">
+        <summary>Nudge by a fixed step</summary>
       {% for direction in ("earlier", "later") %}
       {% for step in view.nudge_steps %}
-      <form method="post" action="{{ boundary.url }}">
-        <input type="hidden" name="do" value="nudge">
-        <input type="hidden" name="direction" value="{{ direction }}">
-        <input type="hidden" name="amount" value="{{ step }}">
-        <button type="submit" data-nudge="{{ direction }} {{ step }}" data-field="nudge-control">{{ direction }} by {{ step }}</button>
-      </form>
+        <form method="post" action="{{ boundary.url }}">
+          <input type="hidden" name="do" value="nudge">
+          <input type="hidden" name="direction" value="{{ direction }}">
+          <input type="hidden" name="amount" value="{{ step }}">
+          <button type="submit" data-nudge="{{ direction }} {{ step }}" data-field="nudge-control">{{ direction }} by {{ step }}</button>
+        </form>
       {% endfor %}
       {% endfor %}
+      </details>
     </li>
   {% endfor %}
   </ul>
