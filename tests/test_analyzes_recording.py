@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
+from steps._asr import transcribes_for
 
 from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob
 from sermon.sends_notification import SendsNotification
@@ -50,6 +51,7 @@ def analyzes(store, stages, sent):
         notifies=SendsNotification(store=store, sends=sent.append),
         contents=CLASS_AND_SERVICE,
         clock=lambda: FROZEN,
+        transcribes=transcribes_for(store, downloaded_recording()),
     )
 
 
@@ -63,6 +65,7 @@ def test_runs_analyze_job_picks_the_queued_job(store):
         stages=stages.append,
         notifies=SendsNotification(store=store, sends=sent.append),
         clock=lambda: FROZEN,
+        transcribes=transcribes_for(store, recording),
     )()
     job = store.lists(Job, recording_id=recording.recording_id, kind="analyze")[0]
     assert job.state == "succeeded"
