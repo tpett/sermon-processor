@@ -44,6 +44,7 @@ def _(store, state):
             started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
             started_at_source="key",
             size_bytes=1,
+            duration_seconds=READS("3:12:00"),
         )
     )
 

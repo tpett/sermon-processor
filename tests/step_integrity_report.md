@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1144 step definitions read from `tests/steps`
+- 1154 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 456 non-deferred scenarios rest on at least one condemned step
 - 0 of 597 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
-- 45 Gherkin steps matched more than one definition
-- 490 Gherkin steps matched no definition
+- 44 Gherkin steps matched more than one definition
+- 479 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -45,13 +45,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
 | `tests/steps/ingestion/s3_reconciliation_steps.py` | 30 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 34 | 0 | sound |
-| `tests/steps/interface/approval_steps.py` | 43 | 0 | sound |
+| `tests/steps/interface/approval_steps.py` | 48 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
-| `tests/steps/interface/discarding_steps.py` | 18 | 0 | sound |
+| `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 35 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 17 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 21 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 24 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 40 | 0 | sound |
@@ -63,7 +63,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/operations/job_queue_steps.py` | 13 | 0 | sound |
 | `tests/steps/processing/artifact_downloads_steps.py` | 15 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 132 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 131 | 0 | sound |
 
 ## Condemned outside the six named files
 
@@ -255,17 +255,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `ingestion/webhook_notification.feature:116 then the Recording is still ingested later by S3 reconciliation`
 - `ingestion/webhook_notification.feature:76 then a Recording is uniquely identified by its bucket and object key`
 - `ingestion/webhook_notification.feature:77 then the same key always refers to the same audio`
-- `interface/approval.feature:122 then no Segment is ever published on classification alone`
-- `interface/approval.feature:131 then the processing job stops`
-- `interface/approval.feature:133 then any partial output is discarded`
-- `interface/approval.feature:99 then I can change it to "archive" before approving`
 - `interface/discarding_recordings.feature:106 then I do not have to discard it for the queue to stay clean`
 - `interface/discarding_recordings.feature:107 then it remains available if I ever want it`
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`
 - `interface/discarding_recordings.feature:116 then it never appears as work`
 - `interface/discarding_recordings.feature:117 then I can still find and restore it if the machine was wrong`
-- `interface/discarding_recordings.feature:57 then its Segments are intact`
-- `interface/discarding_recordings.feature:72 then the source object in the object store is untouched`
 - `interface/publication_details.feature:107 then the stored details are updated`
 - `interface/publication_details.feature:108 then the downloadable file is renamed`
 - `interface/publication_details.feature:109 then the audio is not re-encoded`
@@ -309,10 +303,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
 - `interface/recording_detail.feature:65 then I see who performed each human action, against which Segment`
-- `interface/recording_detail.feature:88 when I choose to archive the whole recording`
-- `interface/recording_detail.feature:89 then a Segment is created spanning the entire Recording`
-- `interface/recording_detail.feature:94 then its intent is "archive"`
-- `interface/recording_detail.feature:95 then it is approved for processing without asking me for boundaries`
 - `interface/recording_list.feature:130 then the page loads in under 2 seconds`
 - `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
 - `interface/segment_review.feature:104 then previewing the punch-in and previewing the punch-out are the most prominent actions`
@@ -374,7 +364,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:76 then it is processed using its stored boundaries`
 - `interface/segment_review.feature:77 then Analysis does not need to run again`
 - `interface/segment_review.feature:78 then the resulting MP3 is identical to what it would have been in August`
-- `interface/segment_review.feature:84 then the queued processing job is cancelled`
 - `interface/waveform_review.feature:100 when I choose to preview the punch-in`
 - `interface/waveform_review.feature:108 when I choose to preview the cut`
 - `interface/waveform_review.feature:117 then only the region being played is fetched`

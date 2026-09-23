@@ -338,13 +338,18 @@ def creates_app(*, store, clock=now, lists_objects=None):
         except PublicationLabelRequired:
             return returns_to(recording_id, "label-required", segment_id, focus)
         except SegmentNotReady:
-            already = "already-approved" if segment.state == "approved" else "not-ready"
-            return returns_to(recording_id, already, segment_id, focus)
+            return returns_to(recording_id, refusal_for(segment), segment_id, focus)
         except (BoundaryRejected, SegmentAlreadyRendered) as refusal:
             return returns_to(recording_id, str(refusal), segment_id, focus)
         if notice is None:
             return ("", 404)
         return returns_to(recording_id, notice, segment_id, focus)
+
+    def refusal_for(segment):
+        queued = store.lists(Job, segment_id=segment.segment_id, kind="render")
+        if segment.state == "approved" and queued:
+            return "already-approved"
+        return "not-ready"
 
     def performs_segment_action(segment, action):
         if action == "approve":

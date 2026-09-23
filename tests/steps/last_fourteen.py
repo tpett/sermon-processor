@@ -5,6 +5,7 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment
 from sermon.store import Proposal, Recording, Segment
+from steps import _web
 
 
 @given("a Recording of 104 minutes")
@@ -83,16 +84,14 @@ def _(store, clock):
         ApprovesSegment(store=store, clock=clock)(skipped[0])
 
 
-@when("I revert it to proposed")
+@when("I revert it to proposed", target_fixture="detail_page")
 def _(store, recording):
-    from sermon.store import Job, Recording as Rec
-
-    segments = store.lists(Segment, recording_id=recording.recording_id)
-    for item in segments:
-        if item.state == "approved":
-            store.saves(replace(item, state="proposed"))
-            for job in store.lists(Job, segment_id=item.segment_id):
-                store.saves(replace(job, state="cancelled"))
+    approved = [
+        one
+        for one in store.lists(Segment, recording_id=recording.recording_id)
+        if one.state == "approved"
+    ]
+    return _web.posts(store, _web.segment_action(approved[0], "reopen"))
 
 
 @given("I approved Segment 2 a moment ago")

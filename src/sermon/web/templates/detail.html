@@ -65,6 +65,9 @@
   <p data-field="segment-actions-state">No Segment is selected, so no Segment action is offered</p>
   {% else %}
   <h3>This Segment</h3>
+  <p>Intent <span data-field="intent">{{ view.intent }}</span>
+     of <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span></p>
+  <p>Publication label <span data-field="label">{{ view.label or "none entered" }}</span></p>
   <ul>
   {% for action in view.segment_actions %}
     <li data-row="segment-action" data-action="{{ action.name }}" data-segment="{{ view.selected_segment_id }}">
@@ -77,10 +80,7 @@
           {% endfor %}
           </select>
         </label>
-        <span data-field="intent">{{ view.intent }}</span>
-        <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span>
         <label>Publication label <input type="text" name="label" value="{{ view.label or '' }}"></label>
-        <span data-field="label">{{ view.label or "" }}</span>
         <button type="submit" data-field="action-control">Approve</button>
       </form>
       {% else %}

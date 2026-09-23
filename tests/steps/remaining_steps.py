@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 
 from pytest_bdd import given, parsers, then, when
 
+from steps import _web
+
 from sermon.approves_segment import ApprovesSegment
 from sermon.discards_recording import DiscardsRecording, PublishedSegmentExists
 from sermon.extends_segment_span import ReadsTimecode
@@ -461,11 +463,9 @@ def _(store):
     assert any(item.state == "processing" for item in store.lists(Segment))
 
 
-@when("I cancel processing")
+@when("I cancel processing", target_fixture="detail_page")
 def _(store, segment):
-    for job in store.lists(Job, segment_id=segment.segment_id):
-        store.saves(replace(job, state="cancelled"))
-    store.saves(replace(store.loads(Segment, segment.segment_id), state="proposed"))
+    return _web.posts(store, _web.segment_action(segment, "reopen"))
 
 
 @then('the Segment returns to "proposed"')
@@ -529,14 +529,7 @@ def _(store, segment):
 
 @then('the punch-in returns to "2:00:20.000"')
 def _(store, segment):
-    assert store.loads(Segment, segment.segment_id)
-
-
-@when("I adjust this Segment's punch-in", target_fixture="segment")
-def _(store, segment):
-    from sermon.places_punch_in import PlacesPunchIn
-
-    return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 0.5)
+    assert store.loads(Segment, segment.segment_id).punch_in_seconds == 7220.0
 
 
 @given("no Segment was proposed")
