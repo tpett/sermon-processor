@@ -84,6 +84,10 @@ class Store:
         stored = getattr(entity, table.paths[0])
         return self._resolves_stored_path(stored) if stored is not None else None
 
+    def resolves_path(self, path):
+        """A file on the shared volume that no row owns."""
+        return self._resolves_stored_path(path)
+
     def close(self):
         self._connection.close()
 

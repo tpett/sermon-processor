@@ -14,6 +14,7 @@ from sermon.analysis import (
     SummarizesBlocks,
     TranscribesRecording,
 )
+from sermon.analysis.progress import RecordsStageProgress
 from sermon.config import ModelEndpointUnreachable
 from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.pipeline.preview import PreviewUnavailable
@@ -24,6 +25,12 @@ from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal,
 
 def now():
     return datetime.now(UTC)
+
+
+def _elapsed(began, ended):
+    if not isinstance(began, datetime) or not isinstance(ended, datetime):
+        return None
+    return round((ended - began).total_seconds(), 3)
 
 
 STAGE_ORDER = (
@@ -88,6 +95,14 @@ class AnalyzesRecording:
     transcribes: object = None
 
     def _run_stage(self, recording, name):
+        records = RecordsStageProgress(store=self.store, clock=self.clock)
+        records.started(recording, name)
+        began = self.clock()
+        outcome = self._performs_stage(recording, name)
+        records.completed(recording, name, _elapsed(began, self.clock()))
+        return outcome
+
+    def _performs_stage(self, recording, name):
         cached = {
             artifact.kind
             for artifact in self.store.lists(Artifact, recording_id=recording.recording_id)

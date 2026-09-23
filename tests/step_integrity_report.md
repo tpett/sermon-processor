@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1244 step definitions read from `tests/steps`
+- 1245 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 391 Gherkin steps matched no definition
+- 390 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -53,7 +53,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 36 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
@@ -275,7 +275,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:137 then I can override the warning if I mean it`
 - `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
 - `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
-- `interface/recording_detail.feature:49 then I see which stages have completed`
 - `interface/recording_detail.feature:62 when I expand the processing log`
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`

@@ -1366,3 +1366,53 @@ details summary {
   border-left: 2px solid var(--accent);
   padding-left: 8px;
 }
+
+.stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.stages li {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--hair);
+  color: var(--muted);
+}
+
+.stages li [data-field="stage-state"] {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.stages li[data-state="complete"] {
+  color: var(--ink);
+}
+
+.stages li[data-state="complete"] [data-field="stage-state"] {
+  color: var(--ok);
+}
+
+.stages li[data-state="running"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stages li[data-state="running"] [data-field="stage-state"] {
+  color: var(--warn);
+}
+
+.stages li[data-state="failed"] [data-field="stage-state"] {
+  color: var(--bad);
+}
+
+.stages li [data-field="stage-detail"] {
+  grid-column: 2;
+  font-weight: 400;
+  color: var(--muted);
+}

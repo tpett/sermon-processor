@@ -4,8 +4,9 @@ from datetime import UTC, datetime, timedelta
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.store import Job, Proposal, Recording, Segment
-from steps import _web
+from steps import _progress, _web
 from sermon.web import creates_app
 from steps._markup import reads_field, reads_pairs, reads_rows
 
@@ -136,7 +137,10 @@ def _(detail_page):
 
 @given(parsers.parse('the Recording is in state "{state}"'), target_fixture="recording")
 def _(store, recording, state):
-    return store.saves(replace(recording, state=state))
+    stored = store.saves(replace(recording, state=state))
+    if state == "analyzing":
+        _progress.leaves_analysis_part_way(store, stored)
+    return stored
 
 
 @given(
@@ -148,9 +152,27 @@ def _(store, recording, state, reason):
 
 
 @then("I see which analysis stage is currently running")
-def _(detail_page):
+def _(store, recording, detail_page):
     assert reads_field(detail_page, "state") == "analyzing"
     assert "Analysis is running" in reads_field(detail_page, "progress")
+    running = _progress.running_stages(store, recording)
+    shown = {row["stage"] for row in reads_rows(detail_page, "stage") if row["state"] == "running"}
+    assert shown == running == {"transcription"}
+    assert reads_field(detail_page, "analysis-stage") == "transcribing the audio"
+    assert reads_field(detail_page, "analysis-detail") == (
+        "chunk 3 of 7, 42% of the audio recognised, 1:20:20 of 3:12:00"
+    )
+
+
+@then("I see which stages have completed")
+def _(store, recording, detail_page):
+    rows = reads_rows(detail_page, "stage")
+    assert [row["stage"] for row in rows] == list(STAGE_ORDER)
+    completed = _progress.completed_stages(store, recording)
+    assert completed == {"envelope", "probe", "waveform", "preview"}
+    assert {row["stage"] for row in rows if row["state"] == "complete"} == completed
+    assert reads_field(detail_page, "analysis-completed") == "4 of 12 stages complete"
+    assert all(row["stage-took"] for row in rows if row["state"] == "complete")
 
 
 @then("no Segments are shown yet")

@@ -17,10 +17,12 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ClassVar
 from urllib.parse import urlencode, urlparse
 
 import numpy as np
 
+from sermon.analysis.progress import ReportsTranscriptionProgress
 from sermon.pipeline import audio
 
 SAMPLE_RATE = audio.SR
@@ -248,6 +250,7 @@ def utterance_from(start, end, text, avg_logprob, no_speech_prob, compression_ra
 class RunsFasterWhisper:
     """The engine in this process. No network, no third party, ever."""
 
+    reports_progress: ClassVar[bool] = True
     model: str = MODEL
     compute_type: str = COMPUTE_TYPE
     threads: int = THREADS
@@ -275,7 +278,7 @@ class RunsFasterWhisper:
             cpu_threads=self.threads,
         )
 
-    def __call__(self, samples, language=EXPECTED_LANGUAGE):
+    def __call__(self, samples, language=EXPECTED_LANGUAGE, reports=None):
         try:
             segments, spoken = self._model().transcribe(
                 samples,
@@ -285,7 +288,11 @@ class RunsFasterWhisper:
                 condition_on_previous_text=False,
                 vad_filter=False,
             )
-            recognized = [self._utterance(segment) for segment in segments]
+            recognized = []
+            for segment in segments:
+                recognized.append(self._utterance(segment))
+                if reports is not None:
+                    reports(float(segment.end))
         except TranscriptionUnavailable:
             raise
         except (OSError, RuntimeError, ValueError) as broke:
@@ -391,6 +398,7 @@ class TranscribesAudio:
     detects_language: bool = True
     clock: object = time.monotonic
     work: object = None
+    reports: object = None
 
     def __call__(self, recording):
         source = self.store.resolves(recording)
@@ -405,8 +413,10 @@ class TranscribesAudio:
         started = self.clock()
         language, probability = self._language(decoded)
         utterances = []
-        for start, end in spans:
-            heard = self.engine(decoded.between(start, end), language=language)
+        for index, (start, end) in enumerate(spans, start=1):
+            heard = self._recognises(
+                recording, decoded, language, index, len(spans), start, end
+            )
             utterances.extend(_shifted(heard.utterances, start, utterances))
         elapsed = self.clock() - started
         music = marks_likely_music(utterances, decoded.silences, decoded.duration)
@@ -433,6 +443,29 @@ class TranscribesAudio:
             "transcribed_by": self.engine.where(),
             "transcribe_seconds": round(elapsed, 1),
         }
+
+    def _recognises(self, recording, decoded, language, chunk, chunks, start, end):
+        window = decoded.between(start, end)
+        if self.reports is None:
+            return self.engine(window, language=language)
+
+        def reached(at):
+            self.reports(
+                recording,
+                chunk=chunk,
+                chunks=chunks,
+                recognised_seconds=at,
+                duration_seconds=decoded.duration,
+            )
+
+        reached(start)
+        if getattr(self.engine, "reports_progress", False):
+            return self.engine(
+                window, language=language, reports=lambda at: reached(start + at)
+            )
+        heard = self.engine(window, language=language)
+        reached(end)
+        return heard
 
     def _language(self, decoded):
         if not self.detects_language or not hasattr(self.engine, "detects"):
@@ -514,4 +547,10 @@ def transcribes_with(store, endpoint=None, environment=None, **settings):
     """Local engine unless a private endpoint is named; never anything hosted."""
     named = endpoint or (os.environ if environment is None else environment).get(ASR_ENDPOINT)
     engine = PostsToTranscriber(endpoint=named) if named else RunsFasterWhisper(**settings)
-    return RetriesTranscription(transcribes=TranscribesAudio(store=store, engine=engine))
+    return RetriesTranscription(
+        transcribes=TranscribesAudio(
+            store=store,
+            engine=engine,
+            reports=ReportsTranscriptionProgress(store=store),
+        )
+    )
