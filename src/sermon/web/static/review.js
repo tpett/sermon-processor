@@ -2,8 +2,8 @@ const wave = document.querySelector('[data-role="waveform"]');
 const overviewCanvas = document.querySelector('[data-role="overview-canvas"]');
 const detailPane = document.querySelector('[data-role="detail"]');
 const detailCanvas = document.querySelector('[data-role="detail-canvas"]');
-const marker = document.querySelector('[data-role="playhead-marker"]');
-const readout = document.querySelector('[data-field="playhead"]');
+const marker = wave && wave.querySelector('[data-role="playhead-marker"]');
+const readout = document.querySelector('.waveform [data-field="playhead"]');
 
 const duration = wave ? Number(wave.dataset.durationSeconds) : 0;
 const fetched = new Map();
@@ -97,7 +97,7 @@ function formatsPrecise(seconds) {
   return `${hours}:${String(minutes).padStart(2, "0")}:${rest.toFixed(2).padStart(5, "0")}`;
 }
 
-const marks = [...document.querySelectorAll('[data-role="boundary-mark"]')];
+const marks = wave ? [...wave.querySelectorAll('[data-role="boundary-mark"]')] : [];
 
 function nearestMark(seconds) {
   return marks.reduce(

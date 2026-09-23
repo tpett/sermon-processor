@@ -231,7 +231,7 @@ def _(detail_page):
 
 @then("a playhead follows playback along the waveform")
 def _(detail_page):
-    assert 'data-role="playhead-marker"' in detail_page
+    assert 'data-role="playhead-marker"' in reads_waveform(detail_page)
 
 
 @then("playback starts 5 seconds before the punch-in")
@@ -639,6 +639,10 @@ def _(store, segment):
     assert "shorter than the 1.5 second tail" in (reads_field(page, "gap-note") or "")
 
 
+def reads_waveform(page):
+    return page[page.index('<section class="waveform">') :]
+
+
 def reads_marks(store, segment):
     page = renders_detail(store, f"?segment={segment.segment_id}")
     return page, {mark["boundary"]: mark for mark in reads_rows(page, "boundary-mark")}
@@ -676,10 +680,10 @@ def _(store, segment):
     page = client.get(
         f"/recordings/{segment.recording_id}?segment={segment.segment_id}"
     ).get_data(as_text=True)
-    playhead = re.search(r'data-role="playhead-marker"[^>]*', page).group(0)
+    playhead = re.search(r'data-role="playhead-marker"[^>]*', reads_waveform(page)).group(0)
     assert 'data-against-boundary="punch-in"' in playhead
     assert 'data-playhead-offset="+0.40 s"' in playhead
-    assert reads_field(page, "playhead") == formats_precise(played)
+    assert reads_field(reads_waveform(page), "playhead") == formats_precise(played)
 
 
 @then("the waveform editor is opened ready for the adjustment")
