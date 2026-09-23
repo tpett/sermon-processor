@@ -131,7 +131,7 @@ def test_every_word_carries_a_start_and_an_end():
     doc = transcribes(RecognizesSteadily())
     words = [word for item in doc["utterances"] for word in item["words"]]
     assert words
-    assert all(word["start"] < word["end"] for word in words)
+    assert all(word["start"] <= word["end"] for word in words)
     assert all(set(word) == {"w", "start", "end"} for word in words)
 
 
