@@ -174,7 +174,13 @@ def _(store):
 
 @given("the local FLAC has been removed to save disk")
 def _(store):
+    from sermon.jobs.downloads_recording import FetchesObject
+
     recording = ensure_recording(store)
+    local = store.resolves(recording)
+    store._objects = FetchesObject()
+    store._objects.stores(recording.object_key, local.read_bytes())
+    local.unlink()
     store.saves(replace(recording, local_path=None))
 
 
@@ -547,19 +553,28 @@ def _(store):
         store.saves(replace(item, state="skipped"))
 
 
+def downloads(store, path):
+    return creates_app(
+        store=store, fetches_object=getattr(store, "_objects", None)
+    ).test_client().get(f"/api/artifacts/{path}")
+
+
 @when("I download it")
 def _(store):
-    store._downloaded = True
+    recording = store.lists(Recording)[0]
+    store._downloaded = downloads(store, recording.local_path or recording.object_key)
 
 
 @when("I download the original FLAC")
 def _(store):
-    store._downloaded = True
+    recording = store.lists(Recording)[0]
+    store._downloaded = downloads(store, recording.local_path or recording.object_key)
 
 
 @when("I attempt to download it")
 def _(store):
-    store._download_error = True
+    artifact = store.lists(Artifact, kind="rendered_mp3")[0]
+    store._download_error = downloads(store, artifact.path)
 
 
 @when("I approve it without entering a label", target_fixture="approval")

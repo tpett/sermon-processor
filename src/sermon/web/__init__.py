@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
 from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.lists_recordings import ListsRecordings
+from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.reconciles_bucket import ReconcilesBucket
 from sermon.shows_recording import ShowsRecording, formats_precise, formats_seconds
@@ -18,7 +19,24 @@ from sermon.skips_segment import SkipsSegment
 from sermon.store import Artifact, Discovery, Job, Recording, Segment
 
 
-def creates_app(*, store, clock=now, lists_objects=None):
+INLINE_KINDS = frozenset({"preview"})
+ARTIFACT_UNAVAILABLE = "the artifact is unavailable"
+REPROCESS_OFFER = "re-process the Segment"
+
+
+def unavailable(path, entity):
+    """A 404 that names the trouble and offers the one cure: re-processing."""
+    body = {
+        "error": ARTIFACT_UNAVAILABLE,
+        "path": path,
+        "offered": REPROCESS_OFFER,
+        "segment_id": getattr(entity, "segment_id", None),
+        "recording_id": getattr(entity, "recording_id", None),
+    }
+    return body, 404
+
+
+def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
     web_dir = Path(__file__).parent
     app = Flask(
         __name__,
@@ -82,21 +100,42 @@ def creates_app(*, store, clock=now, lists_objects=None):
             "awaiting_disposition": sum(row.awaiting_disposition for row in rows),
         }
 
+    def finds_artifact(path):
+        matching = [item for item in store.lists(Artifact) if item.path == path]
+        if matching:
+            return matching[0]
+        recordings = [
+            item
+            for item in store.lists(Recording)
+            if path in {item.local_path, item.object_key}
+        ]
+        return recordings[0] if recordings else None
+
+    def restores_from_the_object_store(entity, path):
+        """Refetch a source whose local copy was cleaned up to save disk."""
+        if fetches_object is None or not isinstance(entity, Recording):
+            return None
+        destination = store.resolves(replace(entity, local_path=entity.object_key))
+        if fetches_object(entity.object_key, destination) is None:
+            return None
+        store.saves(replace(entity, local_path=entity.object_key))
+        return destination if destination.is_file() else None
+
     @app.get("/api/artifacts/<path:path>")
     def artifact_download(path):
-        matching = [item for item in store.lists(Artifact) if item.path == path]
-        entity = matching[0] if matching else None
+        entity = finds_artifact(path)
         if entity is None:
-            recordings = [item for item in store.lists(Recording) if item.local_path == path]
-            entity = recordings[0] if recordings else None
-        if entity is None:
-            return ("", 404)
+            return unavailable(path, None)
         resolved = store.resolves(entity)
         if resolved is None or not resolved.is_file():
-            return ("", 404)
+            resolved = restores_from_the_object_store(entity, path)
+        if resolved is None or not resolved.is_file():
+            return unavailable(path, entity)
+        inline = isinstance(entity, Artifact) and entity.kind in INLINE_KINDS
         return send_file(
             resolved,
-            as_attachment=True,
+            mimetype=PREVIEW_MEDIA_TYPE if inline else None,
+            as_attachment=not inline,
             download_name=Path(path).name,
             conditional=True,
         )
