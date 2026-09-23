@@ -43,6 +43,7 @@ from sermon.store import (
     opens_store,
 )
 from sermon.web import creates_app
+from waitress import serve
 
 ENVIRONMENT_FILE = ".env"
 REVIEWER = "reviewer"
@@ -361,8 +362,22 @@ def parses_render_command(arguments, prints):
     return (asked.recording, asked.punch_in, asked.punch_out, asked.label, asked.published_on)
 
 
+SERVER_THREADS = 4
+
+
 def starts(app, host, port):
-    app.run(host=host, port=port)
+    """Serve the app on waitress, in development as well as in production.
+
+    One process with a thread pool, which is the model the app is written for:
+    the playhead a reviewer scrubs to lives in a dict inside creates_app, and
+    'set the boundary from the playhead' reads it back on a later request. Under
+    a multi-process server that read lands in a different worker's empty dict and
+    silently sets the boundary to zero. Threads keep it one dict.
+
+    Running the same server in both places is the point -- a production-only
+    server is a production-only class of bug.
+    """
+    serve(app, host=host, port=port, threads=SERVER_THREADS, ident="sermon")
 
 
 IDLE_POLL_SECONDS = 5.0
