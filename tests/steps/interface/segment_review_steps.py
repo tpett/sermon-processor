@@ -9,7 +9,7 @@ from sermon.skips_segment import SkipsSegment
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.store import Block, Job, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps._markup import reads_rows
+from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
 
@@ -237,3 +237,19 @@ def _(store, recording):
     segment = numbered_segment(store, recording, 1)
     assert segment.state == "skipped"
 
+
+
+@then("I am told the punch-in needs checking and why")
+def _(store, segment):
+    page = (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/recordings/{store.loads(Segment, segment.segment_id).recording_id}"
+             f"?segment={segment.segment_id}")
+        .get_data(as_text=True)
+    )
+    said = reads_field(page, "needs-checking-punch-in")
+    assert said, "the page said nothing about the punch-in needing a look"
+    assert "punch-in" in said, said
+    grade = store.lists(Proposal, segment_id=segment.segment_id)[0].punch_in_grade
+    assert grade in said, said

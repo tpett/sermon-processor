@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1115 step definitions read from `tests/steps`
+- 1116 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 456 non-deferred scenarios rest on at least one condemned step
 - 0 of 597 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 43 Gherkin steps matched more than one definition
-- 521 Gherkin steps matched no definition
+- 520 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -53,7 +53,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 8 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 24 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 47 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 11 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -349,7 +349,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:104 then previewing the punch-in and previewing the punch-out are the most prominent actions`
 - `interface/segment_review.feature:105 then approving is available without any further step`
 - `interface/segment_review.feature:106 then boundary editing is available but not required`
-- `interface/segment_review.feature:112 then I am told the punch-in needs checking and why`
 - `interface/segment_review.feature:113 then the waveform editor is opened ready for the adjustment`
 - `interface/segment_review.feature:128 when I press Preview on a Block`
 - `interface/segment_review.feature:129 then playback starts at that Block's cue excerpt`

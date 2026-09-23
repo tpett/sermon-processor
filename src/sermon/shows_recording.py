@@ -76,6 +76,32 @@ class BlockView:
 
 
 @dataclass(frozen=True)
+class CheckView:
+    point: str
+    grade: str
+
+
+@dataclass(frozen=True)
+class EvidenceView:
+    timecode: float
+    at: str
+    finding: str
+    implies: str
+
+
+@dataclass(frozen=True)
+class ProposalView:
+    classification_confidence: str
+    boundary_confidence: str
+    punch_in_grade: str
+    punch_out_grade: str
+    agreement_gap_seconds: float | None
+    evidence: tuple
+    missing_evidence: tuple
+    needs_checking: tuple
+
+
+@dataclass(frozen=True)
 class SegmentView:
     segment_id: int
     classification: str
@@ -121,6 +147,7 @@ class RecordingView:
     mp3_ready: bool
     transcript: tuple
     selected_transcript: tuple
+    proposal: ProposalView | None = None
 
 
 @dataclass(frozen=True)
@@ -179,6 +206,9 @@ class ShowsRecording:
                 (item["start"], item["end"], item.get("text", ""), item.get("speaker"))
                 for item in doc.get("utterances", [])
             )
+        proposal = None
+        if selected is not None:
+            proposal = self._proposal(selected)
         return RecordingView(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -217,6 +247,43 @@ class ShowsRecording:
             mp3_ready=mp3_ready,
             transcript=transcript,
             selected_transcript=self._scoped(transcript, selected),
+            proposal=proposal,
+        )
+
+    def _proposal(self, selected):
+        proposals = [
+            item
+            for item in self.store.lists(Proposal, segment_id=selected.segment_id)
+            if item.superseded_by is None
+        ]
+        if not proposals:
+            return None
+        proposal = proposals[-1]
+        needs_checking = tuple(
+            CheckView(point=name, grade=grade)
+            for name, grade in (
+                ("punch-in", proposal.punch_in_grade),
+                ("punch-out", proposal.punch_out_grade),
+            )
+            if grade != "easy"
+        )
+        return ProposalView(
+            classification_confidence=proposal.classification_confidence,
+            boundary_confidence=proposal.boundary_confidence,
+            punch_in_grade=proposal.punch_in_grade,
+            punch_out_grade=proposal.punch_out_grade,
+            agreement_gap_seconds=proposal.agreement_gap_seconds,
+            evidence=tuple(
+                EvidenceView(
+                    timecode=item.timecode,
+                    at=formats_precise(item.timecode),
+                    finding=item.finding,
+                    implies=item.implies,
+                )
+                for item in sorted(proposal.evidence, key=lambda item: item.timecode)
+            ),
+            missing_evidence=tuple(proposal.missing_evidence),
+            needs_checking=needs_checking,
         )
 
     def _scoped(self, transcript, selected):

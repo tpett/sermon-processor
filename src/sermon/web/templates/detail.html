@@ -91,6 +91,42 @@
   {% endif %}
 </section>
 
+<section class="proposal">
+  <h2>Why this cut</h2>
+  {% if view.proposal is none %}
+  <p data-field="no-proposal">No proposal has been recorded for this Segment.</p>
+  {% else %}
+  {% for check in view.proposal.needs_checking %}
+  <p class="warn" data-point="{{ check.point }}" data-field="needs-checking-{{ check.point }}">the {{ check.point }} is graded {{ check.grade }} and needs checking before you approve</p>
+  {% endfor %}
+  <dl>
+    <dt>Is it the sermon</dt><dd data-field="classification-confidence">{{ view.proposal.classification_confidence }} confidence</dd>
+    <dt>Are the boundaries right</dt><dd data-field="boundary-confidence">{{ view.proposal.boundary_confidence }} confidence</dd>
+    <dt>Punch-in</dt><dd data-field="punch-in-grade">{{ view.proposal.punch_in_grade }} to place</dd>
+    <dt>Punch-out</dt><dd data-field="punch-out-grade">{{ view.proposal.punch_out_grade }} to place</dd>
+    {% if view.proposal.agreement_gap_seconds is not none %}
+    <dt>Methods disagree by</dt><dd data-field="agreement-gap">{{ view.proposal.agreement_gap_seconds|seconds }}</dd>
+    {% endif %}
+  </dl>
+  {% if view.proposal.evidence %}
+  <ul class="evidence">
+    {% for item in view.proposal.evidence %}
+    <li data-row="evidence" data-implies="{{ item.implies }}" data-timecode="{{ item.timecode }}">
+      <span data-field="evidence-at">{{ item.at }}</span>
+      <span data-field="evidence-finding">{{ item.finding }}</span>
+      <span data-field="evidence-implies">{{ item.implies }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p data-field="no-evidence">No evidence was recorded for this proposal.</p>
+  {% endif %}
+  {% for gap in view.proposal.missing_evidence %}
+  <p data-row="missing-evidence" data-field="missing-evidence">nothing was found to show {{ gap }}</p>
+  {% endfor %}
+  {% endif %}
+</section>
+
 <section class="waveform">
   <h2>Waveform</h2>
   {% if view.peaks %}
