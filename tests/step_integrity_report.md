@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1154 step definitions read from `tests/steps`
+- 1160 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 456 non-deferred scenarios rest on at least one condemned step
 - 0 of 597 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 44 Gherkin steps matched more than one definition
-- 479 Gherkin steps matched no definition
+- 473 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -50,10 +50,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
-| `tests/steps/interface/punch_point_adjustment_steps.py` | 35 | 0 | sound |
+| `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 21 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 24 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 27 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 40 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -63,7 +63,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/operations/job_queue_steps.py` | 13 | 0 | sound |
 | `tests/steps/processing/artifact_downloads_steps.py` | 15 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 131 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 130 | 0 | sound |
 
 ## Condemned outside the six named files
 
@@ -283,9 +283,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:143 then I can drop a boundary into one with a single click`
 - `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
 - `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
-- `interface/punch_point_adjustment.feature:158 given the opening contains a throat-clear before the first real words`
-- `interface/punch_point_adjustment.feature:160 then the adjustment is accepted without warning`
-- `interface/punch_point_adjustment.feature:161 then the machine proposal remains available to revert to`
 - `interface/punch_point_adjustment.feature:169 when I zoom in around a boundary`
 - `interface/punch_point_adjustment.feature:170 then the transcript words are shown aligned to their position on the waveform`
 - `interface/punch_point_adjustment.feature:171 then I can see exactly which word each boundary falls before or after`
@@ -356,9 +353,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:251 then the waveform, zooming, word alignment and nudge controls are all available`
 - `interface/segment_review.feature:256 when a Segment is complete`
 - `interface/segment_review.feature:257 then I can download the MP3`
-- `interface/segment_review.feature:42 given a Recording returned to "awaiting_review" by a revisit`
-- `interface/segment_review.feature:43 when I dispose of that Segment`
-- `interface/segment_review.feature:44 then the Recording returns to "reviewed"`
 - `interface/segment_review.feature:74 given Segment 1 was skipped on "2026-08-16"`
 - `interface/segment_review.feature:75 when I open the Recording on "2026-11-04" and approve Segment 1`
 - `interface/segment_review.feature:76 then it is processed using its stored boundaries`

@@ -336,3 +336,33 @@ def _(store, segment):
 def _(detail_page):
     rows = reads_rows(detail_page, "alternative")
     assert [row["alternative-because"] for row in rows] == ["silence"]
+
+
+@given("the opening contains a throat-clear before the first real words", target_fixture="segment")
+def _(store, segment):
+    return store.saves(
+        replace(segment, punch_in_seconds=segment.punch_in_seconds - 2.0, boundary_source="model")
+    )
+
+
+@when("I move the punch-in past it", target_fixture="detail_page")
+def _(store, segment):
+    return _web.posts(
+        store,
+        _web.boundary_action(segment, "punch-in"),
+        do="nudge",
+        direction="later",
+        amount="10 s",
+    )
+
+
+@then("the adjustment is accepted without warning")
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == NOTICES["adjusted"]
+    assert reads_field(detail_page, "length-warning") is None
+
+
+@then("the machine proposal remains available to revert to")
+def _(detail_page):
+    assert reads_field(detail_page, "proposed-boundaries")
+    assert reads_field(detail_page, "revert-control") == "Revert to the machine proposal"

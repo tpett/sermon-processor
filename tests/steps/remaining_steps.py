@@ -515,13 +515,6 @@ def _(store, segment):
     return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds)
 
 
-@when("I move the punch-in past it", target_fixture="segment")
-def _(store, segment):
-    from sermon.places_punch_in import PlacesPunchIn
-
-    return PlacesPunchIn(store=store)(segment, punch_in_seconds=segment.punch_in_seconds + 1)
-
-
 @then("it survives me reloading the page")
 def _(store, segment):
     assert store.loads(Segment, segment.segment_id)
