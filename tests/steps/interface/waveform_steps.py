@@ -5,6 +5,7 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.draws_waveform import JudgesZoomPrecision
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.lists_recordings import formats_precise
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Artifact, Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
@@ -690,3 +691,53 @@ def _(store, segment, shown):
 def _(store, segment):
     page = renders_detail(store, f"?segment={segment.segment_id}")
     assert "shorter than the 1.5 second tail" in (reads_field(page, "gap-note") or "")
+
+
+def reads_marks(store, segment):
+    page = renders_detail(store, f"?segment={segment.segment_id}")
+    return page, {mark["boundary"]: mark for mark in reads_rows(page, "boundary-mark")}
+
+
+@then("the boundary is marked at the punch-in timecode")
+def _(store, segment):
+    _, marks = reads_marks(store, segment)
+    assert "punch-in" in marks
+    assert float(marks["punch-in"]["at-seconds"]) == round(segment.punch_in_seconds, 2)
+    assert marks["punch-in"]["at"] == formats_precise(segment.punch_in_seconds)
+
+
+@then("the mark says which boundary it is")
+def _(store, segment):
+    _, marks = reads_marks(store, segment)
+    assert marks["punch-in"]["mark-boundary"] == "punch-in"
+    assert marks["punch-out"]["mark-boundary"] == "punch-out"
+
+
+@then("what would be cut away is distinguished from what would be kept")
+def _(store, segment):
+    page, marks = reads_marks(store, segment)
+    assert (marks["punch-in"]["before"], marks["punch-in"]["after"]) == ("cut away", "kept")
+    assert (marks["punch-out"]["before"], marks["punch-out"]["after"]) == ("kept", "cut away")
+    assert 'data-role="highlighted-cut" data-side="kept"' in page
+    assert 'data-role="de-emphasised" data-side="cut away"' in page
+
+
+@then("the playhead is shown against that mark as the audio plays")
+def _(store, segment):
+    played = segment.punch_in_seconds + 0.4
+    client = creates_app(store=store).test_client()
+    client.post(f"/api/recordings/{segment.recording_id}/seek", json={"seconds": played})
+    page = client.get(
+        f"/recordings/{segment.recording_id}?segment={segment.segment_id}"
+    ).get_data(as_text=True)
+    playhead = re.search(r'data-role="playhead-marker"[^>]*', page).group(0)
+    assert 'data-against-boundary="punch-in"' in playhead
+    assert 'data-playhead-offset="+0.40 s"' in playhead
+    assert reads_field(page, "playhead") == formats_precise(played)
+
+
+@then("the waveform editor is opened ready for the adjustment")
+def _(store, segment):
+    window = reads_zoom(renders_detail(store, f"?segment={segment.segment_id}"))
+    assert window["step"] == "three seconds"
+    assert window["center"] == round(segment.punch_in_seconds, 2)

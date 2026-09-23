@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1147 step definitions read from `tests/steps`
+- 1153 step definitions read from `tests/steps`
 - 0 condemned
-- 0 of 456 non-deferred scenarios rest on at least one condemned step
-- 0 of 597 expanded scenario tests likewise
+- 0 of 457 non-deferred scenarios rest on at least one condemned step
+- 0 of 598 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 47 Gherkin steps matched more than one definition
-- 485 Gherkin steps matched no definition
+- 484 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -53,8 +53,8 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 8 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 24 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 79 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 25 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 84 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 11 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
@@ -349,8 +349,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:104 then previewing the punch-in and previewing the punch-out are the most prominent actions`
 - `interface/segment_review.feature:105 then approving is available without any further step`
 - `interface/segment_review.feature:106 then boundary editing is available but not required`
-- `interface/segment_review.feature:112 then I am told the punch-in needs checking and why`
-- `interface/segment_review.feature:113 then the waveform editor is opened ready for the adjustment`
 - `interface/segment_review.feature:128 when I press Preview on a Block`
 - `interface/segment_review.feature:129 then playback starts at that Block's cue excerpt`
 - `interface/segment_review.feature:130 then it stops at the end of the excerpt`
@@ -407,18 +405,19 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:78 then the resulting MP3 is identical to what it would have been in August`
 - `interface/segment_review.feature:84 then the queued processing job is cancelled`
 - `interface/waveform_review.feature:100 when I choose to preview the punch-in`
-- `interface/waveform_review.feature:108 when I choose to preview the cut`
-- `interface/waveform_review.feature:117 then only the region being played is fetched`
-- `interface/waveform_review.feature:118 then playback begins within 2 seconds of pressing play`
-- `interface/waveform_review.feature:232 given the seekable preview has not been rendered`
-- `interface/waveform_review.feature:233 when I try to audition the punch-in`
-- `interface/waveform_review.feature:234 then I am told the preview is not ready rather than left with a dead control`
-- `interface/waveform_review.feature:235 then the waveform and the transcript remain usable`
-- `interface/waveform_review.feature:236 then the boundaries can still be adjusted and approved`
-- `interface/waveform_review.feature:243 given the configured model endpoint does not answer`
-- `interface/waveform_review.feature:244 then reviewing, adjusting and approving continue to work`
-- `interface/waveform_review.feature:245 then only the actions that need a model are shown as unavailable`
-- `interface/waveform_review.feature:246 then the reason names the endpoint rather than blaming the Recording`
+- `interface/waveform_review.feature:111 when I choose to preview the punch-in`
+- `interface/waveform_review.feature:120 when I choose to preview the cut`
+- `interface/waveform_review.feature:129 then only the region being played is fetched`
+- `interface/waveform_review.feature:130 then playback begins within 2 seconds of pressing play`
+- `interface/waveform_review.feature:244 given the seekable preview has not been rendered`
+- `interface/waveform_review.feature:245 when I try to audition the punch-in`
+- `interface/waveform_review.feature:246 then I am told the preview is not ready rather than left with a dead control`
+- `interface/waveform_review.feature:247 then the waveform and the transcript remain usable`
+- `interface/waveform_review.feature:248 then the boundaries can still be adjusted and approved`
+- `interface/waveform_review.feature:255 given the configured model endpoint does not answer`
+- `interface/waveform_review.feature:256 then reviewing, adjusting and approving continue to work`
+- `interface/waveform_review.feature:257 then only the actions that need a model are shown as unavailable`
+- `interface/waveform_review.feature:258 then the reason names the endpoint rather than blaming the Recording`
 - `notifications/approval_notifications.feature:171 then no further notifications are sent to them`
 - `notifications/approval_notifications.feature:172 then recordings still appear in the recordings list`
 - `notifications/approval_notifications.feature:37 given no delivery channel is configured`

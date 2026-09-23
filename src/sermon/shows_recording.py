@@ -5,7 +5,7 @@ from pathlib import PurePosixPath
 
 from sermon.analysis.io import reads_json
 from sermon.draws_waveform import DrawsWaveform, WaveformView
-from sermon.lists_recordings import formats_clock, formats_recorded_at
+from sermon.lists_recordings import formats_clock, formats_precise, formats_recorded_at
 from sermon.store import Block, Proposal, Recording, Segment, Store
 
 SIZE_UNITS = ("bytes", "KB", "MB", "GB", "TB")
@@ -56,12 +56,6 @@ def formats_source_format(recording):
     return f"{' '.join(measured)}, {shape}"
 
 
-def formats_precise(seconds):
-    hours, rest = divmod(float(seconds), 3600)
-    minutes, secs = divmod(rest, 60)
-    return f"{int(hours)}:{int(minutes):02d}:{secs:05.2f}"
-
-
 def formats_seconds(seconds):
     return f"{float(seconds):.2f} s"
 
@@ -74,6 +68,32 @@ class BlockView:
     start_seconds: float
     end_seconds: float
     summary: str | None
+
+
+@dataclass(frozen=True)
+class CheckView:
+    point: str
+    grade: str
+
+
+@dataclass(frozen=True)
+class EvidenceView:
+    timecode: float
+    at: str
+    finding: str
+    implies: str
+
+
+@dataclass(frozen=True)
+class ProposalView:
+    classification_confidence: str
+    boundary_confidence: str
+    punch_in_grade: str
+    punch_out_grade: str
+    agreement_gap_seconds: float | None
+    evidence: tuple
+    missing_evidence: tuple
+    needs_checking: tuple
 
 
 @dataclass(frozen=True)
@@ -121,6 +141,7 @@ class RecordingView:
     mp3_ready: bool
     transcript: tuple
     selected_transcript: tuple
+    proposal: ProposalView | None = None
 
 
 @dataclass(frozen=True)
@@ -135,6 +156,7 @@ class ShowsRecording:
         playhead_seconds=0.0,
         zoom=None,
         centre_seconds=None,
+        auditioning=None,
     ):
         recording = self.store.loads(Recording, recording_id)
         segments = self.store.lists(Segment, recording_id=recording_id)
@@ -173,6 +195,7 @@ class ShowsRecording:
                 for item in doc.get("utterances", [])
             )
         gap = self._gap(selected, segments, transcript)
+        proposal = None if selected is None else self._proposal(selected)
         return RecordingView(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -197,9 +220,16 @@ class ShowsRecording:
                 recording,
                 selected=selected,
                 transcript=transcript,
-                evidence=self._evidence(selected),
+                evidence=() if proposal is None else proposal.evidence,
                 zoom=zoom,
                 centre_seconds=centre_seconds,
+                playhead_seconds=playhead_seconds,
+                auditioning=auditioning,
+                needs_placing=(
+                    None
+                    if proposal is None or not proposal.needs_checking
+                    else proposal.needs_checking[0].point
+                ),
             ),
             blocks=blocks,
             selected_segment_id=None if selected is None else selected.segment_id,
@@ -217,6 +247,43 @@ class ShowsRecording:
             mp3_ready=mp3_ready,
             transcript=transcript,
             selected_transcript=self._scoped(transcript, selected),
+            proposal=proposal,
+        )
+
+    def _proposal(self, selected):
+        proposals = [
+            item
+            for item in self.store.lists(Proposal, segment_id=selected.segment_id)
+            if item.superseded_by is None
+        ]
+        if not proposals:
+            return None
+        proposal = proposals[-1]
+        needs_checking = tuple(
+            CheckView(point=name, grade=grade)
+            for name, grade in (
+                ("punch-in", proposal.punch_in_grade),
+                ("punch-out", proposal.punch_out_grade),
+            )
+            if grade != "easy"
+        )
+        return ProposalView(
+            classification_confidence=proposal.classification_confidence,
+            boundary_confidence=proposal.boundary_confidence,
+            punch_in_grade=proposal.punch_in_grade,
+            punch_out_grade=proposal.punch_out_grade,
+            agreement_gap_seconds=proposal.agreement_gap_seconds,
+            evidence=tuple(
+                EvidenceView(
+                    timecode=item.timecode,
+                    at=formats_precise(item.timecode),
+                    finding=item.finding,
+                    implies=item.implies,
+                )
+                for item in sorted(proposal.evidence, key=lambda item: item.timecode)
+            ),
+            missing_evidence=tuple(proposal.missing_evidence),
+            needs_checking=needs_checking,
         )
 
     def _gap(self, selected, segments, transcript):
@@ -231,12 +298,6 @@ class ShowsRecording:
             start for start, _, _, _ in transcript if start > selected.punch_out_seconds
         ]
         return min(follows) - selected.punch_out_seconds if follows else None
-
-    def _evidence(self, selected):
-        if selected is None:
-            return ()
-        proposals = self.store.lists(Proposal, segment_id=selected.segment_id)
-        return proposals[0].evidence if proposals else ()
 
     def _scoped(self, transcript, selected):
         if selected is None:

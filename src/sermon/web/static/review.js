@@ -97,10 +97,29 @@ function formatsPrecise(seconds) {
   return `${hours}:${String(minutes).padStart(2, "0")}:${rest.toFixed(2).padStart(5, "0")}`;
 }
 
+const marks = [...document.querySelectorAll('[data-role="boundary-mark"]')];
+
+function nearestMark(seconds) {
+  return marks.reduce(
+    (held, one) =>
+      !held || Math.abs(one.dataset.atSeconds - seconds) < Math.abs(held.dataset.atSeconds - seconds)
+        ? one
+        : held,
+    null
+  );
+}
+
 function movesPlayhead(seconds) {
   if (marker && duration > 0) {
     marker.style.left = `${Math.min(Math.max((100 * seconds) / duration, 0), 100)}%`;
     marker.dataset.playheadSeconds = String(seconds);
+    const mark = nearestMark(seconds);
+    if (mark) {
+      const offset = seconds - Number(mark.dataset.atSeconds);
+      marker.dataset.againstBoundary = mark.dataset.boundary;
+      marker.dataset.playheadOffsetSeconds = offset.toFixed(2);
+      marker.dataset.playheadOffset = `${offset >= 0 ? "+" : ""}${offset.toFixed(2)} s`;
+    }
   }
   if (readout) readout.textContent = formatsPrecise(seconds);
 }
@@ -168,6 +187,21 @@ document.querySelectorAll('[data-role="evidence-seek"]').forEach((link) => {
 
 document.addEventListener("audio:timeupdate", (event) => {
   movesPlayhead(Number(event.detail.seconds));
+});
+
+document.addEventListener("preview:started", (event) => {
+  const { boundary, seconds } = event.detail;
+  if (wave) wave.dataset.auditioning = boundary;
+  marks.forEach((mark) => {
+    if (mark.dataset.boundary === boundary) mark.dataset.auditioning = "true";
+    else delete mark.dataset.auditioning;
+  });
+  if (Number.isFinite(Number(seconds))) recentres(Number(seconds));
+});
+
+document.addEventListener("preview:ended", () => {
+  if (wave) delete wave.dataset.auditioning;
+  marks.forEach((mark) => delete mark.dataset.auditioning);
 });
 
 draws();

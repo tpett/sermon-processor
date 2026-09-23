@@ -326,3 +326,33 @@ canvas {
   z-index: 3;
   background: #fff;
 }
+
+.waveform .boundary-marks {
+  position: relative;
+  height: 1.1rem;
+  font-size: 0.65rem;
+}
+
+.waveform .boundary-marks li {
+  position: absolute;
+  top: 0;
+  max-width: 12ch;
+  border: 0;
+  border-left: 2px solid var(--flag);
+  padding: 0 0 0 0.15rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--flag);
+}
+
+.waveform .boundary-marks li[data-auditioning="true"] {
+  max-width: none;
+  z-index: 3;
+  background: #fde8c8;
+  font-weight: 700;
+}
+
+.waveform .wave[data-auditioning] .playhead {
+  border-left-width: 2px;
+}

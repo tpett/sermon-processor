@@ -61,6 +61,7 @@ def creates_app(*, store, clock=now, lists_objects=None):
             playhead_seconds=playheads.get(recording_id, 0.0),
             zoom=request.args.get("zoom"),
             centre_seconds=request.args.get("centre", type=float),
+            auditioning=request.args.get("preview"),
         )
         return render_template("detail.html", view=view, payload=json.dumps(asdict(view)))
 

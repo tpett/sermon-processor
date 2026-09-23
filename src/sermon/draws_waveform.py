@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from sermon.analysis.io import reads_json
-from sermon.lists_recordings import formats_clock
+from sermon.lists_recordings import formats_clock, formats_precise
 from sermon.store import Block, Segment
 
 CANVAS_PIXELS = 1100
@@ -19,6 +19,7 @@ ZOOM_STEPS = (
     ("three seconds", 3.0, "place the cut"),
 )
 DEFAULT_ZOOM = "thirty seconds"
+PLACING_ZOOM = "three seconds"
 WORDS_IN_VIEW = {
     "whole recording": "more than can be read",
     "a few minutes": "more than can be read",
@@ -47,6 +48,10 @@ NON_SPEECH_TYPES = ("music", "rehearsal")
 SPEAKER_COLOURS = ("#2f6f4f", "#8a4f9e", "#b06a1f", "#3a6ea5", "#8f3b52")
 NON_SPEECH_SPEAKER_COLOUR = "#c3c7ca"
 WORDS_DRAWN = 120
+AUDITION_LEAD_SECONDS = 5.0
+KEPT = "kept"
+CUT_AWAY = "cut away"
+BOUNDARIES = ("punch-in", "punch-out")
 
 
 def clamps(value):
@@ -170,6 +175,29 @@ class ZoomStep:
 
 
 @dataclass(frozen=True)
+class BoundaryMark:
+    boundary: str
+    at: str
+    at_seconds: float
+    left: float
+    before: str
+    after: str
+    window_from: float
+    window_to: float
+    window_left: float
+    window_width: float
+
+
+@dataclass(frozen=True)
+class PlayheadView:
+    seconds: float
+    left: float
+    against: str | None
+    offset_seconds: float | None
+    offset: str | None
+
+
+@dataclass(frozen=True)
 class CutView:
     left: float
     width: float
@@ -200,6 +228,9 @@ class WaveformView:
     segment_spans: tuple
     ruler_marks: tuple
     speaker_spans: tuple
+    auditioning: str | None
+    boundary_marks: tuple
+    playhead: PlayheadView
     evidence_markers: tuple
     words: tuple
     zoom_steps: tuple
@@ -232,10 +263,13 @@ class DrawsWaveform:
         evidence=(),
         zoom=None,
         centre_seconds=None,
+        playhead_seconds=0.0,
+        auditioning=None,
+        needs_placing=None,
     ):
         duration = recording.duration_seconds or 0.0
         resolutions = ReadsWaveformPeaks(store=self.store)(recording)
-        window = self._window(duration, selected, zoom, centre_seconds)
+        window = self._window(duration, selected, zoom, centre_seconds, needs_placing)
         return WaveformView(
             available=bool(resolutions) and duration > 0,
             unavailable_reason=None if resolutions else "no peak data has been generated",
@@ -247,6 +281,9 @@ class DrawsWaveform:
             segment_spans=self._spans(recording, duration, selected),
             ruler_marks=self._ruler(recording, duration),
             speaker_spans=self._speakers(recording, duration),
+            auditioning=auditioning if auditioning in BOUNDARIES else None,
+            boundary_marks=self._marks(duration, selected),
+            playhead=self._playhead(duration, selected, playhead_seconds),
             evidence_markers=self._evidence(evidence, duration),
             words=self._words(transcript, window),
             zoom_steps=self._zooms(duration, window),
@@ -354,6 +391,56 @@ class DrawsWaveform:
             )
         return tuple(spans)
 
+    def _marks(self, duration, selected):
+        if selected is None or duration <= 0:
+            return ()
+        marks = []
+        for boundary, at, before, after in (
+            (BOUNDARIES[0], selected.punch_in_seconds, CUT_AWAY, KEPT),
+            (BOUNDARIES[1], selected.punch_out_seconds, KEPT, CUT_AWAY),
+        ):
+            window_from = max(0.0, at - AUDITION_LEAD_SECONDS)
+            window_to = min(duration, at + AUDITION_LEAD_SECONDS)
+            left, _ = spans_percent(at, at, duration)
+            window_left, window_width = spans_percent(window_from, window_to, duration)
+            marks.append(
+                BoundaryMark(
+                    boundary=boundary,
+                    at=formats_precise(at),
+                    at_seconds=round(at, 2),
+                    left=left,
+                    before=before,
+                    after=after,
+                    window_from=round(window_from, 2),
+                    window_to=round(window_to, 2),
+                    window_left=window_left,
+                    window_width=window_width,
+                )
+            )
+        return tuple(marks)
+
+    def _playhead(self, duration, selected, playhead_seconds):
+        left, _ = spans_percent(playhead_seconds, playhead_seconds, duration)
+        if selected is None:
+            return PlayheadView(
+                seconds=playhead_seconds, left=left, against=None, offset_seconds=None, offset=None
+            )
+        boundary, at = min(
+            (
+                (BOUNDARIES[0], selected.punch_in_seconds),
+                (BOUNDARIES[1], selected.punch_out_seconds),
+            ),
+            key=lambda one: abs(one[1] - playhead_seconds),
+        )
+        offset = round(playhead_seconds - at, 2)
+        return PlayheadView(
+            seconds=playhead_seconds,
+            left=left,
+            against=boundary,
+            offset_seconds=offset,
+            offset=f"{offset:+.2f} s",
+        )
+
     def _evidence(self, evidence, duration):
         markers = []
         for one in evidence:
@@ -393,13 +480,20 @@ class DrawsWaveform:
                 )
         return tuple(drawn[:WORDS_DRAWN])
 
-    def _window(self, duration, selected, zoom, centre_seconds):
+    def _window(self, duration, selected, zoom, centre_seconds, needs_placing=None):
         if duration <= 0:
             return None
         windows = {step: seconds for step, seconds, _ in ZOOM_STEPS}
-        named = zoom if zoom in windows else DEFAULT_ZOOM
+        placing = needs_placing in BOUNDARIES and selected is not None
+        named = zoom if zoom in windows else (PLACING_ZOOM if placing else DEFAULT_ZOOM)
         seconds = min(windows[named] or duration, duration)
         centre = centre_seconds
+        if centre is None and placing:
+            centre = (
+                selected.punch_in_seconds
+                if needs_placing == BOUNDARIES[0]
+                else selected.punch_out_seconds
+            )
         if centre is None:
             centre = selected.punch_in_seconds if selected is not None else duration / 2
         start = max(0.0, min(centre - seconds / 2, duration - seconds))

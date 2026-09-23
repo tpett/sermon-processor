@@ -19,6 +19,12 @@ def formats_clock(seconds):
     return f"{hours}:{minutes:02d}:{secs:02d}"
 
 
+def formats_precise(seconds):
+    hours, rest = divmod(float(seconds), 3600)
+    minutes, secs = divmod(rest, 60)
+    return f"{int(hours)}:{int(minutes):02d}:{secs:05.2f}"
+
+
 def formats_recorded_at(moment):
     return moment.strftime("%Y-%m-%d %I:%M %p")
 

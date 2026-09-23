@@ -91,6 +91,42 @@
   {% endif %}
 </section>
 
+<section class="proposal">
+  <h2>Why this cut</h2>
+  {% if view.proposal is none %}
+  <p data-field="no-proposal">No proposal has been recorded for this Segment.</p>
+  {% else %}
+  {% for check in view.proposal.needs_checking %}
+  <p class="warn" data-point="{{ check.point }}" data-field="needs-checking-{{ check.point }}">the {{ check.point }} is graded {{ check.grade }} and needs checking before you approve</p>
+  {% endfor %}
+  <dl>
+    <dt>Is it the sermon</dt><dd data-field="classification-confidence">{{ view.proposal.classification_confidence }} confidence</dd>
+    <dt>Are the boundaries right</dt><dd data-field="boundary-confidence">{{ view.proposal.boundary_confidence }} confidence</dd>
+    <dt>Punch-in</dt><dd data-field="punch-in-grade">{{ view.proposal.punch_in_grade }} to place</dd>
+    <dt>Punch-out</dt><dd data-field="punch-out-grade">{{ view.proposal.punch_out_grade }} to place</dd>
+    {% if view.proposal.agreement_gap_seconds is not none %}
+    <dt>Methods disagree by</dt><dd data-field="agreement-gap">{{ view.proposal.agreement_gap_seconds|seconds }}</dd>
+    {% endif %}
+  </dl>
+  {% if view.proposal.evidence %}
+  <ul class="evidence">
+    {% for item in view.proposal.evidence %}
+    <li data-row="evidence" data-implies="{{ item.implies }}" data-timecode="{{ item.timecode }}">
+      <span data-field="evidence-at">{{ item.at }}</span>
+      <span data-field="evidence-finding">{{ item.finding }}</span>
+      <span data-field="evidence-implies">{{ item.implies }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p data-field="no-evidence">No evidence was recorded for this proposal.</p>
+  {% endif %}
+  {% for gap in view.proposal.missing_evidence %}
+  <p data-row="missing-evidence" data-field="missing-evidence">nothing was found to show {{ gap }}</p>
+  {% endfor %}
+  {% endif %}
+</section>
+
 <section class="waveform">
   <h2>Waveform</h2>
   {% set wave = view.waveform %}
@@ -109,15 +145,20 @@
     <div class="shape">
       <canvas data-role="overview-canvas" width="1100" height="90"></canvas>
       {% if wave.cut %}
-      <div class="dim" data-role="de-emphasised" style="left:0;width:{{ wave.cut.before_width }}%"></div>
-      <div class="dim" data-role="de-emphasised" style="left:{{ wave.cut.after_left }}%;width:{{ wave.cut.after_width }}%"></div>
-      <div class="cut" data-role="highlighted-cut" style="left:{{ wave.cut.left }}%;width:{{ wave.cut.width }}%"></div>
+      <div class="dim" data-role="de-emphasised" data-side="cut away" style="left:0;width:{{ wave.cut.before_width }}%"></div>
+      <div class="dim" data-role="de-emphasised" data-side="cut away" style="left:{{ wave.cut.after_left }}%;width:{{ wave.cut.after_width }}%"></div>
+      <div class="cut" data-role="highlighted-cut" data-side="kept" style="left:{{ wave.cut.left }}%;width:{{ wave.cut.width }}%"></div>
       {% endif %}
       {% if wave.window %}
       <div class="window" data-role="detail-window" data-window-step="{{ wave.window.step }}" data-window-seconds="{{ wave.window.seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" style="left:{{ wave.window.left }}%;width:{{ wave.window.width }}%"></div>
       {% endif %}
-      <div class="playhead" data-role="playhead-marker" data-playhead-seconds="{{ view.playhead_seconds }}" style="left:{{ 100 * view.playhead_seconds / wave.duration_seconds }}%"></div>
+      <div class="playhead" data-role="playhead-marker" data-playhead-seconds="{{ wave.playhead.seconds }}"{% if wave.playhead.against %} data-against-boundary="{{ wave.playhead.against }}" data-playhead-offset-seconds="{{ wave.playhead.offset_seconds }}" data-playhead-offset="{{ wave.playhead.offset }}"{% endif %} style="left:{{ wave.playhead.left }}%"></div>
     </div>
+    <ol class="boundary-marks">
+    {% for mark in wave.boundary_marks %}
+      <li data-row="boundary-mark" data-role="boundary-mark" data-boundary="{{ mark.boundary }}" data-at="{{ mark.at }}" data-at-seconds="{{ mark.at_seconds }}" data-before="{{ mark.before }}" data-after="{{ mark.after }}" data-window-from="{{ mark.window_from }}" data-window-to="{{ mark.window_to }}"{% if wave.auditioning == mark.boundary %} data-auditioning="true"{% endif %} style="left:{{ mark.left }}%" title="{{ mark.boundary }} at {{ mark.at }} — {{ mark.before }} before, {{ mark.after }} after"><span data-field="mark-boundary">{{ mark.boundary }}</span> <span data-field="mark-at">{{ mark.at }}</span></li>
+    {% endfor %}
+    </ol>
     <ol class="bands">
     {% for band in wave.bands %}
       <li data-row="band" data-band-type="{{ band.type }}" data-band-colour="{{ band.colour }}" data-band-speech="{{ 'true' if band.speech else 'false' }}" data-band-left="{{ band.left }}" data-band-width="{{ band.width }}" style="left:{{ band.left }}%;width:{{ band.width }}%;background:{{ band.colour }}" title="{{ band.type }} {{ band.span }}"><span data-field="band-span">{{ band.span }}</span></li>
