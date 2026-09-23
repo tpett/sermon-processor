@@ -1,7 +1,7 @@
 """Turn a Recording's audio into the transcript every later stage reads.
 
-features/analysis/transcription.feature. The document shape is the one
-experiments/src/transcribe_fw.py produced and the pipeline already consumes.
+features/analysis/transcription.feature. The document shape is the one the spike
+produced and the pipeline already consumes.
 """
 
 from __future__ import annotations
