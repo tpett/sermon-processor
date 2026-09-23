@@ -429,3 +429,18 @@ canvas {
   background: transparent;
   cursor: pointer;
 }
+
+.waveform .words button {
+  font: inherit;
+  color: var(--ink);
+  border: 0;
+  border-bottom: 1px dotted var(--line);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.waveform .words li:hover button {
+  background: #fff;
+  border-bottom-color: var(--ink);
+}
