@@ -45,11 +45,123 @@
 
 <section class="actions">
   <h2>Actions</h2>
+  {% if view.notice %}
+  <p class="notice" data-field="action-notice">{{ view.notice }}</p>
+  {% endif %}
   <ul>
-  {% for action in view.actions.split(", ") %}
-    <li data-row="action" data-action="{{ action }}">{{ action }}</li>
+  {% for action in view.recording_actions %}
+    <li data-row="action" data-action="{{ action.name }}">
+      <form method="post" action="{{ action.url }}">
+        {% if view.selected_segment_id is not none %}<input type="hidden" name="segment" value="{{ view.selected_segment_id }}">{% endif %}
+        {% for prompt in action.prompts %}<label>{{ prompt }} <input type="text" name="{{ prompt }}"></label>
+        {% endfor %}{% if action.name == "Discard" %}<input type="hidden" name="confirm" value="{{ 'yes' if view.notice == 'it contains a published segment; confirm to discard it' else 'no' }}">
+        {% endif %}<button type="submit" data-field="action-control">{{ action.name }}</button>
+      </form>
+    </li>
   {% endfor %}
   </ul>
+
+  {% if view.selected_segment_id is none %}
+  <p data-field="segment-actions-state">No Segment is selected, so no Segment action is offered</p>
+  {% else %}
+  <h3>This Segment</h3>
+  <ul>
+  {% for action in view.segment_actions %}
+    <li data-row="segment-action" data-action="{{ action.name }}" data-segment="{{ view.selected_segment_id }}">
+      {% if action.name == "Approve" %}
+      <form method="post" action="{{ action.url }}">
+        <label>Intent
+          <select name="intent">
+          {% for choice in view.intent_choices %}
+            <option value="{{ choice }}"{% if choice == view.intent %} selected{% endif %}>{{ choice }}</option>
+          {% endfor %}
+          </select>
+        </label>
+        <span data-field="intent">{{ view.intent }}</span>
+        <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span>
+        <label>Publication label <input type="text" name="label" value="{{ view.label or '' }}"></label>
+        <span data-field="label">{{ view.label or "" }}</span>
+        <button type="submit" data-field="action-control">Approve</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ action.url }}">
+        <button type="submit" data-field="action-control">{{ action.name }}</button>
+      </form>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+
+  <h3>Boundaries</h3>
+  <p data-field="boundary-controls">{{ view.boundary_controls }}</p>
+  {% if view.boundary_controls == "read-only" %}
+  <p data-field="processing-step">{{ view.processing_step }}</p>
+  <p data-field="processing-progress">{{ view.processing_progress }}</p>
+  {% else %}
+  {% if view.whole_span_note %}
+  <p data-field="whole-span-note">{{ view.whole_span_note }}</p>
+  <details><summary data-field="expand-boundaries">Trim it anyway</summary>
+  {% endif %}
+  <p data-field="focus-state">{% if view.focused_boundary %}the keyboard will move the {{ view.focused_boundary }}{% else %}no boundary has focus, so the keyboard will move nothing{% endif %}</p>
+  <p data-field="nudge-steps">{{ view.nudge_steps|join(", ") }}</p>
+  {% if view.length_warning %}
+  <p data-field="length-warning">{{ view.length_warning }}</p>
+  {% endif %}
+  <ul>
+  {% for boundary in view.boundaries %}
+    <li data-row="boundary" data-boundary="{{ boundary.field }}" data-focused="{{ 'true' if boundary.focused else 'false' }}">
+      <span data-field="boundary-at">{{ boundary.seconds|precise }}</span>
+      {% if boundary.focused %}<span data-field="boundary-focus">the keyboard will move this boundary</span>{% endif %}
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="focus">
+        <button type="submit" data-field="focus-control">Focus the {{ boundary.field }}</button>
+      </form>
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="set">
+        <label>Timecode <input type="text" name="timecode" value="{{ boundary.seconds|precise }}"></label>
+        <button type="submit" data-field="set-control">Set the {{ boundary.field }}</button>
+      </form>
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="playhead">
+        <button type="submit" data-field="playhead-control">Set the {{ boundary.field }} from the playhead</button>
+      </form>
+      {% for direction in ("earlier", "later") %}
+      {% for step in view.nudge_steps %}
+      <form method="post" action="{{ boundary.url }}">
+        <input type="hidden" name="do" value="nudge">
+        <input type="hidden" name="direction" value="{{ direction }}">
+        <input type="hidden" name="amount" value="{{ step }}">
+        <button type="submit" data-nudge="{{ direction }} {{ step }}" data-field="nudge-control">{{ direction }} by {{ step }}</button>
+      </form>
+      {% endfor %}
+      {% endfor %}
+    </li>
+  {% endfor %}
+  </ul>
+  <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in">
+    <input type="hidden" name="do" value="revert">
+    <button type="submit" data-field="revert-control">Revert to the machine proposal</button>
+  </form>
+  <p data-field="proposed-boundaries">{{ view.proposed_punch_in_seconds|precise }} – {{ view.proposed_punch_out_seconds|precise }}</p>
+  {% if view.alternatives %}
+  <ul>
+  {% for timecode, because in view.alternatives %}
+    <li data-row="alternative" data-at="{{ timecode }}">
+      <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in">
+        <input type="hidden" name="do" value="set">
+        <input type="hidden" name="timecode" value="{{ timecode }}">
+        <button type="submit" data-field="alternative-control">{{ timecode|precise }}</button>
+      </form>
+      <span data-field="alternative-because">{{ because }}</span>
+    </li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+  {% if view.whole_span_note %}
+  </details>
+  {% endif %}
+  {% endif %}
+  {% endif %}
 </section>
 
 <section class="segments">
