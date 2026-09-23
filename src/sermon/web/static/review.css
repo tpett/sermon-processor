@@ -444,7 +444,6 @@ canvas {
   background: #fff;
   border-bottom-color: var(--ink);
 }
-}
 
 /* The cut light.
    Colour keys off data-side, not data-state, because "after" means kept at a

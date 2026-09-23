@@ -189,8 +189,17 @@ document.addEventListener("audio:timeupdate", (event) => {
   movesPlayhead(Number(event.detail.seconds));
 });
 
+let following = 0;
+
+function follows() {
+  const audio = document.querySelector("audio");
+  if (audio && !audio.paused) movesPlayhead(audio.currentTime);
+  following = requestAnimationFrame(follows);
+}
+
 document.addEventListener("preview:started", (event) => {
   const { boundary, seconds } = event.detail;
+  if (!following) following = requestAnimationFrame(follows);
   if (wave) wave.dataset.auditioning = boundary;
   marks.forEach((mark) => {
     if (mark.dataset.boundary === boundary) mark.dataset.auditioning = "true";
@@ -200,6 +209,8 @@ document.addEventListener("preview:started", (event) => {
 });
 
 document.addEventListener("preview:ended", () => {
+  cancelAnimationFrame(following);
+  following = 0;
   if (wave) delete wave.dataset.auditioning;
   marks.forEach((mark) => delete mark.dataset.auditioning);
 });
