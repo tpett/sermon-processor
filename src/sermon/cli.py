@@ -10,6 +10,7 @@ from pathlib import Path
 
 from sermon.analysis import MeasuresBoundaryError, ProposesFromStoredTranscript, ReadsStoredTranscript
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
+from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
 from sermon.config import ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
@@ -459,6 +460,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
                 stages=lambda _name: None,
                 notifies=SendsNotification(store=store),
                 analyses=analyses,
+                transcribes=transcribes_with(store=store),
             )
             if analyses is not None
             else refuses_analysis(prints),

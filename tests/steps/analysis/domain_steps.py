@@ -1,7 +1,9 @@
 from dataclasses import replace
 from datetime import UTC, datetime
 
+import pytest
 from pytest_bdd import given, parsers, then, when
+from steps._asr import transcribes_for
 from steps._transcripts import covering_transcript
 
 from sermon.analysis import (
@@ -69,7 +71,9 @@ def _(store):
 def _(store):
     recording = recording_of(store)
     try:
-        TranscribesRecording(store=store)(recording)
+        TranscribesRecording(
+            store=store, transcribes=transcribes_for(store, recording)
+        )(recording)
     except Exception as error:
         store.saves(replace(recording, state="analysis_failed"))
         from sermon.store import LogEntry
@@ -228,12 +232,18 @@ def _(store):
 
 @then("Analysis continues with low confidence")
 def _(store):
-    assert store.loads(Recording, recording_of(store).recording_id)
+    recording = recording_of(store)
+    assert store.loads(Recording, recording.recording_id).state != "analysis_failed"
+    assert reads_json(store, recording, "transcript")["utterances"]
 
 
 @then("no third-party transcription API is called")
 def _(store):
+    from sermon.analysis.transcribes_audio import refuses_a_public_transcriber
+
     assert reads_json(store, recording_of(store), "transcript") is not None
+    for destination in getattr(store, "_asr_destinations", ()):
+        refuses_a_public_transcriber(destination)
 
 
 @given("the transcription model is hosted on another machine on the tailnet")
@@ -245,12 +255,16 @@ def _(store):
 def _(store):
     host = getattr(store, "_transcription_host", None) or getattr(store, "_summary_host", None)
     assert host and host.startswith("http://100.")
+    reached = getattr(store, "_asr_destinations", ())
+    assert reached and all(item.startswith(host) for item in reached)
 
 
 @then("the recording is transcribed in chunks")
 def _(store):
     doc = reads_json(store, recording_of(store), "transcript")
-    assert len(doc["utterances"]) > 1
+    assert len(doc["chunks"]) > 1
+    assert doc["chunks"][0]["start"] == 0.0
+    assert doc["chunks"][-1]["end"] == doc["duration"]
 
 
 @then("chunk boundaries do not lose or duplicate words")
@@ -258,6 +272,13 @@ def _(store):
     doc = reads_json(store, recording_of(store), "transcript")
     starts = [item["start"] for item in doc["utterances"]]
     assert starts == sorted(starts)
+    assert len(starts) == len(set(starts))
+    for boundary in [chunk["end"] for chunk in doc["chunks"][:-1]]:
+        assert not [
+            item
+            for item in doc["utterances"]
+            if item["start"] < boundary < item["end"]
+        ]
 
 
 @then("timestamps remain absolute against the source file")
@@ -269,6 +290,28 @@ def _(store):
 @given("the local transcription service returns errors")
 def _(store):
     store._failing_stage = "transcription"
+
+
+@then("no audio leaves the local network")
+def _(store):
+    from sermon.analysis.transcribes_audio import (
+        PostsToTranscriber,
+        TranscriberRefused,
+        refuses_a_public_transcriber,
+    )
+
+    for destination in getattr(store, "_asr_destinations", ()):
+        refuses_a_public_transcriber(destination)
+    with pytest.raises(TranscriberRefused):
+        PostsToTranscriber(endpoint="https://transcription.example.com")
+
+
+@then("the stage is retried with backoff")
+def _(store):
+    attempted = getattr(store, "_asr_attempts", ())
+    delays = getattr(store, "_asr_backoff", ())
+    assert len(attempted) > 1
+    assert list(delays) == sorted(delays) and delays[0] > 0
 
 
 @then("the reviewer can still set boundaries manually")

@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1240 step definitions read from `tests/steps`
+- 1242 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 396 Gherkin steps matched no definition
+- 393 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -36,7 +36,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
-| `tests/steps/analysis/domain_steps.py` | 206 | 0 | sound |
+| `tests/steps/analysis/domain_steps.py` | 208 | 0 | sound |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 198 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
@@ -221,7 +221,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/speaker_diarization.feature:85 then classification does not penalise it for being an unknown voice`
 - `analysis/summarization.feature:106 then no cue excerpt begins or ends inside a silence`
 - `analysis/summarization.feature:107 then no cue excerpt is chosen from a span with no speech`
-- `analysis/summarization.feature:117 then no audio leaves the local network`
 - `analysis/summarization.feature:119 then no third-party API is called`
 - `analysis/summarization.feature:134 then summaries are produced at whatever quality that model gives`
 - `analysis/summarization.feature:135 then the system does not fall back to a hosted service to improve them`
@@ -243,8 +242,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences, or the stated main point"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the passage announcement"`
-- `analysis/transcription.feature:105 then the stage is retried with backoff`
-- `analysis/transcription.feature:82 then no audio leaves the local network`
 - `ingestion/s3_reconciliation.feature:12 given it contains a bucket "sermons"`
 - `ingestion/s3_reconciliation.feature:64 then the next scheduled scan runs normally`
 - `ingestion/webhook_notification.feature:112 given the Sermon Processor is unreachable`
