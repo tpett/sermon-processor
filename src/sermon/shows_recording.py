@@ -206,9 +206,9 @@ class ShowsRecording:
                 (item["start"], item["end"], item.get("text", ""), item.get("speaker"))
                 for item in doc.get("utterances", [])
             )
-        proposal = None
+        proposal_view = None
         if selected is not None:
-            proposal = self._proposal(selected)
+            proposal_view = self._proposal_view(selected)
         return RecordingView(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -247,10 +247,10 @@ class ShowsRecording:
             mp3_ready=mp3_ready,
             transcript=transcript,
             selected_transcript=self._scoped(transcript, selected),
-            proposal=proposal,
+            proposal=proposal_view,
         )
 
-    def _proposal(self, selected):
+    def _proposal_view(self, selected):
         proposals = [
             item
             for item in self.store.lists(Proposal, segment_id=selected.segment_id)
