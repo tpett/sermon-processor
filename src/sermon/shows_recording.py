@@ -129,6 +129,8 @@ class ShowsRecording:
 
     def __call__(self, recording_id, *, selected_segment_id=None, playhead_seconds=0.0):
         recording = self.store.loads(Recording, recording_id)
+        if recording is None:
+            return None
         segments = self.store.lists(Segment, recording_id=recording_id)
         segments = sorted(segments, key=lambda segment: segment.span_start_seconds)
         selected = None

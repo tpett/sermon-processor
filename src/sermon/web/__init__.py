@@ -59,6 +59,8 @@ def creates_app(*, store, clock=now, lists_objects=None):
             selected_segment_id=request.args.get("segment", type=int),
             playhead_seconds=playheads.get(recording_id, 0.0),
         )
+        if view is None:
+            return ("", 404)
         return render_template("detail.html", view=view, payload=json.dumps(asdict(view)))
 
     @app.post("/api/webhooks/recordings")
@@ -163,14 +165,14 @@ def creates_app(*, store, clock=now, lists_objects=None):
 
     @app.get("/api/recordings/<recording_id>")
     def recording_detail(recording_id):
-        selected = request.args.get("segment", type=int)
-        return asdict(
-            shows(
-                recording_id,
-                selected_segment_id=selected,
-                playhead_seconds=playheads.get(recording_id, 0.0),
-            )
+        view = shows(
+            recording_id,
+            selected_segment_id=request.args.get("segment", type=int),
+            playhead_seconds=playheads.get(recording_id, 0.0),
         )
+        if view is None:
+            return ({"error": "no such recording"}, 404)
+        return asdict(view)
 
     @app.post("/api/recordings/<recording_id>/seek")
     def seek(recording_id):
