@@ -1266,8 +1266,19 @@ details summary {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .waveform .ruler li:nth-child(2n) {
+  /* A label is ~100px wide and the marks sit ~68px apart at this width, so
+     hiding every second one still overlaps every pair by 32px. Stack the two
+     halves and keep only every fourth mark. */
+  .waveform .ruler {
+    height: 26px;
+  }
+
+  .waveform .ruler li:not(:nth-child(4n+1)) {
     display: none;
+  }
+
+  .waveform .ruler li span {
+    display: block;
   }
 
   .zoom-steps {
