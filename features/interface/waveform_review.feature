@@ -103,6 +103,18 @@ Feature: Reviewing the waveform
       And playback stops 5 seconds after the punch-in
 
     @happy-path
+    Scenario: The cut is marked while I audition it
+      # A preview is ten seconds of audio with the boundary in the middle of it.
+      # Hearing it is not enough to judge it: a punch-in half a second late
+      # sounds much like a clean one unless the reviewer can see which instant
+      # was the cut. So the boundary is marked, and the sides are named.
+      When I choose to preview the punch-in
+      Then the boundary is marked at the punch-in timecode
+      And the mark says which boundary it is
+      And what would be cut away is distinguished from what would be kept
+      And the playhead is shown against that mark as the audio plays
+
+    @happy-path
     Scenario: Auditioning the whole cut
       # Q26 — more useful now: sampling is how I tell one Segment from another.
       When I choose to preview the cut

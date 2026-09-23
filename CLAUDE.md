@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 460 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 461 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -74,7 +74,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
 .venv/bin/python -m pytest                          # full suite: store, pipeline, harness, or before master
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 604 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 605 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -137,7 +137,7 @@ the recorded date.
 
 ## Where the work is now, and what that means for choices
 
-The foundations are done: the harness over all 604 scenarios, the store, config,
+The foundations are done: the harness over all 605 scenarios, the store, config,
 and the validated pipeline extracted and provably unchanged. **Almost nothing is
 implemented** — the spec is still overwhelmingly Red, and turning it green is the
 only work that now matters.
@@ -293,3 +293,22 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
 - **Some published MP3s are machine cuts, not human edits.** `align.MACHINE_CUT_MP3S`
   excludes them from ground truth. Add to that set whenever a proposal ships
   unedited, or the corpus starts grading itself.
+
+### The pins moved once, on purpose
+
+The harness pins were **34 files / 460 scenarios / 142 rules / 604 collected**.
+On 2026-09-22 the user asked for a visual indicator of the cut instant during a
+preview — "we need a visual indicator when the cut happens when previewing it so
+that I can tell if it's the right point or not". Nothing in the spec said the
+boundary is marked *while* it is auditioned: `Auditioning a boundary` gave the
+5-seconds-either-side window and `Playing from anywhere` gave a playhead, but a
+punch-in half a second late sounds like a clean one if the reviewer cannot see
+which instant was the cut. So `The cut is marked while I audition it` was added
+to `features/interface/waveform_review.feature`.
+
+Pins are now **34 files / 461 scenarios / 142 rules / 605 collected**.
+
+A pin moves only when the product owner asks for something the spec does not
+cover, and the move is recorded here with the words that prompted it. An agent
+that finds the count different from what its instructions said should check this
+section before assuming it broke something.
