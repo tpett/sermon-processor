@@ -15,9 +15,11 @@ from sermon.binds_model_endpoint import BindsModelEndpoint
 from sermon.config import ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
-from sermon.jobs.downloads_recording import DownloadsRecording
+from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
+from sermon.jobs.recovers_interrupted_jobs import RecoversInterruptedJobs
+from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.jobs.renders_mp3 import ChannelsNeedReview, RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.object_store import FetchesBucketObject, ListsBucketObjects, OpensObjectStore
@@ -360,6 +362,116 @@ def parses_render_command(arguments, prints):
 
 def starts(app, host, port):
     app.run(host=host, port=port)
+
+
+IDLE_POLL_SECONDS = 5.0
+
+
+def parses_work_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-work", add_help=False)
+    parser.add_argument("--corpus")
+    parser.add_argument("--prompts")
+    parser.add_argument("--once", action="store_true")
+    parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--poll", type=float, default=IDLE_POLL_SECONDS)
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(
+            "usage: sermon-work [--corpus DIR] [--prompts DIR] "
+            "[--once] [--limit N] [--poll SECONDS]"
+        )
+        return None
+
+
+def analyses_for(store, asked, prints):
+    """The analyze handler, or nothing when this worker cannot do analysis.
+
+    Analysis still reads its transcript from a corpus directory, so without one
+    there is nothing for it to read. Saying so once beats failing every analyze
+    job five times to discover it.
+    """
+    if not asked.corpus:
+        return None
+    corpus = Path(asked.corpus).resolve()
+    prompts = Path(asked.prompts).resolve() if asked.prompts else corpus.parent / "prompts"
+    return ProposesFromStoredTranscript(
+        store=store, corpus_root=corpus, prompts_root=prompts
+    )
+
+
+def refuses_analysis(prints):
+    def refuse():
+        prints("analyze: no corpus is configured, so no transcript can be read")
+        raise SystemExit(1)
+
+    return refuse
+
+
+def drains(runs, asked, prints, sleeps):
+    """Run queued work until asked to stop.
+
+    --once runs a single job. The queue holds 93 downloads against a read-only
+    39 GiB bucket, so draining it is never what one keystroke does.
+    """
+    done = 0
+    while True:
+        job = runs()
+        if job is not None:
+            done += 1
+            prints(f"ran {job.kind} job {job.job_id} for {job.recording_id}")
+            if asked.once or (asked.limit and done >= asked.limit):
+                return 0
+            continue
+        if asked.once or asked.limit:
+            prints("nothing queued")
+            return 0
+        sleeps(asked.poll)
+
+
+def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
+    asked = parses_work_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    opened = opens_or_reports(settings, None, prints)
+    if opened is None:
+        return 1
+    configuration, store, _ = opened
+    try:
+        recovered = RecoversInterruptedJobs(store=store)()
+        for job in recovered:
+            prints(f"requeued {job.kind} job {job.job_id}, interrupted mid-run")
+        analyses = analyses_for(store, asked, prints)
+        if analyses is not None:
+            BindsModelEndpoint(configuration=configuration)()
+        runs = RunsQueuedJobs(
+            store=store,
+            downloads=RunsDownloadJob(
+                store=store,
+                fetches=FetchesBucketObject(
+                    bucket=configuration.object_store.bucket,
+                    client=OpensObjectStore(object_store=configuration.object_store)(),
+                ),
+                probes=MeasuresRecordingAudio(),
+            ),
+            analyzes=RunsAnalyzeJob(
+                store=store,
+                stages=lambda _name: None,
+                notifies=SendsNotification(store=store),
+                analyses=analyses,
+            )
+            if analyses is not None
+            else refuses_analysis(prints),
+            renders=RunsRenderJob(
+                store=store,
+                steps=lambda _name: None,
+                notifies=SendsNotification(store=store),
+                renders=RendersMp3(),
+            ),
+        )
+        return drains(runs, asked, prints, sleeps)
+    finally:
+        store.close()
 
 
 def serves(settings=None, lists_objects=None, runs=starts, prints=print):

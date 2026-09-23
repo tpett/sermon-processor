@@ -96,6 +96,7 @@ variable already set in the environment wins over the file.
 ```bash
 .venv/bin/sermon-reconcile   # scan the bucket; prints what it found, exit 1 on failure
 .venv/bin/sermon-serve       # serve the reviewer's app; SERMON_BIND_HOST, SERMON_PORT
+.venv/bin/sermon-work        # drain the job queue; --once, --limit N, --poll SECONDS
 .venv/bin/sermon-fetch recordings/recording_20260823_103015.flac
 .venv/bin/sermon-render recording_20260823_103015 \
     --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
@@ -105,6 +106,16 @@ variable already set in the environment wins over the file.
 
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
 the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
+
+`sermon-work` is the only thing that runs queued work. Nothing else drains the
+queue — not the server, not any other command — so without it a webhook's
+download, an approval's render and every analyze job sit in `queued` forever. It
+recovers first: a job left `running` by a crash or a restart returns to `queued`
+without a second job being enqueued and without refunding the attempt it spent.
+**`--once` runs a single job**, because the queue holds 93 downloads against a
+read-only 39 GiB bucket and draining it must never be one keystroke. It handles
+analyze jobs only when given `--corpus`, since analysis still reads its
+transcript from a corpus directory.
 
 `sermon-fetch` streams **one** named object into the data root and measures it,
 printing duration, channels, sample rate, loudness, true peak and a level per

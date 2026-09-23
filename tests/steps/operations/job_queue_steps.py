@@ -11,6 +11,7 @@ from sermon.jobs.downloads_recording import (
     RunsDownloadJob,
 )
 from sermon.jobs.renders_segment import RunsRenderJob
+from sermon.jobs.recovers_interrupted_jobs import RecoversInterruptedJobs
 from sermon.jobs.runs_queued_jobs import RetriesFailedJob, RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.store import Job, Recording, Reviewer, Segment
@@ -191,6 +192,11 @@ def _(store):
     fetches = FetchesObject()
     fetches.stores(OBJECT_KEY, FLAC_BYTES)
     store._queued_fetches = fetches
+
+
+@when("the application restarts")
+def _(store):
+    return RecoversInterruptedJobs(store=store)()
 
 
 @then("the queued jobs still run")

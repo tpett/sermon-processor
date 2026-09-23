@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1239 step definitions read from `tests/steps`
+- 1240 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 397 Gherkin steps matched no definition
+- 396 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -62,7 +62,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
 | `tests/steps/notifications/notification_steps.py` | 8 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
-| `tests/steps/operations/job_queue_steps.py` | 13 | 0 | sound |
+| `tests/steps/operations/job_queue_steps.py` | 14 | 0 | sound |
 | `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
 | `tests/steps/remaining_steps.py` (named) | 130 | 0 | sound |
@@ -353,7 +353,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `notifications/approval_notifications.feature:52 when I open the interface`
 - `notifications/approval_notifications.feature:53 then I see the Notifications raised for me`
 - `notifications/approval_notifications.feature:83 then it states why confidence is low`
-- `operations/job_queue.feature:28 when the application restarts`
 - `operations/storage_and_retention.feature:18 then its "Segment boundaries" is still available`
 - `operations/storage_and_retention.feature:18 then its "rendered MP3" is still available`
 - `operations/storage_and_retention.feature:18 then its "source FLAC" is still available`

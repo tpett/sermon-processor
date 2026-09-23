@@ -22,6 +22,7 @@ sermon-propose = "sermon.cli:proposes"
 sermon-reconcile = "sermon.cli:reconciles"
 sermon-render = "sermon.cli:renders"
 sermon-serve = "sermon.cli:serves"
+sermon-work = "sermon.cli:works"
 
 [project.optional-dependencies]
 dev = [
