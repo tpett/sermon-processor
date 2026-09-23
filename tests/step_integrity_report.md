@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1238 step definitions read from `tests/steps`
+- 1239 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 398 Gherkin steps matched no definition
+- 397 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -36,7 +36,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
-| `tests/steps/analysis/domain_steps.py` | 205 | 0 | sound |
+| `tests/steps/analysis/domain_steps.py` | 206 | 0 | sound |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 198 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
@@ -233,7 +233,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/summarization.feature:31 then each proposed Segment carries its own summary`
 - `analysis/summarization.feature:32 then the summary is shown beside it in the review interface`
 - `analysis/summarization.feature:33 then it is shown in the notification`
-- `analysis/summarization.feature:49 then the reviewer can correct it`
 - `analysis/summarization.feature:60 then the model returns the exact words of the recognisable moment`
 - `analysis/summarization.feature:62 then the excerpt's timing comes from the transcript, never from the model`
 - `analysis/summarization.feature:69 then the failure is counted, so a model that drifts is visible`

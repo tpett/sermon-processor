@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from sermon.analysis.io import reads_json, writes_json
-from sermon.pipeline import cues
+from sermon.pipeline import cues, scripture
 from sermon.store import (
     Block,
     Candidate,
@@ -19,6 +20,10 @@ from sermon.store import (
 from sermon.store.vocabularies import BLOCK_TYPES, SEGMENT_CLASSIFICATIONS
 
 TEACHING = frozenset({"sermon", "lesson", "seminar"})
+LABELLED_BY_PASSAGE = frozenset({"sermon"})
+READING_LOOKBACK_S = 900.0
+READING_LEAD_S = 60.0
+LABEL_LIMIT = 60
 SUNDAY_ORDER = (
     "announcements",
     "prayer",
@@ -358,12 +363,68 @@ class SummarizesBlocks:
                     cue_end_seconds=round(cue[1], 3),
                 )
             )
+        SuggestsPublicationLabel(store=self.store)(recording, doc)
         return recording
 
     def _summarizes(self):
         from sermon.analysis.proposes_from_transcript import SummarizesOneBlock
 
         return SummarizesOneBlock()
+
+
+@dataclass(frozen=True)
+class SuggestsPublicationLabel:
+    store: Store
+
+    def __call__(self, recording, doc=None):
+        doc = reads_json(self.store, recording, "transcript") if doc is None else doc
+        if doc is None:
+            return ()
+        blocks = self.store.lists(Block, recording_id=recording.recording_id)
+        suggested = []
+        for segment in self.store.lists(Segment, recording_id=recording.recording_id):
+            if segment.label:
+                continue
+            label = self.suggests(segment, doc, blocks)
+            if label:
+                suggested.append(self.store.saves(replace(segment, label=label)))
+        return tuple(suggested)
+
+    def suggests(self, segment, doc, blocks):
+        if segment.classification in LABELLED_BY_PASSAGE:
+            return _passage_of(segment, doc, blocks)
+        return _titled(segment.summary)
+
+
+def _readings_before(blocks, punch_in):
+    near = [
+        block
+        for block in blocks
+        if block.type == "scripture_reading"
+        and block.start_seconds < punch_in + READING_LEAD_S
+        and block.end_seconds > punch_in - READING_LOOKBACK_S
+    ]
+    return sorted(near, key=lambda block: -block.start_seconds)
+
+
+def _passage_of(segment, doc, blocks):
+    utterances = doc.get("utterances", ())
+    for block in _readings_before(blocks, segment.punch_in_seconds):
+        announced = scripture.announced_passage(
+            utterances, block.start_seconds, block.end_seconds
+        )
+        if announced:
+            return announced
+    return scripture.primary_passage(
+        utterances, segment.punch_in_seconds, segment.punch_out_seconds
+    )
+
+
+def _titled(summary):
+    if not summary:
+        return None
+    sentence = re.split(r"[.;:!?]", summary.strip(), maxsplit=1)[0]
+    return " ".join(sentence.split())[:LABEL_LIMIT].strip(" ,-") or None
 
 
 @dataclass(frozen=True)
@@ -388,7 +449,10 @@ class ProposesSegments:
             if standing is not None:
                 superseded.remove(standing)
             produced.append(self._proposes(recording, span, blocks, doc, standing))
-        return tuple(produced)
+        SuggestsPublicationLabel(store=self.store)(recording, doc)
+        return tuple(
+            self.store.loads(Segment, item.segment_id) for item in produced
+        )
 
     def _derives(self):
         from sermon.analysis.proposes_from_transcript import DerivesSpans
