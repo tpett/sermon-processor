@@ -10,7 +10,8 @@ from sermon.adjusts_punch_point import (
     warns_about_length,
 )
 from sermon.analysis.io import reads_json
-from sermon.lists_recordings import formats_clock, formats_recorded_at
+from sermon.draws_waveform import DrawsWaveform, WaveformView
+from sermon.lists_recordings import formats_clock, formats_precise, formats_recorded_at
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.store import Artifact, Block, Job, Proposal, Recording, Segment, Store
 from sermon.store import vocabularies
@@ -148,12 +149,6 @@ def formats_source_format(recording):
         return " ".join(measured)
     shape = "channel 1 only" if recording.channels == 1 else f"{recording.channels} channels"
     return f"{' '.join(measured)}, {shape}"
-
-
-def formats_precise(seconds):
-    hours, rest = divmod(float(seconds), 3600)
-    minutes, secs = divmod(rest, 60)
-    return f"{int(hours)}:{int(minutes):02d}:{secs:05.2f}"
 
 
 def formats_seconds(seconds):
@@ -319,14 +314,13 @@ class RecordingView:
     segments: tuple
     actions: str
     duration_seconds: float
-    peaks: tuple
+    waveform: WaveformView
     blocks: tuple
     selected_segment_id: int | None
     punch_in_seconds: float | None
     punch_out_seconds: float | None
     length_seconds: float | None
     gap_seconds: float | None
-    zoom_steps: tuple
     short_tail: bool
     playhead_seconds: float
     preview_kind: str
@@ -374,6 +368,9 @@ class ShowsRecording:
         *,
         selected_segment_id=None,
         playhead_seconds=0.0,
+        zoom=None,
+        centre_seconds=None,
+        auditioning=None,
         notice=None,
         focused_boundary=None,
     ):
@@ -387,12 +384,6 @@ class ShowsRecording:
             selected = self.store.loads(Segment, selected_segment_id)
         elif segments:
             selected = segments[0]
-        peaks = ()
-        for artifact in self.store.lists(Artifact, recording_id=recording_id, kind="waveform_peaks"):
-            try:
-                peaks = tuple(float(value) for value in artifact.checksum.split(",") if value)
-            except ValueError:
-                peaks = ()
         blocks = tuple(
             BlockView(
                 block_id=block.block_id,
@@ -412,15 +403,6 @@ class ShowsRecording:
                 key=lambda item: item.start_seconds,
             )
         )
-        gap = None
-        if selected is not None:
-            later = [
-                item.punch_in_seconds
-                for item in segments
-                if item.punch_in_seconds > selected.punch_out_seconds
-            ]
-            if later:
-                gap = min(later) - selected.punch_out_seconds
         mp3_ready = any(
             item.state == "complete"
             for item in segments
@@ -453,6 +435,7 @@ class ShowsRecording:
                 (item["start"], item["end"], item.get("text", ""), item.get("speaker"))
                 for item in doc.get("utterances", [])
             )
+        gap = self._gap(selected, segments, transcript)
         proposal = self._proposal(selected)
         step, progress = self._progress(selected)
         cut_light = self._cut_light(selected, playhead_seconds)
@@ -482,7 +465,21 @@ class ShowsRecording:
             ),
             actions=RECORDING_ACTIONS.get(recording.state, "Discard"),
             duration_seconds=duration_seconds,
-            peaks=peaks,
+            waveform=DrawsWaveform(store=self.store)(
+                recording,
+                selected=selected,
+                transcript=transcript,
+                evidence=() if proposal_view is None else proposal_view.evidence,
+                zoom=zoom,
+                centre_seconds=centre_seconds,
+                playhead_seconds=playhead_seconds,
+                auditioning=auditioning,
+                needs_placing=(
+                    None
+                    if proposal_view is None or not proposal_view.needs_checking
+                    else proposal_view.needs_checking[0].point
+                ),
+            ),
             blocks=blocks,
             selected_segment_id=None if selected is None else selected.segment_id,
             punch_in_seconds=None if selected is None else selected.punch_in_seconds,
@@ -493,7 +490,6 @@ class ShowsRecording:
                 else selected.punch_out_seconds - selected.punch_in_seconds
             ),
             gap_seconds=gap,
-            zoom_steps=("whole recording", "a few minutes", "thirty seconds", "three seconds"),
             short_tail=gap is not None and gap < SHORT_TAIL_SECONDS,
             playhead_seconds=playhead_seconds,
             preview_kind="preview",
@@ -602,6 +598,19 @@ class ShowsRecording:
             )
             for field, seconds in held
         )
+
+    def _gap(self, selected, segments, transcript):
+        if selected is None:
+            return None
+        follows = [
+            item.punch_in_seconds
+            for item in segments
+            if item.punch_in_seconds > selected.punch_out_seconds
+        ]
+        follows += [
+            start for start, _, _, _ in transcript if start > selected.punch_out_seconds
+        ]
+        return min(follows) - selected.punch_out_seconds if follows else None
 
     def _cut_light(self, selected, playhead_seconds):
         if selected is None:

@@ -12,11 +12,25 @@ from sermon.extends_segment_span import (
 )
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.shows_recording import NOTICES, formats_precise
-from sermon.store import Proposal, Recording, Segment, opens_store
+from sermon.store import Block, Proposal, Recording, Segment, opens_store
 from steps._markup import reads_field, reads_rows
+from steps._peaks import writes_peaks, writes_utterances
 from steps import _web
 
 READS = ReadsTimecode()
+SPOKEN_AROUND_THE_CUT = (
+    (7214.0, 7219.2, "let us stand together as we sing the final verse"),
+    (7220.4, 7226.0, "good morning and welcome to the message this week"),
+    (7226.5, 7233.0, "open your bibles with me to the letter to the Hebrews"),
+    (9806.0, 9811.4, "so let us pray together as we close this morning"),
+    (9812.6, 9818.0, "please stand for the closing hymn"),
+)
+ANATOMY = (
+    (0.0, 1800.0, "music", "the opening songs"),
+    (1800.0, 7220.0, "lesson", "the class hour"),
+    (7220.0, 9812.0, "sermon", "the message"),
+    (9812.0, 11520.0, "communion", "the table and the sending"),
+)
 REFUSALS = frozenset(
     NOTICES[name] for name in NOTICES if name == NOTICES[name]
 )
@@ -73,7 +87,19 @@ def _(store, recording, classification, start, end):
     parsers.parse('its punch-in is "{punch_in}" and punch-out is "{punch_out}"'),
     target_fixture="segment",
 )
-def _(store, segment, punch_in, punch_out):
+def _(store, recording, segment, punch_in, punch_out):
+    writes_peaks(store, recording)
+    writes_utterances(store, recording, SPOKEN_AROUND_THE_CUT)
+    for start, end, block_type, summary in ANATOMY:
+        store.saves(
+            Block(
+                recording_id=recording.recording_id,
+                start_seconds=start,
+                end_seconds=end,
+                type=block_type,
+                summary=summary,
+            )
+        )
     return store.saves(
         replace(
             segment,

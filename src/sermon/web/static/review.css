@@ -122,6 +122,241 @@ canvas {
   color: var(--quiet);
 }
 
+.waveform .wave, .waveform .detail-view {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  overflow: hidden;
+}
+
+.waveform .shape {
+  position: relative;
+  height: 90px;
+}
+
+.waveform canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.waveform .ruler, .waveform .spans, .waveform .bands, .waveform .speakers, .waveform .words {
+  position: relative;
+  margin: 0;
+}
+
+.waveform .ruler {
+  height: 1.1rem;
+  font-size: 0.65rem;
+  color: var(--quiet);
+}
+
+.waveform .ruler li {
+  position: absolute;
+  top: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  padding-left: 0.15rem;
+  white-space: nowrap;
+}
+
+.waveform .spans {
+  height: 1.1rem;
+}
+
+.waveform .spans li {
+  position: absolute;
+  top: 0.15rem;
+  height: 0.8rem;
+  padding: 0;
+  border: 1px solid var(--ink);
+  background: var(--pick);
+  overflow: hidden;
+  font-size: 0.6rem;
+  color: var(--quiet);
+}
+
+.waveform .spans li[data-selected="true"] {
+  background: #fde8c8;
+  border-color: var(--flag);
+}
+
+.waveform .bands, .waveform .speakers {
+  height: 0.7rem;
+}
+
+.waveform .bands li, .waveform .speakers li {
+  position: absolute;
+  top: 0;
+  height: 0.7rem;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  text-indent: -999em;
+}
+
+.waveform .bands li[data-band-speech="false"], .waveform .speakers li[data-speaker-speech="false"] {
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.65) 0 2px, transparent 2px 4px);
+}
+
+.waveform .dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.62);
+  pointer-events: none;
+}
+
+.waveform .cut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid var(--flag);
+  border-right: 2px solid var(--flag);
+  background: rgba(163, 50, 11, 0.09);
+  pointer-events: none;
+}
+
+.waveform .window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  border: 1px solid #1d1f21;
+  background: rgba(29, 31, 33, 0.08);
+  pointer-events: none;
+}
+
+.waveform .playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid #0b6bcb;
+  pointer-events: none;
+}
+
+.waveform .detail-view canvas {
+  display: block;
+  height: 180px;
+}
+
+.waveform .words {
+  height: 3.3rem;
+  font-size: 0.65rem;
+}
+
+.waveform .words li {
+  position: absolute;
+  top: 0;
+  max-width: 9ch;
+  padding: 0 0.2rem 0 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--quiet);
+}
+
+.waveform .words li:nth-child(3n + 2) {
+  top: 1.1rem;
+}
+
+.waveform .words li:nth-child(3n) {
+  top: 2.2rem;
+}
+
+.waveform .words li:hover {
+  max-width: none;
+  z-index: 3;
+  background: #fff;
+}
+
+.waveform .zoom-steps li {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.6rem;
+  margin: 0 0.4rem 0.4rem 0;
+  font-size: 0.75rem;
+}
+
+.waveform .zoom-steps li[data-selected="true"] {
+  background: var(--pick);
+  border-color: var(--ink);
+}
+
+.waveform .zoom-steps li span {
+  display: block;
+  color: var(--quiet);
+}
+
+.waveform .peak-sources {
+  font-size: 0.7rem;
+  color: var(--quiet);
+}
+
+.waveform .peak-sources li {
+  border: 0;
+  padding: 0;
+}
+
+.waveform .markers {
+  position: relative;
+  height: 1.1rem;
+  font-size: 0.65rem;
+}
+
+.waveform .markers li {
+  position: absolute;
+  top: 0;
+  max-width: 8ch;
+  border: 0;
+  border-left: 2px solid #0b6bcb;
+  padding: 0 0 0 0.15rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.waveform .markers li:hover {
+  max-width: none;
+  z-index: 3;
+  background: #fff;
+}
+
+.waveform .boundary-marks {
+  position: relative;
+  height: 1.1rem;
+  font-size: 0.65rem;
+}
+
+.waveform .boundary-marks li {
+  position: absolute;
+  top: 0;
+  max-width: 12ch;
+  border: 0;
+  border-left: 2px solid var(--flag);
+  padding: 0 0 0 0.15rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--flag);
+}
+
+.waveform .boundary-marks li[data-auditioning="true"] {
+  max-width: none;
+  z-index: 3;
+  background: #fde8c8;
+  font-weight: 700;
+}
+
+.waveform .wave[data-auditioning] .playhead {
+  border-left-width: 2px;
+}
+
 .listen audio {
   display: block;
   width: 100%;
@@ -167,6 +402,48 @@ canvas {
   width: 2px;
   height: 1rem;
   background: var(--flag);
+}
+
+.waveform .quiet-spans {
+  position: relative;
+  height: 0.9rem;
+}
+
+.waveform .quiet-spans li {
+  position: absolute;
+  top: 0;
+  height: 0.9rem;
+  min-width: 2px;
+  padding: 0;
+  border: 0;
+  background: rgba(47, 111, 79, 0.28);
+  overflow: hidden;
+}
+
+.waveform .quiet-spans button {
+  font: inherit;
+  font-size: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.waveform .words button {
+  font: inherit;
+  color: var(--ink);
+  border: 0;
+  border-bottom: 1px dotted var(--line);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.waveform .words li:hover button {
+  background: #fff;
+  border-bottom-color: var(--ink);
+}
 }
 
 /* The cut light.

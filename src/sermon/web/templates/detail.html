@@ -295,11 +295,84 @@
 
 <section class="waveform">
   <h2>Waveform</h2>
-  {% if view.peaks %}
-  <canvas id="overview" width="1100" height="80"></canvas>
-  <canvas id="detail" width="1100" height="200"></canvas>
-  <script id="recording-data" type="application/json">{{ payload|safe }}</script>
-  <script src="{{ url_for('static', filename='review.js') }}"></script>
+  {% set wave = view.waveform %}
+  {% if wave.available %}
+  <div class="wave" data-role="waveform" data-spans="{{ wave.spans }}" data-duration-seconds="{{ wave.duration_seconds }}" data-overview="{{ wave.overview }}" data-recording="{{ view.recording_id }}">
+    <ol class="ruler">
+    {% for mark in wave.ruler_marks %}
+      <li data-row="ruler-mark" data-ruler-elapsed="{{ mark.elapsed }}" data-ruler-wall-clock="{{ mark.wall_clock }}" style="left:{{ mark.left }}%"><span data-field="ruler-elapsed">{{ mark.elapsed }}</span> <span data-field="ruler-wall-clock">{{ mark.wall_clock }}</span></li>
+    {% endfor %}
+    </ol>
+    <ol class="spans">
+    {% for span in wave.segment_spans %}
+      <li data-row="segment-span" data-segment="{{ span.segment_id }}" data-classification="{{ span.classification }}"{% if span.selected %} data-selected="true"{% endif %} style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.classification }} {{ span.boundaries }}"><span data-field="span-boundaries">{{ span.boundaries }}</span></li>
+    {% endfor %}
+    </ol>
+    <div class="shape">
+      <canvas data-role="overview-canvas" width="1100" height="90"></canvas>
+      {% if wave.cut %}
+      <div class="dim" data-role="de-emphasised" data-side="cut away" style="left:0;width:{{ wave.cut.before_width }}%"></div>
+      <div class="dim" data-role="de-emphasised" data-side="cut away" style="left:{{ wave.cut.after_left }}%;width:{{ wave.cut.after_width }}%"></div>
+      <div class="cut" data-role="highlighted-cut" data-side="kept" style="left:{{ wave.cut.left }}%;width:{{ wave.cut.width }}%"></div>
+      {% endif %}
+      {% if wave.window %}
+      <div class="window" data-role="detail-window" data-window-step="{{ wave.window.step }}" data-window-seconds="{{ wave.window.seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" style="left:{{ wave.window.left }}%;width:{{ wave.window.width }}%"></div>
+      {% endif %}
+      <div class="playhead" data-role="waveform-playhead" data-playhead-seconds="{{ wave.playhead.seconds }}"{% if wave.playhead.against %} data-against-boundary="{{ wave.playhead.against }}" data-playhead-offset-seconds="{{ wave.playhead.offset_seconds }}" data-playhead-offset="{{ wave.playhead.offset }}"{% endif %} style="left:{{ wave.playhead.left }}%"></div>
+    </div>
+    <ol class="boundary-marks">
+    {% for mark in wave.boundary_marks %}
+      <li data-row="boundary-mark" data-role="boundary-mark" data-boundary="{{ mark.boundary }}" data-at="{{ mark.at }}" data-at-seconds="{{ mark.at_seconds }}" data-before="{{ mark.before }}" data-after="{{ mark.after }}" data-window-from="{{ mark.window_from }}" data-window-to="{{ mark.window_to }}"{% if wave.auditioning == mark.boundary %} data-auditioning="true"{% endif %} style="left:{{ mark.left }}%" title="{{ mark.boundary }} at {{ mark.at }} — {{ mark.before }} before, {{ mark.after }} after"><span data-field="mark-boundary">{{ mark.boundary }}</span> <span data-field="mark-at">{{ mark.at }}</span></li>
+    {% endfor %}
+    </ol>
+    <ol class="bands">
+    {% for band in wave.bands %}
+      <li data-row="band" data-band-type="{{ band.type }}" data-band-colour="{{ band.colour }}" data-band-speech="{{ 'true' if band.speech else 'false' }}" data-band-left="{{ band.left }}" data-band-width="{{ band.width }}" style="left:{{ band.left }}%;width:{{ band.width }}%;background:{{ band.colour }}" title="{{ band.type }} {{ band.span }}{% if band.summary %} — {{ band.summary }}{% endif %}"><span data-field="band-span">{{ band.span }}</span><span data-field="band-summary">{{ band.summary or "no summary yet" }}</span></li>
+    {% endfor %}
+    </ol>
+    <ol class="markers">
+    {% for marker in wave.evidence_markers %}
+      <li data-row="evidence-marker" data-evidence-at="{{ marker.at }}" data-evidence-seconds="{{ marker.at_seconds }}" data-evidence-finding="{{ marker.finding }}" data-evidence-implies="{{ marker.implies }}" data-evidence-description="{{ marker.description }}" style="left:{{ marker.left }}%" title="{{ marker.description }}"><a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}centre={{ marker.at_seconds }}" data-role="evidence-seek" data-field="evidence-finding">{{ marker.finding }}</a></li>
+    {% endfor %}
+    </ol>
+    <ol class="speakers">
+    {% for span in wave.speaker_spans %}
+      <li data-row="speaker-span" data-speaker="{{ span.speaker }}" data-speaker-colour="{{ span.colour }}" data-speaker-speech="{{ 'true' if span.speech else 'false' }}" style="left:{{ span.left }}%;width:{{ span.width }}%;background:{{ span.colour }}"><span data-field="speaker-name">{{ span.speaker }}</span></li>
+    {% endfor %}
+    </ol>
+  </div>
+  {% if wave.window %}
+  <div class="detail-view" data-role="detail" data-window-seconds="{{ wave.window.seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-step="{{ wave.window.step }}">
+    <canvas data-role="detail-canvas" width="1100" height="180"></canvas>
+    <ol class="quiet-spans">
+    {% for span in wave.quiet_spans %}
+      <li data-row="quiet-span" data-quiet-from="{{ span.from_seconds }}" data-quiet-to="{{ span.to_seconds }}" data-quiet-seconds="{{ span.seconds }}" data-quiet-at="{{ span.at }}" data-quiet-at-seconds="{{ span.at_seconds }}" style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.seconds }} s of quiet at {{ span.at }}">{% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ span.at }}"><button type="submit" data-field="quiet-control">Cut here</button></form>{% endif %}</li>
+    {% endfor %}
+    </ol>
+    <ol class="words">
+    {% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}
+    {% for word in wave.words %}
+      <li data-row="transcript-word" data-word-at="{{ word.at }}" data-word-at-seconds="{{ word.at_seconds }}" data-word-relation="{{ word.relation }}" data-word-left="{{ word.left }}" style="left:{{ word.left }}%">{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ word.at }}"><button type="submit" data-field="word-text">{{ word.text }}</button></form>{% else %}<span data-field="word-text">{{ word.text }}</span>{% endif %}</li>
+    {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+  <ol class="zoom-steps">
+  {% for step in wave.zoom_steps %}
+    <li data-row="zoom-step" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
+      <a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}zoom={{ step.step|urlencode }}&amp;centre={{ wave.window.centre_seconds if wave.window else 0 }}" data-field="zoom-step-name">{{ step.step }}</a>
+      <span data-field="zoom-step-purpose">{{ step.purpose }}</span>
+      <span data-field="zoom-step-precision">100 ms is {{ step.precision }}, {{ step.verdict }}</span>
+      <span data-field="zoom-step-words">words in view: {{ step.words_in_view }}</span>
+    </li>
+  {% endfor %}
+  </ol>
+  <ol class="peak-sources">
+  {% for source in wave.peak_sources %}
+    <li data-row="peak-source" data-peak-resolution="{{ source.resolution }}" data-peak-url="{{ source.url }}" data-peak-hz="{{ source.hz }}" data-peak-bins="{{ source.bins }}" data-peak-seconds-per-bin="{{ source.seconds_per_bin }}"><span data-field="peak-source">{{ source.resolution }}, {{ source.bins }} min/max pairs, fetched on demand</span></li>
+  {% endfor %}
+  </ol>
+  <script type="module" src="{{ url_for('static', filename='review.js') }}"></script>
   {% else %}
   <p data-field="waveform-state">No waveform has been generated. Blocks and Segments are listed with their timecodes instead of drawn.</p>
   {% endif %}

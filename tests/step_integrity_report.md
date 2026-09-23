@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1190 step definitions read from `tests/steps`
+- 1238 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
-- 44 Gherkin steps matched more than one definition
-- 451 Gherkin steps matched no definition
+- 48 Gherkin steps matched more than one definition
+- 398 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -56,7 +56,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 40 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
@@ -278,20 +278,8 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:135 then I am warned that the cut is too close to the audio`
 - `interface/punch_point_adjustment.feature:136 then I am offered the nearest point with a 250 ms margin`
 - `interface/punch_point_adjustment.feature:137 then I can override the warning if I mean it`
-- `interface/punch_point_adjustment.feature:141 when I zoom in around a boundary`
-- `interface/punch_point_adjustment.feature:142 then spans with at least 250 ms of quiet are visually marked`
-- `interface/punch_point_adjustment.feature:143 then I can drop a boundary into one with a single click`
 - `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
 - `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
-- `interface/punch_point_adjustment.feature:169 when I zoom in around a boundary`
-- `interface/punch_point_adjustment.feature:170 then the transcript words are shown aligned to their position on the waveform`
-- `interface/punch_point_adjustment.feature:171 then I can see exactly which word each boundary falls before or after`
-- `interface/punch_point_adjustment.feature:172 then clicking a word places the boundary at that word`
-- `interface/punch_point_adjustment.feature:176 given I am viewing the whole recording at overview resolution`
-- `interface/punch_point_adjustment.feature:177 then individual words are not drawn`
-- `interface/punch_point_adjustment.feature:178 then the Block types and summaries are shown instead`
-- `interface/punch_point_adjustment.feature:76 then the highlighted region updates`
-- `interface/punch_point_adjustment.feature:77 then the segment length updates to "0:43:15.500"`
 - `interface/recording_detail.feature:49 then I see which stages have completed`
 - `interface/recording_detail.feature:62 when I expand the processing log`
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
@@ -301,7 +289,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
 - `interface/segment_review.feature:105 then approving is available without any further step`
 - `interface/segment_review.feature:106 then boundary editing is available but not required`
-- `interface/segment_review.feature:113 then the waveform editor is opened ready for the adjustment`
 - `interface/segment_review.feature:128 when I press Preview on a Block`
 - `interface/segment_review.feature:129 then playback starts at that Block's cue excerpt`
 - `interface/segment_review.feature:130 then it stops at the end of the excerpt`
@@ -353,50 +340,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:76 then it is processed using its stored boundaries`
 - `interface/segment_review.feature:77 then Analysis does not need to run again`
 - `interface/segment_review.feature:78 then the resulting MP3 is identical to what it would have been in August`
-- `interface/waveform_review.feature:112 then the boundary is marked at the punch-in timecode`
-- `interface/waveform_review.feature:113 then the mark says which boundary it is`
-- `interface/waveform_review.feature:114 then what would be cut away is distinguished from what would be kept`
-- `interface/waveform_review.feature:115 then the playhead is shown against that mark as the audio plays`
-- `interface/waveform_review.feature:150 when I zoom the detail view into the punch-in`
-- `interface/waveform_review.feature:157 when I click a point on the overview`
-- `interface/waveform_review.feature:186 given the punch-out is 0.90 seconds before the next speech`
-- `interface/waveform_review.feature:187 then the gap is shown as "0.90 s"`
-- `interface/waveform_review.feature:188 then it is marked as shorter than the 1.5 second tail the editor prefers`
-- `interface/waveform_review.feature:194 when I zoom into the punch-in`
-- `interface/waveform_review.feature:195 then the waveform resolution increases`
-- `interface/waveform_review.feature:196 then I can distinguish individual words in the waveform`
-- `interface/waveform_review.feature:197 then I can place a boundary to within 100 ms`
-- `interface/waveform_review.feature:201 when I zoom into a boundary`
-- `interface/waveform_review.feature:202 then the transcript words are drawn aligned to the waveform`
-- `interface/waveform_review.feature:203 then I can read exactly what is said either side of the cut`
-- `interface/waveform_review.feature:207 given I have zoomed in`
-- `interface/waveform_review.feature:208 when I choose to fit the whole recording`
-- `interface/waveform_review.feature:209 then the waveform returns to showing the full duration`
-- `interface/waveform_review.feature:210 then all Block bands are visible again`
-- `interface/waveform_review.feature:222 given the visible window is 3 seconds`
-- `interface/waveform_review.feature:222 given the visible window is 30 seconds`
-- `interface/waveform_review.feature:222 given the visible window is 5 minutes`
-- `interface/waveform_review.feature:222 given the visible window is whole recording`
-- `interface/waveform_review.feature:224 then placing a boundary to 100 ms is awkward`
-- `interface/waveform_review.feature:224 then placing a boundary to 100 ms is comfortable`
-- `interface/waveform_review.feature:224 then placing a boundary to 100 ms is impossible`
-- `interface/waveform_review.feature:239 then the transcript is what I read`
-- `interface/waveform_review.feature:241 then the waveform is what I use`
-- `interface/waveform_review.feature:242 then no words are expected in view at that zoom`
-- `interface/waveform_review.feature:248 then its peak data is fetched per recording rather than inlined in the page`
-- `interface/waveform_review.feature:249 then it is served at progressive resolution`
 - `interface/waveform_review.feature:269 given the configured model endpoint does not answer`
 - `interface/waveform_review.feature:270 then reviewing, adjusting and approving continue to work`
 - `interface/waveform_review.feature:271 then only the actions that need a model are shown as unavailable`
 - `interface/waveform_review.feature:272 then the reason names the endpoint rather than blaming the Recording`
-- `interface/waveform_review.feature:278 given the waveform stage failed`
-- `interface/waveform_review.feature:280 then I am told the waveform could not be generated`
-- `interface/waveform_review.feature:281 then playback and the transcript are still available`
-- `interface/waveform_review.feature:282 then Blocks and Segments are listed with their timecodes instead of drawn`
-- `interface/waveform_review.feature:283 then I can still adjust and approve boundaries`
-- `interface/waveform_review.feature:70 then hovering a marker describes the evidence`
-- `interface/waveform_review.feature:71 then clicking a marker seeks the player to that point`
-- `interface/waveform_review.feature:76 then each speaker span is coloured by speaker`
 - `notifications/approval_notifications.feature:171 then no further notifications are sent to them`
 - `notifications/approval_notifications.feature:172 then recordings still appear in the recordings list`
 - `notifications/approval_notifications.feature:37 given no delivery channel is configured`

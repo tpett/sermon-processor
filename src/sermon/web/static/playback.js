@@ -3,7 +3,8 @@
 
   const section = document.querySelector('[data-role="listen"]');
   const audio = document.querySelector('[data-role="preview-audio"]');
-  const marker = document.querySelector('[data-role="playhead-marker"]');
+  const listen = document.querySelector('[data-role="listen"]');
+  const marker = (listen || document).querySelector('[data-role="playhead-marker"]');
   const readout = document.querySelector('[data-field="listen-playhead"]');
   if (!section || !audio) {
     return;

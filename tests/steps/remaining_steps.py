@@ -11,11 +11,13 @@ from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
+from steps._peaks import writes_peaks
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment
 from sermon.web import creates_app
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+SERVICE_SECONDS = 11520.0
 
 
 def ensure_recording(store, **fields):
@@ -85,7 +87,8 @@ def _(store):
 
 @given(parsers.parse('a Segment whose punch-in is graded "{grade}"'), target_fixture="segment")
 def _(store, grade):
-    recording = ensure_recording(store)
+    recording = ensure_recording(store, duration_seconds=SERVICE_SECONDS)
+    writes_peaks(store, recording)
     segment = store.saves(
         Segment(
             recording_id=recording.recording_id,
