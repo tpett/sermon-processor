@@ -16,6 +16,7 @@ from sermon.analysis import (
 )
 from sermon.config import ModelEndpointUnreachable
 from sermon.jobs.generates_preview import GeneratesPreview
+from sermon.pipeline.preview import PreviewUnavailable
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Segment, Store
@@ -121,7 +122,10 @@ class AnalyzesRecording:
             GeneratesWaveformPeaks(store=self.store, clock=self.clock)(recording)
             return
         if name == "preview":
-            GeneratesPreview(store=self.store)(recording)
+            try:
+                GeneratesPreview(store=self.store)(recording)
+            except PreviewUnavailable:
+                return
             return
         if name == "transcription":
             TranscribesRecording(store=self.store)(recording)
