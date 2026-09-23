@@ -302,7 +302,7 @@
     </ol>
     <ol class="bands">
     {% for band in wave.bands %}
-      <li data-row="band" data-band-type="{{ band.type }}" data-band-colour="{{ band.colour }}" data-band-speech="{{ 'true' if band.speech else 'false' }}" data-band-left="{{ band.left }}" data-band-width="{{ band.width }}" style="left:{{ band.left }}%;width:{{ band.width }}%;background:{{ band.colour }}" title="{{ band.type }} {{ band.span }}"><span data-field="band-span">{{ band.span }}</span></li>
+      <li data-row="band" data-band-type="{{ band.type }}" data-band-colour="{{ band.colour }}" data-band-speech="{{ 'true' if band.speech else 'false' }}" data-band-left="{{ band.left }}" data-band-width="{{ band.width }}" style="left:{{ band.left }}%;width:{{ band.width }}%;background:{{ band.colour }}" title="{{ band.type }} {{ band.span }}{% if band.summary %} — {{ band.summary }}{% endif %}"><span data-field="band-span">{{ band.span }}</span><span data-field="band-summary">{{ band.summary or "no summary yet" }}</span></li>
     {% endfor %}
     </ol>
     <ol class="markers">
@@ -320,8 +320,9 @@
   <div class="detail-view" data-role="detail" data-window-seconds="{{ wave.window.seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-step="{{ wave.window.step }}">
     <canvas data-role="detail-canvas" width="1100" height="180"></canvas>
     <ol class="words">
+    {% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}
     {% for word in wave.words %}
-      <li data-row="transcript-word" data-word-at="{{ word.at }}" data-word-at-seconds="{{ word.at_seconds }}" style="left:{{ word.left }}%"><span data-field="word-text">{{ word.text }}</span></li>
+      <li data-row="transcript-word" data-word-at="{{ word.at }}" data-word-at-seconds="{{ word.at_seconds }}" data-word-relation="{{ word.relation }}" data-word-left="{{ word.left }}" style="left:{{ word.left }}%">{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ word.at }}"><button type="submit" data-field="word-text">{{ word.text }}</button></form>{% else %}<span data-field="word-text">{{ word.text }}</span>{% endif %}</li>
     {% endfor %}
     </ol>
   </div>

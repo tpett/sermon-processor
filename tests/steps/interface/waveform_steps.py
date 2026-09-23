@@ -691,3 +691,81 @@ def _(store, segment):
     window = reads_zoom(renders_detail(store, f"?segment={segment.segment_id}"))
     assert window["step"] == "three seconds"
     assert window["center"] == round(segment.punch_in_seconds, 2)
+
+
+@then("the highlighted region updates")
+def _(store, segment):
+    held = store.loads(Segment, segment.segment_id)
+    page = renders_detail(store, f"?segment={segment.segment_id}")
+    duration = float(re.search(r'data-duration-seconds="([0-9.]+)"', page).group(1))
+    highlight = re.search(r'data-role="highlighted-cut"[^>]*', page).group(0)
+    left = float(re.search(r"left:([0-9.]+)%", highlight).group(1))
+    assert abs(left - 100.0 * held.punch_in_seconds / duration) < 0.01
+
+
+@when("I zoom in around a boundary", target_fixture="detail_page")
+def _(store, segment):
+    return renders_detail(
+        store,
+        f"?segment={segment.segment_id}&zoom=thirty+seconds&centre={segment.punch_in_seconds}",
+    )
+
+
+@then("the transcript words are shown aligned to their position on the waveform")
+def _(detail_page):
+    words = reads_rows(detail_page, "transcript-word")
+    assert words
+    assert all(word["word-at"] and word["word-at-seconds"] for word in words)
+    placed = [(float(word["word-at-seconds"]), float(word["word-left"])) for word in words]
+    assert placed == sorted(placed)
+    assert all(0.0 <= left <= 100.0 for _, left in placed)
+
+
+@then("I can see exactly which word each boundary falls before or after")
+def _(detail_page, segment):
+    words = reads_rows(detail_page, "transcript-word")
+    named = {word["word-relation"] for word in words if word["word-relation"]}
+    assert "before the punch-in" in named
+    assert "after the punch-in" in named
+    flanking = {
+        word["word-relation"]: float(word["word-at-seconds"])
+        for word in words
+        if word["word-relation"]
+    }
+    assert flanking["before the punch-in"] <= segment.punch_in_seconds
+    assert flanking["after the punch-in"] > segment.punch_in_seconds
+
+
+@then("clicking a word places the boundary at that word")
+def _(detail_page):
+    for row in re.findall(r'<li data-row="transcript-word".*?</li>', detail_page, re.S):
+        at = re.search(r'data-word-at="([^"]*)"', row).group(1)
+        assert 'name="do" value="set"' in row
+        assert f'name="timecode" value="{at}"' in row
+        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)"', row)
+
+
+@given("I am viewing the whole recording at overview resolution", target_fixture="detail_page")
+def _(store, segment):
+    return renders_detail(store, f"?segment={segment.segment_id}&zoom=whole+recording")
+
+
+@then("individual words are not drawn")
+def _(detail_page):
+    assert reads_zoom(detail_page)["step"] == "whole recording"
+    assert reads_rows(detail_page, "transcript-word") == []
+
+
+@then("the Block types and summaries are shown instead")
+def _(detail_page):
+    bands = reads_rows(detail_page, "band")
+    assert bands
+    assert all(band["band-type"] and band["band-summary"] for band in bands)
+
+
+@then(parsers.parse('the segment length updates to "{length}"'))
+def _(store, segment, length):
+    held = store.loads(Segment, segment.segment_id)
+    page = renders_detail(store, f"?segment={segment.segment_id}")
+    assert abs((held.punch_out_seconds - held.punch_in_seconds) - READS(length)) < 0.005
+    assert reads_field(page, "length") == formats_precise(READS(length))

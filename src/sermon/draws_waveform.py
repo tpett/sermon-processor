@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 
 from sermon.analysis.io import reads_json
@@ -48,10 +48,24 @@ NON_SPEECH_TYPES = ("music", "rehearsal")
 SPEAKER_COLOURS = ("#2f6f4f", "#8a4f9e", "#b06a1f", "#3a6ea5", "#8f3b52")
 NON_SPEECH_SPEAKER_COLOUR = "#c3c7ca"
 WORDS_DRAWN = 120
+WORDS_WINDOW_SECONDS = 30.0
 AUDITION_LEAD_SECONDS = 5.0
 KEPT = "kept"
 CUT_AWAY = "cut away"
 BOUNDARIES = ("punch-in", "punch-out")
+
+
+def relates(words, marks):
+    spoken = list(words)
+    for mark in marks:
+        before = [one for one in spoken if one.at_seconds <= mark.at_seconds]
+        after = [one for one in spoken if one.at_seconds > mark.at_seconds]
+        for word, side in ((before[-1:], "before"), (after[:1], "after")):
+            for one in word:
+                spoken[spoken.index(one)] = replace(
+                    one, relation=f"{side} the {mark.boundary}"
+                )
+    return tuple(spoken)
 
 
 def clamps(value):
@@ -111,6 +125,7 @@ class PeakSource:
 @dataclass(frozen=True)
 class BandView:
     type: str
+    summary: str | None
     colour: str
     speech: bool
     span: str
@@ -150,6 +165,7 @@ class WordView:
     at: str
     at_seconds: float
     left: float
+    relation: str
 
 
 @dataclass(frozen=True)
@@ -270,6 +286,7 @@ class DrawsWaveform:
         duration = recording.duration_seconds or 0.0
         resolutions = ReadsWaveformPeaks(store=self.store)(recording)
         window = self._window(duration, selected, zoom, centre_seconds, needs_placing)
+        marks = self._marks(duration, selected)
         return WaveformView(
             available=bool(resolutions) and duration > 0,
             unavailable_reason=None if resolutions else "no peak data has been generated",
@@ -282,10 +299,10 @@ class DrawsWaveform:
             ruler_marks=self._ruler(recording, duration),
             speaker_spans=self._speakers(recording, duration),
             auditioning=auditioning if auditioning in BOUNDARIES else None,
-            boundary_marks=self._marks(duration, selected),
+            boundary_marks=marks,
             playhead=self._playhead(duration, selected, playhead_seconds),
             evidence_markers=self._evidence(evidence, duration),
-            words=self._words(transcript, window),
+            words=self._words(transcript, window, marks),
             zoom_steps=self._zooms(duration, window),
             window=window,
             cut=self._cut(duration, selected),
@@ -313,6 +330,7 @@ class DrawsWaveform:
             bands.append(
                 BandView(
                     type=block.type,
+                    summary=block.summary,
                     colour=BAND_COLOURS.get(block.type, UNTYPED_COLOUR),
                     speech=block.type not in NON_SPEECH_TYPES,
                     span=(
@@ -457,8 +475,8 @@ class DrawsWaveform:
             )
         return tuple(markers)
 
-    def _words(self, transcript, window):
-        if window is None:
+    def _words(self, transcript, window, marks):
+        if window is None or window.seconds > WORDS_WINDOW_SECONDS:
             return ()
         finish = window.start_seconds + window.seconds
         drawn = []
@@ -473,12 +491,13 @@ class DrawsWaveform:
                 drawn.append(
                     WordView(
                         text=word,
-                        at=formats_clock(at),
+                        at=formats_precise(at),
                         at_seconds=round(at, 2),
                         left=round(clamps(100.0 * (at - window.start_seconds) / window.seconds), 4),
+                        relation="",
                     )
                 )
-        return tuple(drawn[:WORDS_DRAWN])
+        return relates(tuple(drawn[:WORDS_DRAWN]), marks)
 
     def _window(self, duration, selected, zoom, centre_seconds, needs_placing=None):
         if duration <= 0:
