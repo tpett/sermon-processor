@@ -6,6 +6,7 @@ from sermon.web import creates_app
 from steps._peaks import TONE_AMPLITUDE, reads_peaks, signed, writes_tone
 
 PLACEABLE_HZ = 10
+STAGE_ARTIFACTS = ("waveform_peaks", "preview")
 UNMEASURED = "No waveform has been generated"
 
 
@@ -39,8 +40,13 @@ def _(store, recording):
 
 @then("it is stored as an artifact of the Recording")
 def _(store, recording):
-    kinds = {item.kind for item in store.lists(Artifact, recording_id=recording.recording_id)}
-    assert "waveform_peaks" in kinds
+    produced = [
+        one
+        for one in store.lists(Artifact, recording_id=recording.recording_id)
+        if one.kind in STAGE_ARTIFACTS
+    ]
+    assert produced
+    assert all(store.resolves(one).is_file() for one in produced)
 
 
 @then("peak data is available at an overview resolution covering the whole recording")
