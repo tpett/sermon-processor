@@ -1,5 +1,6 @@
 import re
 from datetime import UTC, datetime
+from time import perf_counter
 
 from pytest_bdd import given, parsers, then, when
 
@@ -292,8 +293,23 @@ def _(store):
 
 
 @then("the list is paginated")
-def _(list_page):
-    assert 0 < len(reads_rows(list_page, "recording")) <= 50
+def _(store, list_page):
+    first = reads_rows(list_page, "recording")
+    assert 0 < len(first) <= 50
+    assert reads_field(list_page, "paging").startswith("Page 1 of ")
+    assert reads_field(list_page, "older-page") == "Older recordings"
+    second = reads_rows(renders_list(store, "?page=2"), "recording")
+    assert 0 < len(second) <= 50
+    assert {row["id"] for row in first}.isdisjoint({row["id"] for row in second})
+
+
+@then("the page loads in under 2 seconds")
+def _(store):
+    started = perf_counter()
+    rendered = renders_list(store)
+    elapsed = perf_counter() - started
+    assert reads_rows(rendered, "recording"), rendered
+    assert elapsed < 2.0, f"the list took {elapsed:.3f} s"
 
 
 @given("no Recordings exist")

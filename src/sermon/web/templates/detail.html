@@ -36,6 +36,17 @@
 </section>
 {% endif %}
 
+{% if view.ingest %}
+<section class="ingest" data-role="ingest" data-ingest-outcome="{{ view.ingest.outcome }}" data-ingest-position="{{ view.ingest.position if view.ingest.position is not none else '' }}" data-ingest-queued="{{ view.ingest.queued_count }}">
+  <h2>Processing</h2>
+  <p class="quiet"><span data-field="ingest-standing">{{ view.ingest.standing }}</span></p>
+  <form method="post" action="{{ view.ingest.url }}">
+    <button type="submit" class="primary" data-field="ingest-control">Ingest</button>
+  </form>
+  <p class="quiet" data-field="ingest-explains">Ingest queues the download and the analysis pipeline; the worker does the work, so this page returns straight away.</p>
+</section>
+{% endif %}
+
 <section class="picker">
   <h2>Segments found here</h2>
   {% if view.progress %}

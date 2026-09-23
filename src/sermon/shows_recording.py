@@ -11,7 +11,13 @@ from sermon.adjusts_punch_point import (
 )
 from sermon.analysis.io import reads_json
 from sermon.draws_waveform import DrawsWaveform, WaveformView
-from sermon.lists_recordings import formats_clock, formats_precise, formats_recorded_at
+from sermon.lists_recordings import (
+    IngestView,
+    formats_clock,
+    formats_precise,
+    formats_recorded_at,
+    reads_ingest,
+)
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.store import Artifact, Block, Job, Proposal, Recording, Segment, Store
 from sermon.store import vocabularies
@@ -78,6 +84,11 @@ NOTICES = {
     "restored": "the Recording is restored",
     "archived": "the whole Recording is kept as an archive copy",
     "reanalysis-queued": "Analysis will run again and will not overwrite your work",
+    "ingest-queued": "the download is queued; the worker will fetch it and run the pipeline",
+    "ingest-waiting": (
+        "the download was already queued and is still waiting for the worker"
+    ),
+    "ingest-running": "the download is already running",
     "split": "the Segment is split",
     "merged": "the Segments are merged",
     "created": "the Segment is created",
@@ -356,6 +367,7 @@ class RecordingView:
     processing_progress: str | None
     cut_light: CutLightView | None = None
     proposal: ProposalView | None = None
+    ingest: IngestView | None = None
 
 
 @dataclass(frozen=True)
@@ -535,6 +547,7 @@ class ShowsRecording:
             processing_progress=progress,
             cut_light=cut_light,
             proposal=proposal_view,
+            ingest=reads_ingest(self.store, recording),
         )
 
     def _recording_actions(self, recording):

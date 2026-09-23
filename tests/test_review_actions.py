@@ -1,9 +1,12 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
 
 from sermon.store import Job, LogEntry, Recording, Segment, opens_store
 from sermon.web import creates_app
+
+from steps._markup import reads_field, reads_rows
 
 RECORDING_ID = "recording_20260913_090014"
 
@@ -226,3 +229,75 @@ def test_an_unknown_action_is_not_found(client, recording, segment):
         ).status_code
         == 404
     )
+
+
+@pytest.fixture
+def discovered(store, recording):
+    return store.saves(
+        replace(recording, state="discovered")
+    )
+
+
+def test_the_ingest_control_is_offered_on_a_discovered_recording(client, discovered):
+    page = client.get(f"/recordings/{RECORDING_ID}").get_data(as_text=True)
+    assert reads_field(page, "ingest-control") == "Ingest"
+    assert f"/recordings/{RECORDING_ID}/actions/ingest" in page
+    assert reads_field(page, "ingest-standing") == "Nothing is queued for this Recording yet"
+
+
+def test_the_ingest_control_is_not_offered_once_the_recording_is_past_discovery(
+    client, recording
+):
+    page = client.get(f"/recordings/{RECORDING_ID}").get_data(as_text=True)
+    assert reads_field(page, "ingest-control") is None
+
+
+def test_ingesting_queues_the_download_without_performing_it(data_root, client, discovered):
+    page = follows(client, client.post(f"/recordings/{RECORDING_ID}/actions/ingest"))
+    assert "the download is queued; the worker will fetch it and run the pipeline" in page
+    queued = lists_again(data_root, Job, recording_id=RECORDING_ID, kind="download")
+    assert [(job.state, job.dedupe_key) for job in queued] == [
+        ("queued", f"download:{RECORDING_ID}")
+    ]
+    assert reads_again(data_root, Recording, RECORDING_ID).local_path is None
+    assert reads_again(data_root, Recording, RECORDING_ID).state == "discovered"
+
+
+def test_ingesting_twice_queues_one_download_and_says_it_is_still_waiting(
+    data_root, client, discovered
+):
+    client.post(f"/recordings/{RECORDING_ID}/actions/ingest")
+    page = follows(client, client.post(f"/recordings/{RECORDING_ID}/actions/ingest"))
+    assert "the download was already queued and is still waiting for the worker" in page
+    assert len(lists_again(data_root, Job, recording_id=RECORDING_ID, kind="download")) == 1
+    assert "Queued for download, waiting for the worker — 1 of 1 queued jobs" in page
+
+
+def test_ingesting_while_the_download_runs_says_so(store, client, discovered):
+    store.saves(
+        Job(
+            recording_id=RECORDING_ID,
+            kind="download",
+            state="running",
+            max_attempts=5,
+            dedupe_key=f"download:{RECORDING_ID}",
+            queued_at=datetime(2026, 9, 13, 9, 30, tzinfo=UTC),
+            started_at=datetime(2026, 9, 13, 9, 31, tzinfo=UTC),
+        )
+    )
+    page = follows(client, client.post(f"/recordings/{RECORDING_ID}/actions/ingest"))
+    assert "the download is already running" in page
+
+
+def test_the_list_offers_the_ingest_control_for_a_discovered_recording(client, discovered):
+    rows = reads_rows(client.get("/").get_data(as_text=True), "recording")
+    assert [row["row-ingest-control"] for row in rows] == ["Ingest"]
+    assert [row["ingest"] for row in rows] == ["none"]
+    assert [row["row-ingest-standing"] for row in rows] == [
+        "Nothing is queued for this Recording yet"
+    ]
+
+
+def test_the_ingest_control_stays_off_the_actions_row(client, discovered):
+    page = client.get(f"/recordings/{RECORDING_ID}").get_data(as_text=True)
+    assert [row["action"] for row in reads_rows(page, "action")] == ["Discard"]

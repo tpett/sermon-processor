@@ -13,7 +13,7 @@
 {% if recordings %}
 <ol class="recordings">
 {% for row in recordings %}
-  <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ row.needs_attention|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}">
+  <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ row.needs_attention|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}">
     <a href="/recordings/{{ row.recording_id }}" data-field="recorded-at">{{ row.recorded_at }}</a>
     <span data-field="duration">{{ row.duration }}</span>
     <span data-field="state">{{ row.state }}</span>
@@ -24,9 +24,16 @@
     {% endfor %}
     </span>
     <span data-field="row-awaiting">{{ row.awaiting_disposition }} awaiting</span>
+    {% if row.ingest %}<span class="standing" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
+    <form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}
   </li>
 {% endfor %}
 </ol>
+<nav class="paging" data-role="paging" data-page="{{ paging.page }}" data-pages="{{ paging.pages }}" data-total="{{ paging.total }}">
+  {% if previous_url %}<a href="{{ previous_url }}" data-field="newer-page">Newer recordings</a>{% endif %}
+  <span data-field="paging">Page {{ paging.page }} of {{ paging.pages }}, {{ paging.total }} recordings, newest first</span>
+  {% if next_url %}<a href="{{ next_url }}" data-field="older-page">Older recordings</a>{% endif %}
+</nav>
 {% else %}
 <p data-field="empty">No recordings yet. They appear here once the recorder uploads them.</p>
 {% endif %}
