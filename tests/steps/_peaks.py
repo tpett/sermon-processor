@@ -15,6 +15,8 @@ from sermon.jobs.generates_waveform_peaks import (
 
 TONE_RATE = 4000
 TONE_AMPLITUDE = 0.5
+SYLLABLE_HZ = 3.0
+PHRASE_SECONDS = 7.0
 
 
 def reads_peaks(store, recording):
@@ -29,7 +31,10 @@ def writes_peaks(store, recording):
     seconds = recording.duration_seconds or 0.0
     bins = max(int(seconds * DETAIL_HZ), 1)
     moment = np.arange(bins) / DETAIL_HZ
-    envelope = (0.35 + 0.3 * np.sin(moment / 97.0)) * FULL_SCALE
+    syllables = (0.5 + 0.5 * np.sin(2 * np.pi * SYLLABLE_HZ * moment)) ** 2
+    phrases = np.sin(2 * np.pi * moment / PHRASE_SECONDS)
+    breathing = np.where(phrases > -0.2, 1.0, 0.02)
+    envelope = (0.08 + 0.55 * syllables) * breathing * FULL_SCALE
     detail = Resolution(
         bins=bins,
         seconds_per_bin=1.0 / DETAIL_HZ,

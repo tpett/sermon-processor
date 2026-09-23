@@ -3,10 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import timedelta
 
+import base64
+
+import numpy
+
 from sermon.analysis.io import reads_json
+from sermon.pipeline.audio import quiet_runs
 from sermon.lists_recordings import formats_clock, formats_precise
 from sermon.store import Block, Segment
 
+FULL_SCALE = 127
 CANVAS_PIXELS = 1100
 PRECISION_SECONDS = 0.1
 VERDICT_THRESHOLDS = ((1.0, "impossible"), (10.0, "awkward"))
@@ -50,6 +56,7 @@ NON_SPEECH_SPEAKER_COLOUR = "#c3c7ca"
 WORDS_DRAWN = 120
 WORDS_WINDOW_SECONDS = 30.0
 AUDITION_LEAD_SECONDS = 5.0
+QUIET_SECONDS = 0.25
 KEPT = "kept"
 CUT_AWAY = "cut away"
 BOUNDARIES = ("punch-in", "punch-out")
@@ -191,6 +198,17 @@ class ZoomStep:
 
 
 @dataclass(frozen=True)
+class QuietSpan:
+    from_seconds: float
+    to_seconds: float
+    at: str
+    at_seconds: float
+    seconds: float
+    left: float
+    width: float
+
+
+@dataclass(frozen=True)
 class BoundaryMark:
     boundary: str
     at: str
@@ -246,6 +264,7 @@ class WaveformView:
     speaker_spans: tuple
     auditioning: str | None
     boundary_marks: tuple
+    quiet_spans: tuple
     playhead: PlayheadView
     evidence_markers: tuple
     words: tuple
@@ -263,6 +282,27 @@ class ReadsWaveformPeaks:
         if not payload or not payload.get("measured"):
             return {}
         return payload.get("resolutions") or {}
+
+    def envelope(self, recording, window):
+        detail = self(recording).get("detail")
+        if detail is None:
+            return None
+        hz = int(round(detail["hz"]))
+        if hz <= 0:
+            return None
+        first = max(int(window.start_seconds * hz), 0)
+        last = min(int((window.start_seconds + window.seconds) * hz) + 1, detail["bins"])
+        if last - first < 2:
+            return None
+        full_scale = float(detail.get("full_scale") or FULL_SCALE)
+        lows = decodes(detail["min"])[first:last]
+        highs = decodes(detail["max"])[first:last]
+        loudest = numpy.maximum(numpy.abs(lows), numpy.abs(highs)) / full_scale
+        return loudest, hz, first / hz
+
+
+def decodes(encoded):
+    return numpy.frombuffer(base64.b64decode(encoded), dtype=numpy.int8).astype(numpy.float32)
 
 
 @dataclass(frozen=True)
@@ -300,6 +340,7 @@ class DrawsWaveform:
             speaker_spans=self._speakers(recording, duration),
             auditioning=auditioning if auditioning in BOUNDARIES else None,
             boundary_marks=marks,
+            quiet_spans=self._quiet(recording, window),
             playhead=self._playhead(duration, selected, playhead_seconds),
             evidence_markers=self._evidence(evidence, duration),
             words=self._words(transcript, window, marks),
@@ -458,6 +499,34 @@ class DrawsWaveform:
             offset_seconds=offset,
             offset=f"{offset:+.2f} s",
         )
+
+    def _quiet(self, recording, window):
+        if window is None:
+            return ()
+        loudness = ReadsWaveformPeaks(store=self.store).envelope(recording, window)
+        if loudness is None:
+            return ()
+        levels, hz, start = loudness
+        spans = []
+        for run in quiet_runs(levels, hz, min_seconds=QUIET_SECONDS):
+            began = start + run["start"]
+            ended = start + run["end"]
+            middle = (began + ended) / 2
+            left, width = spans_percent(
+                began - window.start_seconds, ended - window.start_seconds, window.seconds
+            )
+            spans.append(
+                QuietSpan(
+                    from_seconds=round(began, 2),
+                    to_seconds=round(ended, 2),
+                    at=formats_precise(middle),
+                    at_seconds=round(middle, 2),
+                    seconds=round(ended - began, 2),
+                    left=left,
+                    width=width,
+                )
+            )
+        return tuple(spans)
 
     def _evidence(self, evidence, duration):
         markers = []

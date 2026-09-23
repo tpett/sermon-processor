@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1232 step definitions read from `tests/steps`
+- 1234 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 457 non-deferred scenarios rest on at least one condemned step
 - 0 of 598 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 400 Gherkin steps matched no definition
+- 398 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -55,7 +55,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 86 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
@@ -277,8 +277,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:135 then I am warned that the cut is too close to the audio`
 - `interface/punch_point_adjustment.feature:136 then I am offered the nearest point with a 250 ms margin`
 - `interface/punch_point_adjustment.feature:137 then I can override the warning if I mean it`
-- `interface/punch_point_adjustment.feature:142 then spans with at least 250 ms of quiet are visually marked`
-- `interface/punch_point_adjustment.feature:143 then I can drop a boundary into one with a single click`
 - `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
 - `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
 - `interface/recording_detail.feature:49 then I see which stages have completed`

@@ -769,3 +769,23 @@ def _(store, segment, length):
     page = renders_detail(store, f"?segment={segment.segment_id}")
     assert abs((held.punch_out_seconds - held.punch_in_seconds) - READS(length)) < 0.005
     assert reads_field(page, "length") == formats_precise(READS(length))
+
+
+@then("spans with at least 250 ms of quiet are visually marked")
+def _(detail_page):
+    spans = reads_rows(detail_page, "quiet-span")
+    assert spans
+    assert all(float(span["quiet-seconds"]) >= 0.25 for span in spans)
+    assert all(
+        abs(float(span["quiet-to"]) - float(span["quiet-from"]) - float(span["quiet-seconds"])) < 0.01
+        for span in spans
+    )
+
+
+@then("I can drop a boundary into one with a single click")
+def _(detail_page):
+    for row in re.findall(r'<li data-row="quiet-span".*?</li>', detail_page, re.S):
+        at = re.search(r'data-quiet-at="([^"]*)"', row).group(1)
+        assert 'name="do" value="set"' in row
+        assert f'name="timecode" value="{at}"' in row
+        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)"', row)

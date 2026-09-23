@@ -319,6 +319,11 @@
   {% if wave.window %}
   <div class="detail-view" data-role="detail" data-window-seconds="{{ wave.window.seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-step="{{ wave.window.step }}">
     <canvas data-role="detail-canvas" width="1100" height="180"></canvas>
+    <ol class="quiet-spans">
+    {% for span in wave.quiet_spans %}
+      <li data-row="quiet-span" data-quiet-from="{{ span.from_seconds }}" data-quiet-to="{{ span.to_seconds }}" data-quiet-seconds="{{ span.seconds }}" data-quiet-at="{{ span.at }}" data-quiet-at-seconds="{{ span.at_seconds }}" style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.seconds }} s of quiet at {{ span.at }}">{% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ span.at }}"><button type="submit" data-field="quiet-control">Cut here</button></form>{% endif %}</li>
+    {% endfor %}
+    </ol>
     <ol class="words">
     {% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}
     {% for word in wave.words %}
