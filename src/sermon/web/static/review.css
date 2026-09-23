@@ -168,3 +168,72 @@ canvas {
   height: 1rem;
   background: var(--flag);
 }
+
+/* The cut light.
+   Colour keys off data-side, not data-state, because "after" means kept at a
+   punch-in and discarded at a punch-out. Keying off state would paint the
+   punch-out backwards. */
+.cutlight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #c8ccd4;
+  border-radius: 6px;
+  background: #f7f8fa;
+}
+
+.cutlight .lamp {
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: #b9bec8;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.cutlight[data-side="discarded"] .lamp { background: #c9922b; }
+.cutlight[data-side="kept"]      .lamp { background: #2e8b57; }
+.cutlight[data-side="on the cut"] .lamp,
+.cutlight[data-state="at"] .lamp {
+  background: #e8413c;
+  box-shadow: 0 0 0 4px rgba(232, 65, 60, 0.28), inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.cutlight .lamp.struck { animation: cut-strike 320ms ease-out 1; }
+
+@keyframes cut-strike {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(232, 65, 60, 0.6); }
+  40%  { transform: scale(1.18); box-shadow: 0 0 0 10px rgba(232, 65, 60, 0.0); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 4px rgba(232, 65, 60, 0.28); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cutlight .lamp.struck { animation: none; }
+}
+
+.cutlight-text { display: flex; flex-direction: column; }
+.cutlight-text strong { text-transform: none; }
+
+.cutlight-readout {
+  display: flex;
+  flex-direction: column;
+  margin-left: auto;
+  text-align: right;
+}
+
+.cutlight-readout .big {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.cutlight-sides {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: #5a606b;
+}
+
+.cutlight[data-auditioning] { border-color: #e8413c; }

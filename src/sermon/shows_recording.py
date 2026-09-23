@@ -160,6 +160,19 @@ def formats_seconds(seconds):
     return f"{float(seconds):.2f} s"
 
 
+def formats_signed(seconds):
+    """A signed offset, so a reviewer reads which side of the cut they are on.
+
+    U+2212 MINUS SIGN rather than a hyphen: at a glance in a large readout a
+    hyphen reads as a dash, and the sign is the whole point of the number.
+    """
+    value = float(seconds)
+    if abs(value) < 0.005:
+        return "0.00 s"
+    sign = "+" if value > 0 else "\u2212"
+    return f"{sign}{abs(value):.2f} s"
+
+
 def artifact_url(path):
     return f"/api/artifacts/{path}"
 
@@ -213,6 +226,35 @@ class BoundaryView:
     seconds: float
     focused: bool
     url: str
+
+
+# features/interface/waveform_review.feature, "A cut light shows the exact
+# instant". Within this many seconds of the boundary the light reads "at": the
+# instant itself, not a side of it. 50 ms is under the 100 ms the spec calls the
+# placeable precision, so the light never claims the cut before it happens.
+CUT_LIGHT_TOLERANCE_SECONDS = 0.05
+
+
+@dataclass(frozen=True)
+class CutLightView:
+    """Which side of a boundary the playhead is on, and how far off it is.
+
+    A punch-in keeps what follows it and discards what precedes it; a punch-out
+    is the other way round. Getting that backwards would tell the reviewer the
+    wrong thing with total confidence, so the two sides are named per boundary
+    rather than assumed.
+    """
+
+    boundary: str
+    at_seconds: float
+    at: str
+    offset_seconds: float
+    offset: str
+    state: str
+    discards: str
+    keeps: str
+    side: str
+    tolerance_seconds: float
 
 
 @dataclass(frozen=True)
@@ -318,6 +360,7 @@ class RecordingView:
     whole_span_note: str | None
     processing_step: str | None
     processing_progress: str | None
+    cut_light: CutLightView | None = None
     proposal: ProposalView | None = None
 
 
@@ -412,6 +455,7 @@ class ShowsRecording:
             )
         proposal = self._proposal(selected)
         step, progress = self._progress(selected)
+        cut_light = self._cut_light(selected, playhead_seconds)
         proposal_view = None
         if selected is not None:
             proposal_view = self._proposal_view(selected)
@@ -493,6 +537,7 @@ class ShowsRecording:
             ),
             processing_step=step,
             processing_progress=progress,
+            cut_light=cut_light,
             proposal=proposal_view,
         )
 
@@ -556,6 +601,48 @@ class ShowsRecording:
                 ),
             )
             for field, seconds in held
+        )
+
+    def _cut_light(self, selected, playhead_seconds):
+        if selected is None:
+            return None
+        boundaries = (
+            ("punch-in", selected.punch_in_seconds),
+            ("punch-out", selected.punch_out_seconds),
+        )
+        boundary, at = min(
+            boundaries, key=lambda pair: abs(playhead_seconds - pair[1])
+        )
+        offset = playhead_seconds - at
+        if abs(offset) <= CUT_LIGHT_TOLERANCE_SECONDS:
+            state = "at"
+        elif offset < 0:
+            state = "before"
+        else:
+            state = "after"
+        # A punch-in opens the published audio, so what precedes it is thrown
+        # away. A punch-out closes it, so what precedes it is what was kept.
+        if boundary == "punch-in":
+            discards, keeps = "before the cut", "after the cut"
+        else:
+            discards, keeps = "after the cut", "before the cut"
+        if state == "at":
+            side = "on the cut"
+        elif f"{state} the cut" == keeps:
+            side = "kept"
+        else:
+            side = "discarded"
+        return CutLightView(
+            boundary=boundary,
+            at_seconds=at,
+            at=formats_precise(at),
+            offset_seconds=offset,
+            offset=formats_signed(offset),
+            state=state,
+            discards=discards,
+            keeps=keeps,
+            side=side,
+            tolerance_seconds=CUT_LIGHT_TOLERANCE_SECONDS,
         )
 
     def _proposal_view(self, selected):

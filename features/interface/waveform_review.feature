@@ -115,6 +115,20 @@ Feature: Reviewing the waveform
       And the playhead is shown against that mark as the audio plays
 
     @happy-path
+    Scenario: A cut light shows the exact instant
+      # Asked for directly: "come up with a way to show the precise moment the
+      # cut happens during the preview. Like a cut light or other visual
+      # indicator." A mark on the waveform means watching the right pixel; a
+      # light is unmissable while listening. It names the sides because a
+      # punch-in keeps what follows it and a punch-out keeps what precedes it,
+      # and a reviewer told that backwards would trust it.
+      When I choose to preview the punch-in
+      Then a cut light shows the boundary it is tracking and its timecode
+      And it reads the playhead's offset from the cut as a signed number
+      And it says whether the audio now playing would be kept or discarded
+      And it names which side of this boundary is discarded
+
+    @happy-path
     Scenario: Auditioning the whole cut
       # Q26 — more useful now: sampling is how I tell one Segment from another.
       When I choose to preview the cut

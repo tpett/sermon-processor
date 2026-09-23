@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 461 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 462 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -74,7 +74,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
 .venv/bin/python -m pytest                          # full suite: store, pipeline, harness, or before master
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 605 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 606 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -137,7 +137,7 @@ the recorded date.
 
 ## Where the work is now, and what that means for choices
 
-The foundations are done: the harness over all 605 scenarios, the store, config,
+The foundations are done: the harness over all 606 scenarios, the store, config,
 and the validated pipeline extracted and provably unchanged. **Almost nothing is
 implemented** — the spec is still overwhelmingly Red, and turning it green is the
 only work that now matters.
@@ -306,7 +306,13 @@ punch-in half a second late sounds like a clean one if the reviewer cannot see
 which instant was the cut. So `The cut is marked while I audition it` was added
 to `features/interface/waveform_review.feature`.
 
-Pins are now **34 files / 461 scenarios / 142 rules / 605 collected**.
+On the same day they asked for the instant itself to be shown: "come up with a
+way to show the precise moment the cut happens during the preview. Like a cut
+light or other visual indicator." That is a different affordance from a mark on
+the waveform — it is read while listening, not looked at — so
+`A cut light shows the exact instant` was added beside it.
+
+Pins are now **34 files / 462 scenarios / 142 rules / 606 collected**.
 
 A pin moves only when the product owner asks for something the spec does not
 cover, and the move is recorded here with the words that prompted it. An agent

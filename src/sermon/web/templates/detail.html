@@ -57,6 +57,30 @@
     <button type="button" data-role="preview-cut" data-kind="cut" data-in-start="{{ view.preview_windows[0].start_seconds }}" data-in-end="{{ view.preview_windows[0].end_seconds }}" data-out-start="{{ view.preview_windows[1].start_seconds }}" data-out-end="{{ view.preview_windows[1].end_seconds }}">Preview the cut</button>
   {% endif %}
   </p>
+  {% if view.cut_light %}
+  <div class="cutlight" data-role="cut-light"
+       data-boundary="{{ view.cut_light.boundary }}"
+       data-at="{{ view.cut_light.at_seconds }}"
+       data-tolerance="{{ view.cut_light.tolerance_seconds }}"
+       data-discards="{{ view.cut_light.discards }}"
+       data-keeps="{{ view.cut_light.keeps }}"
+       data-state="{{ view.cut_light.state }}">
+    <span class="lamp" data-role="cut-lamp" aria-hidden="true"></span>
+    <span class="cutlight-text">
+      <strong data-field="cut-light-boundary">{{ view.cut_light.boundary }}</strong>
+      <span data-field="cut-light-at">{{ view.cut_light.at }}</span>
+    </span>
+    <span class="cutlight-readout">
+      <span class="big" data-field="cut-light-offset">{{ view.cut_light.offset }}</span>
+      <span data-field="cut-light-state">{{ view.cut_light.state }}</span>
+      <span data-field="cut-light-side">{{ view.cut_light.side }}</span>
+    </span>
+    <span class="cutlight-sides">
+      <span data-field="cut-light-discards">{{ view.cut_light.discards }} is discarded</span>
+      <span data-field="cut-light-keeps">{{ view.cut_light.keeps }} is kept</span>
+    </span>
+  </div>
+  {% endif %}
   <p class="position">
     <span class="track" data-role="playback-track" data-duration="{{ view.preview_duration_seconds or view.duration_seconds }}"><span class="marker" data-role="playhead-marker" data-seconds="{{ view.playhead_seconds }}" style="left: {{ (100.0 * view.playhead_seconds / (view.duration_seconds or 1))|round(4) }}%"></span></span>
     <span class="label">at</span> <span data-field="listen-playhead">{{ view.playhead_seconds|precise }}</span>
@@ -70,6 +94,7 @@
   <p data-field="preview-state">{{ view.preview_unavailable }}</p>
   {% endif %}
   <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='cutlight.js') }}" defer></script>
 </section>
 
 <section class="actions">
