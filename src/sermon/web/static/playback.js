@@ -122,10 +122,17 @@
   });
 
   document.addEventListener("waveform:seek", function (event) {
+    const asked = event.detail || {};
     stopAt = null;
     queued = [];
     endAudition();
-    seekTo(Number((event.detail || {}).seconds) || 0);
+    seekTo(Number(asked.seconds) || 0);
+    if (asked.play) {
+      const started = audio.play();
+      if (started && started.catch) {
+        started.catch(function () {});
+      }
+    }
   });
 
   const controls = '[data-role^="preview-"][data-kind], [data-role="start-at-block"]';
