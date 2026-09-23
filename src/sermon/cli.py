@@ -26,7 +26,12 @@ from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.object_store import FetchesBucketObject, ListsBucketObjects, OpensObjectStore
 from sermon.pipeline.classify import hms
 from sermon.pipeline.roots import RootNotConfigured
-from sermon.reconciles_bucket import ObjectStoreForbidden, ObjectStoreUnreachable, ReconcilesBucket
+from sermon.reconciles_bucket import (
+    DEFAULT_CUTOFF,
+    ObjectStoreForbidden,
+    ObjectStoreUnreachable,
+    ReconcilesBucket,
+)
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
 from sermon.store import (
@@ -113,6 +118,24 @@ def opens_or_reports(settings, lists_objects, prints):
         return None
 
 
+INGEST_CUTOFF = "SERMON_INGEST_CUTOFF"
+
+
+def cutoff_from(environment=None):
+    """The date before which the scan creates no Recording.
+
+    The spec sets it to the Processor's deployment date, and Q7 is why: 'Not
+    needed except for testing. Everything in the old recordings list has already
+    been edited and published.' Without it a first scan of a bucket holding
+    years of services discovers every one of them and queues a download for
+    each -- 39 GiB of already-published audio.
+    """
+    named = (os.environ if environment is None else environment).get(INGEST_CUTOFF)
+    if not named:
+        return DEFAULT_CUTOFF
+    return date.fromisoformat(named)
+
+
 def reconciles(settings=None, lists_objects=None, prints=print):
     opened = opens_or_reports(settings, lists_objects, prints)
     if opened is None:
@@ -123,7 +146,9 @@ def reconciles(settings=None, lists_objects=None, prints=print):
             f"scanning {configuration.object_store.bucket} "
             f"at {configuration.object_store.endpoint}"
         )
-        ReconcilesBucket(store=store, lists_objects=lists_objects)()
+        ReconcilesBucket(
+            store=store, lists_objects=lists_objects, ingest_cutoff=cutoff_from()
+        )()
         scan = store.lists(Discovery, kind="scan")[-1]
         if scan.failure:
             prints(f"the scan failed: {scan.failure}")

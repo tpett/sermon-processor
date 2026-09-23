@@ -20,6 +20,11 @@ def bucket(store, object_store, clock):
     )
 
 
+@given(parsers.parse('it contains a bucket "{name}"'))
+def _():
+    return None
+
+
 @given("the Processor scans the bucket on a schedule")
 def _(store, object_store, clock):
     store._reconciles = bucket(store, object_store, clock)
