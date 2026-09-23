@@ -3,20 +3,38 @@ from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
 
+from sermon.draws_waveform import JudgesZoomPrecision
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Artifact, Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
 from steps._markup import reads_field, reads_rows
+from steps._peaks import (
+    reads_peaks,
+    writes_peaks,
+    writes_speaker_turns,
+    writes_unmeasured_peaks,
+    writes_utterances,
+)
 
 READS = ReadsTimecode()
 HUNDREDTHS = re.compile(r"\d+:\d{2}:\d{2}\.\d{2}")
 BOUNDARY_CLAIMS = ("correct", "accurate", "right boundary", "verified")
-
-
-def peaks_for(duration):
-    count = max(int(duration), 8)
-    return ",".join(str((index % 10) / 10) for index in range(count))
+SPOKEN = (
+    (300.0, 306.0, "good morning and welcome to the class"),
+    (3800.0, 3806.0, "that is where we will pick up next week"),
+    (7215.0, 7219.5, "let us stand together as we sing the final verse"),
+    (7220.2, 7226.0, "open your bibles with me to the letter to the Hebrews"),
+    (7226.5, 7233.0, "and we will begin where we left off last week"),
+    (9805.0, 9811.5, "so let us pray together as we close this morning"),
+    (9812.4, 9818.0, "please stand for the closing hymn"),
+)
+NAMED_WINDOWS = {
+    "whole recording": 11520.0,
+    "5 minutes": 300.0,
+    "30 seconds": 30.0,
+    "3 seconds": 3.0,
+}
 
 
 def renders_detail(store, query=""):
@@ -45,20 +63,8 @@ def _(store, state):
             capture_device="sanctuary-pi-01",
         )
     )
-    store.saves(
-        Artifact(
-            recording_id=recording.recording_id,
-            kind="waveform_peaks",
-            path="peaks.json",
-            size_bytes=count_bytes(11520),
-            checksum=peaks_for(11520),
-        )
-    )
+    writes_peaks(store, recording)
     return recording
-
-
-def count_bytes(duration):
-    return int(duration)
 
 
 @given("it is 3:12:00 long and contains 2 Segments", target_fixture="recording")
@@ -98,6 +104,17 @@ def _(store, recording):
                 ),
             )
         )
+    writes_speaker_turns(
+        store,
+        recording,
+        (
+            {"speaker": "leader", "start": 0.0, "end": 900.0, "speech": True},
+            {"speaker": "band", "start": 900.0, "end": 1800.0, "speech": False},
+            {"speaker": "teacher", "start": 1800.0, "end": 7220.0, "speech": True},
+            {"speaker": "preacher", "start": 7220.0, "end": 11520.0, "speech": True},
+        ),
+    )
+    writes_utterances(store, recording, SPOKEN)
     for index, block_type in enumerate(("music", "prayer", "lesson", "sermon", "communion")):
         store.saves(
             Block(
@@ -180,6 +197,15 @@ def _(store, segment):
 @then("a speaker track is shown beneath the waveform")
 def _(store):
     assert reads_rows(renders_detail(store), "speaker-span")
+
+
+@then("each speaker span is coloured by speaker")
+def _(store):
+    spans = reads_rows(renders_detail(store), "speaker-span")
+    assert spans
+    coloured = {span["speaker"]: span["speaker-colour"] for span in spans}
+    assert all(coloured.values())
+    assert len(set(coloured.values())) == len(coloured)
 
 
 @then("non-speech regions such as music are visually distinct")
@@ -421,3 +447,246 @@ def _(store, segment):
 @then("the punch-out becomes \"{timecode}\"")
 def _(store, segment, timecode):
     assert abs(store.loads(Segment, segment.segment_id).punch_out_seconds - READS(timecode)) < 0.01
+
+
+@given("the waveform stage failed")
+def _(store, recording):
+    writes_unmeasured_peaks(store, recording)
+
+
+@then("I am told the waveform could not be generated")
+def _(detail_page):
+    assert "No waveform has been generated" in reads_field(detail_page, "waveform-state")
+
+
+@then("playback and the transcript are still available")
+def _(detail_page):
+    assert reads_rows(detail_page, "utterance")
+    assert reads_field(detail_page, "audio-source") or reads_field(detail_page, "source-download")
+
+
+@then("Blocks and Segments are listed with their timecodes instead of drawn")
+def _(detail_page):
+    assert 'data-role="waveform"' not in detail_page
+    assert all(block["block-span"] for block in reads_rows(detail_page, "block"))
+    assert all(row["segment-boundaries"] for row in reads_rows(detail_page, "segment"))
+
+
+@then("I can still adjust and approve boundaries")
+def _(detail_page):
+    rows = reads_rows(detail_page, "segment")
+    assert rows
+    assert all(any("segment=" in link for link in row["links"]) for row in rows)
+    assert HUNDREDTHS.fullmatch(reads_field(detail_page, "punch-in") or "")
+
+
+def reads_zoom(page):
+    window = reads_rows(page, "zoom-step")
+    chosen = [step for step in window if step.get("selected") == "true"]
+    marks = re.search(r'data-role="detail-window"[^>]*', page)
+    held = dict(re.findall(r'data-([a-z-]+)="([^"]*)"', marks.group(0))) if marks else {}
+    return {
+        "overview": re.search(r'data-role="waveform" data-spans="[^"]*" data-duration-seconds="[^"]*" data-overview="([a-z]+)"', page).group(1),
+        "detail": held,
+        "center": float(held["window-centre-seconds"]),
+        "step": chosen[0]["zoom-step"] if chosen else None,
+        "window_seconds": float(held["window-seconds"]),
+    }
+
+
+@when("I zoom the detail view into the punch-in", target_fixture="zoom")
+def _(store, segment):
+    page = renders_detail(
+        store, f"?segment={segment.segment_id}&zoom=three+seconds&centre={segment.punch_in_seconds}"
+    )
+    return reads_zoom(page) | {"zoom_unchanged": False}
+
+
+@when("I click a point on the overview", target_fixture="zoom")
+def _(store, segment):
+    before = reads_zoom(renders_detail(store, f"?segment={segment.segment_id}"))
+    after = reads_zoom(renders_detail(store, f"?segment={segment.segment_id}&centre=4000"))
+    return after | {"zoom_unchanged": after["step"] == before["step"]}
+
+
+@then("its peak data is fetched per recording rather than inlined in the page")
+def _(store):
+    page = renders_detail(store)
+    sources = reads_rows(page, "peak-source")
+    recording_id = store.lists(Recording)[0].recording_id
+    assert sources
+    assert all(recording_id in source["peak-url"] for source in sources)
+    assert not re.search(r'"(min|max)":\s*"', page)
+
+
+@then("it is served at progressive resolution")
+def _(store):
+    sources = reads_rows(renders_detail(store), "peak-source")
+    offered = [float(source["peak-hz"]) for source in sources]
+    assert len(offered) > 1
+    assert offered == sorted(offered)
+
+
+@when("I zoom into the punch-in", target_fixture="detail_page")
+def _(store, segment):
+    return renders_detail(
+        store, f"?segment={segment.segment_id}&zoom=three+seconds&centre={segment.punch_in_seconds}"
+    )
+
+
+@when("I zoom into a boundary", target_fixture="detail_page")
+def _(store, segment):
+    return renders_detail(
+        store,
+        f"?segment={segment.segment_id}&zoom=thirty+seconds&centre={segment.punch_in_seconds}",
+    )
+
+
+@then("the waveform resolution increases")
+def _(store, detail_page):
+    window = reads_zoom(detail_page)
+    finest = max(float(source["peak-hz"]) for source in reads_rows(detail_page, "peak-source"))
+    assert window["window_seconds"] < float(
+        re.search(r'data-duration-seconds="([0-9.]+)"', detail_page).group(1)
+    )
+    assert finest * window["window_seconds"] > 10
+
+
+@then("I can distinguish individual words in the waveform")
+def _(store, detail_page):
+    bins_per_second = max(
+        float(source["peak-hz"]) for source in reads_rows(detail_page, "peak-source")
+    )
+    assert bins_per_second >= 10
+
+
+@then("I can place a boundary to within 100 ms")
+def _(detail_page):
+    placing = [
+        step
+        for step in reads_rows(detail_page, "zoom-step")
+        if step["zoom-places-the-cut"] == "true"
+    ]
+    assert placing
+    assert all(step["zoom-verdict"] == "comfortable" for step in placing)
+
+
+@then("the transcript words are drawn aligned to the waveform")
+def _(detail_page):
+    words = reads_rows(detail_page, "transcript-word")
+    assert words
+    assert all(word["word-at"] and word["word-at-seconds"] for word in words)
+
+
+@then("I can read exactly what is said either side of the cut")
+def _(detail_page, segment):
+    words = reads_rows(detail_page, "transcript-word")
+    spoken = [float(word["word-at-seconds"]) for word in words]
+    assert [one for one in spoken if one < segment.punch_in_seconds]
+    assert [one for one in spoken if one > segment.punch_in_seconds]
+
+
+@given("I have zoomed in", target_fixture="zoomed")
+def _(store, segment):
+    return renders_detail(
+        store, f"?segment={segment.segment_id}&zoom=three+seconds&centre={segment.punch_in_seconds}"
+    )
+
+
+@when("I choose to fit the whole recording", target_fixture="detail_page")
+def _(store, segment, zoomed):
+    assert 'data-window-step="three seconds"' in zoomed
+    return renders_detail(store, f"?segment={segment.segment_id}&zoom=whole+recording")
+
+
+@then("the waveform returns to showing the full duration")
+def _(detail_page):
+    window = reads_zoom(detail_page)
+    duration = float(re.search(r'data-duration-seconds="([0-9.]+)"', detail_page).group(1))
+    assert window["step"] == "whole recording"
+    assert window["window_seconds"] == duration
+
+
+@then("all Block bands are visible again")
+def _(store, detail_page):
+    bands = reads_rows(detail_page, "band")
+    assert len(bands) == len(store.lists(Block, recording_id=store.lists(Recording)[0].recording_id))
+    assert all(float(band["band-width"]) > 0 for band in bands)
+
+
+@given(parsers.parse("the visible window is {window}"), target_fixture="window_seconds")
+def _(window):
+    return NAMED_WINDOWS[window]
+
+
+@then(parsers.parse("100 ms is {pixels}"))
+def _(window_seconds, pixels):
+    assert JudgesZoomPrecision()(window_seconds).pixels == pixels
+
+
+@then(parsers.parse("placing a boundary to 100 ms is {verdict}"))
+def _(window_seconds, verdict):
+    assert JudgesZoomPrecision()(window_seconds).verdict == verdict
+
+
+@then("the transcript is what I read")
+def _(store):
+    assert reads_rows(renders_detail(store), "utterance")
+
+
+@then("the waveform is what I use")
+def _(store):
+    assert 'data-role="waveform"' in renders_detail(store)
+
+
+@then("no words are expected in view at that zoom")
+def _(store):
+    placing = [
+        step
+        for step in reads_rows(renders_detail(store), "zoom-step")
+        if step["zoom-places-the-cut"] == "true"
+    ]
+    assert placing
+    assert all(step["zoom-words"] == "none" for step in placing)
+
+
+@then("hovering a marker describes the evidence")
+def _(store):
+    page = renders_detail(store)
+    markers = reads_rows(page, "evidence-marker")
+    assert markers
+    assert all(f'title="{marker["evidence-description"]}"' in page for marker in markers)
+    assert all(marker["evidence-implies"] for marker in markers)
+
+
+@then("clicking a marker seeks the player to that point")
+def _(store):
+    markers = reads_rows(renders_detail(store), "evidence-marker")
+    assert markers
+    assert all(
+        any(f"centre={marker['evidence-seconds']}" in link for link in marker["links"])
+        for marker in markers
+    )
+
+
+@given(parsers.parse("the punch-out is {gap:g} seconds before the next speech"))
+def _(store, recording, segment, gap):
+    speaks = segment.punch_out_seconds + gap
+    writes_utterances(
+        store,
+        recording,
+        tuple(one for one in SPOKEN if one[0] < segment.punch_out_seconds)
+        + ((speaks, speaks + 4.0, "please stand for the closing hymn"),),
+    )
+
+
+@then(parsers.parse('the gap is shown as "{shown}"'))
+def _(store, segment, shown):
+    page = renders_detail(store, f"?segment={segment.segment_id}")
+    assert reads_field(page, "gap") == shown
+
+
+@then("it is marked as shorter than the 1.5 second tail the editor prefers")
+def _(store, segment):
+    page = renders_detail(store, f"?segment={segment.segment_id}")
+    assert "shorter than the 1.5 second tail" in (reads_field(page, "gap-note") or "")
