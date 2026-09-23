@@ -209,3 +209,28 @@ def _(store, recording, detail_page):
     assert [one.state for one in archived] == ["approved"]
     assert reads_field(detail_page, "action-notice") == "the whole Recording is kept as an archive copy"
     assert store.lists(Job, segment_id=archived[0].segment_id, kind="render")
+
+
+@then("I see the failure reason")
+def _(detail_page):
+    assert reads_field(detail_page, "reason") == "transcription timed out"
+
+
+@then("I can retry Analysis")
+def _(store, detail_page):
+    retry = [row for row in reads_rows(detail_page, "action") if row["action"] == "Retry analysis"]
+    assert [row["action-control"] for row in retry] == ["Retry analysis"]
+    recording = store.lists(Recording)[0]
+    assert f"/recordings/{recording.recording_id}/actions/retry-analysis" in detail_page
+
+
+@then("I can create a Segment by hand instead")
+def _(store, detail_page):
+    drawn = [
+        row
+        for row in reads_rows(detail_page, "action")
+        if row["action"] == "Create segment by hand"
+    ]
+    assert [row["action-control"] for row in drawn] == ["Create segment by hand"]
+    recording = store.lists(Recording)[0]
+    assert f"/recordings/{recording.recording_id}/actions/create-segment" in detail_page

@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1160 step definitions read from `tests/steps`
+- 1163 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 456 non-deferred scenarios rest on at least one condemned step
 - 0 of 597 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 44 Gherkin steps matched more than one definition
-- 473 Gherkin steps matched no definition
+- 470 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -51,7 +51,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 21 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 27 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 40 | 0 | sound |
@@ -293,9 +293,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/punch_point_adjustment.feature:76 then the highlighted region updates`
 - `interface/punch_point_adjustment.feature:77 then the segment length updates to "0:43:15.500"`
 - `interface/recording_detail.feature:49 then I see which stages have completed`
-- `interface/recording_detail.feature:56 then I see the failure reason`
-- `interface/recording_detail.feature:57 then I can retry Analysis`
-- `interface/recording_detail.feature:58 then I can create a Segment by hand instead`
 - `interface/recording_detail.feature:62 when I expand the processing log`
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
