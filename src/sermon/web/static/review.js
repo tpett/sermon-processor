@@ -516,6 +516,44 @@ document.querySelectorAll('[data-row="zoom-step"]').forEach((chip) => {
 // The page has always said "the keyboard will move the punch-in". Nothing was
 // listening. The spec calls the keyboard load-bearing because dragging cannot
 // reach 50 ms at any zoom that still shows enough context to be oriented.
+const focusState = document.querySelector('[data-field="focus-state"]');
+
+// Focusing a boundary used to post and reload, which stopped the audio for the
+// same reason zoom did. Which boundary the keyboard moves is a property of the
+// view; the server reads it from the query string, so keeping that in step is
+// all a reload needs.
+function focuses(field) {
+  const rows = [...document.querySelectorAll('[data-row="boundary"]')];
+  if (!rows.length) return false;
+  rows.forEach((row) => {
+    const mine = row.dataset.boundary === field;
+    row.dataset.focused = mine ? "true" : "false";
+    const marker = row.querySelector('[data-field="boundary-focus"]');
+    if (mine && !marker) {
+      const said = document.createElement("span");
+      said.className = "label";
+      said.dataset.field = "boundary-focus";
+      said.textContent = "the keyboard will move this boundary";
+      row.querySelector('[data-field="boundary-at"]').after(said);
+    } else if (!mine && marker) {
+      marker.remove();
+    }
+  });
+  if (focusState) focusState.textContent = `the keyboard will move the ${field}`;
+  const here = new URL(window.location.href);
+  here.searchParams.set("focus", field);
+  window.history.replaceState({}, "", here);
+  return true;
+}
+
+document.querySelectorAll('[data-field="focus-control"]').forEach((control) => {
+  const row = control.closest('[data-row="boundary"]');
+  if (!row) return;
+  control.addEventListener("click", (event) => {
+    if (focuses(row.dataset.boundary)) event.preventDefault();
+  });
+});
+
 const NUDGE_KEYS = { ArrowLeft: "earlier", ArrowRight: "later" };
 
 function nudges(direction, amount) {
