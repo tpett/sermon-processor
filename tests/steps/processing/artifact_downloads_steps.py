@@ -3,8 +3,31 @@ from datetime import UTC, date, datetime
 from pytest_bdd import given, parsers, then, when
 
 from sermon.store import Artifact, Recording, Segment
-from sermon.web import creates_app
+from sermon.web import ARTIFACT_UNAVAILABLE, REPROCESS_OFFER, creates_app
 from steps._markup import reads_rows
+
+
+def serves(store, path, headers=None):
+    app = creates_app(store=store)
+    with app.test_request_context(f"/api/artifacts/{path}", headers=headers or {}):
+        return app.view_functions["artifact_download"](path)
+
+
+def describes_streaming(store, path):
+    response = serves(store, path)
+    described = {
+        "passthrough": response.direct_passthrough,
+        "wrapper": type(response.response).__name__,
+        "buffered": isinstance(response.response, (bytes, bytearray, list, tuple)),
+        "content_length": int(response.headers["Content-Length"]),
+    }
+    response.close()
+    return described
+
+
+def source_path(store):
+    recording = store.lists(Recording)[0]
+    return recording.local_path or recording.object_key
 
 
 @given(
@@ -236,3 +259,77 @@ def _(store, state, punch_in, punch_out):
             label="Hebrews 12.4-11",
         )
     )
+
+
+@then("the file is streamed")
+def _(store):
+    recording = store.lists(Recording)[0]
+    described = describes_streaming(store, source_path(store))
+    assert described["passthrough"] is True
+    assert described["content_length"] == store.resolves(recording).stat().st_size
+
+
+@then("the application does not load the whole file into memory")
+def _(store):
+    described = describes_streaming(store, source_path(store))
+    assert described["buffered"] is False
+    assert described["wrapper"] == "FileWrapper"
+
+
+@given(parsers.parse("a download was interrupted at {megabytes:d} MB"))
+def _(store, megabytes):
+    recording = store.lists(Recording)[0]
+    whole = store.resolves(recording)
+    whole.write_bytes(b"fLaC" + bytes(range(256)) * 16384)
+    store._interrupted_at = min(megabytes * 1024 * 1024, whole.stat().st_size // 2)
+
+
+@when("my browser resumes it")
+def _(store):
+    store._resumed = creates_app(store=store).test_client().get(
+        f"/api/artifacts/{source_path(store)}",
+        headers={"Range": f"bytes={store._interrupted_at}-"},
+    )
+
+
+@then("the download continues from where it stopped")
+def _(store):
+    whole = store.resolves(store.lists(Recording)[0]).read_bytes()
+    offset = store._interrupted_at
+    assert store._resumed.status_code == 206
+    assert store._resumed.headers["Content-Range"] == (
+        f"bytes {offset}-{len(whole) - 1}/{len(whole)}"
+    )
+    assert store._resumed.data == whole[offset:]
+
+
+@given("the rendered MP3 file cannot be found")
+def _(store, segment):
+    for artifact in store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3"):
+        store.resolves(artifact).unlink(missing_ok=True)
+
+
+@then("I am told the artifact is unavailable")
+def _(store):
+    assert store._download_error.status_code == 404
+    assert store._download_error.get_json()["error"] == ARTIFACT_UNAVAILABLE
+
+
+@then("I am offered the option to re-process the Segment")
+def _(store, segment):
+    offered = store._download_error.get_json()
+    assert offered["offered"] == REPROCESS_OFFER
+    assert offered["segment_id"] == segment.segment_id
+
+
+@then("it is fetched from the object store")
+def _(store):
+    recording = store.lists(Recording)[0]
+    assert store._objects.destinations
+    assert store.loads(Recording, recording.recording_id).local_path == recording.object_key
+
+
+@then("the download still succeeds")
+def _(store):
+    assert store._downloaded.status_code == 200
+    assert store._downloaded.data.startswith(b"fLaC")

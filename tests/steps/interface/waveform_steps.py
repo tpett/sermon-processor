@@ -7,6 +7,7 @@ from sermon.extends_segment_span import ReadsTimecode
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Artifact, Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
+from steps import _audio
 from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
@@ -54,6 +55,7 @@ def _(store, state):
             checksum=peaks_for(11520),
         )
     )
+    _audio.registers_preview(store, recording)
     return recording
 
 

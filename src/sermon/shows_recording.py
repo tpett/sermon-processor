@@ -11,6 +11,7 @@ from sermon.adjusts_punch_point import (
 )
 from sermon.analysis.io import reads_json
 from sermon.lists_recordings import formats_clock, formats_recorded_at
+from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.store import Artifact, Block, Job, Proposal, Recording, Segment, Store
 from sermon.store import vocabularies
 
@@ -103,6 +104,13 @@ PROCESSING_STEP = {
     "failed": "processing failed",
     "cancelled": "processing was cancelled",
 }
+# features/interface/waveform_review.feature, "Auditioning a boundary":
+# playback starts 5 seconds before the boundary and stops 5 seconds after it.
+PREVIEW_LEAD_SECONDS = 5.0
+PREVIEW_UNAVAILABLE = (
+    "The seekable preview has not been rendered, so there is nothing to play yet. "
+    "The waveform, the transcript and the boundary controls are unaffected."
+)
 
 RECORDING_ACTIONS = {
     "discovered": "Discard",
@@ -152,6 +160,34 @@ def formats_seconds(seconds):
     return f"{float(seconds):.2f} s"
 
 
+def artifact_url(path):
+    return f"/api/artifacts/{path}"
+
+
+def bounds_window(at_seconds, duration_seconds, lead=PREVIEW_LEAD_SECONDS):
+    start = max(0.0, at_seconds - lead)
+    end = at_seconds + lead
+    if duration_seconds:
+        end = min(float(duration_seconds), end)
+    return start, end
+
+
+@dataclass(frozen=True)
+class PreviewWindow:
+    """One audition: a boundary with the seconds either side of it."""
+
+    kind: str
+    label: str
+    at_seconds: float
+    start_seconds: float
+    end_seconds: float
+
+    @property
+    def length_seconds(self):
+        return self.end_seconds - self.start_seconds
+
+
+
 @dataclass(frozen=True)
 class BlockView:
     block_id: int | None
@@ -160,6 +196,8 @@ class BlockView:
     start_seconds: float
     end_seconds: float
     summary: str | None
+    cue_start_seconds: float | None
+    cue_end_seconds: float | None
 
 
 @dataclass(frozen=True)
@@ -212,6 +250,10 @@ class SegmentView:
     length: str
     confidence: str | None
     state: str
+    punch_in_seconds: float
+    punch_out_seconds: float
+    cue_start_seconds: float | None
+    cue_end_seconds: float | None
 
 
 @dataclass(frozen=True)
@@ -246,6 +288,15 @@ class RecordingView:
     short_tail: bool
     playhead_seconds: float
     preview_kind: str
+    preview_ready: bool
+    preview_url: str | None
+    preview_media_type: str
+    preview_duration_seconds: float | None
+    preview_size_bytes: int | None
+    preview_unavailable: str | None
+    preview_lead_seconds: float
+    preview_windows: tuple
+    cue_excerpts: tuple
     mp3_ready: bool
     transcript: tuple
     selected_transcript: tuple
@@ -310,6 +361,8 @@ class ShowsRecording:
                 start_seconds=block.start_seconds,
                 end_seconds=block.end_seconds,
                 summary=block.summary,
+                cue_start_seconds=block.cue_start_seconds,
+                cue_end_seconds=block.cue_end_seconds,
             )
             for block in sorted(
                 self.store.lists(Block, recording_id=recording_id),
@@ -329,6 +382,27 @@ class ShowsRecording:
             item.state == "complete"
             for item in segments
         )
+        duration_seconds = recording.duration_seconds or 0.0
+        previews = self.store.lists(Artifact, recording_id=recording_id, kind="preview")
+        preview = previews[-1] if previews else None
+        preview_duration = None
+        if preview is not None:
+            preview_duration = (preview.render_settings or {}).get("duration_seconds")
+        windows = ()
+        if selected is not None:
+            windows = tuple(
+                PreviewWindow(
+                    kind=kind,
+                    label=label,
+                    at_seconds=at,
+                    start_seconds=bounds_window(at, duration_seconds)[0],
+                    end_seconds=bounds_window(at, duration_seconds)[1],
+                )
+                for kind, label, at in (
+                    ("punch-in", "Preview the punch-in", selected.punch_in_seconds),
+                    ("punch-out", "Preview the punch-out", selected.punch_out_seconds),
+                )
+            )
         transcript = ()
         doc = reads_json(self.store, recording, "transcript")
         if doc:
@@ -358,9 +432,12 @@ class ShowsRecording:
             channels=recording.channels,
             capture_device=recording.capture_device,
             warnings=recording.warnings,
-            segments=tuple(self._segment(segment) for segment in segments),
+            segments=tuple(
+                self._segment(segment, self.store.lists(Block, recording_id=recording_id))
+                for segment in segments
+            ),
             actions=RECORDING_ACTIONS.get(recording.state, "Discard"),
-            duration_seconds=recording.duration_seconds or 0.0,
+            duration_seconds=duration_seconds,
             peaks=peaks,
             blocks=blocks,
             selected_segment_id=None if selected is None else selected.segment_id,
@@ -376,6 +453,17 @@ class ShowsRecording:
             short_tail=gap is not None and gap < SHORT_TAIL_SECONDS,
             playhead_seconds=playhead_seconds,
             preview_kind="preview",
+            preview_ready=preview is not None,
+            preview_url=None if preview is None else artifact_url(preview.path),
+            preview_media_type=PREVIEW_MEDIA_TYPE,
+            preview_duration_seconds=preview_duration,
+            preview_size_bytes=None if preview is None else preview.size_bytes,
+            preview_unavailable=None if preview is not None else PREVIEW_UNAVAILABLE,
+            preview_lead_seconds=PREVIEW_LEAD_SECONDS,
+            preview_windows=windows,
+            cue_excerpts=tuple(
+                block for block in blocks if block.cue_start_seconds is not None
+            ),
             mp3_ready=mp3_ready,
             transcript=transcript,
             selected_transcript=self._scoped(transcript, selected),
@@ -548,9 +636,26 @@ class ShowsRecording:
             if item[1] > selected.punch_in_seconds and item[0] < selected.punch_out_seconds
         )
 
-    def _segment(self, segment):
+    def _seeding_block(self, blocks, segment):
+        """The Block whose cue excerpt stands for this Segment."""
+        overlapping = [
+            block
+            for block in blocks
+            if block.start_seconds is not None
+            and block.end_seconds is not None
+            and block.end_seconds > segment.span_start_seconds
+            and block.start_seconds < segment.span_end_seconds
+        ]
+        same_type = [block for block in overlapping if block.type == segment.classification]
+        for block in same_type or overlapping:
+            if block.cue_start_seconds is not None:
+                return block
+        return None
+
+    def _segment(self, segment, blocks=()):
         proposals = self.store.lists(Proposal, segment_id=segment.segment_id)
         confidence = proposals[0].classification_confidence if proposals else None
+        seeding = self._seeding_block(blocks, segment)
         return SegmentView(
             segment_id=segment.segment_id,
             classification=segment.classification,
@@ -559,4 +664,8 @@ class ShowsRecording:
             length=formats_clock(segment.punch_out_seconds - segment.punch_in_seconds),
             confidence=confidence,
             state=segment.state,
+            punch_in_seconds=segment.punch_in_seconds,
+            punch_out_seconds=segment.punch_out_seconds,
+            cue_start_seconds=None if seeding is None else seeding.cue_start_seconds,
+            cue_end_seconds=None if seeding is None else seeding.cue_end_seconds,
         )

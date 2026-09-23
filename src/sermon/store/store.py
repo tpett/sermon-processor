@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -69,9 +70,12 @@ def from_column(annotation, value):
 
 
 class Store:
+    """One SQLite connection, serialised: the server answers requests in threads."""
+
     def __init__(self, connection, resolves_stored_path):
         self._connection = connection
         self._resolves_stored_path = resolves_stored_path
+        self._turn = threading.RLock()
 
     def resolves(self, entity):
         table = TABLES[type(entity)]
@@ -84,6 +88,10 @@ class Store:
         self._connection.close()
 
     def saves(self, entity):
+        with self._turn:
+            return self._saves(entity)
+
+    def _saves(self, entity):
         table = TABLES[type(entity)]
         self._guards_paths(table, entity)
         columns = column_names(table)
@@ -112,7 +120,28 @@ class Store:
                 self._writes(collection, identity, getattr(entity, collection.field))
         return replace(entity, **{table.identity: identity})
 
+    def forgets(self, entity):
+        """Remove a stored row and anything hanging off it."""
+        with self._turn:
+            self._forgets(entity)
+
+    def _forgets(self, entity):
+        table = TABLES[type(entity)]
+        identity = getattr(entity, table.identity)
+        with self._connection:
+            for collection in table.collections:
+                self._connection.execute(
+                    f"DELETE FROM {collection.table} WHERE {collection.owner} = ?", (identity,)
+                )
+            self._connection.execute(
+                f"DELETE FROM {table.name} WHERE {table.identity} = ?", (identity,)
+            )
+
     def loads(self, entity_type, identity):
+        with self._turn:
+            return self._loads(entity_type, identity)
+
+    def _loads(self, entity_type, identity):
         table = TABLES[entity_type]
         annotations = get_type_hints(table.entity)
         row = self._connection.execute(
@@ -122,6 +151,10 @@ class Store:
         return self._entity(table, row) if row is not None else None
 
     def lists(self, entity_type, **criteria):
+        with self._turn:
+            return self._lists(entity_type, **criteria)
+
+    def _lists(self, entity_type, **criteria):
         table = TABLES[entity_type]
         unknown = sorted(set(criteria) - set(column_names(table)))
         if unknown:

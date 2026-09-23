@@ -11,10 +11,11 @@ from sermon.settles_recording import SettlesRecording
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Block, Job, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps import _web
+from steps import _audio, _web
 from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
+PREVIEW_SECONDS = 11520.0
 
 
 def renders_detail(store, recording):
@@ -71,6 +72,7 @@ def _(store, state, count, datatable):
                 punch_out_grade="moderate",
             )
         )
+    _audio.registers_preview(store, stored, PREVIEW_SECONDS)
     return stored
 
 
