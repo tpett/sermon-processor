@@ -40,7 +40,7 @@
 {% if view.analysis_stages %}
 <section class="analysis" data-role="analysis-progress">
   <h2>Analysis</h2>
-  <p>running now <span data-field="analysis-stage">{{ view.analysis_stage }}</span></p>
+  <p>{% if view.progress %}running now{% else %}stopped at{% endif %} <span data-field="analysis-stage">{{ view.analysis_stage }}</span></p>
   {% if view.analysis_detail %}
   <p class="mono" data-field="analysis-detail">{{ view.analysis_detail }}</p>
   {% endif %}

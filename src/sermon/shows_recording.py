@@ -43,6 +43,7 @@ ANALYSIS_STAGE_LABELS = {
 
 STAGES_WORTH_SHOWING = frozenset({"analyzing", "analysis_failed"})
 NOT_PICKED_UP_YET = "no stage has started yet; the worker has not picked this up"
+STOPPED_BETWEEN_STAGES = "no stage is in hand; the worker stopped between stages"
 
 SHORT_TAIL_SECONDS = 1.5
 
@@ -213,14 +214,23 @@ def formats_took(seconds):
     return formats_clock(seconds)
 
 
-def running_stage(stages):
-    return next((stage for stage in stages if stage.state == "running"), None)
+def current_stage(stages):
+    """Whichever stage the worker last had in hand, running or failed."""
+    for state in ("running", "failed"):
+        found = next((stage for stage in stages if stage.state == state), None)
+        if found is not None:
+            return found
+    return None
 
 
-def names_running_stage(stages, running):
+def names_current_stage(stages, current):
     if not stages:
         return None
-    return NOT_PICKED_UP_YET if running is None else running.label
+    if current is not None:
+        return current.label
+    if any(stage.state == "complete" for stage in stages):
+        return STOPPED_BETWEEN_STAGES
+    return NOT_PICKED_UP_YET
 
 
 def counts_complete(stages):
@@ -514,7 +524,7 @@ class ShowsRecording:
         proposal = self._proposal(selected)
         step, progress = self._progress(selected)
         stages = self._analysis_stages(recording)
-        running = running_stage(stages)
+        current = current_stage(stages)
         cut_light = self._cut_light(selected, playhead_seconds)
         proposal_view = None
         if selected is not None:
@@ -613,8 +623,8 @@ class ShowsRecording:
             cut_light=cut_light,
             proposal=proposal_view,
             analysis_stages=stages,
-            analysis_stage=names_running_stage(stages, running),
-            analysis_detail=None if running is None else running.detail,
+            analysis_stage=names_current_stage(stages, current),
+            analysis_detail=None if current is None else current.detail,
             analysis_completed=counts_complete(stages),
         )
 
