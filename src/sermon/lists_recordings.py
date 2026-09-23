@@ -20,6 +20,8 @@ CONFIDENCE_RANK = {"high": 0, "medium": 1, "low": 2}
 
 INGEST_STATE = "discovered"
 
+PAGE_SIZE = 50
+
 INGEST_STANDINGS = {
     NOTHING_QUEUED: "Nothing is queued for this Recording yet",
     WAITING: "Queued for download, waiting for the worker",
@@ -91,11 +93,50 @@ class RecordingRow:
 
 
 @dataclass(frozen=True)
+class RecordingPage:
+    rows: tuple
+    page: int
+    pages: int
+    total: int
+    awaiting: int
+    previous: int | None
+    next: int | None
+
+
+def builds_page(rows, page):
+    pages = max(1, -(-len(rows) // PAGE_SIZE))
+    current = min(max(1, page or 1), pages)
+    start = (current - 1) * PAGE_SIZE
+    return RecordingPage(
+        rows=rows[start : start + PAGE_SIZE],
+        page=current,
+        pages=pages,
+        total=len(rows),
+        awaiting=sum(row.awaiting_disposition for row in rows),
+        previous=current - 1 if current > 1 else None,
+        next=current + 1 if current < pages else None,
+    )
+
+
+@dataclass(frozen=True)
 class ListsRecordings:
     store: Store
     clock: object = now
 
-    def __call__(self, *, include_discarded=False, filter_name=None, classification=None, q=None):
+    def __call__(
+        self, *, include_discarded=False, filter_name=None, classification=None, q=None, page=1
+    ):
+        return self.paginates(
+            include_discarded=include_discarded,
+            filter_name=filter_name,
+            classification=classification,
+            q=q,
+            page=page,
+        ).rows
+
+    def paginates(
+        self, *, include_discarded=False, filter_name=None, classification=None, q=None, page=1
+    ):
         recordings = [
             recording
             for recording in self.store.lists(Recording)
@@ -141,7 +182,7 @@ class ListsRecordings:
                 or any(needle in label.lower() for label in row.labels)
                 or any(needle in item[0].lower() for item in row.segments)
             )
-        return rows[:50]
+        return builds_page(rows, page)
 
     def _row(self, recording, queued=()):
         segments = self.store.lists(Segment, recording_id=recording.recording_id)

@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1243 step definitions read from `tests/steps`
+- 1244 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 392 Gherkin steps matched no definition
+- 391 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -54,7 +54,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 24 | 0 | sound |
-| `tests/steps/interface/recording_list_steps.py` | 35 | 0 | sound |
+| `tests/steps/interface/recording_list_steps.py` | 36 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
@@ -280,7 +280,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
 - `interface/recording_detail.feature:65 then I see who performed each human action, against which Segment`
-- `interface/recording_list.feature:130 then the page loads in under 2 seconds`
 - `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
 - `interface/segment_review.feature:105 then approving is available without any further step`
 - `interface/segment_review.feature:106 then boundary editing is available but not required`

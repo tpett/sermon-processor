@@ -106,18 +106,30 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             seconds += int(part) * 60**place
         return seconds
 
+    def reads_page_criteria():
+        return {
+            "include_discarded": request.args.get("discarded") == "1",
+            "filter_name": request.args.get("filter"),
+            "classification": request.args.get("classification"),
+            "q": request.args.get("q"),
+            "page": request.args.get("page", type=int) or 1,
+        }
+
+    def keeps_the_narrowing(number):
+        if number is None:
+            return None
+        return url_for("home", **{**request.args.to_dict(), "page": number})
+
     @app.get("/")
     def home():
-        rows = lists(
-            include_discarded=request.args.get("discarded") == "1",
-            filter_name=request.args.get("filter"),
-            classification=request.args.get("classification"),
-            q=request.args.get("q"),
-        )
+        paged = lists.paginates(**reads_page_criteria())
         return render_template(
             "list.html",
-            recordings=rows,
-            awaiting=sum(row.awaiting_disposition for row in rows),
+            recordings=paged.rows,
+            awaiting=paged.awaiting,
+            paging=paged,
+            previous_url=keeps_the_narrowing(paged.previous),
+            next_url=keeps_the_narrowing(paged.next),
         )
 
     @app.get("/recordings/<recording_id>")
@@ -189,16 +201,13 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
 
     @app.get("/api/recordings")
     def recordings_list():
-        include_discarded = request.args.get("discarded") == "1"
-        rows = lists(
-            include_discarded=include_discarded,
-            filter_name=request.args.get("filter"),
-            classification=request.args.get("classification"),
-            q=request.args.get("q"),
-        )
+        paged = lists.paginates(**reads_page_criteria())
         return {
-            "recordings": [asdict(row) for row in rows],
-            "awaiting_disposition": sum(row.awaiting_disposition for row in rows),
+            "recordings": [asdict(row) for row in paged.rows],
+            "awaiting_disposition": paged.awaiting,
+            "page": paged.page,
+            "pages": paged.pages,
+            "total": paged.total,
         }
 
     def finds_artifact(path):

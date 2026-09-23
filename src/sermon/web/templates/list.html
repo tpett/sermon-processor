@@ -29,6 +29,11 @@
   </li>
 {% endfor %}
 </ol>
+<nav class="paging" data-role="paging" data-page="{{ paging.page }}" data-pages="{{ paging.pages }}" data-total="{{ paging.total }}">
+  {% if previous_url %}<a href="{{ previous_url }}" data-field="newer-page">Newer recordings</a>{% endif %}
+  <span data-field="paging">Page {{ paging.page }} of {{ paging.pages }}, {{ paging.total }} recordings, newest first</span>
+  {% if next_url %}<a href="{{ next_url }}" data-field="older-page">Older recordings</a>{% endif %}
+</nav>
 {% else %}
 <p data-field="empty">No recordings yet. They appear here once the recorder uploads them.</p>
 {% endif %}
