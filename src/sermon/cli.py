@@ -46,6 +46,7 @@ from sermon.store import (
     Segment,
     SkippedObject,
     StoredSchemaDiffers,
+    layout,
     opens_store,
 )
 from sermon.web import creates_app
@@ -487,9 +488,9 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
             # tests/test_pipeline_library.py pins. Production has no corpus, so
             # it lays the directory out and leaves it empty: no file for a
             # recording then means no diarization for it, which is supported.
-            (configuration.data_root / "diarization").mkdir(parents=True, exist_ok=True)
+            layout.diarization_root(configuration.data_root).mkdir(parents=True, exist_ok=True)
             BindsCorpusRoots(
-                corpus_root=configuration.data_root,
+                corpus_root=layout.corpus_root(configuration.data_root),
                 prompts_root=Path(
                     asked.prompts or os.environ.get("SERMON_PROMPTS_ROOT", "prompts")
                 ),
@@ -739,3 +740,4 @@ def proposes(settings=None, prints=print):
         return 0 if found == wanted else 1
     finally:
         store.close()
+
