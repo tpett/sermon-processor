@@ -109,6 +109,19 @@
 </div>
 {% endif %}
 
+{% if view.published %}
+<section class="published">
+  <h2>Published</h2>
+  <p>
+    <a href="{{ view.published.url }}" download data-field="mp3-download">{{ view.published.filename }}</a>
+  </p>
+  <dl>
+    <dt>Size</dt><dd data-field="mp3-size">{{ view.published.size }}</dd>
+    <dt>Length</dt><dd data-field="mp3-length">{{ view.published.length }}</dd>
+  </dl>
+</section>
+{% endif %}
+
 <section class="waveform">
   <div class="stage" data-role="listen" data-recording="{{ view.recording_id }}">
   {% set wave = view.waveform %}

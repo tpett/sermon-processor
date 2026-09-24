@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1245 step definitions read from `tests/steps`
+- 1246 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 458 non-deferred scenarios rest on at least one condemned step
 - 0 of 599 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 390 Gherkin steps matched no definition
+- 389 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -63,7 +63,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py` | 8 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 14 | 0 | sound |
-| `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
+| `tests/steps/processing/artifact_downloads_steps.py` | 26 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
 | `tests/steps/remaining_steps.py` (named) | 130 | 0 | sound |
 
@@ -378,7 +378,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/artifact_downloads.feature:52 then I can read its transcript without downloading anything`
 - `processing/artifact_downloads.feature:53 then the transcript covers the approved span`
 - `processing/artifact_downloads.feature:54 then I can expand to the full Recording transcript`
-- `processing/artifact_downloads.feature:84 then the MP3 download is not offered`
 - `processing/audio_rendering.feature:102 given the Segment contains passages 18 dB quieter than the loudest passage`
 - `processing/audio_rendering.feature:104 then the quiet passages are audible at a normal listening volume`
 - `processing/audio_rendering.feature:105 then the loudest passages are not clipped`

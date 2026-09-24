@@ -336,6 +336,16 @@ class CutLightView:
 
 
 @dataclass(frozen=True)
+class PublishedView:
+    """The finished MP3, offered only once there is one."""
+
+    url: str
+    filename: str
+    size: str
+    length: str
+
+
+@dataclass(frozen=True)
 class CheckView:
     point: str
     grade: str
@@ -447,6 +457,7 @@ class RecordingView:
     processing_step: str | None
     processing_progress: str | None
     cut_light: CutLightView | None = None
+    published: PublishedView | None = None
     proposal: ProposalView | None = None
     ingest: IngestView | None = None
     analysis_stages: tuple = ()
@@ -633,6 +644,7 @@ class ShowsRecording:
             processing_step=step,
             processing_progress=progress,
             cut_light=cut_light,
+            published=self._published(selected),
             proposal=proposal_view,
             ingest=reads_ingest(self.store, recording),
             analysis_stages=stages,
@@ -715,6 +727,26 @@ class ShowsRecording:
             start for start, _, _, _ in transcript if start > selected.punch_out_seconds
         ]
         return min(follows) - selected.punch_out_seconds if follows else None
+
+    def _published(self, selected):
+        # artifact_downloads.feature offers it only for a finished Segment: a
+        # link to a file that is still rendering is worse than no link.
+        if selected is None or selected.state != "complete":
+            return None
+        rendered = [
+            item
+            for item in self.store.lists(Artifact, segment_id=selected.segment_id)
+            if item.kind == "rendered_mp3"
+        ]
+        if not rendered:
+            return None
+        mp3 = rendered[-1]
+        return PublishedView(
+            url=artifact_url(mp3.path),
+            filename=PurePosixPath(mp3.path).name,
+            size=formats_size(mp3.size_bytes or 0),
+            length=formats_clock(selected.punch_out_seconds - selected.punch_in_seconds),
+        )
 
     def _cut_light(self, selected, playhead_seconds):
         if selected is None:

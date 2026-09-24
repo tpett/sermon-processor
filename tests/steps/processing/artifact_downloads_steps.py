@@ -4,7 +4,7 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.store import Artifact, Recording, Segment
 from sermon.web import ARTIFACT_UNAVAILABLE, REPROCESS_OFFER, creates_app
-from steps._markup import reads_rows
+from steps._markup import reads_field, reads_links, reads_rows
 
 
 def serves(store, path, headers=None):
@@ -99,10 +99,26 @@ def _(store, segment, label):
     return store.saves(replace(segment, label=label))
 
 
+def opens_the_segment(store, segment):
+    return (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        .get_data(as_text=True)
+    )
+
+
 @then("I can download the rendered MP3")
 def _(store, segment):
+    # The scenario says "When I open the Segment", so the page has to offer it:
+    # a working route nobody can reach is not a download.
+    page = opens_the_segment(store, segment)
+    offered = reads_field(page, "mp3-download")
+    assert offered, "the page offers no MP3 download"
     artifacts = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
-    response = creates_app(store=store).test_client().get(f"/api/artifacts/{artifacts[0].path}")
+    link = f"/api/artifacts/{artifacts[0].path}"
+    assert link in reads_links(page), reads_links(page)
+    response = creates_app(store=store).test_client().get(link)
     assert response.status_code == 200
     assert response.data == b"mp3-stub-bytes"
 
@@ -115,8 +131,19 @@ def _(store, segment, filename):
 
 @then("the file size and duration are shown before I download")
 def _(store, segment):
+    page = opens_the_segment(store, segment)
     artifacts = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
     assert artifacts[0].size_bytes > 0
+    assert reads_field(page, "mp3-size"), "the page shows no file size"
+    assert reads_field(page, "mp3-length"), "the page shows no duration"
+
+
+@then("the MP3 download is not offered")
+def _(store, segment):
+    page = opens_the_segment(store, segment)
+    assert reads_field(page, "mp3-download") is None, (
+        f"a {segment.state} Segment must not offer a download"
+    )
 
 
 @then("I can download the original untrimmed FLAC")
