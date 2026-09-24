@@ -10,11 +10,15 @@ RUN apt-get update \
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     SERMON_DATA_ROOT=/data \
-    HF_HOME=/models
+    HF_HOME=/models \
+    SERMON_PROMPTS_ROOT=/app/prompts
 
 WORKDIR /app
 COPY pyproject.toml ./
 COPY src/ ./src/
+# The classifier reads its prompt templates at runtime; without them the
+# block-classification stage raises RootNotConfigured.
+COPY experiments/prompts/ ./prompts/
 RUN pip install --no-cache-dir .
 
 # The whisper weights are ~1.5 GB and are NOT baked in: they live on a mounted

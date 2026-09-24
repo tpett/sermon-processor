@@ -9,6 +9,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sermon.analysis import MeasuresBoundaryError, ProposesFromStoredTranscript, ReadsStoredTranscript
+from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
@@ -426,11 +427,13 @@ def parses_work_command(arguments, prints):
 
 
 def analyses_for(store, asked, prints):
-    """The analyze handler, or nothing when this worker cannot do analysis.
+    """The corpus shortcut, or None to walk the stages.
 
-    Analysis still reads its transcript from a corpus directory, so without one
-    there is nothing for it to read. Saying so once beats failing every analyze
-    job five times to discover it.
+    None is the production path and the one that transcribes: AnalyzesRecording
+    reads `if self.analyses is not None: self.analyses(...)` and otherwise walks
+    STAGE_ORDER, and TranscribesRecording is only reached inside that walk. A
+    corpus is the spike's shortcut -- it reads a transcript somebody already
+    made -- so naming one is an override, never the default.
     """
     if not asked.corpus:
         return None
@@ -439,14 +442,6 @@ def analyses_for(store, asked, prints):
     return ProposesFromStoredTranscript(
         store=store, corpus_root=corpus, prompts_root=prompts
     )
-
-
-def refuses_analysis(prints):
-    def refuse():
-        prints("analyze: no corpus is configured, so no transcript can be read")
-        raise SystemExit(1)
-
-    return refuse
 
 
 def drains(runs, asked, prints, sleeps):
@@ -483,8 +478,16 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
         for job in recovered:
             prints(f"requeued {job.kind} job {job.job_id}, interrupted mid-run")
         analyses = analyses_for(store, asked, prints)
-        if analyses is not None:
-            BindsModelEndpoint(configuration=configuration)()
+        BindsModelEndpoint(configuration=configuration)()
+        if analyses is None:
+            # The stage walk has no corpus to bind roots from, but the
+            # classifier still reads prompt templates off disk.
+            BindsCorpusRoots(
+                corpus_root=configuration.data_root,
+                prompts_root=Path(
+                    asked.prompts or os.environ.get("SERMON_PROMPTS_ROOT", "prompts")
+                ),
+            )()
         runs = RunsQueuedJobs(
             store=store,
             downloads=RunsDownloadJob(
@@ -501,9 +504,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
                 notifies=SendsNotification(store=store),
                 analyses=analyses,
                 transcribes=transcribes_with(store=store),
-            )
-            if analyses is not None
-            else refuses_analysis(prints),
+            ),
             renders=RunsRenderJob(
                 store=store,
                 steps=lambda _name: None,
