@@ -481,7 +481,13 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
         BindsModelEndpoint(configuration=configuration)()
         if analyses is None:
             # The stage walk has no corpus to bind roots from, but the
-            # classifier still reads prompt templates off disk.
+            # classifier still reads prompt templates off disk, and the pipeline
+            # holds that a root with no diarization directory is a
+            # misconfiguration rather than an absent result -- a distinction
+            # tests/test_pipeline_library.py pins. Production has no corpus, so
+            # it lays the directory out and leaves it empty: no file for a
+            # recording then means no diarization for it, which is supported.
+            (configuration.data_root / "diarization").mkdir(parents=True, exist_ok=True)
             BindsCorpusRoots(
                 corpus_root=configuration.data_root,
                 prompts_root=Path(
