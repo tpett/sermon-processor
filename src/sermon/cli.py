@@ -14,7 +14,7 @@ from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUM
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
-from sermon.config import ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
+from sermon.config import DATA_ROOT, ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
@@ -25,6 +25,7 @@ from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.jobs.renders_mp3 import ChannelsNeedReview, RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.object_store import FetchesBucketObject, ListsBucketObjects, OpensObjectStore
+from sermon.organizes_data_root import IN_PLACE, OrganizesDataRoot
 from sermon.pipeline.classify import hms
 from sermon.pipeline.roots import RootNotConfigured
 from sermon.reconciles_bucket import (
@@ -741,3 +742,59 @@ def proposes(settings=None, prints=print):
     finally:
         store.close()
 
+
+ORGANIZE_USAGE = "sermon-organize [--dry-run]"
+
+
+def parses_organize_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-organize", usage=ORGANIZE_USAGE, add_help=False)
+    parser.add_argument("--dry-run", action="store_true")
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {ORGANIZE_USAGE}")
+        return None
+
+
+def reports_relocations(relocations, prints):
+    counted = {}
+    for relocation in relocations:
+        counted[relocation.outcome] = counted.get(relocation.outcome, 0) + 1
+        if relocation.outcome != IN_PLACE:
+            prints(str(relocation))
+    for outcome in sorted(counted):
+        prints(f"{counted[outcome]} {outcome}")
+    return 1 if any(outcome.startswith("refused") for outcome in counted) else 0
+
+
+def organizes(settings=None, arguments=None, prints=print):
+    """Move a data root onto the layout, rows and files together.
+
+    Nothing else migrates a database here, so this is the one command that
+    rewrites stored rows. It is idempotent: a second run reports only `in place`.
+    """
+    asked = parses_organize_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    settings = resolves_settings() if settings is None else settings
+    root = settings.get(DATA_ROOT)
+    if not root:
+        prints(f"nothing sets {DATA_ROOT}")
+        return 1
+    data_root = Path(root)
+    if not data_root.is_absolute():
+        prints(f"{DATA_ROOT} is {root!r}, which moves with the working directory")
+        return 1
+    try:
+        store = opens_store(data_root)
+    except StoredSchemaDiffers as stale:
+        prints(str(stale))
+        return 1
+    try:
+        prints(f"{'reading' if asked.dry_run else 'organizing'} {data_root}")
+        return reports_relocations(
+            OrganizesDataRoot(store=store, data_root=data_root, dry_run=asked.dry_run)(),
+            prints,
+        )
+    finally:
+        store.close()
