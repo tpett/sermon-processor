@@ -35,7 +35,7 @@ from sermon.shows_recording import ShowsRecording, formats_precise, formats_seco
 from sermon.skips_segment import SkipsSegment
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.splits_segment import NothingToMerge
-from sermon.store import Artifact, Discovery, Job, Recording, Segment
+from sermon.store import Artifact, Discovery, Job, Recording, Segment, layout
 
 
 BOUNDARIES = ("punch-in", "punch-out")
@@ -225,10 +225,11 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
         """Refetch a source whose local copy was cleaned up to save disk."""
         if fetches_object is None or not isinstance(entity, Recording):
             return None
-        destination = store.resolves(replace(entity, local_path=entity.object_key))
+        held = layout.source_path(entity)
+        destination = store.resolves(replace(entity, local_path=held))
         if fetches_object(entity.object_key, destination) is None:
             return None
-        store.saves(replace(entity, local_path=entity.object_key))
+        store.saves(replace(entity, local_path=held))
         return destination if destination.is_file() else None
 
     @app.get("/api/artifacts/<path:path>")

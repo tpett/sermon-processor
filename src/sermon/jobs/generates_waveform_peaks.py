@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 import numpy as np
 
 from sermon.pipeline.render import probe_format
-from sermon.store import Artifact, Store
+from sermon.store import Artifact, Store, layout
 
 OVERVIEW_BINS = 1100
 DETAIL_HZ = 20.0
@@ -133,7 +133,7 @@ class GeneratesWaveformPeaks:
         artifact = Artifact(
             recording_id=recording.recording_id,
             kind="waveform_peaks",
-            path=f"{recording.recording_id}/waveform_peaks.json",
+            path=layout.artifact_path(recording.recording_id, "waveform_peaks"),
             size_bytes=0,
             checksum="",
         )

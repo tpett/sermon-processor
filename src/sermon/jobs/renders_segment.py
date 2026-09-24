@@ -9,7 +9,7 @@ from sermon.jobs.renders_mp3 import (
     refuses_unsettled_stereo,
 )
 from sermon.records_publication_details import names_rendered_mp3
-from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store
+from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store, layout
 
 
 def now():
@@ -89,7 +89,7 @@ class RendersSegment:
             recording_id=segment.recording_id,
             segment_id=segment.segment_id,
             kind="rendered_mp3",
-            path=filename,
+            path=layout.published_path(filename),
             size_bytes=1,
             checksum="stub",
         )

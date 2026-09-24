@@ -1,3 +1,4 @@
+from . import layout
 from .entities import (
     Artifact,
     Block,
@@ -30,6 +31,7 @@ __all__ = [
     "Discovery",
     "Evidence",
     "Job",
+    "layout",
     "LogEntry",
     "Notification",
     "PathEscapesDataRoot",

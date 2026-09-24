@@ -4,11 +4,11 @@ import hashlib
 import json
 from dataclasses import replace
 
-from sermon.store import Artifact
+from sermon.store import Artifact, layout
 
 
 def writes_json(store, recording, kind, payload):
-    path = f"{recording.recording_id}/{kind}.json"
+    path = layout.artifact_path(recording.recording_id, kind)
     body = json.dumps(payload, sort_keys=True).encode()
     artifact = Artifact(
         recording_id=recording.recording_id,

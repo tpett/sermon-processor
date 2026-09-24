@@ -71,7 +71,7 @@ def test_download_updates_the_already_stored_recording(store):
     downloads(store, object_store())(recording)
     stored = store.loads(Recording, recording.recording_id)
     assert stored.state == "downloaded"
-    assert stored.local_path == OBJECT_KEY
+    assert stored.local_path == "recordings/recording_20260823_103015/source.flac"
     assert stored.sidecar_present is True
     assert stored.duration_seconds == 5412.4
     assert stored.sample_rate == 44100

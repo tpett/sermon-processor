@@ -1,8 +1,9 @@
 from datetime import UTC, date, datetime
+from pathlib import PurePosixPath
 
 from pytest_bdd import given, parsers, then, when
 
-from sermon.store import Artifact, Recording, Segment
+from sermon.store import Artifact, Recording, Segment, layout
 from sermon.web import ARTIFACT_UNAVAILABLE, REPROCESS_OFFER, creates_app
 from steps._markup import reads_field, reads_links, reads_rows
 
@@ -66,7 +67,7 @@ def _(store, state, day):
             label="Hebrews 12.4-11",
         )
     )
-    path = f"{day} - Hebrews 12.4-11.mp3"
+    path = layout.published_path(f"{day} - Hebrews 12.4-11.mp3")
     destination = store.resolves(
         Artifact(
             recording_id=recording.recording_id,
@@ -126,7 +127,7 @@ def _(store, segment):
 @then(parsers.parse('the download filename is "{filename}"'))
 def _(store, segment, filename):
     artifacts = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
-    assert artifacts[0].path == filename
+    assert PurePosixPath(artifacts[0].path).name == filename
 
 
 @then("the file size and duration are shown before I download")
@@ -180,7 +181,7 @@ def _(store, segment, state):
             recording_id=other.recording_id,
             segment_id=other.segment_id,
             kind="rendered_mp3",
-            path="2026-08-23 - TEC.mp3",
+            path=layout.published_path("2026-08-23 - TEC.mp3"),
             size_bytes=8,
             checksum="stub",
         )
@@ -353,7 +354,9 @@ def _(store, segment):
 def _(store):
     recording = store.lists(Recording)[0]
     assert store._objects.destinations
-    assert store.loads(Recording, recording.recording_id).local_path == recording.object_key
+    assert store.loads(Recording, recording.recording_id).local_path == layout.source_path(
+        recording
+    )
 
 
 @then("the download still succeeds")

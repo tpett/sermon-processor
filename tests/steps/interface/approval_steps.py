@@ -6,7 +6,7 @@ from pytest_bdd import given, parsers, then, when
 from sermon.approves_segment import ApprovesSegment
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.shows_recording import NOTICES
-from sermon.store import Job, LogEntry, Proposal, Recording, Segment
+from sermon.store import Job, LogEntry, Proposal, Recording, Segment, layout
 from steps import _web
 from steps._markup import reads_field, reads_rows
 
@@ -231,7 +231,9 @@ def _(store, segment):
     )(store.loads(Segment, segment.segment_id))
     artifact = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")[0]
     recording = store.loads(Recording, segment.recording_id)
-    assert artifact.path == f"{recording.started_at.date().isoformat()}.mp3"
+    assert artifact.path == layout.published_path(
+        f"{recording.started_at.date().isoformat()}.mp3"
+    )
 
 
 @given(parsers.parse('the Segment is classified "{classification}"'), target_fixture="segment")

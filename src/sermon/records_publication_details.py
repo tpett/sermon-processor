@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import date
 
-from sermon.store import Artifact, Store
+from sermon.store import Artifact, Store, layout
 
 
 def names_rendered_mp3(published_on, label=None):
@@ -38,7 +38,7 @@ class RecordsPublicationDetails:
         )
 
     def saves(self, segment, *, publication_date, label, replace_existing=False):
-        path = names_rendered_mp3(publication_date, label)
+        path = layout.published_path(names_rendered_mp3(publication_date, label))
         existing = [
             item
             for item in self.store.lists(Artifact, kind="rendered_mp3")

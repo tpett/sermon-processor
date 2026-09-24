@@ -12,7 +12,7 @@ from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
 from steps._peaks import writes_peaks
-from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment
+from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment, layout
 from sermon.web import creates_app
 
 READS = ReadsTimecode()
@@ -794,7 +794,7 @@ def _(store, segment, label):
 def _(store, filename):
     artifacts = store.lists(Artifact, kind="rendered_mp3")
     assert artifacts
-    assert artifacts[-1].path == filename
+    assert artifacts[-1].path == layout.published_path(filename)
 
 
 @then("I am not asked to type a speaker name for the filename")
