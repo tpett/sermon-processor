@@ -71,13 +71,55 @@ sermon-processor/
 │   ├── pipeline/            extracted from experiments/src
 │   ├── web/                 Flask: API + views
 │   ├── jobs/                the Job table and the worker
-│   └── store/               entities, artifact paths
+│   └── store/               entities, the data-root layout, artifact paths
 ├── client/                  ES modules, Canvas, no build
 ├── tests/
 │   ├── steps/               step definitions — THIN
 │   └── conftest.py
 └── experiments/             frozen. The record of how the numbers were made.
 ```
+
+## The data root
+
+One module, `src/sermon/store/layout.py`, decides where every file goes. Before
+it, each writer picked its own path: sources landed beside their own directories,
+rendered MP3s were loose at the top level, and the pipeline's scratch sat there
+too, reading as a peer of the recordings.
+
+```
+<data root>/
+├── sermon.sqlite3
+├── recordings/<recording_id>/       everything belonging to one Recording
+│   ├── source.flac                  the container the object key named
+│   ├── preview.mp3
+│   ├── transcript.json              one document per artifact kind
+│   ├── waveform_peaks.json
+│   ├── envelope.json
+│   └── analysis_progress.json       written through resolves_path; no row owns it
+├── published/<date> - <label>.mp3   what a human collects, rsyncs or points a browser at
+├── corpus/diarization/              pipeline.segments.DATA_ROOT, pipeline.classify.DATA
+└── models/                          HF_HOME; its own container mount
+```
+
+`corpus/` exists because the pipeline requires a `diarization` directory directly
+beneath whatever those two roots are bound to, and treats a root without one as a
+misconfiguration rather than an empty result. Binding them to `<data root>/corpus`
+keeps that guard intact without a corpus-shaped directory pretending to be a peer
+of the recordings.
+
+The stored path is still the only record of where a file is: `Store.resolves`
+reads it, `ResolvesStoredPath` refuses anything climbing out of the root, and
+`layout` narrows what the writers put there. So moving files means rewriting rows.
+`sermon-organize` does both, file first and row second, which leaves an
+interruption repairable: a row naming a missing file whose destination already
+holds it, which the next run recognises and writes. It is idempotent.
+
+Links handed out before the move still resolve. `/api/artifacts/<path>` falls back
+to the one Artifact whose stored path *ends* with the path asked for, so
+`2026-09-13 - Hebrews 12.25-29.mp3` finds `published/2026-09-13 - …mp3`. Only a
+unique match counts, or `preview.mp3` would resolve to whichever Recording came
+first. The fallback is on the row, not on the old directory, so nothing has to be
+left behind on disk.
 
 ## Two rules that keep the spec primary
 
