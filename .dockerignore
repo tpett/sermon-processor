@@ -3,6 +3,7 @@
 worktrees/
 data/
 experiments/
+!experiments/prompts/
 .beads/
 *.sqlite3
 .playwright-mcp/
