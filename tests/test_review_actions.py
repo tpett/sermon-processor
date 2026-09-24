@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from sermon.store import Job, LogEntry, Recording, Segment, opens_store
+from sermon.store import Block, Job, LogEntry, Recording, Segment, opens_store
 from sermon.web import creates_app
 
 from steps._markup import reads_field, reads_rows
@@ -301,3 +301,97 @@ def test_the_list_offers_the_ingest_control_for_a_discovered_recording(client, d
 def test_the_ingest_control_stays_off_the_actions_row(client, discovered):
     page = client.get(f"/recordings/{RECORDING_ID}").get_data(as_text=True)
     assert [row["action"] for row in reads_rows(page, "action")] == ["Discard"]
+
+
+@pytest.fixture
+def blocks(store, recording):
+    return [
+        store.saves(
+            Block(
+                recording_id=RECORDING_ID,
+                start_seconds=start,
+                end_seconds=end,
+                type=block_type,
+                summary=f"the {block_type}",
+            )
+        )
+        for start, end, block_type in (
+            (1460.0, 1622.0, "prayer"),
+            (7220.0, 9812.0, "sermon"),
+        )
+    ]
+
+
+def block_rows(client):
+    page = client.get(f"/recordings/{RECORDING_ID}").get_data(as_text=True)
+    return reads_rows(page, "block"), page
+
+
+def test_every_block_offers_to_become_a_segment(client, blocks):
+    rows, page = block_rows(client)
+    assert [row["block-create-control"] for row in rows] == [
+        "Create a Segment from this Block",
+        "Create a Segment from this Block",
+    ]
+    assert page.count(f'action="/recordings/{RECORDING_ID}/actions/create-segment"') == 3
+
+
+def test_the_offer_carries_that_blocks_own_boundaries(client, blocks):
+    rows, _ = block_rows(client)
+    assert [(row["create-from"], row["create-to"]) for row in rows] == [
+        ("1460.0", "1622.0"),
+        ("7220.0", "9812.0"),
+    ]
+
+
+def test_the_offer_is_withheld_where_the_recording_cannot_take_one(store, client, blocks, recording):
+    store.saves(replace(recording, state="analyzing"))
+    rows, _ = block_rows(client)
+    assert [row.get("block-create-control") for row in rows] == [None, None]
+
+
+def test_creating_a_segment_from_a_block_stores_that_blocks_boundaries(
+    data_root, client, blocks
+):
+    page = follows(
+        client,
+        client.post(
+            f"/recordings/{RECORDING_ID}/actions/create-segment",
+            data={"from": "1460.0", "to": "1622.0", "classification": "sermon"},
+        ),
+    )
+    assert reads_field(page, "action-notice") == "the Segment is created"
+    stored = lists_again(data_root, Segment, recording_id=RECORDING_ID)
+    assert [
+        (one.punch_in_seconds, one.punch_out_seconds, one.classification, one.state)
+        for one in stored
+    ] == [(1460.0, 1622.0, "sermon", "proposed")]
+    assert stored[0].boundary_source == "human"
+
+
+def test_a_classification_outside_the_vocabulary_creates_nothing(data_root, client, blocks):
+    page = follows(
+        client,
+        client.post(
+            f"/recordings/{RECORDING_ID}/actions/create-segment",
+            data={"from": "1460.0", "to": "1622.0", "classification": "prayer"},
+        ),
+    )
+    assert reads_field(page, "action-notice") == (
+        "that is not a classification a Segment can have"
+    )
+    assert lists_again(data_root, Segment, recording_id=RECORDING_ID) == []
+
+
+def test_the_typed_form_still_creates_a_segment_without_a_classification(data_root, client, recording):
+    follows(
+        client,
+        client.post(
+            f"/recordings/{RECORDING_ID}/actions/create-segment",
+            data={"from": "0:20:00", "to": "1:05:00"},
+        ),
+    )
+    stored = lists_again(data_root, Segment, recording_id=RECORDING_ID)
+    assert [
+        (one.punch_in_seconds, one.punch_out_seconds, one.classification) for one in stored
+    ] == [(1200.0, 3900.0, "sermon")]

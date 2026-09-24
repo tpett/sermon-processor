@@ -36,6 +36,7 @@ from sermon.skips_segment import SkipsSegment
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.splits_segment import NothingToMerge
 from sermon.store import Artifact, Discovery, Job, Recording, Segment
+from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 
 
 BOUNDARIES = ("punch-in", "punch-out")
@@ -105,6 +106,14 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
         for place, part in enumerate(reversed(parts[:-1]), start=1):
             seconds += int(part) * 60**place
         return seconds
+
+    def reads_classification():
+        chosen = request.form.get("classification")
+        if not chosen:
+            return {}
+        if chosen not in SEGMENT_CLASSIFICATIONS:
+            raise ValueError("that is not a classification a Segment can have")
+        return {"classification": chosen}
 
     def reads_page_criteria():
         return {
@@ -403,6 +412,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
                 recording,
                 from_seconds=reads_timecode(request.form["from"]),
                 to_seconds=reads_timecode(request.form["to"]),
+                **reads_classification(),
             )
             return "created"
         if action == "split-segment":

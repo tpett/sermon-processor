@@ -1049,6 +1049,12 @@ canvas {
   font-size: 11px;
 }
 
+.blocks .from-block {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
 .evidence {
   display: flex;
   flex-direction: column;
