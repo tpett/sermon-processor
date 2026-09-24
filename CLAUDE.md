@@ -98,6 +98,7 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-serve       # serve the reviewer's app; SERMON_BIND_HOST, SERMON_PORT
 .venv/bin/sermon-work        # drain the job queue; --once, --limit N, --poll SECONDS
 .venv/bin/sermon-fetch recordings/recording_20260823_103015.flac
+.venv/bin/sermon-organize    # move an old data root onto the layout; --dry-run reports only
 .venv/bin/sermon-render recording_20260823_103015 \
     --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
 .venv/bin/sermon-propose recording_20260412_102318 --corpus experiments/data
@@ -116,6 +117,15 @@ without a second job being enqueued and without refunding the attempt it spent.
 read-only 39 GiB bucket and draining it must never be one keystroke. It handles
 analyze jobs only when given `--corpus`, since analysis still reads its
 transcript from a corpus directory.
+
+`sermon-organize` is the only command that rewrites stored rows. It moves a data
+root laid out by whoever wrote to it first onto the layout `ARCHITECTURE.md`
+describes — sources under `recordings/<id>/source.flac`, rendered MP3s under
+`published/`, the pipeline's `diarization` root under `corpus/` — moving each file
+and then rewriting its row, so an interruption leaves a row naming a missing file
+that a re-run repairs rather than a file nothing can find. It is idempotent: a
+second run prints only `in place`. `--dry-run` reports the whole move and touches
+nothing. It exits non-zero if it refused anything.
 
 `sermon-fetch` streams **one** named object into the data root and measures it,
 printing duration, channels, sample rate, loudness, true peak and a level per

@@ -7,7 +7,7 @@ from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.pipeline import preview as rendition
 from sermon.pipeline.render import probe_format
 from sermon.shows_recording import PREVIEW_LEAD_SECONDS
-from sermon.store import Artifact, Block, Recording, Segment
+from sermon.store import Artifact, Block, Recording, Segment, layout
 from sermon.web import creates_app
 from steps import _audio
 from steps._markup import reads_role
@@ -329,4 +329,6 @@ def _(store, recording):
 def _(store, recording):
     for artifact in only_preview(store, recording.recording_id):
         assert artifact.recording_id == recording.recording_id
-        assert artifact.path.startswith(f"{recording.recording_id}/")
+        assert artifact.path.startswith(
+            f"{layout.recording_directory(recording.recording_id)}/"
+        )

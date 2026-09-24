@@ -118,7 +118,7 @@ def _(store, segment):
 
 @then(parsers.parse('the output file is named "{filename}"'))
 def _(store, processed_segment, filename):
-    from sermon.store import Artifact
+    from sermon.store import Artifact, layout
 
     artifacts = store.lists(Artifact, segment_id=processed_segment.segment_id, kind="rendered_mp3")
-    assert artifacts[0].path == filename
+    assert artifacts[0].path == layout.published_path(filename)

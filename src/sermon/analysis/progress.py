@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from sermon.store import LogEntry
+from sermon.store import LogEntry, layout
 
 
 def now():
@@ -87,7 +87,7 @@ def reads_stage_progress(store, recording):
 
 
 def progress_path(store, recording):
-    return store.resolves_path(f"{recording.recording_id}/{TRANSCRIPTION_PROGRESS}.json")
+    return store.resolves_path(layout.progress_path(recording.recording_id))
 
 
 def writes_transcription_progress(store, recording, payload):

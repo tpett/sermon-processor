@@ -280,7 +280,7 @@ def test_fetching_streams_the_named_object_into_the_data_root(tmp_path):
     objects = bucket_holding_audio(tmp_path)
     assert fetches(settings=settings, object_key=SEEN, fetches_object=objects,
                    lists_objects=objects.lists, prints=RecordsLines()) == 0
-    assert (tmp_path / "data" / SEEN).is_file()
+    assert (tmp_path / "data" / "recordings" / "recording_20260823_103015" / "source.flac").is_file()
 
 
 def test_fetching_probes_what_it_fetched(tmp_path):
@@ -382,7 +382,7 @@ def test_rendering_a_hand_specified_cut_writes_a_named_mp3(tmp_path):
     store = opens_store(str(tmp_path / "data"))
     try:
         artifact = store.lists(Artifact, kind="rendered_mp3")[0]
-        assert artifact.path == "2026-08-23 - Hebrews 12.4-11.mp3"
+        assert artifact.path == "published/2026-08-23 - Hebrews 12.4-11.mp3"
         assert store.resolves(artifact).stat().st_size == artifact.size_bytes > 1000
     finally:
         store.close()

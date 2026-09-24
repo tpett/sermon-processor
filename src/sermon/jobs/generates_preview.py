@@ -7,7 +7,7 @@ from pathlib import Path
 from sermon.pipeline import preview as rendition
 from sermon.pipeline.preview import PreviewUnavailable
 from sermon.pipeline.render import probe_format
-from sermon.store import Artifact, Store
+from sermon.store import Artifact, Store, layout
 
 CHUNK_BYTES = 1 << 20
 
@@ -34,7 +34,7 @@ class GeneratesPreview:
     probes_format: object = probe_format
 
     def path_for(self, recording):
-        return f"{recording.recording_id}/preview{rendition.SUFFIX}"
+        return layout.artifact_path(recording.recording_id, "preview")
 
     def __call__(self, recording):
         source = self.store.resolves(recording)

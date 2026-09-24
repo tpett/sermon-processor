@@ -282,7 +282,7 @@ def test_a_hand_specified_cut_becomes_a_playable_mp3(store, tmp_path):
     segment = approved(store, tmp_path)
     renders(store)(segment)
     artifact = store.lists(Artifact, kind="rendered_mp3")[0]
-    assert artifact.path == "2026-08-23 - Hebrews 12.4-11.mp3"
+    assert artifact.path == "published/2026-08-23 - Hebrews 12.4-11.mp3"
     assert store.resolves(artifact).stat().st_size == artifact.size_bytes > 1000
 
 

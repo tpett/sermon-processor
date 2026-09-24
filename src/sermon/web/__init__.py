@@ -3,7 +3,7 @@ import os
 import shutil
 from dataclasses import asdict, replace
 from datetime import date
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from flask import Flask, redirect, render_template, request, send_file, url_for
 
@@ -35,7 +35,7 @@ from sermon.shows_recording import ShowsRecording, formats_precise, formats_seco
 from sermon.skips_segment import SkipsSegment
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.splits_segment import NothingToMerge
-from sermon.store import Artifact, Discovery, Job, Recording, Segment
+from sermon.store import Artifact, Discovery, Job, Recording, Segment, layout
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 
 
@@ -220,7 +220,8 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
         }
 
     def finds_artifact(path):
-        matching = [item for item in store.lists(Artifact) if item.path == path]
+        artifacts = store.lists(Artifact)
+        matching = [item for item in artifacts if item.path == path]
         if matching:
             return matching[0]
         recordings = [
@@ -228,16 +229,35 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             for item in store.lists(Recording)
             if path in {item.local_path, item.object_key}
         ]
-        return recordings[0] if recordings else None
+        if recordings:
+            return recordings[0]
+        return moved_since(artifacts, path)
+
+    def moved_since(artifacts, path):
+        """A link handed out before the layout was organised.
+
+        The reviewer's MP3s were at the top of the data root and are now under
+        `published/`; a Recording's documents were in `<recording_id>/` and are
+        now under `recordings/`. Those links are in people's hands, so the path
+        they were given is read as the tail of where the artifact lives now.
+        Only one row may claim it: `preview.mp3` alone names every Recording's
+        preview and must not resolve to whichever one is listed first.
+        """
+        wanted = PurePosixPath(path).parts
+        carrying = [
+            item for item in artifacts if PurePosixPath(item.path).parts[-len(wanted):] == wanted
+        ]
+        return carrying[0] if len(carrying) == 1 else None
 
     def restores_from_the_object_store(entity, path):
         """Refetch a source whose local copy was cleaned up to save disk."""
         if fetches_object is None or not isinstance(entity, Recording):
             return None
-        destination = store.resolves(replace(entity, local_path=entity.object_key))
+        held = layout.source_path(entity)
+        destination = store.resolves(replace(entity, local_path=held))
         if fetches_object(entity.object_key, destination) is None:
             return None
-        store.saves(replace(entity, local_path=entity.object_key))
+        store.saves(replace(entity, local_path=held))
         return destination if destination.is_file() else None
 
     @app.get("/api/artifacts/<path:path>")

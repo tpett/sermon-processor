@@ -10,7 +10,7 @@ from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.object_store import FetchedObject
 from sermon.reconciles_bucket import ObjectStoreForbidden, ObjectStoreUnreachable
 from sermon.jobs.probes_recording import AudioNotMeasurable
-from sermon.store import Job, LogEntry, Recording, Store
+from sermon.store import Job, LogEntry, Recording, Store, layout
 
 
 def now():
@@ -153,7 +153,7 @@ class DownloadsRecording:
                 entered_state="downloading",
             )
         )
-        local_path = recording.object_key
+        local_path = layout.source_path(recording)
         destination = self.store.resolves(replace(downloading, local_path=local_path))
         fetched = self.fetches(recording.object_key, destination)
         if fetched is None:
