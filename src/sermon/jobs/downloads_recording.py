@@ -9,6 +9,7 @@ from pathlib import Path
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.object_store import FetchedObject
 from sermon.reconciles_bucket import ObjectStoreForbidden, ObjectStoreUnreachable
+from sermon.jobs.probes_recording import AudioNotMeasurable
 from sermon.store import Job, LogEntry, Recording, Store
 
 
@@ -189,7 +190,15 @@ class DownloadsRecording:
         sidecar = self.fetches(f"{recording.object_key}.meta.json", sidecar_path)
         if sidecar is None:
             sidecar_present = False
-            probed = self.probes(destination)
+            try:
+                probed = self.probes(destination)
+            except AudioNotMeasurable:
+                # A file ffprobe cannot measure is not decodable audio, whatever
+                # left it that way -- a truncated transfer reads exactly like a
+                # corrupt source. Keeping it would fail the same way on every
+                # retry.
+                destination.unlink(missing_ok=True)
+                raise UndecodableAudio from None
             duration_seconds = probed.duration_seconds
             sample_rate = probed.sample_rate
             channels = probed.channels
