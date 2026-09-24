@@ -53,6 +53,10 @@ STOPPED_BETWEEN_STAGES = "no stage is in hand; the worker stopped between stages
 
 SHORT_TAIL_SECONDS = 1.5
 
+# The default CreatesSegment already applies, for a Block type the closed
+# Segment vocabulary cannot name.
+UNNAMED_BLOCK_CLASSIFICATION = "sermon"
+
 RECORDING_ACTION_PATHS = {
     "Discard": "discard",
     "Restore": "restore",
@@ -126,6 +130,9 @@ NOTICES = {
         "a Segment that has already rendered cannot be reopened"
     ),
     "it would overlap the neighbouring Segment": "it would overlap the neighbouring Segment",
+    "that is not a classification a Segment can have": (
+        "that is not a classification a Segment can have"
+    ),
 }
 
 WHOLE_SPAN_NOTE = "the whole span will be kept"
@@ -156,6 +163,12 @@ RECORDING_ACTIONS = {
     "discarded": "Restore",
     "ignored": "Discard",
 }
+
+
+def classifies_block(block_type):
+    if block_type in vocabularies.SEGMENT_CLASSIFICATIONS:
+        return block_type
+    return UNNAMED_BLOCK_CLASSIFICATION
 
 
 def formats_size(size_bytes):
@@ -289,6 +302,7 @@ class BlockView:
     summary: str | None
     cue_start_seconds: float | None
     cue_end_seconds: float | None
+    classification: str
 
 
 @dataclass(frozen=True)
@@ -505,6 +519,7 @@ class ShowsRecording:
                 summary=block.summary,
                 cue_start_seconds=block.cue_start_seconds,
                 cue_end_seconds=block.cue_end_seconds,
+                classification=classifies_block(block.type),
             )
             for block in sorted(
                 self.store.lists(Block, recording_id=recording_id),
