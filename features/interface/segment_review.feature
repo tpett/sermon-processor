@@ -43,6 +43,26 @@ Feature: Reviewing the segments in a recording
       When I dispose of that Segment
       Then the Recording returns to "reviewed"
 
+  Rule: The reviewer has the last word on what a Segment is
+
+    @happy-path
+    Scenario: Correcting what the machine decided a Segment is
+      # The classification is not only a label: it picks the intent a Segment is
+      # approved with, so one called anything but a sermon defaults to archive
+      # rather than publish. Before this the reviewer had no way to correct it.
+      Given a proposed Segment classified "sermon"
+      When I reclassify it as "lesson"
+      Then the Segment is classified "lesson"
+      And the change is recorded against the Segment
+      And its boundaries are unchanged
+
+    @edge-case
+    Scenario: A Segment that has been approved keeps its classification
+      Given a rendered Segment classified "sermon"
+      When I try to reclassify it
+      Then the classification is unchanged
+      And I am told it can no longer be reclassified
+
   Rule: Each segment is dispositioned independently
 
     @happy-path

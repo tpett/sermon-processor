@@ -133,6 +133,10 @@ NOTICES = {
     "that is not a classification a Segment can have": (
         "that is not a classification a Segment can have"
     ),
+    "a Segment that has been approved cannot be reclassified": (
+        "a Segment that has been approved cannot be reclassified"
+    ),
+    "reclassified": "the Segment is reclassified",
 }
 
 WHOLE_SPAN_NOTE = "the whole span will be kept"
@@ -458,6 +462,9 @@ class RecordingView:
     selected_state: str | None
     intent: str | None
     intent_choices: tuple
+    classification: str | None
+    classification_choices: tuple
+    classify_url: str | None
     label: str | None
     boundary_controls: str
     boundaries: tuple
@@ -638,6 +645,9 @@ class ShowsRecording:
             selected_state=None if selected is None else selected.state,
             intent=self._intent(selected),
             intent_choices=vocabularies.SEGMENT_INTENTS,
+            classification=None if selected is None else selected.classification,
+            classification_choices=vocabularies.SEGMENT_CLASSIFICATIONS,
+            classify_url=self._classify_url(selected),
             label=None if selected is None else selected.label,
             boundary_controls=self._boundary_controls(selected),
             boundaries=self._boundaries(selected, focused_boundary),
@@ -703,6 +713,16 @@ class ShowsRecording:
         if selected.intent is not None:
             return selected.intent
         return "publish" if selected.classification == "sermon" else "archive"
+
+    def _classify_url(self, selected):
+        # Mirrors the boundary rule: once a Segment is approved its
+        # classification has already chosen the intent it was approved with.
+        if selected is None or selected.state not in EDITABLE_STATES:
+            return None
+        return (
+            f"/recordings/{selected.recording_id}/segments/"
+            f"{selected.segment_id}/classify"
+        )
 
     def _boundary_controls(self, selected):
         if selected is None:

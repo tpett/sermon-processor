@@ -9,7 +9,7 @@ from sermon.extends_segment_span import ReadsTimecode
 from sermon.reopens_segment import ReopensSegment
 from sermon.settles_recording import SettlesRecording
 from sermon.skips_segment import SkipsSegment
-from sermon.store import Block, Job, Proposal, Recording, Segment
+from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
 from steps import _audio, _web
 from steps._markup import reads_field, reads_rows
@@ -275,3 +275,105 @@ def _(store, revisited, clock):
 def _(store, revisited, detail_page):
     assert reads_field(detail_page, "state") == "reviewed"
     assert store.loads(Recording, revisited.recording_id).state == "reviewed"
+
+
+@given(parsers.parse('a proposed Segment classified "{classification}"'), target_fixture="segment")
+def _(store, classification):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260920_094416",
+            object_key="recordings/recording_20260920_094416.flac",
+            state="awaiting_review",
+            started_at=datetime(2026, 9, 20, 9, 44, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=10000.0,
+        )
+    )
+    return store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification=classification,
+            state="proposed",
+            span_start_seconds=100.0,
+            span_end_seconds=900.0,
+            punch_in_seconds=100.0,
+            punch_out_seconds=900.0,
+        )
+    )
+
+
+@when(parsers.parse('I reclassify it as "{classification}"'), target_fixture="detail_page")
+def _(store, segment, classification):
+    return _web.posts(
+        store,
+        f"/recordings/{segment.recording_id}/segments/{segment.segment_id}/classify",
+        classification=classification,
+    )
+
+
+@then(parsers.parse('the Segment is classified "{classification}"'))
+def _(store, segment, classification):
+    assert store.loads(Segment, segment.segment_id).classification == classification
+
+
+@then("the change is recorded against the Segment")
+def _(store, segment):
+    kinds = [e.kind for e in store.lists(LogEntry, segment_id=segment.segment_id)]
+    assert "classification_change" in kinds, kinds
+
+
+@then("its boundaries are unchanged")
+def _(store, segment):
+    stored = store.loads(Segment, segment.segment_id)
+    assert (stored.punch_in_seconds, stored.punch_out_seconds) == (
+        segment.punch_in_seconds,
+        segment.punch_out_seconds,
+    )
+
+
+@when("I try to reclassify it", target_fixture="detail_page")
+def _(store, segment):
+    return _web.posts(
+        store,
+        f"/recordings/{segment.recording_id}/segments/{segment.segment_id}/classify",
+        classification="meeting",
+    )
+
+
+@then("the classification is unchanged")
+def _(store, segment):
+    assert store.loads(Segment, segment.segment_id).classification == segment.classification
+
+
+@then("I am told it can no longer be reclassified")
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == (
+        "a Segment that has been approved cannot be reclassified"
+    )
+
+
+@given(parsers.parse('a rendered Segment classified "{classification}"'), target_fixture="segment")
+def _(store, classification):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260920_094416",
+            object_key="recordings/recording_20260920_094416.flac",
+            state="reviewed",
+            started_at=datetime(2026, 9, 20, 9, 44, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=10000.0,
+        )
+    )
+    return store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification=classification,
+            state="complete",
+            span_start_seconds=100.0,
+            span_end_seconds=900.0,
+            punch_in_seconds=100.0,
+            punch_out_seconds=900.0,
+        )
+    )

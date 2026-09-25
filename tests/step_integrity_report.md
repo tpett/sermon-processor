@@ -4,10 +4,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1246 step definitions read from `tests/steps`
+- 1255 step definitions read from `tests/steps`
 - 0 condemned
-- 0 of 458 non-deferred scenarios rest on at least one condemned step
-- 0 of 599 expanded scenario tests likewise
+- 0 of 460 non-deferred scenarios rest on at least one condemned step
+- 0 of 601 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
@@ -55,7 +55,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 36 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 28 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 37 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -280,59 +280,59 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
 - `interface/recording_detail.feature:65 then I see who performed each human action, against which Segment`
 - `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
-- `interface/segment_review.feature:105 then approving is available without any further step`
-- `interface/segment_review.feature:106 then boundary editing is available but not required`
-- `interface/segment_review.feature:128 when I press Preview on a Block`
-- `interface/segment_review.feature:129 then playback starts at that Block's cue excerpt`
-- `interface/segment_review.feature:130 then it stops at the end of the excerpt`
-- `interface/segment_review.feature:131 then a few seconds is enough for me to recognise what the Block is`
-- `interface/segment_review.feature:135 when I press Preview on a Segment`
-- `interface/segment_review.feature:136 then playback starts at the cue excerpt of its seeding Block`
-- `interface/segment_review.feature:137 then I can tell whether this is the message I meant to publish`
-- `interface/segment_review.feature:141 when I choose to start playback at a specific Block`
-- `interface/segment_review.feature:142 then playback seeks there rather than to the cue excerpt`
-- `interface/segment_review.feature:147 then all Blocks are drawn on a single waveform of the whole Recording`
-- `interface/segment_review.feature:148 then each is coloured by its type`
-- `interface/segment_review.feature:149 then proposed Segments are drawn as spans above the Blocks they cover`
-- `interface/segment_review.feature:150 then clicking one selects it for review`
-- `interface/segment_review.feature:155 then the Segment most likely to be the sermon is expanded by default`
-- `interface/segment_review.feature:156 then the others are collapsed but visible`
-- `interface/segment_review.feature:160 given I have selected a Segment`
-- `interface/segment_review.feature:161 when I read the transcript`
-- `interface/segment_review.feature:162 then I see the transcript for that Segment`
-- `interface/segment_review.feature:163 then I can expand to the full Recording transcript if I want it`
-- `interface/segment_review.feature:177 then I am told which enrolled voice is teaching, and how confidently`
-- `interface/segment_review.feature:178 then an unrecognised voice is shown as "not a known voice"`
-- `interface/segment_review.feature:182 given a Segment whose teaching voice matches no enrolled profile`
-- `interface/segment_review.feature:183 given its intent is "publish"`
-- `interface/segment_review.feature:185 then I am asked to confirm that this recording may be distributed`
-- `interface/segment_review.feature:186 then the confirmation is recorded with the approval`
-- `interface/segment_review.feature:195 when I confirm or correct who was preaching`
-- `interface/segment_review.feature:196 then that Segment strengthens or creates that speaker's profile`
-- `interface/segment_review.feature:197 then no separate enrolment session is ever required`
-- `interface/segment_review.feature:213 then it still appears as needing attention`
-- `interface/segment_review.feature:214 then I am not forced to disposition everything in one sitting`
-- `interface/segment_review.feature:218 given a Recording in "awaiting_review" containing 0 Segments`
-- `interface/segment_review.feature:220 then I am told nothing was detected`
-- `interface/segment_review.feature:221 then I can create a Segment by hand`
-- `interface/segment_review.feature:222 then I can discard the Recording in one action`
-- `interface/segment_review.feature:232 given a Segment whose cuts are both graded "easy"`
-- `interface/segment_review.feature:233 when I open the notification`
-- `interface/segment_review.feature:234 then I can read the summary`
-- `interface/segment_review.feature:235 then I can preview the punch-in and the punch-out`
-- `interface/segment_review.feature:236 then I can approve`
-- `interface/segment_review.feature:237 then the whole flow works without a waveform`
-- `interface/segment_review.feature:244 then I am told it needs an adjustment better made at a desk`
-- `interface/segment_review.feature:245 then I can still skip it, or approve it as-is if I choose to`
-- `interface/segment_review.feature:246 then I am not offered a cramped editing surface`
-- `interface/segment_review.feature:251 then the waveform, zooming, word alignment and nudge controls are all available`
-- `interface/segment_review.feature:256 when a Segment is complete`
-- `interface/segment_review.feature:257 then I can download the MP3`
-- `interface/segment_review.feature:74 given Segment 1 was skipped on "2026-08-16"`
-- `interface/segment_review.feature:75 when I open the Recording on "2026-11-04" and approve Segment 1`
-- `interface/segment_review.feature:76 then it is processed using its stored boundaries`
-- `interface/segment_review.feature:77 then Analysis does not need to run again`
-- `interface/segment_review.feature:78 then the resulting MP3 is identical to what it would have been in August`
+- `interface/segment_review.feature:125 then approving is available without any further step`
+- `interface/segment_review.feature:126 then boundary editing is available but not required`
+- `interface/segment_review.feature:148 when I press Preview on a Block`
+- `interface/segment_review.feature:149 then playback starts at that Block's cue excerpt`
+- `interface/segment_review.feature:150 then it stops at the end of the excerpt`
+- `interface/segment_review.feature:151 then a few seconds is enough for me to recognise what the Block is`
+- `interface/segment_review.feature:155 when I press Preview on a Segment`
+- `interface/segment_review.feature:156 then playback starts at the cue excerpt of its seeding Block`
+- `interface/segment_review.feature:157 then I can tell whether this is the message I meant to publish`
+- `interface/segment_review.feature:161 when I choose to start playback at a specific Block`
+- `interface/segment_review.feature:162 then playback seeks there rather than to the cue excerpt`
+- `interface/segment_review.feature:167 then all Blocks are drawn on a single waveform of the whole Recording`
+- `interface/segment_review.feature:168 then each is coloured by its type`
+- `interface/segment_review.feature:169 then proposed Segments are drawn as spans above the Blocks they cover`
+- `interface/segment_review.feature:170 then clicking one selects it for review`
+- `interface/segment_review.feature:175 then the Segment most likely to be the sermon is expanded by default`
+- `interface/segment_review.feature:176 then the others are collapsed but visible`
+- `interface/segment_review.feature:180 given I have selected a Segment`
+- `interface/segment_review.feature:181 when I read the transcript`
+- `interface/segment_review.feature:182 then I see the transcript for that Segment`
+- `interface/segment_review.feature:183 then I can expand to the full Recording transcript if I want it`
+- `interface/segment_review.feature:197 then I am told which enrolled voice is teaching, and how confidently`
+- `interface/segment_review.feature:198 then an unrecognised voice is shown as "not a known voice"`
+- `interface/segment_review.feature:202 given a Segment whose teaching voice matches no enrolled profile`
+- `interface/segment_review.feature:203 given its intent is "publish"`
+- `interface/segment_review.feature:205 then I am asked to confirm that this recording may be distributed`
+- `interface/segment_review.feature:206 then the confirmation is recorded with the approval`
+- `interface/segment_review.feature:215 when I confirm or correct who was preaching`
+- `interface/segment_review.feature:216 then that Segment strengthens or creates that speaker's profile`
+- `interface/segment_review.feature:217 then no separate enrolment session is ever required`
+- `interface/segment_review.feature:233 then it still appears as needing attention`
+- `interface/segment_review.feature:234 then I am not forced to disposition everything in one sitting`
+- `interface/segment_review.feature:238 given a Recording in "awaiting_review" containing 0 Segments`
+- `interface/segment_review.feature:240 then I am told nothing was detected`
+- `interface/segment_review.feature:241 then I can create a Segment by hand`
+- `interface/segment_review.feature:242 then I can discard the Recording in one action`
+- `interface/segment_review.feature:252 given a Segment whose cuts are both graded "easy"`
+- `interface/segment_review.feature:253 when I open the notification`
+- `interface/segment_review.feature:254 then I can read the summary`
+- `interface/segment_review.feature:255 then I can preview the punch-in and the punch-out`
+- `interface/segment_review.feature:256 then I can approve`
+- `interface/segment_review.feature:257 then the whole flow works without a waveform`
+- `interface/segment_review.feature:264 then I am told it needs an adjustment better made at a desk`
+- `interface/segment_review.feature:265 then I can still skip it, or approve it as-is if I choose to`
+- `interface/segment_review.feature:266 then I am not offered a cramped editing surface`
+- `interface/segment_review.feature:271 then the waveform, zooming, word alignment and nudge controls are all available`
+- `interface/segment_review.feature:276 when a Segment is complete`
+- `interface/segment_review.feature:277 then I can download the MP3`
+- `interface/segment_review.feature:94 given Segment 1 was skipped on "2026-08-16"`
+- `interface/segment_review.feature:95 when I open the Recording on "2026-11-04" and approve Segment 1`
+- `interface/segment_review.feature:96 then it is processed using its stored boundaries`
+- `interface/segment_review.feature:97 then Analysis does not need to run again`
+- `interface/segment_review.feature:98 then the resulting MP3 is identical to what it would have been in August`
 - `interface/waveform_review.feature:269 given the configured model endpoint does not answer`
 - `interface/waveform_review.feature:270 then reviewing, adjusting and approving continue to work`
 - `interface/waveform_review.feature:271 then only the actions that need a model are shown as unavailable`

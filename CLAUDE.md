@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 462 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 464 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -74,7 +74,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
 .venv/bin/python -m pytest                          # full suite: store, pipeline, harness, or before master
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 606 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 608 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -158,7 +158,7 @@ the recorded date.
 
 ## Where the work is now, and what that means for choices
 
-The foundations are done: the harness over all 606 scenarios, the store, config,
+The foundations are done: the harness over all 608 scenarios, the store, config,
 and the validated pipeline extracted and provably unchanged. **Almost nothing is
 implemented** — the spec is still overwhelmingly Red, and turning it green is the
 only work that now matters.
@@ -182,7 +182,7 @@ punch-out, approves, an MP3 lands. One path through ingestion, analysis, review
 and processing. It tells you which open beads actually matter; until it exists,
 none of them provably do.
 
-**142 Rules is not a plan.** One bead per Rule is roughly 142 beads and more
+**143 Rules is not a plan.** One bead per Rule is roughly 142 beads and more
 tokens than any single budget. Implement the vertical slice, then widen. One
 feature file per bead; serial the three-click chain; parallel only true siblings.
 Scenario work is reviewed by mutating the new assertions, not by the
@@ -333,8 +333,15 @@ light or other visual indicator." That is a different affordance from a mark on
 the waveform — it is read while listening rather than looked at — so
 `A cut light shows the exact instant` was added beside it.
 
-Pins are now **34 files / 462 scenarios / 142 rules / 606 collected**, and
-`SPEC_STEPS` is 1908.
+On 2026-09-24 they asked for a way to reclassify a Segment after it is created:
+the classification picks the intent a Segment is approved with, so one called
+anything but a sermon defaults to archive rather than publish, and nothing could
+correct the machine's guess. `Correcting what the machine decided a Segment is`
+and `A Segment that has been approved keeps its classification` were added to
+`features/interface/segment_review.feature`.
+
+Pins are now **34 files / 464 scenarios / 143 rules / 608 collected**, and
+`SPEC_STEPS` is 1917.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

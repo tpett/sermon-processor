@@ -353,6 +353,22 @@
   <p data-field="segment-actions-state">No Segment is selected, so no Segment action is offered</p>
   {% else %}
   <h3>This Segment</h3>
+  <p class="quiet">Classified <span data-field="classification">{{ view.classification }}</span>
+     of <span data-field="classification-choices">{{ view.classification_choices|join(", ") }}</span></p>
+  {% if view.classify_url %}
+  <form method="post" action="{{ view.classify_url }}">
+    <label>Reclassify as
+      <select name="classification">
+      {% for choice in view.classification_choices %}
+        <option value="{{ choice }}"{% if choice == view.classification %} selected{% endif %}>{{ choice }}</option>
+      {% endfor %}
+      </select>
+    </label>
+    <button type="submit" data-field="classify-control">Reclassify</button>
+  </form>
+  {% else %}
+  <p class="quiet" data-field="classify-state">this Segment can no longer be reclassified</p>
+  {% endif %}
   <p class="quiet">Intent <span data-field="intent">{{ view.intent }}</span>
      of <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span>,
      publication label <span data-field="label">{{ view.label or "none entered" }}</span></p>

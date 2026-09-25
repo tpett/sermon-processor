@@ -17,6 +17,7 @@ from sermon.adjusts_punch_point import (
 from sermon.analysis.io import reads_json
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
 from sermon.archives_whole_recording import ArchivesWholeRecording
+from sermon.classifies_segment import ClassificationRejected, ClassifiesSegment
 from sermon.discards_recording import (
     DiscardsRecording,
     PublishedSegmentExists,
@@ -76,6 +77,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
     restores = RestoresRecording(store=store, clock=clock)
     reconciles = ReconcilesBucket(store=store, lists_objects=lists_objects, clock=clock)
     forces = ForcesIngestion(store=store, clock=clock)
+    classifies = ClassifiesSegment(store=store, clock=clock)
     archives = ArchivesWholeRecording(store=store, clock=clock)
     reopens = ReopensSegment(store=store, clock=clock)
     reruns = RerunsAnalysis(store=store, clock=clock)
@@ -468,7 +470,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             return returns_to(recording_id, "label-required", segment_id, focus)
         except SegmentNotReady:
             return returns_to(recording_id, refusal_for(segment), segment_id, focus)
-        except (BoundaryRejected, SegmentAlreadyRendered) as refusal:
+        except (BoundaryRejected, SegmentAlreadyRendered, ClassificationRejected) as refusal:
             return returns_to(recording_id, str(refusal), segment_id, focus)
         if notice is None:
             return ("", 404)
@@ -493,6 +495,9 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
         if action == "revert":
             reverts(segment)
             return "reverted"
+        if action == "classify":
+            classifies(segment, request.form.get("classification", ""))
+            return "reclassified"
         return None
 
     def chosen_intent(segment):
