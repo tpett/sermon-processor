@@ -10,6 +10,11 @@
 <h1>Recordings</h1>
 <p><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</p>
 
+<form class="inline" method="post" action="/recordings/refresh">
+  <button type="submit" data-field="refresh-control">Scan the bucket</button>
+</form>
+{% if notice %}<p class="notice" data-field="scan-notice">{{ notice }}</p>{% endif %}
+
 {% if recordings %}
 <ol class="recordings">
 {% for row in recordings %}

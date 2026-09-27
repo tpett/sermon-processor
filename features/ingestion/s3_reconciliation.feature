@@ -102,6 +102,27 @@ Feature: S3 reconciliation
       Then it is not retried as a transient failure
       And it is surfaced on the system health view as a credential problem
 
+  Rule: An operator can ask for a scan now
+
+    @happy-path
+    Scenario: Scanning the bucket on demand
+      # The scheduled scan and the webhook are both still to come, so until then
+      # a recording that has just landed is invisible and cannot be ingested at
+      # all. Listing a bucket is quick and answers in the request; what it finds
+      # is queued, which is the slow part and belongs to the worker.
+      Given I am on the tailnet
+      And the bucket contains a recording the Processor has never seen
+      When I ask for a scan
+      Then the new recording appears in the list
+      And I am told how many were found
+
+    @edge-case
+    Scenario: Asking for a scan while the object store is unreachable
+      Given the object store returns connection errors
+      When I ask for a scan
+      Then I am told the object store could not be reached
+      And no Recording state is changed
+
   Rule: An operator can force ingestion
 
     Scenario: Ingesting a specific object on demand

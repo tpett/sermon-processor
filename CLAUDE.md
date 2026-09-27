@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 464 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 466 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -74,7 +74,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
 .venv/bin/python -m pytest                          # full suite: store, pipeline, harness, or before master
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 608 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 610 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -158,7 +158,7 @@ the recorded date.
 
 ## Where the work is now, and what that means for choices
 
-The foundations are done: the harness over all 608 scenarios, the store, config,
+The foundations are done: the harness over all 610 scenarios, the store, config,
 and the validated pipeline extracted and provably unchanged. **Almost nothing is
 implemented** — the spec is still overwhelmingly Red, and turning it green is the
 only work that now matters.
@@ -340,8 +340,14 @@ correct the machine's guess. `Correcting what the machine decided a Segment is`
 and `A Segment that has been approved keeps its classification` were added to
 `features/interface/segment_review.feature`.
 
-Pins are now **34 files / 464 scenarios / 143 rules / 608 collected**, and
-`SPEC_STEPS` is 1917.
+On 2026-09-27 they asked to be able to refresh the list by hand: nothing scans
+the bucket on a schedule and the webhook is still to come, so a recording that
+has just landed is invisible and cannot be ingested at all. `Scanning the bucket
+on demand` and `Asking for a scan while the object store is unreachable` were
+added to `features/ingestion/s3_reconciliation.feature`.
+
+Pins are now **34 files / 466 scenarios / 144 rules / 610 collected**, and
+`SPEC_STEPS` is 1926.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

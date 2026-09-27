@@ -5,6 +5,7 @@ from pytest_bdd import given, parsers, then, when
 from sermon.reconciles_bucket import ReconcilesBucket
 from sermon.store import Discovery, Job, Recording, SkippedObject
 from sermon.web import creates_app
+from steps._markup import reads_field
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -224,3 +225,44 @@ def _(store):
 @then("this is how the sample corpus is loaded for the accuracy suite")
 def _(store):
     assert store.lists(Recording)
+
+
+@given("the bucket contains a recording the Processor has never seen")
+def _(object_store, clock):
+    object_store.stores(
+        "recordings/recording_20260927_095721.flac",
+        FLAC_BYTES,
+        last_modified=clock() - timedelta(hours=2),
+    )
+
+
+@when("I ask for a scan", target_fixture="scan_page")
+def _(store, object_store):
+    client = creates_app(store=store, lists_objects=object_store.lists).test_client()
+    posted = client.post("/recordings/refresh")
+    return client.get(posted.headers["Location"]).get_data(as_text=True)
+
+
+@then("the new recording appears in the list")
+def _(store, scan_page):
+    assert "recording_20260927_095721" in scan_page
+    assert any(
+        item.recording_id == "recording_20260927_095721" for item in store.lists(Recording)
+    )
+
+
+@then("I am told how many were found")
+def _(scan_page):
+    said = reads_field(scan_page, "scan-notice")
+    assert said and "1 new recording found" in said, said
+
+
+@then("I am told the object store could not be reached")
+def _(scan_page):
+    said = reads_field(scan_page, "scan-notice")
+    assert said == "the object store could not be reached; nothing changed", said
+
+
+@then("no Recording state is changed")
+def _(store):
+    assert [item.state for item in store.lists(Recording)] == []

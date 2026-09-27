@@ -131,6 +131,23 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             return None
         return url_for("home", **{**request.args.to_dict(), "page": number})
 
+    SCAN_NOTICES = {
+        "scanned": "the bucket was scanned",
+        "scan-transient": "the object store could not be reached; nothing changed",
+        "scan-credentials": "the object store refused the credentials; nothing changed",
+    }
+
+    def scan_notice():
+        said = SCAN_NOTICES.get(request.args.get("notice", ""))
+        if said is None:
+            return None
+        found = request.args.get("found", type=int)
+        if found is None:
+            return said
+        if found == 0:
+            return f"{said}; nothing new"
+        return f"{said}; {found} new recording{'' if found == 1 else 's'} found"
+
     @app.get("/")
     def home():
         paged = lists.paginates(**reads_page_criteria())
@@ -141,6 +158,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             paging=paged,
             previous_url=keeps_the_narrowing(paged.previous),
             next_url=keeps_the_narrowing(paged.next),
+            notice=scan_notice(),
         )
 
     @app.get("/recordings/<recording_id>")
@@ -334,6 +352,18 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             },
         }
         return body, status
+
+    @app.post("/recordings/refresh")
+    def refresh():
+        # The scan is a bucket listing, not a download, so it answers inside the
+        # request. What it enqueues is the long work, which is the queue's.
+        before = {item.recording_id for item in store.lists(Recording)}
+        reconciles()
+        scans = store.lists(Discovery, kind="scan")
+        found = len({item.recording_id for item in store.lists(Recording)} - before)
+        if scans and scans[-1].failure:
+            return redirect(url_for("home", notice=f"scan-{scans[-1].failure}"))
+        return redirect(url_for("home", notice="scanned", found=found))
 
     @app.post("/api/ingest")
     def ingest():
