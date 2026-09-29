@@ -138,52 +138,48 @@ def prints_to(collected):
     return collected.append
 
 
-def runs_regrade(root, live, **staged):
+def runs_drift(root, live, *flags, **staged):
     stages_corpus(root, **staged)
     collected = []
     code = cli.regrades(
-        arguments=["--corpus", str(root)],
+        arguments=["--corpus", str(root), "--drift", *flags],
         prints=prints_to(collected),
-        measures=lambda corpus_root: RegradesStoredCuts(
-            corpus_root=corpus_root,
-            derives=lambda stored, doc: [
-                {"punch_in": punch_in, "punch_out": punch_out} for punch_in, punch_out in live
-            ],
-        ),
+        derives=lambda stored, doc: [
+            {"punch_in": punch_in, "punch_out": punch_out} for punch_in, punch_out in live
+        ],
     )
     return code, "\n".join(collected)
 
 
-def test_the_command_reports_a_cut_that_stayed_in_its_run_and_exits_zero(tmp_path):
-    code, printed = runs_regrade(tmp_path, live=[(6.0, 10.0)], stored_segments=[(3.0, 10.0)])
+def test_drift_reports_a_cut_that_stayed_in_its_run(tmp_path):
+    code, printed = runs_drift(tmp_path, live=[(6.0, 10.0)], stored_segments=[(3.0, 10.0)])
     assert code == 0
     assert RECORDING in printed
     assert "punch-in" in printed
     assert SAME_CUT in printed
-    assert "1 regraded, 0 without a transcript, 0 degraded" in printed
-    assert f"2 cut points, 1 moved: 1 {SAME_CUT}, 0 in a run over 30 s" in printed
+    assert "drift only, not accuracy: 1 stored proposals, 2 cut points, 1 differ" in printed
 
 
-def test_the_command_exits_non_zero_when_a_cut_left_its_run(tmp_path):
-    code, printed = runs_regrade(tmp_path, live=[(7.5, 10.0)], stored_segments=[(3.0, 10.0)])
-    assert code == 1
+def test_drift_never_decides_the_exit_code(tmp_path):
+    code, printed = runs_drift(tmp_path, live=[(7.5, 10.0)], stored_segments=[(3.0, 10.0)])
+    assert code == 0
     assert DEGRADED in printed
-    assert "1 regraded, 0 without a transcript, 1 degraded" in printed
+    assert "1 differ from what the corpus recorded: 1 degraded" in printed
 
 
-def test_the_command_reports_the_run_each_cut_landed_in(tmp_path):
-    _, printed = runs_regrade(tmp_path, live=[(6.0, 10.0)], stored_segments=[(3.0, 10.0)])
-    assert "run 0 (5.00 s)" in printed
+def test_drift_reports_the_run_each_cut_landed_in(tmp_path):
+    _, printed = runs_drift(tmp_path, live=[(6.0, 10.0)], stored_segments=[(3.0, 10.0)])
+    assert "run 0 (5.0s)" in printed
 
 
-def test_the_command_reports_the_signed_delta_beside_the_verdict(tmp_path):
-    _, printed = runs_regrade(tmp_path, live=[(6.0, 10.0)], stored_segments=[(3.0, 10.0)])
+def test_drift_reports_the_signed_delta_beside_the_verdict(tmp_path):
+    _, printed = runs_drift(tmp_path, live=[(6.0, 10.0)], stored_segments=[(3.0, 10.0)])
     assert "delta   +3.000 s" in printed
     assert "speech   0.000 s" in printed
 
 
-def test_the_command_prints_nothing_for_a_cut_that_did_not_move(tmp_path):
-    _, printed = runs_regrade(tmp_path, live=[(3.0, 10.0)], stored_segments=[(3.0, 10.0)])
+def test_drift_prints_nothing_for_a_cut_that_did_not_move(tmp_path):
+    _, printed = runs_drift(tmp_path, live=[(3.0, 10.0)], stored_segments=[(3.0, 10.0)])
     assert RECORDING not in printed.split("\n", 1)[1]
 
 
@@ -193,34 +189,36 @@ def test_the_command_refuses_a_corpus_with_no_stored_proposals(tmp_path):
     assert "no stored proposals" in "\n".join(collected)
 
 
-def test_deriving_a_stored_proposal_points_the_pipeline_at_the_corpus(tmp_path, monkeypatch):
-    monkeypatch.setattr(segments, "DATA_ROOT", tmp_path / "somewhere-else")
-    stages_corpus(tmp_path, stored_segments=[FIRST_RUN])
-    stored = json.loads(
-        (tmp_path / "blocks" / f"{RECORDING}.{TAG}.json").read_text()
-    )
-    doc = json.loads((tmp_path / "transcripts" / f"{RECORDING}.{ASR}.json").read_text())
-    (tmp_path / "diarization").mkdir()
-    DerivesStoredSegments(data_root=tmp_path)(stored, doc)
-    assert segments.DATA_ROOT == tmp_path
-
-
 def test_the_command_refuses_a_corpus_that_holds_no_diarization(tmp_path, monkeypatch):
     monkeypatch.setattr(segments, "DATA_ROOT", None)
     stages_corpus(tmp_path, stored_segments=[FIRST_RUN])
     collected = []
-    assert cli.regrades(arguments=["--corpus", str(tmp_path)], prints=prints_to(collected)) == 1
+    code = cli.regrades(
+        arguments=["--corpus", str(tmp_path), "--drift"], prints=prints_to(collected)
+    )
+    assert code == 1
     assert "diarization" in "\n".join(collected)
 
 
-def test_the_command_regrades_a_corpus_through_the_real_pipeline(tmp_path, monkeypatch):
+def test_the_drift_mode_runs_the_real_pipeline_and_sets_the_root(tmp_path, monkeypatch):
     monkeypatch.setattr(segments, "DATA_ROOT", None)
     stages_corpus(tmp_path, stored_segments=[(0.0, 51.0)])
     (tmp_path / "diarization").mkdir()
     collected = []
-    code = cli.regrades(arguments=["--corpus", str(tmp_path)], prints=prints_to(collected))
+    code = cli.regrades(
+        arguments=["--corpus", str(tmp_path), "--drift"], prints=prints_to(collected)
+    )
     printed = "\n".join(collected)
     assert code == 0
-    assert "1 regraded, 0 without a transcript, 0 degraded" in printed
-    assert f"2 cut points, 1 moved: 1 {SAME_CUT}, 0 in a run over 30 s" in printed
+    assert "drift only, not accuracy: 1 stored proposals, 2 cut points, 1 differ" in printed
+    assert segments.DATA_ROOT == tmp_path
+
+
+def test_deriving_a_stored_proposal_points_the_pipeline_at_the_corpus(tmp_path, monkeypatch):
+    monkeypatch.setattr(segments, "DATA_ROOT", tmp_path / "somewhere-else")
+    stages_corpus(tmp_path, stored_segments=[FIRST_RUN])
+    stored = json.loads((tmp_path / "blocks" / f"{RECORDING}.{TAG}.json").read_text())
+    doc = json.loads((tmp_path / "transcripts" / f"{RECORDING}.{ASR}.json").read_text())
+    (tmp_path / "diarization").mkdir()
+    DerivesStoredSegments(data_root=tmp_path)(stored, doc)
     assert segments.DATA_ROOT == tmp_path

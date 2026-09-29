@@ -54,46 +54,91 @@ class DerivesStoredSegments:
 
 
 @dataclass(frozen=True)
+class StoredProposal:
+    name: str
+    recording_id: str
+    tag: str
+    stored: tuple[tuple[float, float], ...]
+    transcript: dict | None
+    live: tuple[tuple[float, float], ...] | None
+
+    @property
+    def regraded(self):
+        return self.live is not None
+
+
+@dataclass(frozen=True)
+class DerivesStoredProposals:
+    corpus_root: Path
+    derives: object | None = None
+    tag: str | None = None
+
+    def __call__(self):
+        derives = self.derives or DerivesStoredSegments(data_root=self.corpus_root)
+        for path in sorted((Path(self.corpus_root) / "blocks").glob("*.json")):
+            found = self._reads(path, derives)
+            if found is not None:
+                yield found
+
+    def _reads(self, path, derives):
+        stored = json.loads(path.read_text())
+        recording_id = stored["recording_id"]
+        tag = path.name[len(recording_id) + 1 : -len(".json")]
+        if self.tag is not None and self.tag not in tag:
+            return None
+        transcript = (
+            Path(self.corpus_root) / "transcripts" / f"{recording_id}.{stored['asr_config']}.json"
+        )
+        kept = _boundaries(stored.get("segments") or ())
+        if not transcript.is_file():
+            return StoredProposal(path.name, recording_id, tag, kept, None, None)
+        doc = json.loads(transcript.read_text())
+        return StoredProposal(
+            path.name, recording_id, tag, kept, doc, _boundaries(derives(stored, doc))
+        )
+
+
+def _boundaries(segments):
+    return tuple((segment["punch_in"], segment["punch_out"]) for segment in segments)
+
+
+@dataclass(frozen=True)
 class RegradesStoredCuts:
     corpus_root: Path
     derives: object | None = None
     scores: object = ScoresCut
+    tag: str | None = None
 
     def __call__(self):
-        derives = self.derives or DerivesStoredSegments(data_root=self.corpus_root)
-        return tuple(self._regrades(path, derives) for path in sorted(self._stored_blocks()))
-
-    def _stored_blocks(self):
-        return (Path(self.corpus_root) / "blocks").glob("*.json")
-
-    def _regrades(self, path, derives):
-        stored = json.loads(path.read_text())
-        recording_id = stored["recording_id"]
-        tag = path.name[len(recording_id) + 1 : -len(".json")]
-        transcript = (
-            Path(self.corpus_root) / "transcripts" / f"{recording_id}.{stored['asr_config']}.json"
+        return tuple(
+            self._regrades(found)
+            for found in DerivesStoredProposals(
+                corpus_root=self.corpus_root, derives=self.derives, tag=self.tag
+            )()
         )
-        kept = stored.get("segments") or []
-        if not transcript.is_file():
+
+    def _regrades(self, found):
+        if not found.regraded:
             return RegradedProposal(
-                recording_id=recording_id, tag=tag, stored_count=len(kept), live_count=None
+                recording_id=found.recording_id,
+                tag=found.tag,
+                stored_count=len(found.stored),
+                live_count=None,
             )
-        doc = json.loads(transcript.read_text())
-        live = derives(stored, doc)
-        scoring = self.scores(transcript=doc)
+        scoring = self.scores(transcript=found.transcript)
         return RegradedProposal(
-            recording_id=recording_id,
-            tag=tag,
-            stored_count=len(kept),
-            live_count=len(live),
+            recording_id=found.recording_id,
+            tag=found.tag,
+            stored_count=len(found.stored),
+            live_count=len(found.live),
             cuts=tuple(
                 RegradedCut(
-                    recording_id=recording_id,
-                    tag=tag,
+                    recording_id=found.recording_id,
+                    tag=found.tag,
                     boundary=boundary,
-                    score=scoring(proposed[boundary], expected[boundary]),
+                    score=scoring(after, before),
                 )
-                for expected, proposed in zip(kept, live)
-                for boundary in BOUNDARIES
+                for was, now in zip(found.stored, found.live)
+                for boundary, before, after in zip(BOUNDARIES, was, now)
             ),
         )
