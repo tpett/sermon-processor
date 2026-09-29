@@ -1,5 +1,6 @@
 import re
 from datetime import UTC, datetime
+from html import unescape
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -239,6 +240,10 @@ def window_step_of(page):
     return re.search(r'data-window-step="([^"]*)"', page).group(1)
 
 
+def window_centre_of(page):
+    return float(re.search(r'data-window-centre-seconds="([^"]*)"', page).group(1))
+
+
 def a_zoom_other_than(page):
     return "thirty seconds" if window_step_of(page) != "thirty seconds" else "three seconds"
 
@@ -279,9 +284,10 @@ def test_the_drag_target_the_page_offers_carries_the_zoom_back(store):
     chosen = a_zoom_other_than(detail_of(client, segment))
     zoomed = detail_of(client, segment, zoom=chosen, centre=PRODUCTION_PUNCHES[0])
     offered = re.search(r'data-role="handle-punch-in"[^>]*data-url="([^"]+)"', zoomed)
-    posted = client.post(offered.group(1), data={"do": "set", "timecode": "3050.00"})
+    posted = client.post(unescape(offered.group(1)), data={"do": "set", "timecode": "3050.00"})
     page = client.get(posted.headers["Location"]).get_data(as_text=True)
     assert window_step_of(page) == chosen
+    assert window_centre_of(page) == window_centre_of(zoomed)
     assert reads_field(page, "punch-in") == formats_precise(3050.0)
 
 

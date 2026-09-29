@@ -125,6 +125,7 @@
 <section class="waveform">
   <div class="stage" data-role="listen" data-recording="{{ view.recording_id }}">
   {% set wave = view.waveform %}
+  {% set window = ("?zoom=" ~ (wave.window.step|urlencode) ~ "&centre=" ~ wave.window.centre_seconds) if wave.window else "" %}
   {% if wave.available %}
   <div class="panel">
     <span class="eyebrow">Whole recording — click to play from there · playhead <span data-field="playhead">{{ view.playhead_seconds|precise }}</span></span>
@@ -194,19 +195,19 @@
       {% endif %}
       <div class="playhead" data-role="detail-playhead" data-playhead-seconds="{{ view.playhead_seconds }}" style="left:{{ ([[100.0 * (view.playhead_seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"><button type="button" class="scrub" data-role="scrub-handle" aria-label="Drag the playhead"></button></div>
       {% for boundary in view.boundaries %}
-      <button type="button" class="handle {{ 'in' if boundary.field == 'punch-in' else 'out' }}" data-role="handle-{{ boundary.field }}" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}" data-url="{{ boundary.url }}" data-tag="{{ 'IN' if boundary.field == 'punch-in' else 'OUT' }}" style="left:{{ ([[100.0 * (boundary.seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"{% if boundary.seconds < start or boundary.seconds > start + span %} hidden{% endif %} aria-label="Drag the {{ boundary.field }}"></button>
+      <button type="button" class="handle {{ 'in' if boundary.field == 'punch-in' else 'out' }}" data-role="handle-{{ boundary.field }}" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}" data-url="{{ boundary.url }}{{ window }}" data-tag="{{ 'IN' if boundary.field == 'punch-in' else 'OUT' }}" style="left:{{ ([[100.0 * (boundary.seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"{% if boundary.seconds < start or boundary.seconds > start + span %} hidden{% endif %} aria-label="Drag the {{ boundary.field }}"></button>
       {% endfor %}
     </div>
     <ol class="quiet-spans">
     {% for span_view in wave.quiet_spans %}
-      <li data-row="quiet-span" data-quiet-from="{{ span_view.from_seconds }}" data-quiet-to="{{ span_view.to_seconds }}" data-quiet-seconds="{{ span_view.seconds }}" data-quiet-at="{{ span_view.at }}" data-quiet-at-seconds="{{ span_view.at_seconds }}" style="left:{{ span_view.left }}%;width:{{ span_view.width }}%" title="{{ span_view.seconds }} s of quiet at {{ span_view.at }}">{% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ span_view.at }}"><button type="submit" data-field="quiet-control">Cut here</button></form>{% endif %}</li>
+      <li data-row="quiet-span" data-quiet-from="{{ span_view.from_seconds }}" data-quiet-to="{{ span_view.to_seconds }}" data-quiet-seconds="{{ span_view.seconds }}" data-quiet-at="{{ span_view.at }}" data-quiet-at-seconds="{{ span_view.at_seconds }}" style="left:{{ span_view.left }}%;width:{{ span_view.width }}%" title="{{ span_view.seconds }} s of quiet at {{ span_view.at }}">{% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}{% if placed %}<form method="post" action="{{ placed.url }}{{ window }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ span_view.at }}"><button type="submit" data-field="quiet-control">Cut here</button></form>{% endif %}</li>
     {% endfor %}
     </ol>
     <ol class="ticks" data-role="detail-ticks" data-seeks="playhead" title="Click anywhere on the ruler to jump the playhead there"></ol>
     <ol class="words">
     {% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}
     {% for word in wave.words %}
-      <li data-row="transcript-word" data-word-at="{{ word.at }}" data-word-at-seconds="{{ word.at_seconds }}" data-word-relation="{{ word.relation }}" data-word-left="{{ word.left }}" style="left:{{ word.left }}%"{% if view.punch_in_seconds is not none %} data-word-inside="{{ 'true' if word.at_seconds >= view.punch_in_seconds and word.at_seconds <= view.punch_out_seconds else 'false' }}"{% endif %}>{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ word.at }}"><button type="submit" data-field="word-text">{{ word.text }}</button></form>{% else %}<span data-field="word-text">{{ word.text }}</span>{% endif %}</li>
+      <li data-row="transcript-word" data-word-at="{{ word.at }}" data-word-at-seconds="{{ word.at_seconds }}" data-word-relation="{{ word.relation }}" data-word-left="{{ word.left }}" style="left:{{ word.left }}%"{% if view.punch_in_seconds is not none %} data-word-inside="{{ 'true' if word.at_seconds >= view.punch_in_seconds and word.at_seconds <= view.punch_out_seconds else 'false' }}"{% endif %}>{% if placed %}<form method="post" action="{{ placed.url }}{{ window }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ word.at }}"><button type="submit" data-field="word-text">{{ word.text }}</button></form>{% else %}<span data-field="word-text">{{ word.text }}</span>{% endif %}</li>
     {% endfor %}
     </ol>
   </div>
@@ -217,7 +218,7 @@
     <ol class="punch">
     {% for boundary in view.boundaries %}
       <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}">
-        <form method="post" action="{{ boundary.url }}">
+        <form method="post" action="{{ boundary.url }}{{ window }}">
           <input type="hidden" name="do" value="playhead">
           <button type="submit" class="primary" data-role="punch-from-playhead"{% if view.punch_unavailable %} disabled title="{{ view.punch_unavailable }}"{% endif %} data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
         </form>
@@ -235,14 +236,14 @@
         <li data-row="span-edge" data-edge="{{ edge.field }}" data-at-seconds="{{ edge.seconds }}">
           <span class="label">Segment's own {{ edge.field }}</span>
           <span class="mono" data-field="span-edge-at">{{ edge.seconds|precise }}</span>
-          <form method="post" action="{{ edge.url }}">
+          <form method="post" action="{{ edge.url }}{{ window }}">
             <input type="hidden" name="do" value="set">
             <label>Move it to <input type="text" name="timecode" value="{{ edge.seconds|precise }}"></label>
             <button type="submit" data-field="span-edge-control">Move the {{ edge.field }}</button>
           </form>
           {% set direction = "earlier" if edge.field == "start" else "later" %}
           {% for step in view.span_steps %}
-          <form method="post" action="{{ edge.url }}">
+          <form method="post" action="{{ edge.url }}{{ window }}">
             <input type="hidden" name="do" value="nudge">
             <input type="hidden" name="direction" value="{{ direction }}">
             <input type="hidden" name="amount" value="{{ step }}">
@@ -461,16 +462,16 @@
     <li data-row="boundary" data-boundary="{{ boundary.field }}" data-focused="{{ 'true' if boundary.focused else 'false' }}">
       <span data-field="boundary-at">{{ boundary.seconds|precise }}</span>
       {% if boundary.focused %}<span class="label" data-field="boundary-focus">the keyboard will move this boundary</span>{% endif %}
-      <form method="post" action="{{ boundary.url }}">
+      <form method="post" action="{{ boundary.url }}{{ window }}">
         <input type="hidden" name="do" value="focus">
         <button type="submit" data-field="focus-control">Focus the {{ boundary.field }}</button>
       </form>
-      <form method="post" action="{{ boundary.url }}">
+      <form method="post" action="{{ boundary.url }}{{ window }}">
         <input type="hidden" name="do" value="set">
         <label>Timecode <input type="text" name="timecode" value="{{ boundary.seconds|precise }}"></label>
         <button type="submit" data-field="set-control">Set the {{ boundary.field }}</button>
       </form>
-      <form method="post" action="{{ boundary.url }}">
+      <form method="post" action="{{ boundary.url }}{{ window }}">
         <input type="hidden" name="do" value="playhead">
         <button type="submit" data-field="playhead-control">Set the {{ boundary.field }} from the playhead</button>
       </form>
@@ -478,7 +479,7 @@
         <summary>Nudge by a fixed step</summary>
       {% for direction in ("earlier", "later") %}
       {% for step in view.nudge_steps %}
-        <form method="post" action="{{ boundary.url }}">
+        <form method="post" action="{{ boundary.url }}{{ window }}">
           <input type="hidden" name="do" value="nudge">
           <input type="hidden" name="direction" value="{{ direction }}">
           <input type="hidden" name="amount" value="{{ step }}">
@@ -491,7 +492,7 @@
   {% endfor %}
   </ul>
   <p class="quiet">machine proposal <span class="mono" data-field="proposed-boundaries">{{ view.proposed_punch_in_seconds|precise }} – {{ view.proposed_punch_out_seconds|precise }}</span></p>
-  <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in">
+  <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in{{ window }}">
     <input type="hidden" name="do" value="revert">
     <button type="submit" data-field="revert-control">Revert to the machine proposal</button>
   </form>
@@ -500,7 +501,7 @@
   <ul class="alternatives">
   {% for timecode, because in view.alternatives %}
     <li data-row="alternative" data-at="{{ timecode }}">
-      <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in">
+      <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in{{ window }}">
         <input type="hidden" name="do" value="set">
         <input type="hidden" name="timecode" value="{{ timecode }}">
         <button type="submit" data-field="alternative-control">{{ timecode|precise }}</button>
