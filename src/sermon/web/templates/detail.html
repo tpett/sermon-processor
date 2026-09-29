@@ -214,6 +214,9 @@
   {% endif %}
   {% endif %}
   <div class="transport">
+    {% if view.notice %}
+    <p class="notice" data-field="action-notice">{{ view.notice }}</p>
+    {% endif %}
     {% if view.boundary_controls == "editable" %}
     <ol class="punch">
     {% for boundary in view.boundaries %}
@@ -380,9 +383,6 @@
 
 <section class="actions">
   <h2>Approve or adjust</h2>
-  {% if view.notice %}
-  <p class="notice" data-field="action-notice">{{ view.notice }}</p>
-  {% endif %}
   <ul class="row">
   {% for action in view.recording_actions %}
     <li data-row="action" data-action="{{ action.name }}">

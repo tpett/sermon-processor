@@ -1221,6 +1221,15 @@ select {
   color: var(--warn);
 }
 
+.transport .notice {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--warn);
+  border-radius: 3px;
+  font-weight: 600;
+}
+
 .boundaries li {
   display: flex;
   flex-wrap: wrap;
