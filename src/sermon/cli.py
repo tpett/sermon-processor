@@ -802,13 +802,12 @@ def organizes(settings=None, arguments=None, prints=print):
         store.close()
 
 
-REGRADE_USAGE = "sermon-regrade --corpus <corpus-root> [--prompts <path>]"
+REGRADE_USAGE = "sermon-regrade --corpus <corpus-root>"
 
 
 def parses_regrade_command(arguments, prints):
     parser = argparse.ArgumentParser(prog="sermon-regrade", usage=REGRADE_USAGE, add_help=True)
     parser.add_argument("--corpus", required=True)
-    parser.add_argument("--prompts")
     try:
         return parser.parse_args(arguments)
     except SystemExit:
@@ -833,7 +832,8 @@ def reports_regraded_cut(cut, prints):
         f"  {cut.boundary.replace('_', '-'):<9} "
         f"{score.truth:10.3f} {reports_placing(score.truth_run, score.truth_in_speech):<30} -> "
         f"{score.proposed:10.3f} {reports_placing(score.proposed_run, score.in_speech):<30} "
-        f"delta {score.delta_seconds:+8.3f} s  speech {score.speech_seconds:7.3f} s  {score.verdict}"
+        f"delta {score.delta_seconds:+8.3f} s  speech {score.speech_seconds:7.3f} s  "
+        f"{score.verdict}"
     )
 
 
@@ -870,7 +870,8 @@ def reports_regrade(regraded, prints):
     prints(
         f"{len(cuts)} cut points, {len(moved)} moved"
         + (": " + ", ".join(f"{counted[verdict]} {verdict}" for verdict in sorted(counted)))
-        + f", {sum(1 for cut in cuts if cut.score.long_run)} in a run over {LONG_RUN_SECONDS:.0f} s"
+        + f", {sum(1 for cut in cuts if cut.score.long_run)} in a run over "
+        + f"{LONG_RUN_SECONDS:.0f} s"
     )
     return 1 if any(proposal.degraded for proposal in regraded) else 0
 
@@ -885,8 +886,6 @@ def regrades(arguments=None, prints=print, measures=RegradesStoredCuts):
     if asked is None:
         return 1
     corpus = Path(asked.corpus).resolve()
-    prompts = Path(asked.prompts).resolve() if asked.prompts else corpus.parent / "prompts"
-    BindsCorpusRoots(corpus_root=corpus, prompts_root=prompts)()
     stored = sorted((corpus / "blocks").glob("*.json"))
     if not stored:
         prints(f"no stored proposals under {corpus / 'blocks'}")

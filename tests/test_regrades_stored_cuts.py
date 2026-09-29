@@ -1,7 +1,8 @@
 import json
 
 from sermon import cli
-from sermon.analysis.regrades_stored_cuts import RegradesStoredCuts
+from sermon.analysis.regrades_stored_cuts import DerivesStoredSegments, RegradesStoredCuts
+from sermon.pipeline import segments
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT
 
 ASR = "an-asr-config"
@@ -47,6 +48,7 @@ def stages_corpus(root, stored_segments, recording_id=RECORDING, tag=TAG, transc
                         {
                             "start": start,
                             "end": end,
+                            "text": word,
                             "words": [{"w": word, "start": start, "end": end}],
                         }
                         for word, start, end in WORDS
@@ -189,3 +191,36 @@ def test_the_command_refuses_a_corpus_with_no_stored_proposals(tmp_path):
     collected = []
     assert cli.regrades(arguments=["--corpus", str(tmp_path)], prints=prints_to(collected)) == 1
     assert "no stored proposals" in "\n".join(collected)
+
+
+def test_deriving_a_stored_proposal_points_the_pipeline_at_the_corpus(tmp_path, monkeypatch):
+    monkeypatch.setattr(segments, "DATA_ROOT", tmp_path / "somewhere-else")
+    stages_corpus(tmp_path, stored_segments=[FIRST_RUN])
+    stored = json.loads(
+        (tmp_path / "blocks" / f"{RECORDING}.{TAG}.json").read_text()
+    )
+    doc = json.loads((tmp_path / "transcripts" / f"{RECORDING}.{ASR}.json").read_text())
+    (tmp_path / "diarization").mkdir()
+    DerivesStoredSegments(data_root=tmp_path)(stored, doc)
+    assert segments.DATA_ROOT == tmp_path
+
+
+def test_the_command_refuses_a_corpus_that_holds_no_diarization(tmp_path, monkeypatch):
+    monkeypatch.setattr(segments, "DATA_ROOT", None)
+    stages_corpus(tmp_path, stored_segments=[FIRST_RUN])
+    collected = []
+    assert cli.regrades(arguments=["--corpus", str(tmp_path)], prints=prints_to(collected)) == 1
+    assert "diarization" in "\n".join(collected)
+
+
+def test_the_command_regrades_a_corpus_through_the_real_pipeline(tmp_path, monkeypatch):
+    monkeypatch.setattr(segments, "DATA_ROOT", None)
+    stages_corpus(tmp_path, stored_segments=[(0.0, 51.0)])
+    (tmp_path / "diarization").mkdir()
+    collected = []
+    code = cli.regrades(arguments=["--corpus", str(tmp_path)], prints=prints_to(collected))
+    printed = "\n".join(collected)
+    assert code == 0
+    assert "1 regraded, 0 without a transcript, 0 degraded" in printed
+    assert f"2 cut points, 1 moved: 1 {SAME_CUT}, 0 in a run over 30 s" in printed
+    assert segments.DATA_ROOT == tmp_path
