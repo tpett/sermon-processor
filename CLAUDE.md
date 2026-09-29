@@ -102,6 +102,8 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-render recording_20260823_103015 \
     --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
 .venv/bin/sermon-propose recording_20260412_102318 --corpus experiments/data
+.venv/bin/sermon-regrade --corpus experiments/data   # grade every proposal against the human cut
+.venv/bin/sermon-regrade --corpus experiments/data --before tests/pipeline_boundary_fingerprint.json
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
 ```
 
@@ -140,6 +142,42 @@ at the tree holding `transcripts/`, `blocks/`, `diarization/` and
 `groundtruth.json`; `--summaries none` skips the per-block summary calls;
 `--store` puts the Blocks, Segments and Proposals somewhere other than the data
 root. It exits non-zero when a labelled Segment was not found.
+
+`sermon-regrade` grades a proposed cut by **which silence run it lands in**
+rather than by how many seconds it is out. A silence run is a gap of at least
+1.0 s between consecutive words, plus the region before the first word and after
+the last; two cuts inside one run are *the same cut* however many seconds apart
+they are, while one second across a word is a different cut. So the headline per
+cut point is whether the proposal is in the same run as the human cut, and when
+it is not, how many **speech-seconds** lie between the two. The signed delta is
+reported and decides nothing.
+
+It re-derives every tagged block file under `--corpus` through the live
+`derive()` and `choose()` and has three modes:
+
+- **By default it measures accuracy** against `groundtruth.json`, pairing each
+  proposal to a human segment by maximum overlap the way `sermon-propose` does,
+  and prints a row per labelled cut point plus a summary. It exits non-zero only
+  when nothing could be scored at all: the corpus holds deliberately bad ladder
+  rungs, so a count of proposals that missed their labelled segment is data
+  rather than a fault.
+- **`--before <path>` grades a code change.** It scores a saved set of
+  proposals and the live ones against the same human cuts and reports, per cut
+  point, whether the change moved the cut closer to or further from the human —
+  `improved`, `degraded`, `same cut` or `equal`. **It exits non-zero when any cut
+  degraded**, and that is the regression gate. `--save <path>` writes the live
+  proposals in the same shape, and `tests/pipeline_boundary_fingerprint.json`
+  can be handed straight to `--before` because it already records what the
+  current code produces.
+- **`--drift` compares the block files' own stored `segments` field against live
+  output.** That is *drift, not accuracy*: nine of those fields predate the
+  current `segments.py` (`sp-66k`), so drift is expected on an unchanged tree and
+  **never decides the exit code.**
+
+`--tag <text>` restricts every mode to the tags containing it, which is how to
+look at the shipping `*.whole.v2` configs alone. It reads the corpus and writes
+nothing to it, sends no audio anywhere, and invokes neither a transcriber nor a
+classifier, so it needs no `.env` and no model host.
 
 `sermon-analyze` is `sermon-propose` without the corpus grading and with the
 store the server reads: it registers the Recording from the stored transcript,
