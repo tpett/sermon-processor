@@ -88,15 +88,21 @@ def test_extending_the_start_grows_the_span_and_leaves_the_punch_points(store):
     )
 
 
-def test_a_punch_in_may_sit_at_a_time_the_old_span_did_not_cover(store):
+def test_a_punch_in_may_sit_anywhere_the_old_span_did_not_cover(store):
     segment = the_selected_segment(store, a_recording(store))
     grown = ExtendsSegmentSpan(store=store)(segment, start_seconds=READS("1:26:00"))
-    earlier = READS("1:27:00")
-    assert not (segment.span_start_seconds <= earlier <= segment.span_end_seconds)
-    placed = PlacesPunchIn(store=store)(grown, punch_in_seconds=earlier)
-    assert placed.punch_in_seconds == earlier
-    stored = store.loads(Segment, grown.segment_id)
-    assert stored.punch_in_seconds == earlier
+    newly_covered = (
+        grown.span_start_seconds,
+        READS("1:27:00"),
+        segment.span_start_seconds - 0.05,
+    )
+    assert len(set(newly_covered)) == len(newly_covered)
+    for earlier in newly_covered:
+        assert not (segment.span_start_seconds <= earlier <= segment.span_end_seconds)
+        placed = PlacesPunchIn(store=store)(grown, punch_in_seconds=earlier)
+        assert placed.punch_in_seconds == earlier
+        stored = store.loads(Segment, grown.segment_id)
+        assert stored.punch_in_seconds == earlier
 
 
 def test_extending_into_a_neighbouring_segment_is_refused(store):

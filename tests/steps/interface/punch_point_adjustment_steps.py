@@ -5,12 +5,7 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.adjusts_punch_point import reads_boundary_history
-from sermon.extends_segment_span import (
-    ExtendsSegmentSpan,
-    ReadsTimecode,
-    SpanWouldOverlapNeighbour,
-)
-from sermon.places_punch_in import PlacesPunchIn
+from sermon.extends_segment_span import ReadsTimecode
 from sermon.shows_recording import NOTICES, formats_precise
 from sermon.store import Block, Proposal, Recording, Segment, opens_store
 from steps._markup import reads_field, reads_rows
@@ -109,50 +104,73 @@ def _(store, recording, segment, punch_in, punch_out):
     )
 
 
+def reads_span(page):
+    edges = {row["edge"]: READS(row["span-edge-at"]) for row in reads_rows(page, "span-edge")}
+    assert {"start", "end"} <= set(edges), page
+    return edges["start"], edges["end"]
+
+
 @when(
     parsers.parse("I extend the Segment's own start to \"{timecode}\""),
-    target_fixture="extended_segment",
+    target_fixture="detail_page",
 )
 def _(store, segment, timecode):
-    return ExtendsSegmentSpan(store=store)(segment, start_seconds=READS(timecode))
+    return _web.posts(
+        store, _web.span_action(segment, "start"), do="set", timecode=timecode
+    )
 
 
 @then("the Segment's span grows")
-def _(segment, extended_segment):
-    assert extended_segment.span_start_seconds < segment.span_start_seconds
-    assert extended_segment.span_end_seconds == segment.span_end_seconds
+def _(segment, detail_page):
+    grown_start, grown_end = reads_span(detail_page)
+    assert grown_start < segment.span_start_seconds
+    assert grown_end == segment.span_end_seconds
 
 
 @then("the punch-in may now be placed anywhere within the new span")
-def _(store, extended_segment):
-    placed = PlacesPunchIn(store=store)(
-        extended_segment, punch_in_seconds=READS("1:27:00")
+def _(store, segment, detail_page):
+    grown_start, _ = reads_span(detail_page)
+    outside_the_old_span = (
+        grown_start,
+        (grown_start + segment.span_start_seconds) / 2,
+        segment.span_start_seconds - 0.5,
     )
-    assert placed.punch_in_seconds == READS("1:27:00")
-    stored = store.loads(Segment, extended_segment.segment_id)
-    assert stored.punch_in_seconds == READS("1:27:00")
+    for at in outside_the_old_span:
+        assert grown_start <= at < segment.span_start_seconds
+        page = _web.posts(
+            store,
+            _web.boundary_action(segment, "punch-in"),
+            do="set",
+            timecode=formats_precise(at),
+        )
+        assert reads_field(page, "action-notice") not in REFUSALS
+        assert abs(READS(reads_field(page, "punch-in")) - at) < 0.005
 
 
 @then("the change is rejected if it would overlap the neighbouring Segment")
-def _(store, recording, extended_segment):
+def _(store, recording, segment, detail_page):
+    grown_start, _ = reads_span(detail_page)
     store.saves(
         Segment(
             recording_id=recording.recording_id,
             classification="lesson",
             state="proposed",
             span_start_seconds=READS("1:00:00"),
-            span_end_seconds=READS("1:26:00"),
+            span_end_seconds=grown_start,
             punch_in_seconds=READS("1:00:00"),
-            punch_out_seconds=READS("1:26:00"),
+            punch_out_seconds=grown_start,
         )
     )
-    with pytest.raises(SpanWouldOverlapNeighbour) as rejected:
-        ExtendsSegmentSpan(store=store)(
-            extended_segment, start_seconds=READS("1:25:00")
-        )
-    assert str(rejected.value) == "it would overlap the neighbouring Segment"
-    stored = store.loads(Segment, extended_segment.segment_id)
-    assert stored.span_start_seconds == READS("1:26:00")
+    refused = _web.posts(
+        store,
+        _web.span_action(segment, "start"),
+        do="set",
+        timecode=formats_precise(grown_start - 60),
+    )
+    assert (
+        reads_field(refused, "action-notice") == "it would overlap the neighbouring Segment"
+    )
+    assert reads_span(refused)[0] == grown_start
 
 
 @pytest.fixture
