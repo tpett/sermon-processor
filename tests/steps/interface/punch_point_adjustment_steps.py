@@ -428,7 +428,7 @@ def _(detail_page):
     rows = reads_rows(detail_page, "punch-point")
     assert [row["boundary"] for row in rows] == ["punch-in", "punch-out"]
     assert all(row["punch-control"] for row in rows)
-    beside = detail_page.index('<section class="waveform">')
+    beside = detail_page.index('<section class="waveform"')
     lower = detail_page.index('<div class="supporting">')
     placed = [
         detail_page.index(f'data-row="punch-point" data-boundary="{row["boundary"]}"')

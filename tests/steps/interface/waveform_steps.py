@@ -641,7 +641,7 @@ def _(store, segment):
 
 
 def reads_waveform(page):
-    return page[page.index('<section class="waveform">') :]
+    return page[page.index('<section class="waveform"') :]
 
 
 def reads_marks(store, segment):
@@ -743,7 +743,7 @@ def _(detail_page):
         at = re.search(r'data-word-at="([^"]*)"', row).group(1)
         assert 'name="do" value="set"' in row
         assert f'name="timecode" value="{at}"' in row
-        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)"', row)
+        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)[?"]', row)
 
 
 @given("I am viewing the whole recording at overview resolution", target_fixture="detail_page")
@@ -789,7 +789,7 @@ def _(detail_page):
         at = re.search(r'data-quiet-at="([^"]*)"', row).group(1)
         assert 'name="do" value="set"' in row
         assert f'name="timecode" value="{at}"' in row
-        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)"', row)
+        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)[?"]', row)
 
 
 SCRUBBED = 7218.4
