@@ -641,7 +641,7 @@ def _(store, segment):
 
 
 def reads_waveform(page):
-    return page[page.index('<section class="waveform">') :]
+    return page[page.index('<section class="waveform"') :]
 
 
 def reads_marks(store, segment):

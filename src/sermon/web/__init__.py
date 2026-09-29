@@ -116,6 +116,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
                 focus=focus,
                 zoom=request.values.get("zoom"),
                 centre=request.values.get("centre"),
+                _anchor="waveform",
             ),
             code=303,
         )

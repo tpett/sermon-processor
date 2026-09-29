@@ -221,13 +221,17 @@ def a_freshly_proposed_segment(store):
     return store.lists(Segment, recording_id=recording.recording_id)[0]
 
 
-def moves_the_punch_in(client, segment, timecode, **query):
-    posted = client.post(
+def posts_a_punch_in(client, segment, timecode, **query):
+    return client.post(
         f"/recordings/{segment.recording_id}/segments/{segment.segment_id}"
         f"/boundaries/punch-in",
         data={"do": "set", "timecode": timecode},
         query_string=query,
     )
+
+
+def moves_the_punch_in(client, segment, timecode, **query):
+    posted = posts_a_punch_in(client, segment, timecode, **query)
     return client.get(posted.headers["Location"]).get_data(as_text=True)
 
 
@@ -294,9 +298,11 @@ def test_the_drag_target_the_page_offers_carries_the_zoom_back(store):
 def test_the_outcome_is_announced_beside_the_waveform(store):
     segment = a_freshly_proposed_segment(store)
     client = creates_app(store=store).test_client()
-    page = moves_the_punch_in(client, segment, "600.00")
+    refused = posts_a_punch_in(client, segment, "600.00")
+    assert refused.headers["Location"].endswith("#waveform")
+    page = client.get(refused.headers["Location"]).get_data(as_text=True)
     assert page.count('data-field="action-notice"') == 1
     announced = page.index('data-field="action-notice"')
-    assert page.index('<section class="waveform">') < announced
+    assert page.index('<section class="waveform"') < announced
     assert announced < page.index('data-field="punch-control"')
     assert announced < page.index('data-field="span-edge-control"')

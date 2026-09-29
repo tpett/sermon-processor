@@ -122,7 +122,7 @@
 </section>
 {% endif %}
 
-<section class="waveform">
+<section class="waveform" id="waveform">
   <div class="stage" data-role="listen" data-recording="{{ view.recording_id }}">
   {% set wave = view.waveform %}
   {% set window = ("?zoom=" ~ (wave.window.step|urlencode) ~ "&centre=" ~ wave.window.centre_seconds) if wave.window else "" %}
