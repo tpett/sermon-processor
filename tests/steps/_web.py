@@ -36,3 +36,10 @@ def boundary_action(segment, boundary):
         f"/recordings/{segment.recording_id}/segments/{segment.segment_id}"
         f"/boundaries/{boundary}"
     )
+
+
+def span_action(segment, edge):
+    return (
+        f"/recordings/{segment.recording_id}/segments/{segment.segment_id}"
+        f"/span/{edge}"
+    )

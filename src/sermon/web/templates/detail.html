@@ -219,11 +219,41 @@
       <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}">
         <form method="post" action="{{ boundary.url }}">
           <input type="hidden" name="do" value="playhead">
-          <button type="submit" class="primary" data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
+          <button type="submit" class="primary" data-role="punch-from-playhead"{% if view.punch_unavailable %} disabled title="{{ view.punch_unavailable }}"{% endif %} data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
         </form>
       </li>
     {% endfor %}
     </ol>
+    {% if view.punch_unavailable %}
+    <p class="warn" data-field="punch-unavailable">{{ view.punch_unavailable }}</p>
+    {% endif %}
+    {% if view.span_edges %}
+    <div class="reach">
+      <p class="quiet">A punch point can only sit inside the Segment's own span. Move the span to reach past it.</p>
+      <ol class="span-edges">
+      {% for edge in view.span_edges %}
+        <li data-row="span-edge" data-edge="{{ edge.field }}" data-at-seconds="{{ edge.seconds }}">
+          <span class="label">Segment's own {{ edge.field }}</span>
+          <span class="mono" data-field="span-edge-at">{{ edge.seconds|precise }}</span>
+          <form method="post" action="{{ edge.url }}">
+            <input type="hidden" name="do" value="set">
+            <label>Move it to <input type="text" name="timecode" value="{{ edge.seconds|precise }}"></label>
+            <button type="submit" data-field="span-edge-control">Move the {{ edge.field }}</button>
+          </form>
+          {% set direction = "earlier" if edge.field == "start" else "later" %}
+          {% for step in view.span_steps %}
+          <form method="post" action="{{ edge.url }}">
+            <input type="hidden" name="do" value="nudge">
+            <input type="hidden" name="direction" value="{{ direction }}">
+            <input type="hidden" name="amount" value="{{ step }}">
+            <button type="submit" data-reach="{{ direction }} {{ step }}" data-field="span-reach-control">{{ step }} {{ direction }}</button>
+          </form>
+          {% endfor %}
+        </li>
+      {% endfor %}
+      </ol>
+    </div>
+    {% endif %}
     {% endif %}
     {% if view.preview_ready %}
     {% for window in view.preview_windows %}
