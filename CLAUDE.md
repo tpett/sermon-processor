@@ -102,6 +102,7 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-render recording_20260823_103015 \
     --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
 .venv/bin/sermon-propose recording_20260412_102318 --corpus experiments/data
+.venv/bin/sermon-regrade --corpus experiments/data   # re-grade every stored proposal
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
 ```
 
@@ -140,6 +141,19 @@ at the tree holding `transcripts/`, `blocks/`, `diarization/` and
 `groundtruth.json`; `--summaries none` skips the per-block summary calls;
 `--store` puts the Blocks, Segments and Proposals somewhere other than the data
 root. It exits non-zero when a labelled Segment was not found.
+
+`sermon-regrade` re-grades every stored proposal in the corpus by **which
+silence run each cut lands in** rather than by how many seconds it moved. It
+re-derives each of the 181 tagged block files through the live `derive()` and
+`choose()`, scores each stored boundary against the live one, prints a row per
+cut that moved and a summary, and **exits non-zero when a cut degraded**. A
+silence run is a gap of at least 1.0 s between consecutive words, so two cuts
+inside one run are *the same cut* however many seconds apart they are, while one
+second across a word is a different cut. The signed delta is printed beside each
+row and decides nothing. It reads the corpus and writes nothing to it, sends no
+audio anywhere, and invokes neither a transcriber nor a classifier, so it needs
+no `.env` and no model host. `--corpus` points at the tree holding `blocks/`,
+`transcripts/` and `diarization/`.
 
 `sermon-analyze` is `sermon-propose` without the corpus grading and with the
 store the server reads: it registers the Recording from the stored transcript,

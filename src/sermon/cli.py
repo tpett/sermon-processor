@@ -11,6 +11,7 @@ from pathlib import Path
 from sermon.analysis import MeasuresBoundaryError, ProposesFromStoredTranscript, ReadsStoredTranscript
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
+from sermon.analysis.regrades_stored_cuts import RegradesStoredCuts
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
@@ -35,6 +36,7 @@ from sermon.reconciles_bucket import (
     ReconcilesBucket,
 )
 from sermon.records_publication_details import RecordsPublicationDetails
+from sermon.scores_cut import DEGRADED, LONG_RUN_SECONDS
 from sermon.sends_notification import SendsNotification
 from sermon.store import (
     Artifact,
@@ -798,3 +800,100 @@ def organizes(settings=None, arguments=None, prints=print):
         )
     finally:
         store.close()
+
+
+REGRADE_USAGE = "sermon-regrade --corpus <corpus-root> [--prompts <path>]"
+
+
+def parses_regrade_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-regrade", usage=REGRADE_USAGE, add_help=True)
+    parser.add_argument("--corpus", required=True)
+    parser.add_argument("--prompts")
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {REGRADE_USAGE}")
+        return None
+
+
+def reports_placing(run, in_speech):
+    if run is None:
+        return "in a word" if in_speech else "no run"
+    noted = f"run {run.index} ({run.seconds:.2f} s"
+    if run.seconds > LONG_RUN_SECONDS:
+        noted += ", long"
+    if run.overlaps_audio_silence:
+        noted += ", audio-silent"
+    return f"{noted})"
+
+
+def reports_regraded_cut(cut, prints):
+    score = cut.score
+    prints(
+        f"  {cut.boundary.replace('_', '-'):<9} "
+        f"{score.truth:10.3f} {reports_placing(score.truth_run, score.truth_in_speech):<30} -> "
+        f"{score.proposed:10.3f} {reports_placing(score.proposed_run, score.in_speech):<30} "
+        f"delta {score.delta_seconds:+8.3f} s  speech {score.speech_seconds:7.3f} s  {score.verdict}"
+    )
+
+
+def reports_regraded_proposal(proposal, prints):
+    moved = [cut for cut in proposal.cuts if cut.score.delta_seconds != 0.0]
+    counts_differ = proposal.regraded and proposal.stored_count != proposal.live_count
+    if not proposal.regraded:
+        prints(f"{proposal.recording_id}  {proposal.tag}  no transcript, not regraded")
+        return
+    if not moved and not counts_differ:
+        return
+    prints(f"{proposal.recording_id}  {proposal.tag}")
+    if counts_differ:
+        prints(
+            f"  segments   stored {proposal.stored_count}, live {proposal.live_count}  {DEGRADED}"
+        )
+    for cut in moved:
+        reports_regraded_cut(cut, prints)
+
+
+def reports_regrade(regraded, prints):
+    for proposal in regraded:
+        reports_regraded_proposal(proposal, prints)
+    cuts = [cut for proposal in regraded for cut in proposal.cuts]
+    moved = [cut for cut in cuts if cut.score.delta_seconds != 0.0]
+    counted = {}
+    for cut in moved:
+        counted[cut.score.verdict] = counted.get(cut.score.verdict, 0) + 1
+    prints(
+        f"{sum(1 for proposal in regraded if proposal.regraded)} regraded, "
+        f"{sum(1 for proposal in regraded if not proposal.regraded)} without a transcript, "
+        f"{sum(1 for proposal in regraded if proposal.degraded)} degraded"
+    )
+    prints(
+        f"{len(cuts)} cut points, {len(moved)} moved"
+        + (": " + ", ".join(f"{counted[verdict]} {verdict}" for verdict in sorted(counted)))
+        + f", {sum(1 for cut in cuts if cut.score.long_run)} in a run over {LONG_RUN_SECONDS:.0f} s"
+    )
+    return 1 if any(proposal.degraded for proposal in regraded) else 0
+
+
+def regrades(arguments=None, prints=print, measures=RegradesStoredCuts):
+    """Re-grade every stored proposal by which silence run each cut lands in.
+
+    Reads the corpus and writes nothing to it. No audio leaves the machine and
+    neither a transcriber nor a classifier is invoked.
+    """
+    asked = parses_regrade_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    corpus = Path(asked.corpus).resolve()
+    prompts = Path(asked.prompts).resolve() if asked.prompts else corpus.parent / "prompts"
+    BindsCorpusRoots(corpus_root=corpus, prompts_root=prompts)()
+    stored = sorted((corpus / "blocks").glob("*.json"))
+    if not stored:
+        prints(f"no stored proposals under {corpus / 'blocks'}")
+        return 1
+    prints(f"regrading {len(stored)} stored proposals under {corpus}")
+    try:
+        return reports_regrade(measures(corpus_root=corpus)(), prints)
+    except RootNotConfigured as refused:
+        prints(str(refused))
+        return 1
