@@ -4,9 +4,11 @@ import pytest
 
 from sermon.adjusts_punch_point import BoundaryOutsideSegment
 from sermon.extends_segment_span import (
+    PROPOSAL_MARGIN_SECONDS,
     ExtendsSegmentSpan,
     ReadsTimecode,
     SpanWouldOverlapNeighbour,
+    WidensProposedSpan,
 )
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Recording, Segment, opens_store
@@ -230,3 +232,67 @@ def test_a_span_may_still_be_tightened_onto_its_punch_points(store):
     )
     assert tightened.span_start_seconds == segment.punch_in_seconds
     assert tightened.span_end_seconds == segment.punch_out_seconds
+
+
+PRODUCTION_PUNCHES = (3060.83, 5594.575)
+PRODUCTION_DURATION = 6791.607619
+WORST_MEASURED_PUNCH_IN_ERROR = 118.887
+
+
+def a_proposal(store, recording, punch_in, punch_out):
+    return Segment(
+        recording_id=recording.recording_id,
+        classification="sermon",
+        state="proposed",
+        span_start_seconds=punch_in,
+        span_end_seconds=punch_out,
+        punch_in_seconds=punch_in,
+        punch_out_seconds=punch_out,
+        boundary_source="model",
+    )
+
+
+def test_a_proposed_span_is_born_with_room_on_both_edges(store):
+    recording = a_recording(store)
+    roomy = WidensProposedSpan(store=store)(
+        a_proposal(store, recording, *PRODUCTION_PUNCHES), PRODUCTION_DURATION
+    )
+    assert PRODUCTION_PUNCHES[0] - roomy.span_start_seconds >= WORST_MEASURED_PUNCH_IN_ERROR
+    assert roomy.span_end_seconds - PRODUCTION_PUNCHES[1] >= WORST_MEASURED_PUNCH_IN_ERROR
+    assert roomy.span_start_seconds == PRODUCTION_PUNCHES[0] - PROPOSAL_MARGIN_SECONDS
+    assert roomy.span_end_seconds == PRODUCTION_PUNCHES[1] + PROPOSAL_MARGIN_SECONDS
+
+
+def test_the_room_never_reaches_before_the_recording_starts(store):
+    recording = a_recording(store)
+    roomy = WidensProposedSpan(store=store)(a_proposal(store, recording, 4.0, 600.0), 3600.0)
+    assert roomy.span_start_seconds == 0.0
+
+
+def test_the_room_never_reaches_past_the_recording_end(store):
+    recording = a_recording(store)
+    roomy = WidensProposedSpan(store=store)(a_proposal(store, recording, 400.0, 3500.0), 3600.0)
+    assert roomy.span_end_seconds == 3600.0
+
+
+def test_the_room_stops_at_a_neighbouring_segment(store):
+    recording = a_recording(store)
+    a_segment(store, recording, start=0.0, end=1000.0)
+    a_segment(store, recording, start=4000.0, end=5000.0)
+    roomy = WidensProposedSpan(store=store)(
+        a_proposal(store, recording, 1050.0, 3950.0), PRODUCTION_DURATION
+    )
+    assert roomy.span_start_seconds == 1000.0
+    assert roomy.span_end_seconds == 4000.0
+
+
+def test_the_room_a_proposal_is_born_with_is_never_refused_as_an_overlap(store):
+    recording = a_recording(store)
+    a_segment(store, recording, start=0.0, end=1000.0)
+    roomy = store.saves(
+        WidensProposedSpan(store=store)(
+            a_proposal(store, recording, 1050.0, 3950.0), PRODUCTION_DURATION
+        )
+    )
+    grown = ExtendsSegmentSpan(store=store)(roomy, start_seconds=roomy.span_start_seconds)
+    assert grown.span_start_seconds == roomy.span_start_seconds

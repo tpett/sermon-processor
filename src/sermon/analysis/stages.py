@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from sermon.analysis.io import reads_json, writes_json
+from sermon.extends_segment_span import WidensProposedSpan
 from sermon.pipeline import cues, scripture
 from sermon.store import (
     Block,
@@ -499,8 +500,10 @@ class ProposesSegments:
             punch_out_seconds=span["punch_out"],
             boundary_source="model",
         )
+        if standing is not None:
+            proposed = replace(proposed, segment_id=standing.segment_id)
         segment = self.store.saves(
-            proposed if standing is None else replace(proposed, segment_id=standing.segment_id)
+            WidensProposedSpan(store=self.store)(proposed, recording.duration_seconds)
         )
         _replaces_proposal(
             self.store,

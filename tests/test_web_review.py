@@ -1,11 +1,14 @@
+import re
 from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from sermon.store import Job, Proposal, Recording, Segment, opens_store
+from sermon.analysis import ProposesSegments
+from sermon.shows_recording import formats_precise
+from sermon.store import Block, Job, Proposal, Recording, Segment, opens_store
 from sermon.web import creates_app
-from steps._peaks import writes_peaks
+from steps._peaks import writes_peaks, writes_utterances
 
 
 @pytest.fixture
@@ -157,3 +160,137 @@ def test_a_punch_in_reaches_earlier_than_the_detected_span_once_it_is_grown(stor
     stored = store.loads(Segment, segment.segment_id)
     assert stored.span_start_seconds == 3000.0
     assert stored.punch_in_seconds == 3054.93
+
+
+PRODUCTION_DURATION = 6791.607619
+PRODUCTION_BLOCKS = (
+    (0.0, 1940.0, "other"),
+    (1940.0, 2015.0, "announcements"),
+    (2015.0, 2060.0, "prayer"),
+    (2060.0, 2780.0, "music"),
+    (2780.0, 3045.0, "prayer"),
+    (3045.0, 3060.0, "scripture_reading"),
+    (3060.0, 5595.0, "sermon"),
+    (5595.0, 5770.0, "communion"),
+    (5770.0, 6791.6, "other"),
+)
+PRODUCTION_SPOKEN = (
+    (3040.0, 3044.0, "let us pray together before we open the word"),
+    (3046.0, 3059.0, "hear the reading of the letter to the Hebrews"),
+    (3061.0, 3068.0, "good morning and welcome to the message this week"),
+    (5590.0, 5594.0, "let us pray as we come to the table"),
+)
+
+
+def a_freshly_proposed_segment(store):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260927_095721",
+            object_key="recordings/recording_20260927_095721.flac",
+            state="awaiting_review",
+            started_at=datetime(2026, 9, 27, 9, 57, 21, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=PRODUCTION_DURATION,
+        )
+    )
+    writes_peaks(store, recording)
+    writes_utterances(store, recording, PRODUCTION_SPOKEN)
+    for start, end, type_ in PRODUCTION_BLOCKS:
+        store.saves(
+            Block(
+                recording_id=recording.recording_id,
+                start_seconds=start,
+                end_seconds=end,
+                type=type_,
+                self_reported_confidence=0.9,
+            )
+        )
+    ProposesSegments(
+        store=store,
+        derives=lambda spans, doc: (
+            {
+                "classification": "sermon",
+                "punch_in": PRODUCTION_PUNCHES[0],
+                "punch_out": PRODUCTION_PUNCHES[1],
+                "confidence": 0.9,
+            },
+        ),
+    )(recording)
+    return store.lists(Segment, recording_id=recording.recording_id)[0]
+
+
+def moves_the_punch_in(client, segment, timecode, **query):
+    posted = client.post(
+        f"/recordings/{segment.recording_id}/segments/{segment.segment_id}"
+        f"/boundaries/punch-in",
+        data={"do": "set", "timecode": timecode},
+        query_string=query,
+    )
+    return client.get(posted.headers["Location"]).get_data(as_text=True)
+
+
+def reads_field(page, name):
+    found = re.search(rf'data-field="{name}">(.*?)<', page, re.S)
+    return None if found is None else " ".join(found.group(1).split())
+
+
+def window_step_of(page):
+    return re.search(r'data-window-step="([^"]*)"', page).group(1)
+
+
+def a_zoom_other_than(page):
+    return "thirty seconds" if window_step_of(page) != "thirty seconds" else "three seconds"
+
+
+def test_a_freshly_proposed_punch_in_moves_earlier_without_touching_the_span(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    page = moves_the_punch_in(client, segment, "3050.00")
+    assert reads_field(page, "action-notice") == "the adjustment is saved without approving"
+    assert reads_field(page, "punch-in") == formats_precise(3050.0)
+
+
+def test_a_refusal_keeps_the_zoom_the_reviewer_chose(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    chosen = a_zoom_other_than(detail_of(client, segment))
+    page = moves_the_punch_in(
+        client, segment, "600.00", zoom=chosen, centre=PRODUCTION_PUNCHES[0]
+    )
+    assert reads_field(page, "action-notice") == "the boundary must fall within the Segment"
+    assert window_step_of(page) == chosen
+
+
+def test_an_accepted_move_keeps_the_zoom_the_reviewer_chose(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    chosen = a_zoom_other_than(detail_of(client, segment))
+    page = moves_the_punch_in(
+        client, segment, "3050.00", zoom=chosen, centre=PRODUCTION_PUNCHES[0]
+    )
+    assert reads_field(page, "action-notice") == "the adjustment is saved without approving"
+    assert window_step_of(page) == chosen
+
+
+def test_the_drag_target_the_page_offers_carries_the_zoom_back(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    chosen = a_zoom_other_than(detail_of(client, segment))
+    zoomed = detail_of(client, segment, zoom=chosen, centre=PRODUCTION_PUNCHES[0])
+    offered = re.search(r'data-role="handle-punch-in"[^>]*data-url="([^"]+)"', zoomed)
+    posted = client.post(offered.group(1), data={"do": "set", "timecode": "3050.00"})
+    page = client.get(posted.headers["Location"]).get_data(as_text=True)
+    assert window_step_of(page) == chosen
+    assert reads_field(page, "punch-in") == formats_precise(3050.0)
+
+
+def test_the_outcome_is_announced_beside_the_waveform(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    page = moves_the_punch_in(client, segment, "600.00")
+    assert page.count('data-field="action-notice"') == 1
+    announced = page.index('data-field="action-notice"')
+    assert page.index('<section class="waveform">') < announced
+    assert announced < page.index('data-field="punch-control"')
+    assert announced < page.index('data-field="span-edge-control"')

@@ -18,7 +18,7 @@ from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
 from sermon.config import DATA_ROOT, ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
-from sermon.extends_segment_span import ReadsTimecode
+from sermon.extends_segment_span import ReadsTimecode, WidensProposedSpan
 from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
 from sermon.jobs.enqueues_job import EnqueuesJob
@@ -262,16 +262,19 @@ def fetches(settings=None, object_key=None, fetches_object=None, lists_objects=N
 
 def cuts_by_hand(store, recording, punch_in, punch_out, label, published_on, intent):
     segment = store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="proposed",
-            span_start_seconds=punch_in,
-            span_end_seconds=punch_out,
-            punch_in_seconds=punch_in,
-            punch_out_seconds=punch_out,
-            intent=intent,
-            boundary_source="human",
+        WidensProposedSpan(store=store)(
+            Segment(
+                recording_id=recording.recording_id,
+                classification="sermon",
+                state="proposed",
+                span_start_seconds=punch_in,
+                span_end_seconds=punch_out,
+                punch_in_seconds=punch_in,
+                punch_out_seconds=punch_out,
+                intent=intent,
+                boundary_source="human",
+            ),
+            recording.duration_seconds,
         )
     )
     segment = RecordsPublicationDetails(store=store).saves(

@@ -16,6 +16,7 @@ from sermon.analysis import (
 )
 from sermon.analysis.progress import RecordsStageProgress
 from sermon.config import ModelEndpointUnreachable
+from sermon.extends_segment_span import WidensProposedSpan
 from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.pipeline.preview import PreviewUnavailable
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
@@ -247,14 +248,17 @@ class AnalyzesRecording:
         if not self.store.lists(Segment, recording_id=recording.recording_id):
             for classification, punch_in, punch_out in self.contents.segments:
                 segment = self.store.saves(
-                    Segment(
-                        recording_id=recording.recording_id,
-                        classification=classification,
-                        state="proposed",
-                        span_start_seconds=punch_in,
-                        span_end_seconds=punch_out,
-                        punch_in_seconds=punch_in,
-                        punch_out_seconds=punch_out,
+                    WidensProposedSpan(store=self.store)(
+                        Segment(
+                            recording_id=recording.recording_id,
+                            classification=classification,
+                            state="proposed",
+                            span_start_seconds=punch_in,
+                            span_end_seconds=punch_out,
+                            punch_in_seconds=punch_in,
+                            punch_out_seconds=punch_out,
+                        ),
+                        recording.duration_seconds,
                     )
                 )
                 self.store.saves(

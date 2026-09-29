@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from sermon.adjusts_punch_point import AdjustsPunchPoint
 from sermon.analysis import (
     ClassifiesBlocks,
     DividesIntoBlocks,
@@ -44,6 +45,7 @@ ANALYSIS_PATH = sorted(ANALYSIS_ROOT.glob("*.py")) + [
 CORPUS = Path(os.environ.get("SERMON_SPIKE_DATA") or PROJECT_ROOT / "experiments" / "data")
 GROUND_TRUTH = CORPUS / "groundtruth.json"
 SPIKE_CONFIG = "u3-qwen3.6.whole.v2"
+CORRECTION_ROOM_SECONDS = 6.0
 DEV_RECORDINGS = (
     "recording_20260412_102318",
     "recording_20260503_090012",
@@ -224,6 +226,20 @@ def test_the_proposed_boundaries_are_the_ones_the_pipeline_library_derives(store
     ] == [
         (item["punch_in"], item["punch_out"], item["boundary_source"]) for item in expected
     ]
+
+
+@spike_data_required
+@pytest.mark.parametrize("recording_id", DEV_RECORDINGS)
+def test_every_proposed_segment_is_born_able_to_correct_its_punch_in(store, recording_id):
+    _, proposed = proposes(store, recording_id)
+    duration = stored_transcript(recording_id)["duration"]
+    for item in proposed:
+        earlier = max(0.0, item.punch_in_seconds - CORRECTION_ROOM_SECONDS)
+        later = min(duration, item.punch_out_seconds + CORRECTION_ROOM_SECONDS)
+        moved = AdjustsPunchPoint(store=store)(
+            item, punch_in_seconds=earlier, punch_out_seconds=later
+        )
+        assert (moved.punch_in_seconds, moved.punch_out_seconds) == (earlier, later)
 
 
 @spike_data_required
