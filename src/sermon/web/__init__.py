@@ -24,7 +24,11 @@ from sermon.discards_recording import (
     RestoresRecording,
 )
 from sermon.draws_waveform import words_across
-from sermon.extends_segment_span import SpanWouldOverlapNeighbour
+from sermon.extends_segment_span import (
+    SPAN_EDGES,
+    ExtendsSegmentSpan,
+    SpanWouldOverlapNeighbour,
+)
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.lists_recordings import ListsRecordings
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
@@ -86,7 +90,21 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
     splits = SplitsSegment(store=store)
     merges = MergesSegments(store=store)
     creates = CreatesSegment(store=store)
+    extends = ExtendsSegmentSpan(store=store)
     playheads = {}
+
+    def playhead_of(recording_id, segment_id=None, focus=None):
+        held = playheads.get(recording_id)
+        if held is not None:
+            return held
+        segments = store.lists(Segment, recording_id=recording_id)
+        chosen = [one for one in segments if one.segment_id == segment_id] or segments
+        if not chosen:
+            return 0.0
+        working = chosen[0]
+        if focus == "punch-out":
+            return working.punch_out_seconds
+        return working.punch_in_seconds
 
     def returns_to(recording_id, notice, segment_id=None, focus=None):
         return redirect(
@@ -163,15 +181,17 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
 
     @app.get("/recordings/<recording_id>")
     def html_detail(recording_id):
+        selected = request.args.get("segment", type=int)
+        focus = request.args.get("focus")
         view = shows(
             recording_id,
-            selected_segment_id=request.args.get("segment", type=int),
-            playhead_seconds=playheads.get(recording_id, 0.0),
+            selected_segment_id=selected,
+            playhead_seconds=playhead_of(recording_id, selected, focus),
             zoom=request.args.get("zoom"),
             centre_seconds=request.args.get("centre", type=float),
             auditioning=request.args.get("preview"),
             notice=request.args.get("notice"),
-            focused_boundary=request.args.get("focus"),
+            focused_boundary=focus,
         )
         if view is None:
             return ("", 404)
@@ -373,10 +393,11 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
 
     @app.get("/api/recordings/<recording_id>")
     def recording_detail(recording_id):
+        selected = request.args.get("segment", type=int)
         view = shows(
             recording_id,
-            selected_segment_id=request.args.get("segment", type=int),
-            playhead_seconds=playheads.get(recording_id, 0.0),
+            selected_segment_id=selected,
+            playhead_seconds=playhead_of(recording_id, selected),
         )
         if view is None:
             return ({"error": "no such recording"}, 404)
@@ -543,6 +564,27 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
             )
         )
 
+    @app.post("/recordings/<recording_id>/segments/<int:segment_id>/span/<edge>")
+    def span_action(recording_id, segment_id, edge):
+        segment = store.loads(Segment, segment_id)
+        if segment is None or segment.recording_id != recording_id or edge not in SPAN_EDGES:
+            return ("", 404)
+        try:
+            extends(segment, **{f"{edge}_seconds": offered_edge(segment, edge)})
+        except (SpanWouldOverlapNeighbour, BoundaryRejected, ValueError) as refusal:
+            return returns_to(recording_id, str(refusal), segment_id, request.form.get("focus"))
+        return returns_to(recording_id, "span-extended", segment_id, request.form.get("focus"))
+
+    def offered_edge(segment, edge):
+        action = request.form["do"]
+        if action == "set":
+            return reads_timecode(request.form["timecode"])
+        if action == "nudge":
+            step = reads_nudge_amount(request.form["amount"])
+            held = getattr(segment, f"span_{edge}_seconds")
+            return held - step if request.form["direction"] == "earlier" else held + step
+        raise ValueError("no such span action")
+
     @app.post("/recordings/<recording_id>/segments/<int:segment_id>/boundaries/<boundary>")
     def boundary_action(recording_id, segment_id, boundary):
         segment = store.loads(Segment, segment_id)
@@ -569,7 +611,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
         if action == "set":
             return reads_timecode(request.form["timecode"])
         if action == "playhead":
-            return playheads.get(segment.recording_id, 0.0)
+            return playhead_of(segment.recording_id, segment.segment_id, boundary)
         if action == "nudge":
             step = reads_nudge_amount(request.form["amount"])
             return held - step if request.form["direction"] == "earlier" else held + step

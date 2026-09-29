@@ -12,6 +12,7 @@ from sermon.adjusts_punch_point import (
 from sermon.analysis.io import reads_json
 from sermon.analysis.progress import reads_stage_progress, reads_transcription_progress
 from sermon.draws_waveform import DrawsWaveform, WaveformView
+from sermon.extends_segment_span import SPAN_STEPS
 from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.lists_recordings import (
     IngestView,
@@ -137,7 +138,10 @@ NOTICES = {
         "a Segment that has been approved cannot be reclassified"
     ),
     "reclassified": "the Segment is reclassified",
+    "span-extended": "the Segment's own span is changed",
 }
+
+PLAYHEAD_OUTSIDE_SPAN = "the playhead is outside the Segment"
 
 WHOLE_SPAN_NOTE = "the whole span will be kept"
 
@@ -317,6 +321,13 @@ class ActionView:
 
 
 @dataclass(frozen=True)
+class SpanEdgeView:
+    field: str
+    seconds: float
+    url: str
+
+
+@dataclass(frozen=True)
 class BoundaryView:
     field: str
     seconds: float
@@ -468,6 +479,9 @@ class RecordingView:
     label: str | None
     boundary_controls: str
     boundaries: tuple
+    span_edges: tuple
+    span_steps: tuple
+    punch_unavailable: str | None
     focused_boundary: str | None
     nudge_steps: tuple
     proposed_punch_in_seconds: float | None
@@ -651,6 +665,9 @@ class ShowsRecording:
             label=None if selected is None else selected.label,
             boundary_controls=self._boundary_controls(selected),
             boundaries=self._boundaries(selected, focused_boundary),
+            span_edges=self._span_edges(selected),
+            span_steps=SPAN_STEPS,
+            punch_unavailable=self._punch_unavailable(selected, playhead_seconds),
             focused_boundary=focused_boundary,
             nudge_steps=NUDGE_STEPS,
             proposed_punch_in_seconds=proposal[0],
@@ -749,6 +766,29 @@ class ShowsRecording:
             )
             for field, seconds in held
         )
+
+    def _span_edges(self, selected):
+        if selected is None or selected.state not in EDITABLE_STATES:
+            return ()
+        held = (("start", selected.span_start_seconds), ("end", selected.span_end_seconds))
+        return tuple(
+            SpanEdgeView(
+                field=field,
+                seconds=seconds,
+                url=(
+                    f"/recordings/{selected.recording_id}/segments/"
+                    f"{selected.segment_id}/span/{field}"
+                ),
+            )
+            for field, seconds in held
+        )
+
+    def _punch_unavailable(self, selected, playhead_seconds):
+        if selected is None:
+            return None
+        if selected.span_start_seconds <= playhead_seconds <= selected.span_end_seconds:
+            return None
+        return PLAYHEAD_OUTSIDE_SPAN
 
     def _gap(self, selected, segments, transcript):
         if selected is None:

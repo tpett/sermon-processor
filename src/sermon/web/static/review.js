@@ -606,8 +606,6 @@ if (ticksRuler && detailPane) {
 const scrubHandle = detailPane && detailPane.querySelector('[data-role="scrub-handle"]');
 
 function playheadNow() {
-  const audio = document.querySelector("audio");
-  if (audio && Number.isFinite(audio.currentTime)) return audio.currentTime;
   return detailMarker ? Number(detailMarker.dataset.playheadSeconds) : 0;
 }
 
@@ -678,7 +676,7 @@ document.addEventListener("keydown", (event) => {
 document.querySelectorAll('[data-row="punch-point"] [data-field="punch-control"]').forEach(
   (control) => {
     const form = control.closest("form");
-    if (!form) return;
+    if (!form || !detailMarker) return;
     control.addEventListener("click", () => {
       const asked = form.querySelector('input[name="do"]');
       const timecode = document.createElement("input");

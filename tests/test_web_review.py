@@ -5,6 +5,7 @@ import pytest
 
 from sermon.store import Job, Proposal, Recording, Segment, opens_store
 from sermon.web import creates_app
+from steps._peaks import writes_peaks
 
 
 @pytest.fixture
@@ -82,6 +83,7 @@ def a_reviewable_segment(store):
             duration_seconds=7200.0,
         )
     )
+    writes_peaks(store, recording)
     return store.saves(
         Segment(
             recording_id=recording.recording_id,

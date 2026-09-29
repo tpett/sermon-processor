@@ -4,6 +4,9 @@ from dataclasses import dataclass, replace
 
 from sermon.store import Segment, Store
 
+SPAN_EDGES = ("start", "end")
+SPAN_STEPS = ("10 s", "1 min", "5 min")
+
 
 class SpanWouldOverlapNeighbour(ValueError):
     def __init__(self):
