@@ -392,3 +392,28 @@ def _(detail_page):
 def _(detail_page):
     assert reads_field(detail_page, "proposed-boundaries")
     assert reads_field(detail_page, "revert-control") == "Revert to the machine proposal"
+
+
+@when("I punch the punch-in in from beside the waveform", target_fixture="detail_page")
+def _(store, segment):
+    client = _web.opens_app(store).test_client()
+    client.post(
+        f"/api/recordings/{segment.recording_id}/seek",
+        json={"seconds": getattr(store, "_playhead", 0.0)},
+    )
+    posted = client.post(_web.boundary_action(segment, "punch-in"), data={"do": "playhead"})
+    return client.get(posted.headers["Location"]).get_data(as_text=True)
+
+
+@then("a punch control for each boundary sits beside the waveform rather than in a lower card")
+def _(detail_page):
+    rows = reads_rows(detail_page, "punch-point")
+    assert [row["boundary"] for row in rows] == ["punch-in", "punch-out"]
+    assert all(row["punch-control"] for row in rows)
+    beside = detail_page.index('<section class="waveform">')
+    lower = detail_page.index('<div class="supporting">')
+    placed = [
+        detail_page.index(f'data-row="punch-point" data-boundary="{row["boundary"]}"')
+        for row in rows
+    ]
+    assert all(beside < at < lower for at in placed)

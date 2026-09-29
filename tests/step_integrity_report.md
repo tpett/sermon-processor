@@ -4,10 +4,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1261 step definitions read from `tests/steps`
+- 1274 step definitions read from `tests/steps`
 - 0 condemned
-- 0 of 462 non-deferred scenarios rest on at least one condemned step
-- 0 of 603 expanded scenario tests likewise
+- 0 of 466 non-deferred scenarios rest on at least one condemned step
+- 0 of 607 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
@@ -52,11 +52,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
-| `tests/steps/interface/punch_point_adjustment_steps.py` | 39 | 0 | sound |
+| `tests/steps/interface/punch_point_adjustment_steps.py` | 41 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 36 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 37 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 88 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 99 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
@@ -268,13 +268,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/publication_details.feature:77 then the output file is named from the recording date`
 - `interface/publication_details.feature:78 then I am not prompted for anything else`
 - `interface/publication_details.feature:87 then I can change the label or confirm that this replaces the previous file`
-- `interface/punch_point_adjustment.feature:118 then the punch-in moves to the nearest silence gap boundary`
-- `interface/punch_point_adjustment.feature:119 then the amount it moved is shown`
-- `interface/punch_point_adjustment.feature:135 then I am warned that the cut is too close to the audio`
-- `interface/punch_point_adjustment.feature:136 then I am offered the nearest point with a 250 ms margin`
-- `interface/punch_point_adjustment.feature:137 then I can override the warning if I mean it`
-- `interface/punch_point_adjustment.feature:149 given the teaching begins with "good morning"`
-- `interface/punch_point_adjustment.feature:151 then the punch-in lands immediately before "good morning"`
+- `interface/punch_point_adjustment.feature:129 then the punch-in moves to the nearest silence gap boundary`
+- `interface/punch_point_adjustment.feature:130 then the amount it moved is shown`
+- `interface/punch_point_adjustment.feature:146 then I am warned that the cut is too close to the audio`
+- `interface/punch_point_adjustment.feature:147 then I am offered the nearest point with a 250 ms margin`
+- `interface/punch_point_adjustment.feature:148 then I can override the warning if I mean it`
+- `interface/punch_point_adjustment.feature:160 given the teaching begins with "good morning"`
+- `interface/punch_point_adjustment.feature:162 then the punch-in lands immediately before "good morning"`
 - `interface/recording_detail.feature:62 when I expand the processing log`
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
@@ -333,10 +333,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:96 then it is processed using its stored boundaries`
 - `interface/segment_review.feature:97 then Analysis does not need to run again`
 - `interface/segment_review.feature:98 then the resulting MP3 is identical to what it would have been in August`
-- `interface/waveform_review.feature:269 given the configured model endpoint does not answer`
-- `interface/waveform_review.feature:270 then reviewing, adjusting and approving continue to work`
-- `interface/waveform_review.feature:271 then only the actions that need a model are shown as unavailable`
-- `interface/waveform_review.feature:272 then the reason names the endpoint rather than blaming the Recording`
+- `interface/waveform_review.feature:302 given the configured model endpoint does not answer`
+- `interface/waveform_review.feature:303 then reviewing, adjusting and approving continue to work`
+- `interface/waveform_review.feature:304 then only the actions that need a model are shown as unavailable`
+- `interface/waveform_review.feature:305 then the reason names the endpoint rather than blaming the Recording`
 - `notifications/approval_notifications.feature:171 then no further notifications are sent to them`
 - `notifications/approval_notifications.feature:172 then recordings still appear in the recordings list`
 - `notifications/approval_notifications.feature:37 given no delivery channel is configured`
