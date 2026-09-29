@@ -557,7 +557,7 @@
     "classification": "sermon",
     "confidence": 0.98,
     "punch_in": 1744.0,
-    "punch_out": 5022.2
+    "punch_out": 5025.34
    }
   ],
   "derived": [
@@ -565,7 +565,7 @@
     "classification": "sermon",
     "confidence": 0.98,
     "punch_in": 1744.46,
-    "punch_out": 5022.2
+    "punch_out": 5025.34
    }
   ]
  },
@@ -1831,7 +1831,7 @@
     "classification": "sermon",
     "confidence": 0.9,
     "punch_in": 4199.94,
-    "punch_out": 5303.16
+    "punch_out": 5309.8
    }
   ],
   "derived": [
@@ -1845,7 +1845,7 @@
     "classification": "sermon",
     "confidence": 0.9,
     "punch_in": 4199.94,
-    "punch_out": 5303.16
+    "punch_out": 5309.8
    }
   ]
  },
@@ -2027,7 +2027,7 @@
     "classification": "sermon",
     "confidence": 0.99,
     "punch_in": 1590.5,
-    "punch_out": 4583.06
+    "punch_out": 4585.36
    }
   ],
   "derived": [
@@ -2035,7 +2035,7 @@
     "classification": "sermon",
     "confidence": 0.99,
     "punch_in": 1590.52,
-    "punch_out": 4583.06
+    "punch_out": 4585.36
    }
   ]
  },
@@ -2504,7 +2504,7 @@
     "classification": "lesson",
     "confidence": 0.95,
     "punch_in": 0.0,
-    "punch_out": 5887.18
+    "punch_out": 5890.1
    }
   ],
   "derived": [
@@ -2512,7 +2512,7 @@
     "classification": "lesson",
     "confidence": 0.95,
     "punch_in": 0.0,
-    "punch_out": 5887.18
+    "punch_out": 5890.1
    }
   ]
  },
@@ -3239,13 +3239,13 @@
     "classification": "lesson",
     "confidence": 0.9,
     "punch_in": 1.4,
-    "punch_out": 518.28
+    "punch_out": 531.14
    },
    {
     "boundary_source": "refined",
     "classification": "lesson",
     "confidence": 0.95,
-    "punch_in": 529.64,
+    "punch_in": 531.14,
     "punch_out": 3417.36
    }
   ],
@@ -3254,12 +3254,12 @@
     "classification": "lesson",
     "confidence": 0.9,
     "punch_in": 1.4,
-    "punch_out": 518.28
+    "punch_out": 531.14
    },
    {
     "classification": "lesson",
     "confidence": 0.95,
-    "punch_in": 529.64,
+    "punch_in": 531.14,
     "punch_out": 3417.36
    }
   ]
