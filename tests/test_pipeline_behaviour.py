@@ -429,6 +429,64 @@ def test_the_punch_out_ignores_an_amen_too_early_to_be_the_closing_one():
     assert segments.refine_out(utterances, "sermon") == 400.0
 
 
+def prays_into_communion(edge=600.0):
+    return {
+        "recording_id": "rec1",
+        "duration": 1000.0,
+        "utterances": [
+            {"start": 10.0, "end": 50.0, "text": "Now, look at what Paul is doing."},
+            {"start": 560.0, "end": 596.0,
+             "text": "that you're a good Father who gives good gifts."},
+            {"start": edge - 3.5, "end": edge + 1.0,
+             "text": "So we pray in Christ's name. Amen."},
+            {"start": edge + 2.0, "end": edge + 40.0,
+             "text": "If you're a visitor with us this morning."},
+        ],
+    }
+
+
+def test_the_sermon_punch_out_reaches_the_invitation_in_the_block_that_follows(
+    rooted_segments,
+):
+    doc = prays_into_communion()
+    blocks = [
+        {"type": "sermon", "start": 10.0, "end": 600.0, "confidence": 0.9},
+        {"type": "communion", "start": 600.0, "end": 700.0, "confidence": 0.9},
+    ]
+    derived = rooted_segments.derive(blocks, doc, refine=True)
+    assert derived[0]["punch_out"] == pytest.approx(601.6)
+
+
+def test_a_closing_amen_straddling_the_block_edge_is_inside_the_cut(rooted_segments):
+    doc = prays_into_communion()
+    blocks = [
+        {"type": "sermon", "start": 10.0, "end": 600.0, "confidence": 0.9},
+        {"type": "communion", "start": 600.0, "end": 700.0, "confidence": 0.9},
+    ]
+    closing_amen = doc["utterances"][2]
+    derived = rooted_segments.derive(blocks, doc, refine=True)
+    assert derived[0]["punch_out"] >= closing_amen["end"]
+
+
+def test_the_punch_out_does_not_take_an_amen_belonging_to_communion(rooted_segments):
+    doc = {
+        "recording_id": "rec1",
+        "duration": 1000.0,
+        "utterances": [
+            {"start": 10.0, "end": 50.0, "text": "Now, look at what Paul is doing."},
+            {"start": 560.0, "end": 596.0, "text": "So we pray in Christ's name. Amen."},
+            {"start": 620.0, "end": 660.0, "text": "Please come forward."},
+            {"start": 780.0, "end": 790.0, "text": "Amen and amen."},
+        ],
+    }
+    blocks = [
+        {"type": "sermon", "start": 10.0, "end": 600.0, "confidence": 0.9},
+        {"type": "communion", "start": 600.0, "end": 800.0, "confidence": 0.9},
+    ]
+    derived = rooted_segments.derive(blocks, doc, refine=True)
+    assert derived[0]["punch_out"] == pytest.approx(597.5)
+
+
 def test_neither_refinement_claims_a_boundary_in_an_empty_span():
     segments = imports_moved("segments")
     assert segments.refine_in([]) is None

@@ -163,7 +163,8 @@ def _start_of_teaching(utts: list[dict]) -> float:
     return utts[0]["start"]
 
 
-def refine_out(utts: list[dict], block_type: str = "sermon") -> float | None:
+def refine_out(utts: list[dict], block_type: str = "sermon",
+               ends_by: float | None = None) -> float | None:
     """Cut at the end of the closing prayer, before whatever follows it.
 
     **The anchor differs by content type**, which is what the spec asks for
@@ -182,10 +183,19 @@ def refine_out(utts: list[dict], block_type: str = "sermon") -> float | None:
       "Amen" at 7403.8 s. Last-amen-wins picked the later one: +189 s.
     - 2026-05-31: the closing prayer ends "...in Christ's name" with **no amen at
       all**. Last-amen-wins skipped 245 s into communion: +244 s.
+
+    When the closing prayer is inside the teaching block rather than a block of
+    its own, the anchor is outside it, so `utts` reaches past `ends_by` into what
+    follows. Only an utterance *beginning* at or before `ends_by` can be the
+    answer; the rest are read for the anchor alone, which is what keeps both of
+    those failures fixed once the window can see across the edge.
     """
     if not utts:
         return None
-    tail = [u for u in utts if u["end"] >= utts[-1]["end"] - 1200]
+    own = [u for u in utts if ends_by is None or u["start"] <= ends_by + 0.01]
+    if not own:
+        return None
+    tail = [u for u in own if u["end"] >= own[-1]["end"] - 1200]
     if not tail:
         return None
 
@@ -194,23 +204,25 @@ def refine_out(utts: list[dict], block_type: str = "sermon") -> float | None:
                "seminar": C.QA}.get(block_type)
 
     if anchors:
-        for i, u in enumerate(tail):
+        searched = tail + utts[len(own):]
+        for i, u in enumerate(searched):
             if C.any_hit(u["text"], anchors):
                 # Step back to the closing amen if there is one close behind,
                 # otherwise to the last thing said before the anchor.
-                for j in range(i - 1, -1, -1):
-                    if tail[i]["start"] - tail[j]["end"] > AMEN_LOOKBACK_S:
+                last = min(i, len(tail))
+                for j in range(last - 1, -1, -1):
+                    if u["start"] - tail[j]["end"] > AMEN_LOOKBACK_S:
                         break
                     if "amen" in tail[j]["text"].lower():
                         return tail[j]["end"]
-                return tail[i - 1]["end"] if i > 0 else tail[i]["start"]
+                return tail[last - 1]["end"] if last > 0 else tail[0]["start"]
 
     # No anchor found. Fall back to the last amen — but only if it is plausibly
     # the *closing* one. An unbounded fallback reached back 702 s to a mid-sermon
     # amen on a block whose own end was 0.9 s from the truth, and did the same
     # thing three times in the scored data. When the amen is implausibly early,
     # the end of the block is the better answer.
-    end = utts[-1]["end"]
+    end = own[-1]["end"]
     last_amen = None
     for u in tail:
         if "amen" in u["text"].lower():
@@ -310,9 +322,13 @@ def derive(blocks: list[dict], doc: dict, refine: bool = True,
             # smoothed block edges combined with a lookback for the reading
             # produced two catastrophic jumps of ~2800 s. See FINDINGS.
             pin = refine_in(head, pin, b.get("type", "sermon")) or pin
-            tail_src = _within(doc, float(nxt["start"]), float(nxt["end"]) + LOOKBACK_S) if (
-                nxt and nxt.get("type") == "prayer") else _within(doc, pin, pout + LOOKBACK_S)
-            pout = refine_out(tail_src, b.get("type", "sermon")) or pout
+            closes_on_prayer = bool(nxt and nxt.get("type") == "prayer")
+            anchors_in_next = bool(nxt) and not closes_on_prayer
+            tail_from = float(nxt["start"]) if closes_on_prayer else pin
+            tail_to = float(nxt["end"]) if anchors_in_next else pout + LOOKBACK_S
+            tail_src = _within(doc, tail_from, tail_to)
+            pout = refine_out(tail_src, b.get("type", "sermon"),
+                              pout if anchors_in_next else None) or pout
         pin, pout = snap(pin, doc), snap(pout, doc)
         if refine and tail:
             pout = add_tail(pout, doc, tail)

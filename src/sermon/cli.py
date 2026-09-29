@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -11,6 +12,8 @@ from pathlib import Path
 from sermon.analysis import MeasuresBoundaryError, ProposesFromStoredTranscript, ReadsStoredTranscript
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
+from sermon.analysis.grades_cut_accuracy import GradesCorpusAccuracy
+from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals, RegradesStoredCuts
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
@@ -35,6 +38,7 @@ from sermon.reconciles_bucket import (
     ReconcilesBucket,
 )
 from sermon.records_publication_details import RecordsPublicationDetails
+from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, LONG_RUN_SECONDS, SAME_CUT
 from sermon.sends_notification import SendsNotification
 from sermon.store import (
     Artifact,
@@ -798,3 +802,226 @@ def organizes(settings=None, arguments=None, prints=print):
         )
     finally:
         store.close()
+
+
+REGRADE_USAGE = (
+    "sermon-regrade --corpus <corpus-root> [--before <path>] [--save <path>] "
+    "[--tag <text>] [--drift]"
+)
+
+
+def parses_regrade_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-regrade", usage=REGRADE_USAGE, add_help=True)
+    parser.add_argument("--corpus", required=True)
+    parser.add_argument("--before")
+    parser.add_argument("--save")
+    parser.add_argument("--tag")
+    parser.add_argument("--drift", action="store_true")
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {REGRADE_USAGE}")
+        return None
+
+
+def reads_stored_proposals(path):
+    return {
+        name: [(held["punch_in"], held["punch_out"]) for held in entry.get("chosen") or ()]
+        for name, entry in json.loads(Path(path).read_text()).items()
+    }
+
+
+def writes_stored_proposals(path, graded):
+    Path(path).write_text(
+        json.dumps(
+            {
+                name: {"chosen": [{"punch_in": punch_in, "punch_out": punch_out}
+                                  for punch_in, punch_out in proposed]}
+                for name, proposed in graded.items()
+            },
+            indent=1,
+            sort_keys=True,
+        )
+    )
+
+
+def reports_placing(run, in_speech):
+    if run is None:
+        return "in a word" if in_speech else "no run"
+    noted = f"run {run.index} ({run.seconds:.1f}s"
+    if run.seconds > LONG_RUN_SECONDS:
+        noted += ",long"
+    if run.overlaps_audio_silence:
+        noted += ",audio"
+    return f"{noted})"
+
+
+def reports_distance(score):
+    named = "same run" if score.same_run else "a run away"
+    return f"{named:<10} speech {score.speech_seconds:7.3f} s"
+
+
+def reports_accuracy_cut(cut, prints):
+    named = cut.boundary.replace("_", "-")
+    if not cut.found:
+        prints(f"  {named:<9} human {cut.human:10.3f}  NOT FOUND  [{cut.difficulty}]")
+        return
+    score = cut.score
+    human_at = reports_placing(score.truth_run, score.truth_in_speech)
+    prints(
+        f"  {named:<9} human {cut.human:10.3f} {human_at:<22} "
+        f"proposed {score.proposed:10.3f} "
+        f"{reports_placing(score.proposed_run, score.in_speech):<22} "
+        f"{reports_distance(score)}  [{cut.difficulty}]"
+    )
+
+
+def reports_accuracy(graded, prints):
+    cuts = [cut for proposal in graded for cut in proposal.cuts]
+    for proposal in graded:
+        prints(f"{proposal.recording_id}  {proposal.tag}")
+        for cut in proposal.cuts:
+            reports_accuracy_cut(cut, prints)
+    found = [cut for cut in cuts if cut.found]
+    prints(
+        f"{len(graded)} proposal{'' if len(graded) == 1 else 's'} graded, {len(cuts)} cut points: "
+        f"{sum(cut.score.same_run for cut in found)} in the human's run, "
+        f"{sum(cut.score.in_speech for cut in found)} mid-word, "
+        f"{len(cuts) - len(found)} not found"
+    )
+    if not found:
+        prints("nothing could be scored against a human cut")
+        return 1
+    apart = sorted(cut.score.speech_seconds for cut in found)
+    prints(
+        f"speech from the human cut: median {apart[len(apart) // 2]:.3f} s, "
+        f"worst {apart[-1]:.3f} s, "
+        f"{sum(cut.score.long_run for cut in found)} in a run over {LONG_RUN_SECONDS:.0f} s"
+    )
+    return 0
+
+
+def reports_changed_cut(proposal, before, after, verdict, prints):
+    named = after.boundary.replace("_", "-")
+    prints(
+        f"{proposal.recording_id}  {proposal.tag}  {named}  "
+        f"human {after.human:10.3f}  {verdict}"
+    )
+    for side, cut in (("before", before), ("after", after)):
+        if not cut.found:
+            prints(f"    {side:<8} {'NOT FOUND':>10}")
+            continue
+        prints(
+            f"    {side:<8} {cut.score.proposed:10.3f} "
+            f"{reports_placing(cut.score.proposed_run, cut.score.in_speech):<22} "
+            f"{reports_distance(cut.score)}"
+        )
+
+
+def reports_change(graded, prints):
+    counted = {IMPROVED: 0, DEGRADED: 0, SAME_CUT: 0}
+    cuts = 0
+    for proposal in graded:
+        for before, after, verdict in proposal.changes:
+            cuts += 1
+            if verdict == EQUAL:
+                continue
+            counted[verdict] += 1
+            reports_changed_cut(proposal, before, after, verdict, prints)
+    moved = sum(counted.values())
+    prints(
+        f"{len(graded)} proposal{'' if len(graded) == 1 else 's'} graded, {cuts} cut points, "
+        f"{moved} moved: {counted[IMPROVED]} {IMPROVED}, {counted[DEGRADED]} {DEGRADED}, "
+        f"{counted[SAME_CUT]} {SAME_CUT}"
+    )
+    return 1 if counted[DEGRADED] else 0
+
+
+def reports_drift(regraded, prints):
+    for proposal in regraded:
+        reports_regraded_proposal(proposal, prints)
+    cuts = [cut for proposal in regraded for cut in proposal.cuts]
+    moved = [cut for cut in cuts if cut.score.delta_seconds != 0.0]
+    counted = {}
+    for cut in moved:
+        counted[cut.score.verdict] = counted.get(cut.score.verdict, 0) + 1
+    prints(
+        f"drift only, not accuracy: {len(regraded)} stored proposals, {len(cuts)} cut points, "
+        f"{len(moved)} differ from what the corpus recorded"
+        + ("" if not counted else ": " + ", ".join(f"{counted[v]} {v}" for v in sorted(counted)))
+    )
+    return 0
+
+
+def reports_regraded_cut(cut, prints):
+    score = cut.score
+    prints(
+        f"  {cut.boundary.replace('_', '-'):<9} "
+        f"{score.truth:10.3f} {reports_placing(score.truth_run, score.truth_in_speech):<22} -> "
+        f"{score.proposed:10.3f} {reports_placing(score.proposed_run, score.in_speech):<22} "
+        f"delta {score.delta_seconds:+8.3f} s  speech {score.speech_seconds:7.3f} s  "
+        f"{score.verdict}"
+    )
+
+
+def reports_regraded_proposal(proposal, prints):
+    moved = [cut for cut in proposal.cuts if cut.score.delta_seconds != 0.0]
+    counts_differ = proposal.regraded and proposal.stored_count != proposal.live_count
+    if not proposal.regraded:
+        prints(f"{proposal.recording_id}  {proposal.tag}  no transcript, not regraded")
+        return
+    if not moved and not counts_differ:
+        return
+    prints(f"{proposal.recording_id}  {proposal.tag}")
+    if counts_differ:
+        prints(f"  segments   stored {proposal.stored_count}, live {proposal.live_count}")
+    for cut in moved:
+        reports_regraded_cut(cut, prints)
+
+
+def regrades(arguments=None, prints=print, derives=None):
+    """Grade every stored proposal against the human cut by silence-run identity.
+
+    Reads the corpus and writes nothing to it. No audio leaves the machine and
+    neither a transcriber nor a classifier is invoked.
+    """
+    asked = parses_regrade_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    corpus = Path(asked.corpus).resolve()
+    stored = sorted((corpus / "blocks").glob("*.json"))
+    if not stored:
+        prints(f"no stored proposals under {corpus / 'blocks'}")
+        return 1
+    try:
+        if asked.drift:
+            prints(f"reading drift against {len(stored)} stored proposals under {corpus}")
+            return reports_drift(
+                RegradesStoredCuts(corpus_root=corpus, derives=derives, tag=asked.tag)(), prints
+            )
+        before = reads_stored_proposals(asked.before) if asked.before else None
+        graded = GradesCorpusAccuracy(
+            corpus_root=corpus, derives=derives, before=before, tag=asked.tag
+        )()
+        if asked.save:
+            writes_stored_proposals(
+                asked.save,
+                {
+                    found.name: found.live
+                    for found in DerivesStoredProposals(
+                        corpus_root=corpus, derives=derives, tag=asked.tag
+                    )()
+                    if found.regraded
+                },
+            )
+            prints(f"saved {len(stored)} live proposals to {asked.save}")
+        prints(
+            f"grading {len(graded)} labelled proposal{'' if len(graded) == 1 else 's'} "
+            f"against {corpus / 'groundtruth.json'}"
+        )
+        return reports_change(graded, prints) if before is not None else reports_accuracy(
+            graded, prints
+        )
+    except RootNotConfigured as refused:
+        prints(str(refused))
+        return 1
