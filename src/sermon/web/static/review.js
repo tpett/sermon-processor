@@ -184,7 +184,9 @@ function seeks(seconds, play) {
 }
 
 function operates(event) {
-  return event.target.closest("a, button, form, input, [data-role^='handle-']");
+  return event.target.closest(
+    "a, button, form, input, [data-role^='handle-'], [data-role='scrub-handle']"
+  );
 }
 
 const windowMarker = document.querySelector('[data-role="detail-window"]');
@@ -583,6 +585,111 @@ document.addEventListener("keydown", (event) => {
   const amount = event.shiftKey ? "1 s" : event.altKey ? "50 ms" : "0.1 s";
   if (nudges(direction, amount)) event.preventDefault();
 });
+
+
+const ticksRuler = document.querySelector('[data-role="detail-ticks"][data-seeks="playhead"]');
+
+if (ticksRuler && detailPane) {
+  ticksRuler.addEventListener("click", (event) => {
+    seeks(
+      secondsAt(
+        event,
+        ticksRuler,
+        Number(detailPane.dataset.windowStartSeconds),
+        Number(detailPane.dataset.windowSeconds)
+      ),
+      true
+    );
+  });
+}
+
+const scrubHandle = detailPane && detailPane.querySelector('[data-role="scrub-handle"]');
+
+function playheadNow() {
+  const audio = document.querySelector("audio");
+  if (audio && Number.isFinite(audio.currentTime)) return audio.currentTime;
+  return detailMarker ? Number(detailMarker.dataset.playheadSeconds) : 0;
+}
+
+function scrubs(step) {
+  const limit = duration > 0 ? duration : playheadNow() + step;
+  const wanted = Math.min(Math.max(playheadNow() + step, 0), limit);
+  seeks(wanted);
+  keepsInView(wanted);
+}
+
+if (scrubHandle && detailPane) {
+  scrubHandle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    scrubHandle.setPointerCapture(event.pointerId);
+    scrubHandle.dataset.dragging = "true";
+  });
+  scrubHandle.addEventListener("pointermove", (event) => {
+    if (scrubHandle.dataset.dragging !== "true") return;
+    seeks(
+      secondsAt(
+        event,
+        detailPane,
+        Number(detailPane.dataset.windowStartSeconds),
+        Number(detailPane.dataset.windowSeconds)
+      )
+    );
+  });
+  scrubHandle.addEventListener("pointerup", (event) => {
+    if (scrubHandle.dataset.dragging !== "true") return;
+    delete scrubHandle.dataset.dragging;
+    scrubHandle.releasePointerCapture(event.pointerId);
+  });
+}
+
+function zoomsBy(direction) {
+  const chips = [...document.querySelectorAll('[data-row="zoom-step"]')];
+  if (!chips.length) return false;
+  const held = chips.findIndex((chip) => chip.dataset.selected === "true");
+  const at = Math.min(Math.max((held < 0 ? 0 : held) + direction, 0), chips.length - 1);
+  return chips[at].dataset.selected === "true" ? false : zoomsTo(chips[at]);
+}
+
+// Chrome, Safari and Firefox keep Cmd-1 and Cmd-3 for their own tabs and never
+// deliver them to a page, so the bare digits reach the same two steps.
+const ZOOM_KEYS = { 1: 1, 3: -1 };
+const SCRUB_KEYS = { ",": -1, ".": 1, "<": -1, ">": 1 };
+
+document.addEventListener("keydown", (event) => {
+  const target = event.target;
+  const typing =
+    target && typeof target.closest === "function"
+      ? target.closest("input, textarea, select")
+      : null;
+  if (typing) return;
+  const zoom = ZOOM_KEYS[event.key];
+  if (zoom !== undefined) {
+    if (zoomsBy(zoom)) event.preventDefault();
+    return;
+  }
+  if (event.metaKey || event.ctrlKey) return;
+  const direction = SCRUB_KEYS[event.key];
+  if (direction === undefined) return;
+  const step = event.shiftKey ? 1 : event.altKey ? 0.05 : 0.1;
+  scrubs(direction * step);
+  event.preventDefault();
+});
+
+document.querySelectorAll('[data-row="punch-point"] [data-field="punch-control"]').forEach(
+  (control) => {
+    const form = control.closest("form");
+    if (!form) return;
+    control.addEventListener("click", () => {
+      const asked = form.querySelector('input[name="do"]');
+      const timecode = document.createElement("input");
+      timecode.type = "hidden";
+      timecode.name = "timecode";
+      timecode.value = playheadNow().toFixed(2);
+      if (asked) asked.value = "set";
+      form.appendChild(timecode);
+    });
+  }
+);
 
 packsWords();
 window.addEventListener("resize", packsWords);

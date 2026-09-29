@@ -26,6 +26,10 @@ ZOOM_STEPS = (
 )
 DEFAULT_ZOOM = "thirty seconds"
 PLACING_ZOOM = "three seconds"
+ZOOM_IN_KEYS = "⌘1 or 1"
+ZOOM_OUT_KEYS = "⌘3 or 3"
+SCRUB_STEPS = ("50 ms", "0.1 s", "1 s")
+SCRUB_KEYS = ", and . — hold shift for 1 s, alt for 50 ms"
 WORDS_IN_VIEW = {
     "whole recording": "more than can be read",
     "a few minutes": "more than can be read",
@@ -153,6 +157,7 @@ class SpanView:
 @dataclass(frozen=True)
 class RulerMark:
     elapsed: str
+    elapsed_seconds: float
     wall_clock: str
     left: float
 
@@ -216,6 +221,7 @@ class EvidenceMarker:
 
 @dataclass(frozen=True)
 class ZoomStep:
+    index: int
     step: str
     purpose: str
     window_seconds: float
@@ -298,6 +304,10 @@ class WaveformView:
     evidence_markers: tuple
     words: tuple
     zoom_steps: tuple
+    zoom_in_keys: str
+    zoom_out_keys: str
+    scrub_steps: tuple
+    scrub_keys: str
     window: WindowView | None
     cut: CutView | None
 
@@ -374,6 +384,10 @@ class DrawsWaveform:
             evidence_markers=self._evidence(evidence, duration),
             words=self._words(transcript, window, marks),
             zoom_steps=self._zooms(duration, window),
+            zoom_in_keys=ZOOM_IN_KEYS,
+            zoom_out_keys=ZOOM_OUT_KEYS,
+            scrub_steps=SCRUB_STEPS,
+            scrub_keys=SCRUB_KEYS,
             window=window,
             cut=self._cut(duration, selected),
         )
@@ -449,6 +463,7 @@ class DrawsWaveform:
             marks.append(
                 RulerMark(
                     elapsed=formats_clock(elapsed),
+                    elapsed_seconds=float(elapsed),
                     wall_clock=formats_wall_clock(recording.started_at, elapsed),
                     left=round(clamps(100.0 * elapsed / duration), 4),
                 )
@@ -608,10 +623,11 @@ class DrawsWaveform:
 
     def _zooms(self, duration, window):
         steps = []
-        for step, seconds, purpose in ZOOM_STEPS:
+        for index, (step, seconds, purpose) in enumerate(ZOOM_STEPS):
             measured = self.judges(min(seconds or duration, duration) if duration else 0.0)
             steps.append(
                 ZoomStep(
+                    index=index,
                     step=step,
                     purpose=purpose,
                     window_seconds=measured.window_seconds,

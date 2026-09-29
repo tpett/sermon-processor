@@ -107,6 +107,17 @@ Feature: Adjusting a segment's punch points
       Then the punch-in becomes "2:00:18.400"
 
     @happy-path
+    Scenario: Punching a boundary in from beside the waveform
+      # Asked for directly: a "quick punch-in/out button available by the
+      # waveform (not burried in a lower card)". The behaviour is the playhead
+      # one above; what was missing is that reaching it meant leaving the
+      # waveform, and the ear that found the moment is already there.
+      When I play to "2:00:18.400"
+      And I punch the punch-in in from beside the waveform
+      Then the punch-in becomes "2:00:18.400"
+      And a punch control for each boundary sits beside the waveform rather than in a lower card
+
+    @happy-path
     Scenario: Setting a boundary from the transcript
       When I choose an utterance that begins at "2:00:20.500"
       And I set the punch-in to the start of that utterance

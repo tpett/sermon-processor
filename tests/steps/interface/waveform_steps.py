@@ -10,7 +10,7 @@ from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
 from steps import _audio
-from steps._markup import reads_field, reads_rows
+from steps._markup import reads_field, reads_role, reads_rows
 from steps._peaks import (
     reads_peaks,
     writes_peaks,
@@ -31,6 +31,7 @@ SPOKEN = (
     (9805.0, 9811.5, "so let us pray together as we close this morning"),
     (9812.4, 9818.0, "please stand for the closing hymn"),
 )
+NAMED_ZOOM_STEPS = ("whole recording", "a few minutes", "thirty seconds", "three seconds")
 NAMED_WINDOWS = {
     "whole recording": 11520.0,
     "5 minutes": 300.0,
@@ -789,3 +790,113 @@ def _(detail_page):
         assert 'name="do" value="set"' in row
         assert f'name="timecode" value="{at}"' in row
         assert re.search(r'action="[^"]*/boundaries/punch-(in|out)"', row)
+
+
+SCRUBBED = 7218.4
+
+
+def opens_with_playhead(store, segment, seconds, **query):
+    client = creates_app(store=store).test_client()
+    client.post(f"/api/recordings/{segment.recording_id}/seek", json={"seconds": seconds})
+    asked = {"segment": segment.segment_id} | query
+    return client.get(f"/recordings/{segment.recording_id}", query_string=asked).get_data(
+        as_text=True
+    )
+
+
+@when(parsers.parse('I scrub the playhead to "{timecode}"'), target_fixture="detail_page")
+def _(store, segment, timecode):
+    return opens_with_playhead(store, segment, READS(timecode))
+
+
+@when(parsers.parse('I click "{timecode}" on the timecode ruler'), target_fixture="detail_page")
+def _(store, segment, timecode):
+    return opens_with_playhead(store, segment, READS(timecode))
+
+
+@then(parsers.parse('the playhead reads "{timecode}"'))
+def _(detail_page, timecode):
+    shown = reads_field(reads_waveform(detail_page), "playhead")
+    assert abs(READS(shown) - READS(timecode)) < 0.005, shown
+
+
+@then("the playhead can be dragged along the detail view")
+def _(detail_page):
+    page = reads_waveform(detail_page)
+    assert reads_role(page, "detail") is not None
+    handle = reads_role(page, "scrub-handle")
+    assert handle is not None
+    assert handle["role"] == "scrub-handle"
+    assert 'data-role="detail-playhead"' in page
+
+
+@then("the scrub steps are shown beside the waveform and read as 50 ms, 0.1 s and 1 s")
+def _(detail_page):
+    page = reads_waveform(detail_page)
+    assert reads_field(page, "scrub-steps") == "50 ms, 0.1 s, 1 s"
+    assert reads_field(page, "scrub-keys")
+
+
+@then("neither boundary has moved")
+def _(detail_page, segment):
+    for field, seconds in (
+        ("punch-in", segment.punch_in_seconds),
+        ("punch-out", segment.punch_out_seconds),
+    ):
+        assert abs(READS(reads_field(detail_page, field)) - seconds) < 0.005
+
+
+@then("the ruler says which instant each of its marks stands for")
+def _(detail_page):
+    page = reads_waveform(detail_page)
+    ruler = reads_role(page, "timecode-ruler")
+    assert ruler is not None
+    assert ruler["seeks"] == "playhead"
+    marks = reads_rows(page, "ruler-mark")
+    assert marks
+    assert all(
+        mark["ruler-elapsed"] and mark["ruler-wall-clock"] and mark["ruler-seconds"]
+        for mark in marks
+    )
+
+
+@then("the ruler beneath the detail view jumps the playhead too")
+def _(detail_page):
+    page = reads_waveform(detail_page)
+    ticks = reads_role(page, "detail-ticks")
+    assert ticks is not None
+    assert ticks["seeks"] == "playhead"
+    assert page.index('data-role="detail"') < page.index('data-role="detail-ticks"')
+
+
+@then("the keystrokes that zoom in and out are shown beside the zoom steps")
+def _(store):
+    page = reads_waveform(renders_detail(store))
+    control = reads_role(page, "zoom")
+    assert control is not None
+    assert control["zoom-in-keys"] and control["zoom-out-keys"]
+    assert control["zoom-in-keys"] != control["zoom-out-keys"]
+    assert reads_field(page, "zoom-keys") == (
+        f"{control['zoom-in-keys']} to zoom in, {control['zoom-out-keys']} to zoom out"
+    )
+    assert reads_rows(page, "zoom-step")
+
+
+@then("each keystroke moves one named step rather than scaling smoothly")
+def _(store):
+    steps = reads_rows(reads_waveform(renders_detail(store)), "zoom-step")
+    assert [step["zoom-index"] for step in steps] == [str(one) for one in range(len(steps))]
+    widths = [float(step["zoom-window-seconds"]) for step in steps]
+    assert widths == sorted(widths, reverse=True)
+    assert len(set(widths)) == len(widths)
+
+
+@then("changing the zoom leaves the playhead where it was")
+def _(store, segment):
+    readings = {
+        reads_field(
+            reads_waveform(opens_with_playhead(store, segment, SCRUBBED, zoom=step)), "playhead"
+        )
+        for step in NAMED_ZOOM_STEPS
+    }
+    assert readings == {formats_precise(SCRUBBED)}

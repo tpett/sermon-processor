@@ -354,6 +354,22 @@ button.primary {
   flex: 1;
 }
 
+.transport .punch {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.transport .keys {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
 .hint {
   color: var(--muted);
   font-size: 12px;
@@ -547,6 +563,30 @@ canvas {
 
 .waveform .detailwrap .playhead {
   z-index: 3;
+}
+
+.waveform .detailwrap .playhead .scrub {
+  position: absolute;
+  top: 0;
+  left: -6px;
+  width: 13px;
+  height: 11px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--ink);
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.waveform .detailwrap .playhead .scrub[data-dragging="true"] {
+  height: 14px;
+}
+
+.waveform .ruler[data-seeks="playhead"],
+.waveform .ticks[data-seeks="playhead"] {
+  cursor: pointer;
 }
 
 .waveform .region {

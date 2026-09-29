@@ -96,6 +96,28 @@ Feature: Reviewing the waveform
       And a playhead follows playback along the waveform
 
     @happy-path
+    Scenario: Scrubbing the playhead to a precise instant
+      # Asked for directly: "The ability to fine tune scrub is probably the
+      # biggest lack." Moving the playhead is not nudging a boundary. The
+      # playhead is how the reviewer finds the instant and the boundary is how
+      # they keep it, and only the second could be moved by hand or by key.
+      When I scrub the playhead to "2:00:18.400"
+      Then the playhead reads "2:00:18.400"
+      And the playhead can be dragged along the detail view
+      And the scrub steps are shown beside the waveform and read as 50 ms, 0.1 s and 1 s
+      And neither boundary has moved
+
+    @happy-path
+    Scenario: Jumping the playhead from the timecode ruler
+      # Asked for directly: "Then I can click anywhere in the timecode timeline
+      # to jump the playhead there." Clicking the waveform already seeks; the
+      # ruler is a third surface and it said nothing about being one.
+      When I click "2:00:18.400" on the timecode ruler
+      Then the playhead reads "2:00:18.400"
+      And the ruler says which instant each of its marks stands for
+      And the ruler beneath the detail view jumps the playhead too
+
+    @happy-path
     Scenario: Auditioning a boundary
       When I choose to preview the punch-in
       Then playback starts 5 seconds before the punch-in
@@ -170,6 +192,17 @@ Feature: Reviewing the waveform
         | three seconds   |
       And each step states what it is for
       And the three-second step is the one that places a cut
+
+    @happy-path
+    Scenario: Zooming in and out from the keyboard
+      # Asked for directly: "slight zoom in/out using some hotkeys would be huge
+      # too. Much like how Audacity works. I use CMD-1 and CMD-3 to zoom in/out
+      # respectively." Some browsers keep those two chords for their own tabs and
+      # never hand them to a page, so a second keystroke reaches each direction
+      # as well rather than the asked-for one being quietly substituted.
+      Then the keystrokes that zoom in and out are shown beside the zoom steps
+      And each keystroke moves one named step rather than scaling smoothly
+      And changing the zoom leaves the playhead where it was
 
   Rule: The readout says where the boundaries are, never how right they are
 

@@ -384,8 +384,32 @@ has just landed is invisible and cannot be ingested at all. `Scanning the bucket
 on demand` and `Asking for a scan while the object store is unreachable` were
 added to `features/ingestion/s3_reconciliation.feature`.
 
-Pins are now **34 files / 466 scenarios / 144 rules / 610 collected**, and
-`SPEC_STEPS` is 1926.
+On 2026-09-29 they said what manual editing still lacks: "The ability to fine
+tune scrub is probably the biggest lack. slight zoom in/out using some hotkeys
+would be huge too. Much like how Audacity works. I use CMD-1 and CMD-3 to zoom
+in/out respectively. Then I can click anywhere in the timecode timeline to jump
+the playhead there. If I could do this and also have a quick punch-in/out button
+available by the waveform (not burried in a lower card) that would probably give
+me what I need for manual editing."
+
+Three of those four were absent from the spec. Nothing said the *playhead* could
+be moved by hand or by key — `Nudging with keyboard controls` moves a boundary,
+which is a different act — so `Scrubbing the playhead to a precise instant` was
+added. `Playing from anywhere` makes the waveform seek and `Moving around from
+the overview` moves the window without seeking; the ruler was a third surface
+that did neither, so `Jumping the playhead from the timecode ruler` was added.
+`Zoom is chosen from named steps` named the steps but no keystroke reached them,
+so `Zooming in and out from the keyboard` was added. All three are in
+`features/interface/waveform_review.feature`.
+
+The fourth was a placement, not a behaviour: `Setting a boundary from the
+playhead` already existed and only the lower card offered it, so `Punching a
+boundary in from beside the waveform` was added to
+`features/interface/punch_point_adjustment.feature` asserting where the control
+sits.
+
+Pins are now **34 files / 470 scenarios / 144 rules / 614 collected**, and
+`SPEC_STEPS` is 1942.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
