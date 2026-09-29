@@ -129,9 +129,9 @@
   <div class="panel">
     <span class="eyebrow">Whole recording — click to play from there · playhead <span data-field="playhead">{{ view.playhead_seconds|precise }}</span></span>
     <div class="wave" data-role="waveform" data-spans="{{ wave.spans }}" data-duration-seconds="{{ wave.duration_seconds }}" data-overview="{{ wave.overview }}" data-recording="{{ view.recording_id }}">
-      <ol class="ruler">
+      <ol class="ruler" data-role="timecode-ruler" data-seeks="playhead" title="Click anywhere on the ruler to jump the playhead there">
       {% for mark in wave.ruler_marks %}
-        <li data-row="ruler-mark" data-ruler-elapsed="{{ mark.elapsed }}" data-ruler-wall-clock="{{ mark.wall_clock }}" style="left:{{ mark.left }}%"><span data-field="ruler-elapsed">{{ mark.elapsed }}</span> <span data-field="ruler-wall-clock">{{ mark.wall_clock }}</span></li>
+        <li data-row="ruler-mark" data-ruler-elapsed="{{ mark.elapsed }}" data-ruler-seconds="{{ mark.elapsed_seconds }}" data-ruler-wall-clock="{{ mark.wall_clock }}" style="left:{{ mark.left }}%"><span data-field="ruler-elapsed">{{ mark.elapsed }}</span> <span data-field="ruler-wall-clock">{{ mark.wall_clock }}</span></li>
       {% endfor %}
       </ol>
       <ol class="spans">
@@ -192,7 +192,7 @@
       {% set region_right = [[100.0 * (view.punch_out_seconds - start) / span, 0.0]|max, 100.0]|min %}
       <div class="region" data-role="cut-region" data-from-seconds="{{ view.punch_in_seconds }}" data-to-seconds="{{ view.punch_out_seconds }}" style="left:{{ region_left|round(4) }}%;width:{{ (region_right - region_left)|round(4) }}%"></div>
       {% endif %}
-      <div class="playhead" data-role="detail-playhead" data-playhead-seconds="{{ view.playhead_seconds }}" style="left:{{ ([[100.0 * (view.playhead_seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"></div>
+      <div class="playhead" data-role="detail-playhead" data-playhead-seconds="{{ view.playhead_seconds }}" style="left:{{ ([[100.0 * (view.playhead_seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"><button type="button" class="scrub" data-role="scrub-handle" aria-label="Drag the playhead"></button></div>
       {% for boundary in view.boundaries %}
       <button type="button" class="handle {{ 'in' if boundary.field == 'punch-in' else 'out' }}" data-role="handle-{{ boundary.field }}" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}" data-url="{{ boundary.url }}" data-tag="{{ 'IN' if boundary.field == 'punch-in' else 'OUT' }}" style="left:{{ ([[100.0 * (boundary.seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"{% if boundary.seconds < start or boundary.seconds > start + span %} hidden{% endif %} aria-label="Drag the {{ boundary.field }}"></button>
       {% endfor %}
@@ -202,7 +202,7 @@
       <li data-row="quiet-span" data-quiet-from="{{ span_view.from_seconds }}" data-quiet-to="{{ span_view.to_seconds }}" data-quiet-seconds="{{ span_view.seconds }}" data-quiet-at="{{ span_view.at }}" data-quiet-at-seconds="{{ span_view.at_seconds }}" style="left:{{ span_view.left }}%;width:{{ span_view.width }}%" title="{{ span_view.seconds }} s of quiet at {{ span_view.at }}">{% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}{% if placed %}<form method="post" action="{{ placed.url }}"><input type="hidden" name="do" value="set"><input type="hidden" name="timecode" value="{{ span_view.at }}"><button type="submit" data-field="quiet-control">Cut here</button></form>{% endif %}</li>
     {% endfor %}
     </ol>
-    <ol class="ticks" data-role="detail-ticks"></ol>
+    <ol class="ticks" data-role="detail-ticks" data-seeks="playhead" title="Click anywhere on the ruler to jump the playhead there"></ol>
     <ol class="words">
     {% set placed = (view.boundaries | selectattr("focused") | list | first) or (view.boundaries | first) %}
     {% for word in wave.words %}
@@ -213,6 +213,18 @@
   {% endif %}
   {% endif %}
   <div class="transport">
+    {% if view.boundary_controls == "editable" %}
+    <ol class="punch">
+    {% for boundary in view.boundaries %}
+      <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}">
+        <form method="post" action="{{ boundary.url }}">
+          <input type="hidden" name="do" value="playhead">
+          <button type="submit" class="primary" data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
+        </form>
+      </li>
+    {% endfor %}
+    </ol>
+    {% endif %}
     {% if view.preview_ready %}
     {% for window in view.preview_windows %}
     <button type="button" class="primary" data-role="preview-{{ window.kind }}" data-kind="{{ window.kind }}" data-at="{{ window.at_seconds }}" data-start="{{ window.start_seconds }}" data-end="{{ window.end_seconds }}">{{ window.label }}</button>
@@ -223,9 +235,13 @@
     {% endif %}
     <span class="spacer"></span>
     {% if wave.available %}
-    <ol class="zoom-steps">
+    <p class="keys">
+      <span class="mono" data-field="zoom-keys">{{ wave.zoom_in_keys }} to zoom in, {{ wave.zoom_out_keys }} to zoom out</span>
+      <span data-role="scrub" data-scrub-keys="{{ wave.scrub_keys }}">scrub <span class="mono" data-field="scrub-steps">{{ wave.scrub_steps|join(", ") }}</span> with <span class="mono" data-field="scrub-keys">{{ wave.scrub_keys }}</span>, or drag the playhead</span>
+    </p>
+    <ol class="zoom-steps" data-role="zoom" data-zoom-in-keys="{{ wave.zoom_in_keys }}" data-zoom-out-keys="{{ wave.zoom_out_keys }}">
     {% for step in wave.zoom_steps %}
-      <li data-row="zoom-step" title="{{ step.purpose }} — 100 ms is {{ step.precision }}, {{ step.verdict }}; words in view: {{ step.words_in_view }}" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
+      <li data-row="zoom-step" title="{{ step.purpose }} — 100 ms is {{ step.precision }}, {{ step.verdict }}; words in view: {{ step.words_in_view }}" data-zoom-index="{{ step.index }}" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
         <a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}zoom={{ step.step|urlencode }}&amp;centre={{ wave.window.centre_seconds if wave.window else 0 }}" data-field="zoom-step-name">{{ step.step }}</a>
         <span data-field="zoom-step-purpose">{{ step.purpose }}</span>
         <span data-field="zoom-step-precision">100 ms is {{ step.precision }}, {{ step.verdict }}</span>
