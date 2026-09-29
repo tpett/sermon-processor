@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from functools import cached_property
 
 SILENCE_RUN_SECONDS = 1.0
+EDGE_RUN_SECONDS = 1.0
 LONG_RUN_SECONDS = 30.0
 
 EQUAL = "equal"
@@ -50,28 +51,38 @@ class CutScore:
 @dataclass(frozen=True)
 class FindsSilenceRuns:
     gap_seconds: float = SILENCE_RUN_SECONDS
+    edge_seconds: float = EDGE_RUN_SECONDS
 
     def __call__(self, transcript):
         quiet = tuple(
             (float(entry["start"]), float(entry["end"]))
             for entry in transcript.get("silences") or ()
         )
-        found = []
         spoken = _word_intervals(transcript)
-        for (_, ends), (starts, _) in zip(spoken, spoken[1:]):
-            if starts - ends < self.gap_seconds:
+        found = []
+        for start, end, least in self._quiet_spans(spoken, transcript.get("duration")):
+            if end - start < least:
                 continue
             found.append(
                 SilenceRun(
                     index=len(found),
-                    start=ends,
-                    end=starts,
+                    start=start,
+                    end=end,
                     overlaps_audio_silence=any(
-                        min(starts, until) > max(ends, since) for since, until in quiet
+                        min(end, until) > max(start, since) for since, until in quiet
                     ),
                 )
             )
         return tuple(found)
+
+    def _quiet_spans(self, spoken, duration):
+        if not spoken:
+            return
+        yield 0.0, spoken[0][0], self.edge_seconds
+        for (_, ends), (starts, _) in zip(spoken, spoken[1:]):
+            yield ends, starts, self.gap_seconds
+        if duration is not None:
+            yield spoken[-1][1], float(duration), self.edge_seconds
 
 
 @dataclass(frozen=True)
@@ -132,6 +143,7 @@ class ScoresCut:
                 truth=truth,
                 same_run=same_run,
                 speech_seconds=speech_seconds,
+                within=self.finds_runs.gap_seconds,
                 proposed_placing=_places(proposed_run, in_speech),
                 truth_placing=_places(truth_run, truth_in_speech),
             ),
@@ -153,10 +165,14 @@ def _places(run, in_speech):
     return INSIDE_A_WORD if in_speech else BETWEEN_WORDS
 
 
-def _decides(proposed, truth, same_run, speech_seconds, proposed_placing, truth_placing):
+def _decides(proposed, truth, same_run, speech_seconds, within, proposed_placing, truth_placing):
     if proposed == truth:
         return EQUAL
-    unbroken = speech_seconds == 0.0 and INSIDE_A_WORD not in (proposed_placing, truth_placing)
-    if same_run or unbroken:
+    shares_a_gap = (
+        proposed_placing == truth_placing == BETWEEN_WORDS
+        and speech_seconds == 0.0
+        and abs(proposed - truth) < within
+    )
+    if same_run or shares_a_gap:
         return SAME_CUT
     return IMPROVED if proposed_placing > truth_placing else DEGRADED

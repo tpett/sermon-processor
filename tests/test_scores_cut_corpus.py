@@ -13,11 +13,11 @@ SPIKE_DATA = Path(os.environ.get("SERMON_SPIKE_DATA") or PROJECT_ROOT / "experim
 CANONICAL_ASR = "whisper-large-v3-turbo+words"
 
 LABELLED_CUT_POINTS = 62
-INSIDE_A_RUN = 49
+INSIDE_A_RUN = 52
 INSIDE_A_WORD = 10
-BETWEEN_WORDS = 3
+BETWEEN_WORDS = 0
 INSIDE_A_LONG_RUN = 1
-RUN_LENGTH_AT_A_HUMAN_CUT = (1.04, 2.54, 16.34, 43.74)
+RUN_LENGTH_AT_A_HUMAN_CUT = (1.04, 2.52, 16.21, 43.74)
 
 spike_data_required = pytest.mark.skipif(
     not all((SPIKE_DATA / name).is_dir() for name in ("blocks", "transcripts")),

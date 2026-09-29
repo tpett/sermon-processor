@@ -6,14 +6,16 @@ from sermon.scores_cut import (
     IMPROVED,
     LONG_RUN_SECONDS,
     SAME_CUT,
+    EDGE_RUN_SECONDS,
     SILENCE_RUN_SECONDS,
     FindsSilenceRuns,
     ScoresCut,
 )
 
 
-def transcript(*utterances, silences=()):
+def transcript(*utterances, silences=(), duration=None):
     return {
+        "duration": duration,
         "utterances": [
             {"words": [{"w": word, "start": start, "end": end} for word, start, end in spoken]}
             for spoken in utterances
@@ -29,6 +31,14 @@ def three_runs(silences=()):
         [("five", 11.0, 12.0)],
         [("six", 50.0, 51.0)],
         silences=silences,
+    )
+
+
+def with_edges():
+    return transcript(
+        [("one", 4.0, 5.0), ("two", 5.0, 6.0)],
+        [("three", 9.0, 10.0)],
+        duration=30.0,
     )
 
 
@@ -126,9 +136,9 @@ def test_a_cut_past_the_last_word_is_in_no_run_and_is_not_speech():
     assert scored.speech_seconds == 4.0
 
 
-def test_a_cut_before_the_first_word_is_in_no_run():
+def test_a_cut_before_the_first_word_is_in_the_head_run():
     before_any_word = transcript([("one", 4.0, 5.0)], [("two", 9.0, 10.0)])
-    assert ScoresCut(transcript=before_any_word).run_of(1.0) is None
+    assert ScoresCut(transcript=before_any_word).run_of(1.0).index == 0
 
 
 def test_a_run_holds_its_own_edges_and_a_word_edge_is_not_speech():
@@ -190,3 +200,78 @@ def test_a_stored_audio_silence_never_keeps_a_cut_out_of_a_run():
     )
     assert gated.same_run == ungated.same_run
     assert gated.verdict == ungated.verdict
+
+
+IN_HEAD_RUN = 1.0
+IN_TAIL_RUN = 20.0
+LATER_IN_TAIL_RUN = 29.0
+BEYOND_THE_RECORDING = 40.0
+
+
+def test_the_region_before_the_first_word_is_the_first_run():
+    found = FindsSilenceRuns()(with_edges())
+    assert [(run.index, run.start, run.end) for run in found] == [
+        (0, 0.0, 4.0),
+        (1, 6.0, 9.0),
+        (2, 10.0, 30.0),
+    ]
+
+
+def test_the_region_after_the_last_word_runs_to_the_recorded_duration():
+    scoring = ScoresCut(transcript=with_edges())
+    assert scoring.run_of(IN_TAIL_RUN).seconds == 20.0
+    assert scoring.run_of(LATER_IN_TAIL_RUN) == scoring.run_of(IN_TAIL_RUN)
+
+
+def test_the_edge_run_threshold_is_the_named_constant():
+    assert EDGE_RUN_SECONDS == 1.0
+    just_under = transcript([("one", 0.99, 2.0)], [("two", 5.0, 6.0)], duration=6.99)
+    assert [(run.start, run.end) for run in FindsSilenceRuns()(just_under)] == [(2.0, 5.0)]
+
+
+def test_a_transcript_that_does_not_say_how_long_it_is_has_no_tail_run():
+    assert ScoresCut(transcript=three_runs()).run_of(AFTER_EVERY_WORD) is None
+
+
+def test_a_cut_past_the_recorded_duration_is_in_no_run():
+    assert ScoresCut(transcript=with_edges()).run_of(BEYOND_THE_RECORDING) is None
+
+
+def test_two_cuts_in_the_tail_run_are_the_same_cut():
+    scored = ScoresCut(transcript=with_edges())(LATER_IN_TAIL_RUN, IN_TAIL_RUN)
+    assert scored.same_run is True
+    assert scored.verdict == SAME_CUT
+
+
+def test_a_cut_beyond_the_recording_is_not_the_same_cut_as_one_inside_the_tail():
+    scored = ScoresCut(transcript=with_edges())(BEYOND_THE_RECORDING, IN_TAIL_RUN)
+    assert scored.same_run is False
+    assert scored.verdict == DEGRADED
+
+
+def test_leaving_a_word_gap_run_for_the_tail_run_is_a_degradation():
+    scored = ScoresCut(transcript=with_edges())(IN_TAIL_RUN, 7.0)
+    assert scored.same_run is False
+    assert scored.speech_seconds == 1.0
+    assert scored.verdict == DEGRADED
+
+
+def test_a_cut_in_the_head_run_is_in_a_run():
+    scoring = ScoresCut(transcript=with_edges())
+    assert scoring.run_of(IN_HEAD_RUN).index == 0
+    assert scoring(IN_HEAD_RUN, 0.0).same_run is True
+
+
+def test_two_cuts_far_apart_in_no_run_at_all_are_not_the_same_cut():
+    scored = ScoresCut(transcript=with_edges())(BEYOND_THE_RECORDING, BEYOND_THE_RECORDING + 20.0)
+    assert scored.speech_seconds == 0.0
+    assert scored.same_run is False
+    assert scored.verdict == DEGRADED
+
+
+def test_two_cuts_in_one_sub_threshold_gap_are_still_the_same_cut():
+    narrow = transcript([("one", 0.0, 1.0), ("two", 1.5, 2.5)], duration=2.5)
+    scored = ScoresCut(transcript=narrow)(1.1, 1.4)
+    assert scored.proposed_run is None
+    assert scored.speech_seconds == 0.0
+    assert scored.verdict == SAME_CUT
