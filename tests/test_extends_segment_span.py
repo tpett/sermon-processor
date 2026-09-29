@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from sermon.adjusts_punch_point import BoundaryOutsideSegment
 from sermon.extends_segment_span import (
     ExtendsSegmentSpan,
     ReadsTimecode,
@@ -202,3 +203,30 @@ def test_the_store_still_saves_overlapping_spans(store):
     )
     stored = store.loads(Segment, overlapping.segment_id)
     assert stored.span_end_seconds == READS("1:30:00")
+
+
+def test_a_span_that_would_strand_the_punch_in_is_refused(store):
+    segment = the_selected_segment(store, a_recording(store))
+    with pytest.raises(BoundaryOutsideSegment, match="within the Segment"):
+        ExtendsSegmentSpan(store=store)(segment, start_seconds=READS("2:10:00"))
+    stored = store.loads(Segment, segment.segment_id)
+    assert stored.span_start_seconds == segment.span_start_seconds
+
+
+def test_a_span_that_would_strand_the_punch_out_is_refused(store):
+    segment = the_selected_segment(store, a_recording(store))
+    with pytest.raises(BoundaryOutsideSegment, match="within the Segment"):
+        ExtendsSegmentSpan(store=store)(segment, end_seconds=READS("2:30:00"))
+    stored = store.loads(Segment, segment.segment_id)
+    assert stored.span_end_seconds == segment.span_end_seconds
+
+
+def test_a_span_may_still_be_tightened_onto_its_punch_points(store):
+    segment = the_selected_segment(store, a_recording(store))
+    tightened = ExtendsSegmentSpan(store=store)(
+        segment,
+        start_seconds=segment.punch_in_seconds,
+        end_seconds=segment.punch_out_seconds,
+    )
+    assert tightened.span_start_seconds == segment.punch_in_seconds
+    assert tightened.span_end_seconds == segment.punch_out_seconds

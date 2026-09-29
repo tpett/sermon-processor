@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from sermon.adjusts_punch_point import BoundaryOutsideSegment
 from sermon.store import Segment, Store
 
 SPAN_EDGES = ("start", "end")
@@ -32,9 +33,17 @@ class ExtendsSegmentSpan:
             ),
             span_end_seconds=segment.span_end_seconds if end_seconds is None else end_seconds,
         )
+        if self._strands_a_punch_point(proposed):
+            raise BoundaryOutsideSegment()
         if self._overlaps_a_neighbour(proposed):
             raise SpanWouldOverlapNeighbour()
         return self.store.saves(proposed)
+
+    def _strands_a_punch_point(self, segment):
+        return (
+            segment.punch_in_seconds < segment.span_start_seconds
+            or segment.punch_out_seconds > segment.span_end_seconds
+        )
 
     def _overlaps_a_neighbour(self, segment):
         return any(
