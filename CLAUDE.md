@@ -105,6 +105,8 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-regrade --corpus experiments/data   # grade every proposal against the human cut
 .venv/bin/sermon-regrade --corpus experiments/data --before tests/pipeline_boundary_fingerprint.json
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
+.venv/bin/sermon-align recording_20260927_095721 "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.mp3" \
+    --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
 ```
 
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
@@ -197,6 +199,56 @@ queues an `analyze` job for it, drains that one job through the same analysis
 stages, and leaves the Blocks, the Segment, the Proposal and the reviewer
 notification in the configured data root with the Recording `awaiting_review`.
 One recording id per invocation. It exits non-zero when nothing was proposed.
+
+`sermon-align` turns one human edit into ground truth. It finds where a published
+MP3 sits inside its Recording's source, writes one `CorpusPair` row, and prints
+the boundaries, the correlation, the drift and the difficulty of each cut. That is
+the loop that had been open: the edit is made by hand about once a week and none
+of it became measurable data, so `corpus_pair` was empty and the frozen 39-example
+corpus in `experiments/data/groundtruth.json` was the only yardstick there was.
+
+**It exits non-zero and writes nothing when the alignment is not trustworthy.**
+Five gates decide: coarse correlation at least 0.30, a peak standing 1.5× above
+the next alignment, probe correlation at least 0.30, probes within 0.06 s of a
+straight line, and fitted drift under 400 ppm. A row that is silently wrong
+poisons every later measurement and nothing downstream would catch it, because on
+disk a wrong row looks exactly like a right one. The refusal names which gate
+failed and whether the verdict is `cannot be aligned` or `not a contiguous
+excerpt` — the second is what probes off a straight line mean, and it is the one
+diagnosis worth telling apart, since drift is correctable and a missing middle is
+not.
+
+The punch-in is the **intercept** of the fit through five 60-second probes, not
+the average of them, and the punch-out is the punch-in plus the edit's duration
+scaled by the fitted drift. On 2026-09-27 that is punch-in 3055.0258 s, punch-out
+5597.3500 s, coarse NCC 0.986, peak ratio 13.72, fit residual 0.0004 s, drift
+−0.2 ppm, difficulty easy/easy — the same figures the spike's `align.py` produced
+for that pair, which is how the port is known to be faithful.
+
+**A machine cut is never a yardstick.** Before any audio is read the command asks
+whether the output is the system's own answer: a published Artifact rendered from
+boundaries the reviewer never moved, or one of the three filenames that shipped
+before provenance was stored. Either way it records the pair as published with
+`machine` provenance and no boundaries, and exits 0. The output is counted and it
+is not truth.
+
+**One edit can span two source recordings**, so the command takes more than one
+recording id, in source order, and writes one row for each. The head of the edit
+places in the first source, where that source runs out sets the split, and each
+side is fitted and gated on its own probes. If either side fails, or if the edit
+stops short of the first source's end — which would mean the seam is a human cut
+rather than a file boundary — both are refused and nothing is written.
+`2026-07-18 - CT-Islam.mp3` is refused for a third reason: the human removed about
+177 s from inside the first part, so it is three contiguous excerpts and a
+`CorpusPair` holds one span per recording.
+
+`--source` names a source that is on disk but outside the data root, which is the
+shape every historical `~/Desktop/Sermons` pair is in; one `--source` per named
+recording. `--classification` is how one recording yields both a class and a
+sermon, since the pair is identified by recording, classification and provenance
+together. `--work` holds the cached envelopes, which are what survive the decode;
+the raw audio is deleted as soon as the envelopes exist. It sends no audio
+anywhere and invokes no transcriber.
 
 `sermon-render` is the whole cut in one command: it fetches and probes the source
 if it is not already local, creates the Segment from the boundaries you gave it,
