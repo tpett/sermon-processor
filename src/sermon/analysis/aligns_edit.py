@@ -254,3 +254,40 @@ class StraightLine:
     drift_ppm: float
     fit_residual_seconds: float
     probe_spread_seconds: float
+
+
+@dataclass(frozen=True, kw_only=True)
+class DerivedPair:
+    recording_id: str
+    alignment: Alignment
+    source_duration_seconds: float
+    edit_duration_seconds: float
+    punch_in_seconds: float | None = None
+    punch_out_seconds: float | None = None
+    punch_in_difficulty: CutDifficulty | None = None
+    punch_out_difficulty: CutDifficulty | None = None
+
+    @property
+    def trustworthy(self) -> bool:
+        return self.alignment.trustworthy and self.punch_in_seconds is not None
+
+    @property
+    def refusals(self) -> tuple[str, ...]:
+        return self.alignment.refusals
+
+
+@dataclass(frozen=True)
+class AlignsPublishedEdit:
+    work: Path
+    reads: object | None = None
+    locates: object = LocatesEditInSource()
+    grades: object = GradesCutDifficulty()
+    measures: object | None = None
+
+    def __call__(self, recording_id, source: Path, edit: Path) -> DerivedPair:
+        return DerivedPair(
+            recording_id=recording_id,
+            alignment=Alignment(verdict=UNALIGNABLE),
+            source_duration_seconds=0.0,
+            edit_duration_seconds=0.0,
+        )

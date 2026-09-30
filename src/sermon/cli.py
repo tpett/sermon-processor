@@ -750,6 +750,10 @@ def proposes(settings=None, prints=print):
         store.close()
 
 
+def aligns(settings=None, arguments=None, reads=None, measures=None, prints=print):
+    return 1
+
+
 ORGANIZE_USAGE = "sermon-organize [--dry-run]"
 
 

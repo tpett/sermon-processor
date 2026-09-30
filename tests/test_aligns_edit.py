@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -7,6 +9,7 @@ from sermon.analysis.aligns_edit import (
     DISCONTINUOUS,
     FINE_HZ,
     UNALIGNABLE,
+    AlignsPublishedEdit,
     GradesCutDifficulty,
     LocatesEditInSource,
     ReadsEnvelopes,
@@ -189,3 +192,74 @@ def test_the_decoded_audio_is_not_left_behind(tmp_path, monkeypatch):
     monkeypatch.setattr(audio, "decode", RecordsDecodes(tmp_path))
     ReadsEnvelopes(work=tmp_path)(tmp_path / "an-edit.mp3", "tag")
     assert list((tmp_path / "raw").glob("*.raw")) == []
+
+
+class ReadsSyntheticEnvelopes:
+    def __init__(self, **named):
+        self.named = named
+
+    def __call__(self, source, tag):
+        fine = self.named[source.name]
+        return coarsened(fine), fine
+
+
+class ReadsSyntheticDurations:
+    def __init__(self, **named):
+        self.named = named
+
+    def __call__(self, path):
+        return self.named[path.name]
+
+
+SOURCE = Path("a-source.flac")
+EDIT = Path("an-edit.mp3")
+
+
+def derives(source_fine, edit_fine, source_seconds, edit_seconds, **named):
+    return AlignsPublishedEdit(
+        work=Path("/nowhere"),
+        reads=ReadsSyntheticEnvelopes(**{SOURCE.name: source_fine, EDIT.name: edit_fine}),
+        measures=ReadsSyntheticDurations(
+            **{SOURCE.name: source_seconds, EDIT.name: edit_seconds}
+        ),
+        **named,
+    )("recording_20260927_095721", SOURCE, EDIT)
+
+
+def test_the_punch_out_is_the_punch_in_plus_the_edit_duration():
+    source = speech(900)
+    derived = derives(source, excerpt(source, 301.5, 300), 900.0, 300.0)
+    assert derived.trustworthy
+    assert derived.punch_out_seconds == pytest.approx(601.5, abs=0.01)
+
+
+def test_the_punch_out_accounts_for_the_drift_across_the_segment():
+    source = speech(900)
+    drifting = derives(source, excerpt(source, 301.5, 300, stretch_ppm=-130.0), 900.0, 300.0)
+    straight = derives(source, excerpt(source, 301.5, 300), 900.0, 300.0)
+    assert drifting.punch_out_seconds < straight.punch_out_seconds
+    assert straight.punch_out_seconds - drifting.punch_out_seconds == pytest.approx(
+        300.0 * 130e-6, abs=0.005
+    )
+
+
+def test_an_edit_that_runs_past_the_end_of_the_source_is_refused():
+    source = speech(900)
+    derived = derives(source, excerpt(source, 700.0, 190), 750.0, 190.0)
+    assert not derived.trustworthy
+    assert any("past the end" in refusal for refusal in derived.refusals)
+    assert derived.punch_in_seconds is None
+
+
+def test_each_boundary_is_graded_from_the_audio_around_it():
+    source = speech(900)
+    derived = derives(source, excerpt(source, 301.5, 300), 900.0, 300.0)
+    assert derived.punch_in_difficulty.label in ("easy", "moderate", "hard")
+    assert derived.punch_out_difficulty.label in ("easy", "moderate", "hard")
+
+
+def test_an_alignment_that_is_not_trustworthy_carries_no_boundaries():
+    derived = derives(speech(900), speech(300, seed=99), 900.0, 300.0)
+    assert not derived.trustworthy
+    assert (derived.punch_in_seconds, derived.punch_out_seconds) == (None, None)
+    assert (derived.punch_in_difficulty, derived.punch_out_difficulty) == (None, None)
