@@ -83,6 +83,16 @@ not that file.
   throughout` has no measurement behind it, and the previous definition asserted
   only that an Artifact row existed. Left undefined rather than green on that.
 
+### One guard had to learn to read a longer run
+
+`test_spec_harness.py` read the subprocess spec run's summary with a regex
+anchored at `in <seconds>s$`. pytest appends `(H:MM:SS)` once a run passes a
+minute, so the spec taking 2.5 minutes rather than 20 seconds left
+`finds_summary` with nothing to match and failed two harness tests on a report
+that said exactly what they wanted. The regex now tolerates the suffix. No pin
+moved: the shape is still 34 files / 470 scenarios / 144 rules, `SPEC_TESTS` is
+still 614 and `SPEC_STEPS` still 1942.
+
 ### What it costs
 
 A cold run of the feature is about 14 minutes: five sources at 70 s each and
