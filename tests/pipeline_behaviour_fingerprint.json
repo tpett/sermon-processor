@@ -746,7 +746,8 @@
    "PREAMBLE": "['good morning', 'good evening', 'morning everyone', 'hey everyone', \"we're going to get started\", 'we are going to get started', \"we'll get started\", 'we will get started', 'going to get going', 'in about a minute', 'in about two minutes', 'in a minute or two', 'as you take your seats', \"if you'll take your seats\", 'grab a seat', \"let's go ahead and get started\", \"why don't we get started\"]",
    "QA": "['any questions', 'are there any questions', 'questions before we', 'what questions', \"let's have some questions\", 'lets have some questions', 'raise your hand', 'yes, in the back']",
    "SCRIPTURE": "['scripture reading', 'our reading', 'the reading this morning', 'turn with me', 'turn in your bible', 'open your bible', 'hear now the word', 'this is the word of the lord', 'reading comes from', 'comes from the book of', 'beginning at verse', 'follow along as i read', 'listen to the word']",
-   "VERSION": "'cues.v4'"
+   "SEATING": "['be seated', 'have a seat']",
+   "VERSION": "'cues.v5'"
   },
   "features": {
    "MIN_BLOCK_S": "45.0",
@@ -776,6 +777,7 @@
    "PLAUSIBLE_MIN_S": "1800",
    "PREAMBLE_GAP_S": "20.0",
    "PREAMBLE_MAX_WORDS": "8",
+   "SEATED_WINDOW_S": "120.0",
    "SPEAKER_SNAP_S": "4.0",
    "TAIL_GUARD_S": "0.4",
    "TAIL_S": "1.5"
@@ -890,7 +892,11 @@
    "follow along as i read",
    "listen to the word"
   ],
-  "version": "cues.v4"
+  "SEATING": [
+   "be seated",
+   "have a seat"
+  ],
+  "version": "cues.v5"
  },
  "features.table.class": {
   "blocks": [
