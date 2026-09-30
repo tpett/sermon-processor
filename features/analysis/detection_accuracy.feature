@@ -114,7 +114,7 @@ Feature: Measuring detection accuracy against real recordings
         | whether the correct Segment was proposed at all  |
         | the proposed classification against the expected |
         | whether a human would have had to edit           |
-      And it reports the proportion approved with no edit
+      And the proportion approved with no edit is reported from the approval record, not from this run
       And it reports the median and worst-case error, split by difficulty
 
     @happy-path
@@ -132,7 +132,7 @@ Feature: Measuring detection accuracy against real recordings
       # "if we can get this to work 80% of the time, then it is just: hit play
       # to preview the punch-in, hit play to preview the punch-out, approve,
       # and we are done."
-      Then the headline measure is the proportion of Segments approved with no boundary edit
+      Then the headline measure is the proportion of Segments published in a period that were approved with no boundary edit
       And it is reported alongside the raw error figures, not replaced by them
 
     @happy-path

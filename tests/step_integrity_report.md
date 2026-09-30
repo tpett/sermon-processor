@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1309 step definitions read from `tests/steps`
+- 1313 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 466 non-deferred scenarios rest on at least one condemned step
 - 0 of 607 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 354 Gherkin steps matched no definition
+- 350 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -35,6 +35,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | module | definitions | condemned | verdict |
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 0 | sound |
+| `tests/steps/analysis/approval_rate_steps.py` | 4 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
 | `tests/steps/analysis/domain_steps.py` | 209 | 0 | sound |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
@@ -151,12 +152,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/block_classification.feature:74 given a Recording containing a normal Sunday service`
 - `analysis/block_classification.feature:90 then each carries the evidence that produced it`
 - `analysis/detection_accuracy.feature:109 then for each pair it reports:`
-- `analysis/detection_accuracy.feature:117 then it reports the proportion approved with no edit`
+- `analysis/detection_accuracy.feature:117 then the proportion approved with no edit is reported from the approval record, not from this run`
 - `analysis/detection_accuracy.feature:118 then it reports the median and worst-case error, split by difficulty`
 - `analysis/detection_accuracy.feature:122 then the corpus includes sermons and class sessions`
 - `analysis/detection_accuracy.feature:123 then accuracy is reported separately for each classification`
-- `analysis/detection_accuracy.feature:135 then the headline measure is the proportion of Segments approved with no boundary edit`
-- `analysis/detection_accuracy.feature:136 then it is reported alongside the raw error figures, not replaced by them`
 - `analysis/detection_accuracy.feature:156 then the suite is a regression instrument, not an acceptance test`
 - `analysis/detection_accuracy.feature:157 then a change that worsens the error distribution is reported as a regression`
 - `analysis/detection_accuracy.feature:158 then no configuration is rejected for missing a fixed tolerance`
@@ -176,8 +175,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/detection_accuracy.feature:240 then it does not count toward the no-edit proportion`
 - `analysis/detection_accuracy.feature:248 then the change in median and worst-case error is reported`
 - `analysis/detection_accuracy.feature:249 then a change that improves the median but worsens the worst case is visible as such`
-- `analysis/detection_accuracy.feature:265 then it counts toward the proportion approved with no edit`
-- `analysis/detection_accuracy.feature:266 then it does not become a labelled example`
 - `analysis/detection_accuracy.feature:272 then it reports that it was skipped`
 - `analysis/detection_accuracy.feature:273 then it does not report a pass`
 - `analysis/punch_in_detection.feature:107 then the punch-in is placed immediately before "good morning"`
