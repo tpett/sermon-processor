@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from sermon.analysis.measures_boundary_error import MeasuresBoundaryError
+from sermon.analysis.measures_boundary_error import (
+    ArchivesRatherThanCuts,
+    MeasuresBoundaryError,
+)
 from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT, CutScore, ScoresCut
 
@@ -27,11 +30,22 @@ class AccuracyOfCut:
 
 @dataclass(frozen=True)
 class GradesCutAccuracy:
+    """Grade every labelled cut point of one recording, unless it was archived whole.
+
+    A recording the human kept whole carries no cut decision, so it is graded as
+    nothing at all rather than as a boundary that happens to sit at zero — the
+    same way a recording with no labelled segment is.
+    """
+
     ground_truth: Path
     measures: object | None = None
+    archives: object | None = None
     scores: object = ScoresCut
 
     def __call__(self, recording_id, transcript, proposed):
+        archives = self.archives or ArchivesRatherThanCuts(ground_truth=self.ground_truth)
+        if archives(recording_id):
+            return ()
         measures = self.measures or MeasuresBoundaryError(ground_truth=self.ground_truth)
         scoring = self.scores(transcript=transcript)
         return tuple(
