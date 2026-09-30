@@ -1,3 +1,78 @@
+## A corpus pair is corrected, not overwritten, and the approval rate has one definition (2026-09-30)
+
+Two product decisions, both settled by the owner, on `tpett/ai/ranking`.
+
+### The precedence rule on a corpus pair (`sp-xll`)
+
+`DerivesGroundTruth` upserted on `(recording_id, classification, provenance)`
+with whatever the caller handed it, so the approval path -- which reads no audio
+and therefore carries `drift_ppm` and both difficulties as `None` -- replaced a
+measured alignment's three values with nulls. Re-approving 2026-09-27 after
+`sermon-align` had measured it would have thrown away the intercept's drift fit
+and both audio-graded difficulties.
+
+It is now a merge. **On one key a labelling writes only what it actually
+measured:** the newest labelling sets the boundaries and the alignment verdict
+it carries, `drift_ppm` and the two difficulties keep the values already on the
+record wherever the incoming labelling has none, a boundary's difficulty is
+dropped when that boundary moves, and a labelling that derived no boundaries at
+all leaves the boundaries already there alone.
+
+Three clauses, three reasons. An approval's nulls are an absence of measurement,
+not a measurement of absence. A difficulty grades one cut instant rather than
+the pair, so keeping an `easy` measured at 3055.026 s against a boundary dragged
+to 5600.0 s would report that the machine did well on an easy cut nobody graded
+-- drift, being a property of the two clocks, survives the move. And a refusal
+cannot both record its verdict and keep the boundaries, because a CHECK
+constraint already forbids boundaries on a row that is not an aligned human
+pair; the reviewer's own cut is the better of the two labellings, and the refusal
+is still printed and still exits non-zero.
+
+**No vocabulary value was added.** The owner ranks three standings -- a hand edit
+made with no proposal to react to, a boundary adjusted in the app, an untouched
+approval -- and all three are already expressible. The weakest is `machine`
+provenance: counted, never `labelled`. The two human ones share a key on
+purpose, because one row per pair is what stops a pair being graded twice, and
+they are told apart by whether the measured fields are present. They collide
+only for a recording both hand-cut outside the app and reviewed inside it, and
+there the app action is the reviewer's newer explicit choice. `CorpusPair.labelled`
+is unchanged. The rule and the ranking are both stated in `features/DOMAIN.md`
+§CorpusPair rather than implied by call order.
+
+### One definition of the approval rate (`sp-1sw`)
+
+The owner's words: "of the sermons published in a period, what fraction did I
+approve without touching the boundaries". `ReportsApprovalRate` answers that and
+nothing else. The population is the Segments published in the period -- intent
+`publish`, dispositioned by the reviewer, placed by `publication_date` -- and the
+headline is the fraction whose `boundary_source` is not `human`.
+
+**It reads the store only.** `experiments/data/groundtruth.json` holds no
+approval data at all, so a second definition read off the frozen corpus would
+have been a fiction. Nothing here has to be unpicked when `sp-e4g` connects the
+graders to the stored corpus.
+
+Beside the proportion, each published cut carries the signed error of the
+machine's proposal against the boundary the reviewer chose, read from the
+`boundary_change` log the revert feature already keeps. An untouched cut carries
+none: there is no human answer to subtract, and reporting 0.0 would be the system
+scoring itself.
+
+Two scenarios green: `Untouched approvals are counted, not used as truth` and
+`The target is a two-preview approval`. **`Running the corpus` is not**, and not
+for want of this report: its per-pair table wants the proposed classification
+against the expected, which exists nowhere outside the store, and the corpus
+files it would read are gitignored. That is `sp-e4g`.
+
+Two `Then`s were reworded, under the owner's licence to correct spec wording
+where the intent is clear. No pin moved: `SPEC_STEPS` counts declared Gherkin
+steps rather than matched definitions, so it stays at 1942, and the spec is
+still 34 files / 470 scenarios / 144 rules and 614 collected.
+
+**Nothing surfaces the number yet.** No command and no page prints it, because no
+scenario asks for one. The owner cannot read their own headline measure until
+something does.
+
 ## audio_rendering.feature is measured on the MP3 it writes (2026-09-30)
 
 **13 of its 20 scenarios are green**, and every assertion in them is a number
