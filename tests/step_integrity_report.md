@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1277 step definitions read from `tests/steps`
+- 1309 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 466 non-deferred scenarios rest on at least one condemned step
 - 0 of 607 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 386 Gherkin steps matched no definition
+- 354 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -63,9 +63,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py` | 8 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 14 | 0 | sound |
-| `tests/steps/processing/artifact_downloads_steps.py` | 26 | 0 | sound |
+| `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
+| `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 130 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 115 | 0 | sound |
 
 ## Condemned outside the six named files
 
@@ -375,30 +376,14 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/artifact_downloads.feature:52 then I can read its transcript without downloading anything`
 - `processing/artifact_downloads.feature:53 then the transcript covers the approved span`
 - `processing/artifact_downloads.feature:54 then I can expand to the full Recording transcript`
-- `processing/audio_rendering.feature:102 given the Segment contains passages 18 dB quieter than the loudest passage`
-- `processing/audio_rendering.feature:104 then the quiet passages are audible at a normal listening volume`
-- `processing/audio_rendering.feature:105 then the loudest passages are not clipped`
-- `processing/audio_rendering.feature:106 then no separate compression stage is applied`
 - `processing/audio_rendering.feature:110 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
 - `processing/audio_rendering.feature:111 then the settings used are recorded on every rendered Segment`
 - `processing/audio_rendering.feature:112 then changing them is what makes a re-render meaningful`
-- `processing/audio_rendering.feature:120 then the output is brought down to the target loudness and peak ceiling`
-- `processing/audio_rendering.feature:121 then no attempt is made to reconstruct the clipped peaks`
-- `processing/audio_rendering.feature:128 then the output reaches the target loudness`
-- `processing/audio_rendering.feature:129 then the noise floor is not raised to a distracting level`
-- `processing/audio_rendering.feature:149 then the output is an MP3`
-- `processing/audio_rendering.feature:15 given channel 2 of the source is silent`
-- `processing/audio_rendering.feature:150 then the channel layout is mono`
-- `processing/audio_rendering.feature:151 then the sample rate is 44100 Hz`
-- `processing/audio_rendering.feature:152 then the bitrate is variable, averaging between 96 and 108 kbps`
-- `processing/audio_rendering.feature:156 given the Segment is 43 minutes long`
-- `processing/audio_rendering.feature:158 then the resulting MP3 is between 25 MB and 40 MB`
+- `processing/audio_rendering.feature:136 given the first Segment rendered under the new loudness target`
+- `processing/audio_rendering.feature:137 then a reviewer is told that output volume has changed relative to earlier files`
+- `processing/audio_rendering.feature:138 then the option to re-render past Segments to match is available`
 - `processing/audio_rendering.feature:162 then bitrate, channel layout and sample rate are configuration, not code`
 - `processing/audio_rendering.feature:163 then changing them is a re-render, never a re-analysis`
-- `processing/audio_rendering.feature:172 then the full span is converted without trimming refinement`
-- `processing/audio_rendering.feature:173 then channel 1 extraction is still applied`
-- `processing/audio_rendering.feature:174 then loudness normalization is still applied`
-- `processing/audio_rendering.feature:175 then the same single loudness treatment is applied`
 - `processing/audio_rendering.feature:185 given a Segment rendered under the current loudness target`
 - `processing/audio_rendering.feature:186 given earlier published files sit 7 to 11 LU quieter`
 - `processing/audio_rendering.feature:187 then the difference is stated to the reviewer once, not on every render`
@@ -407,30 +392,14 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/audio_rendering.feature:194 then each is re-rendered from its stored boundaries under the current target`
 - `processing/audio_rendering.feature:195 then any whose source is no longer available fails individually and is reported`
 - `processing/audio_rendering.feature:196 then the reviewer is not asked to approve anything again`
-- `processing/audio_rendering.feature:202 given a Segment has been rendered`
-- `processing/audio_rendering.feature:203 when it is rendered again with identical settings`
-- `processing/audio_rendering.feature:204 then the output is byte-identical apart from embedded timestamps`
-- `processing/audio_rendering.feature:205 then the recorded render settings are unchanged`
-- `processing/audio_rendering.feature:24 then the output takes channel 1 only`
-- `processing/audio_rendering.feature:25 then channel 2 is discarded without being mixed in`
-- `processing/audio_rendering.feature:26 then the output level matches channel 1's level, not half of it`
-- `processing/audio_rendering.feature:27 then the output is mono`
+- `processing/audio_rendering.feature:209 given a rendered MP3`
+- `processing/audio_rendering.feature:210 when a reviewer listens to it end to end`
+- `processing/audio_rendering.feature:211 then the speech is intelligible throughout`
+- `processing/audio_rendering.feature:212 then there are no clicks, dropouts or pumping artifacts`
+- `processing/audio_rendering.feature:213 then it sits at a comparable volume to other recent sermons`
 - `processing/audio_rendering.feature:31 given the probe flagged the Recording "unexpected stereo content"`
 - `processing/audio_rendering.feature:33 then the render does not start automatically`
 - `processing/audio_rendering.feature:34 then the reviewer is asked how the channels should be treated`
-- `processing/audio_rendering.feature:44 then the output duration matches the approved span within 100 ms`
-- `processing/audio_rendering.feature:45 then the trim is sample-accurate rather than snapped to a frame boundary`
-- `processing/audio_rendering.feature:51 then a short fade-in is applied at the start`
-- `processing/audio_rendering.feature:52 then a short fade-out is applied at the end`
-- `processing/audio_rendering.feature:53 then neither fade is long enough to swallow a spoken word`
-- `processing/audio_rendering.feature:77 then the output true peak, measured on the decoded MP3, does not exceed "-0.5 dBTP"`
-- `processing/audio_rendering.feature:78 then the measured input and output loudness are recorded on the Segment`
-- `processing/audio_rendering.feature:82 given two Segments whose sources differ in loudness by 8 LU`
-- `processing/audio_rendering.feature:83 when both are rendered`
-- `processing/audio_rendering.feature:84 then their output integrated loudness values are within 1 LU of each other`
-- `processing/audio_rendering.feature:90 given the Segment contains one isolated peak 12 dB above the speech level`
-- `processing/audio_rendering.feature:92 then the output integrated loudness still meets the target`
-- `processing/audio_rendering.feature:93 then the isolated peak is limited rather than allowed to set the level`
 - `processing/processing_orchestration.feature:101 when the system comes back up`
 - `processing/processing_orchestration.feature:103 then processing is restarted from the beginning`
 - `processing/processing_orchestration.feature:104 then no partial artifact is exposed as a download`

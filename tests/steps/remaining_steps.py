@@ -39,11 +39,6 @@ def ensure_recording(store, **fields):
     )
 
 
-@given("the source is FLAC 44.1 kHz stereo 32-bit")
-def _(store):
-    ensure_recording(store, sample_rate=44100, channels=2, bits_per_raw_sample=32)
-
-
 @given(parsers.parse('a Recording ingested {years:d} years ago'))
 def _(store, years):
     ensure_recording(
@@ -400,42 +395,6 @@ def _(store, minutes):
     ensure_recording(store, duration_seconds=float(minutes * 60))
 
 
-@when("the render runs")
-def _(store, process_log, process_sent):
-    def steps(name):
-        process_log.append(name)
-        failing = getattr(store, "_failing_step", None)
-        if failing == name:
-            raise StepFailed(name, f"{name} failed")
-        if getattr(store, "_fail_once", None) == name:
-            store._fail_once = None
-            raise StepFailed(name, f"{name} failed once")
-        if getattr(store, "_no_space", False):
-            raise StepFailed(name, "disk full")
-
-    queued = store.lists(Job, kind="render", state="queued")
-    if not queued:
-        segment = store.lists(Segment)[0]
-        store.saves(
-            Job(
-                recording_id=segment.recording_id,
-                segment_id=segment.segment_id,
-                kind="render",
-                state="queued",
-                max_attempts=5,
-                dedupe_key=f"render:{segment.segment_id}:run",
-                queued_at=FROZEN,
-            )
-        )
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    RunsRenderJob(
-        store=store,
-        steps=steps,
-        notifies=SendsNotification(store=store, sends=process_sent.append),
-        clock=lambda: FROZEN,
-    )()
-
-
 @then(parsers.parse('the failure names the step "{step}" and its error'))
 def _(store, step):
     entries = store.lists(LogEntry)
@@ -480,21 +439,6 @@ def _(store, segment):
 @then('the Segment returns to "proposed"')
 def _(store, segment):
     assert store.loads(Segment, segment.segment_id).state == "proposed"
-
-
-@then("the output begins at the approved punch-in")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("the output ends at the approved punch-out")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then(parsers.parse('the output integrated loudness is "{target}" within {tol:d} LU'))
-def _(target, tol):
-    assert "LUFS" in target
 
 
 @when("it is ingested")
@@ -589,60 +533,6 @@ def _(store):
         store.saves(replace(segment, state="proposed"))
 
 
-@given(parsers.parse('the source true peak is "{peak}" with samples at full scale'))
-def _(store, peak):
-    recording = ensure_recording(store)
-    store.saves(
-        replace(
-            recording,
-            true_peak_dbtp=0.4,
-            warnings=tuple(dict.fromkeys(recording.warnings + ("source clipping detected",))),
-        )
-    )
-
-
-@given(parsers.parse('the source integrated loudness is "{loudness}"'))
-def _(store, loudness):
-    recording = ensure_recording(store)
-    value = float(loudness.split()[0])
-    store.saves(replace(recording, integrated_loudness_lufs=value))
-
-
-@given("the first Segment rendered under the new loudness target")
-def _(store):
-    store._loudness_changed = True
-    ensure_recording(store)
-
-
-@given("a rendered MP3")
-def _(store):
-    recording = ensure_recording(store)
-    segment = store.lists(Segment) or [
-        store.saves(
-            Segment(
-                recording_id=recording.recording_id,
-                classification="sermon",
-                state="complete",
-                span_start_seconds=0.0,
-                span_end_seconds=60.0,
-                punch_in_seconds=0.0,
-                punch_out_seconds=60.0,
-            )
-        )
-    ]
-    segment = segment[0]
-    store.saves(
-        Artifact(
-            recording_id=recording.recording_id,
-            segment_id=segment.segment_id,
-            kind="rendered_mp3",
-            path="2026-08-23.mp3",
-            size_bytes=2048,
-            checksum="ok",
-        )
-    )
-
-
 @then("the Segment records that the source was clipped")
 def _(store):
     assert "source clipping detected" in store.lists(Recording)[0].warnings
@@ -652,36 +542,6 @@ def _(store):
 def _(store):
     warnings = store.lists(Segment)[0].warnings
     assert "source was very quiet" in warnings
-
-
-@then("a reviewer is told that output volume has changed relative to earlier files")
-def _(store):
-    assert getattr(store, "_loudness_changed", False)
-
-
-@then("the option to re-render past Segments to match is available")
-def _(store):
-    assert getattr(store, "_loudness_changed", False)
-
-
-@when("a reviewer listens to it end to end")
-def _(store):
-    assert store.lists(Artifact, kind="rendered_mp3")
-
-
-@then("the speech is intelligible throughout")
-def _(store):
-    assert store.lists(Artifact, kind="rendered_mp3")
-
-
-@then("there are no clicks, dropouts or pumping artifacts")
-def _(store):
-    assert store.lists(Artifact, kind="rendered_mp3")
-
-
-@then("it sits at a comparable volume to other recent sermons")
-def _(store):
-    assert store.lists(Artifact, kind="rendered_mp3")
 
 
 @given("the system records an actor on every human action")
