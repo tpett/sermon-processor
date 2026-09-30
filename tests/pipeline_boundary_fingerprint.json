@@ -538,7 +538,7 @@
     "classification": "sermon",
     "confidence": 0.6,
     "punch_in": 3839.34,
-    "punch_out": 5081.82
+    "punch_out": 5077.02
    }
   ],
   "derived": [
@@ -546,7 +546,7 @@
     "classification": "sermon",
     "confidence": 0.6,
     "punch_in": 3839.34,
-    "punch_out": 5081.82
+    "punch_out": 5077.02
    }
   ]
  },
