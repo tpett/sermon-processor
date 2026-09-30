@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
 
 from sermon.pipeline import audio
+from sermon.pipeline.render import probe_format
 
 COARSE_HZ = 100
 FINE_HZ = 1_000
@@ -21,6 +22,10 @@ FITTABLE_PROBES = 3
 MAX_FIT_RESIDUAL_SECONDS = 0.06
 MAX_DRIFT_PPM = 400.0
 NEGATIVE_OFFSET_SLACK_SECONDS = 0.05
+PAST_THE_END_SLACK_SECONDS = 1.0
+LAST_FRAME_SECONDS = 0.01
+HEAD_WINDOW_SECONDS = 180.0
+SPANNABLE_SOURCES = 2
 
 ALIGNED = "aligned"
 UNALIGNABLE = "cannot be aligned"
@@ -276,18 +281,124 @@ class DerivedPair:
         return self.alignment.refusals
 
 
+def reads_duration(path):
+    return probe_format(Path(path))["duration"]
+
+
 @dataclass(frozen=True)
 class AlignsPublishedEdit:
+    """One published edit against one source, gated and graded."""
+
     work: Path
     reads: object | None = None
     locates: object = LocatesEditInSource()
     grades: object = GradesCutDifficulty()
-    measures: object | None = None
+    measures: object = reads_duration
 
-    def __call__(self, recording_id, source: Path, edit: Path) -> DerivedPair:
-        return DerivedPair(
+    def __call__(self, recording_id, source: Path, edit: Path, window=None) -> DerivedPair:
+        reads = self.reads or ReadsEnvelopes(work=self.work)
+        source_coarse, source_fine = reads(Path(source), f"{recording_id}.source")
+        edit_coarse, edit_fine = reads(Path(edit), f"{recording_id}.{Path(edit).stem}")
+        first, last = self.framed(window, len(edit_coarse), len(edit_fine))
+        found = self.locates(
+            source_coarse=source_coarse,
+            source_fine=source_fine,
+            edit_coarse=edit_coarse[first[0]:last[0]],
+            edit_fine=edit_fine[first[1]:last[1]],
+        )
+        source_seconds = self.measures(source)
+        edit_seconds = self.measures(edit) if window is None else window[1] - window[0]
+        return self.paired(recording_id, found, source_coarse, source_seconds, edit_seconds)
+
+    def framed(self, window, coarse_frames, fine_frames):
+        if window is None:
+            return (0, 0), (coarse_frames, fine_frames)
+        start, end = window
+        return (
+            (int(start * COARSE_HZ), int(start * FINE_HZ)),
+            (min(coarse_frames, int(end * COARSE_HZ)), min(fine_frames, int(end * FINE_HZ))),
+        )
+
+    def paired(self, recording_id, found, source_coarse, source_seconds, edit_seconds):
+        measured = dict(
             recording_id=recording_id,
-            alignment=Alignment(verdict=UNALIGNABLE),
-            source_duration_seconds=0.0,
-            edit_duration_seconds=0.0,
+            source_duration_seconds=source_seconds,
+            edit_duration_seconds=edit_seconds,
+        )
+        if not found.trustworthy:
+            return DerivedPair(alignment=found, **measured)
+        punch_in = found.punch_in_seconds
+        punch_out = round(punch_in + edit_seconds * (1 + found.drift_ppm / 1e6), 4)
+        if punch_out > source_seconds + PAST_THE_END_SLACK_SECONDS:
+            return DerivedPair(alignment=self.past_the_end(found), **measured)
+        return DerivedPair(
+            alignment=found,
+            punch_in_seconds=punch_in,
+            punch_out_seconds=punch_out,
+            punch_in_difficulty=self.grades(source_coarse, punch_in),
+            punch_out_difficulty=self.grades(
+                source_coarse, min(punch_out, source_seconds - LAST_FRAME_SECONDS)
+            ),
+            **measured,
+        )
+
+    def past_the_end(self, found):
+        return replace(
+            found,
+            verdict=UNALIGNABLE,
+            refusals=found.refusals + ("the edit runs past the end of the source",),
+        )
+
+
+def refuses(recording_id, reason, source_seconds=0.0, edit_seconds=0.0) -> DerivedPair:
+    return DerivedPair(
+        recording_id=recording_id,
+        alignment=Alignment(verdict=UNALIGNABLE, refusals=(reason,)),
+        source_duration_seconds=source_seconds,
+        edit_duration_seconds=edit_seconds,
+    )
+
+
+@dataclass(frozen=True)
+class DerivesPairsForEdit:
+    """One pair per source: an edit spanning two recordings is two rows, never one."""
+
+    aligns: object
+    measures: object = reads_duration
+    head_seconds: float = HEAD_WINDOW_SECONDS
+
+    def __call__(self, named, edit) -> tuple[DerivedPair, ...]:
+        if len(named) == 1:
+            recording_id, source = named[0]
+            return (self.aligns(recording_id, source, edit),)
+        if len(named) > SPANNABLE_SOURCES:
+            return tuple(
+                refuses(recording_id, f"an edit spanning {len(named)} sources is not derived")
+                for recording_id, _ in named
+            )
+        return self.spanned(named, edit)
+
+    def spanned(self, named, edit):
+        (first_id, first_source), (second_id, second_source) = named
+        edit_seconds = self.measures(edit)
+        head = self.aligns(
+            first_id, first_source, edit, window=(0.0, min(self.head_seconds, edit_seconds))
+        )
+        if not head.trustworthy:
+            return (head, refuses(second_id, f"the head of the edit did not place in {first_id}"))
+        split = round(head.source_duration_seconds - head.punch_in_seconds, 4)
+        if not 0.0 < split < edit_seconds:
+            return (
+                refuses(
+                    first_id,
+                    f"the edit does not run to the end of {first_id}, "
+                    f"so it does not continue into another source",
+                    head.source_duration_seconds,
+                    edit_seconds,
+                ),
+                refuses(second_id, f"nothing of the edit is left for {second_id}"),
+            )
+        return (
+            self.aligns(first_id, first_source, edit, window=(0.0, split)),
+            self.aligns(second_id, second_source, edit, window=(split, edit_seconds)),
         )

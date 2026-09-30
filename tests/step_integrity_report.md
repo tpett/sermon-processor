@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1274 step definitions read from `tests/steps`
+- 1277 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 466 non-deferred scenarios rest on at least one condemned step
 - 0 of 607 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 389 Gherkin steps matched no definition
+- 386 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -36,9 +36,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
-| `tests/steps/analysis/domain_steps.py` | 208 | 0 | sound |
+| `tests/steps/analysis/domain_steps.py` | 209 | 0 | sound |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
-| `tests/steps/analysis/remaining_analysis_steps.py` | 198 | 0 | sound |
+| `tests/steps/analysis/remaining_analysis_steps.py` | 200 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
 | `tests/steps/catch_all_thens.py` (named) | 3 | 0 | sound |
 | `tests/steps/discovery_steps.py` | 2 | 0 | sound |
@@ -175,13 +175,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/detection_accuracy.feature:240 then it does not count toward the no-edit proportion`
 - `analysis/detection_accuracy.feature:248 then the change in median and worst-case error is reported`
 - `analysis/detection_accuracy.feature:249 then a change that improves the median but worsens the worst case is visible as such`
-- `analysis/detection_accuracy.feature:254 then that recording and the approved boundaries can be added to the corpus`
-- `analysis/detection_accuracy.feature:255 then the corpus grows without anyone hand-labelling anything`
 - `analysis/detection_accuracy.feature:265 then it counts toward the proportion approved with no edit`
 - `analysis/detection_accuracy.feature:266 then it does not become a labelled example`
 - `analysis/detection_accuracy.feature:272 then it reports that it was skipped`
 - `analysis/detection_accuracy.feature:273 then it does not report a pass`
-- `analysis/detection_accuracy.feature:81 then a legitimate untrimmed archive is flagged the same way`
 - `analysis/punch_in_detection.feature:107 then the punch-in is placed immediately before "good morning"`
 - `analysis/punch_in_detection.feature:114 then the punch-in is placed immediately before that phrase`
 - `analysis/punch_in_detection.feature:115 then that counts as evidence for the punch-in`
