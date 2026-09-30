@@ -60,11 +60,19 @@ def candidate_edges(doc: dict) -> list[float]:
     So diarization does not beat the transcript for *precision* — the boundary
     was already there — but the union is better than either alone, which is
     cheap to take.
+
+    Word edges are carried as well as utterance edges. Utterance boundaries are
+    contiguous by construction — one ends where the next begins whether or not
+    anything is said between them — so only word timestamps say where sound
+    stops and where it resumes, and a seam inside one utterance has no utterance
+    edge anywhere near it.
     """
     rid = doc["recording_id"]
     if rid in _EDGE_CACHE:
         return _EDGE_CACHE[rid]
+    spoken = [w for u in doc["utterances"] for w in (u.get("words") or ())]
     edges = {u["start"] for u in doc["utterances"]} | {u["end"] for u in doc["utterances"]}
+    edges |= {w["start"] for w in spoken} | {w["end"] for w in spoken}
     edges |= set(speaker_edges(doc))
     _EDGE_CACHE[rid] = sorted(edges)
     return _EDGE_CACHE[rid]
@@ -163,6 +171,20 @@ def _start_of_teaching(utts: list[dict]) -> float:
     return utts[0]["start"]
 
 
+def _end_of_the_amen(utterance: dict) -> float:
+    """Where the closing amen stops, not where the utterance holding it stops.
+
+    An utterance can merge the amen with the opening of what follows it, so its
+    end is the end of what the cut is meant to remove. Falls back to the
+    utterance end when no word inside it carries a timestamp.
+    """
+    spoken = [
+        held for held in (utterance.get("words") or ())
+        if "".join(c for c in str(held.get("w", "")).lower() if c.isalpha()) == "amen"
+    ]
+    return float(spoken[-1]["end"]) if spoken else float(utterance["end"])
+
+
 def refine_out(utts: list[dict], block_type: str = "sermon",
                ends_by: float | None = None) -> float | None:
     """Cut at the end of the closing prayer, before whatever follows it.
@@ -189,6 +211,9 @@ def refine_out(utts: list[dict], block_type: str = "sermon",
     follows. Only an utterance *beginning* at or before `ends_by` can be the
     answer; the rest are read for the anchor alone, which is what keeps both of
     those failures fixed once the window can see across the edge.
+
+    The answer is the end of the amen, which is a word end and only sometimes an
+    utterance end — see `_end_of_the_amen`.
     """
     if not utts:
         return None
@@ -214,7 +239,7 @@ def refine_out(utts: list[dict], block_type: str = "sermon",
                     if u["start"] - tail[j]["end"] > AMEN_LOOKBACK_S:
                         break
                     if "amen" in tail[j]["text"].lower():
-                        return tail[j]["end"]
+                        return _end_of_the_amen(tail[j])
                 return tail[last - 1]["end"] if last > 0 else tail[0]["start"]
 
     # No anchor found. Fall back to the last amen — but only if it is plausibly
@@ -226,7 +251,7 @@ def refine_out(utts: list[dict], block_type: str = "sermon",
     last_amen = None
     for u in tail:
         if "amen" in u["text"].lower():
-            last_amen = u["end"]
+            last_amen = _end_of_the_amen(u)
     if last_amen is not None and (end - last_amen) <= AMEN_FALLBACK_MAX_S:
         return last_amen
     return end

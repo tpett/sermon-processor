@@ -174,6 +174,18 @@ It re-derives every tagged block file under `--corpus` through the live
   current `segments.py` (`sp-66k`), so drift is expected on an unchanged tree and
   **never decides the exit code.**
 
+**A recording the human archived whole is not graded as a cut.** A members
+meeting is converted whole — "it's a members meeting so we don't really make any
+cuts we just archive the whole thing usually" — so its labelled span *is* the
+file, and there is no boundary decision in it to be right or wrong about. Both
+modes that read `groundtruth.json` leave it out, keyed on the labelled span
+covering more than 95% of the source, which is the coverage the ground-truth
+checker already flags an untrimmed archive by. `recording_20260628_130014` is the
+only one in the corpus and grading it cost an hour chasing a phantom regression.
+**Excluding it moves every corpus-wide figure**: 158 proposals / 340 cut points
+becomes 147 / 318, and `--tag whole.v2` 112 / 238 becomes 106 / 226. Read older
+numbers against the older baseline.
+
 `--tag <text>` restricts every mode to the tags containing it, which is how to
 look at the shipping `*.whole.v2` configs alone. It reads the corpus and writes
 nothing to it, sends no audio anywhere, and invokes neither a transcriber nor a

@@ -563,6 +563,31 @@ def test_speaker_edges_finds_nothing_when_the_recording_was_not_diarized(tmp_pat
     assert segments.speaker_edges({"recording_id": "never-diarized"}) == []
 
 
+AMEN_SEAM = "recording_20260419_102511.t0-rules.whole.v2.json"
+AMEN_ENDS = 5075.52
+PITCH_BEGINS = 5077.16
+
+
+def derives_one_stored_block(segments, name):
+    stored = reads_spike_json(SPIKE_DATA / "blocks" / name)
+    doc = reads_spike_json(
+        SPIKE_DATA / "transcripts" / f"{stored['recording_id']}.{stored['asr_config']}.json"
+    )
+    segments._EDGE_CACHE.clear()
+    derived = segments.derive(stored["blocks"], doc)
+    return segments.choose(stored.get("model_segments") or [], derived, doc)
+
+
+@spike_data_required
+def test_the_punch_out_lands_in_the_silence_between_the_closing_amen_and_what_follows(
+    monkeypatch,
+):
+    segments = imports_pipeline_module("segments")
+    monkeypatch.setattr(segments, "DATA_ROOT", SPIKE_DATA)
+    chosen = derives_one_stored_block(segments, AMEN_SEAM)
+    assert [AMEN_ENDS <= held["punch_out"] <= PITCH_BEGINS for held in chosen] == [True]
+
+
 def derives_every_stored_block(segments):
     derived = {}
     for path in sorted((SPIKE_DATA / "blocks").glob("*.json")):

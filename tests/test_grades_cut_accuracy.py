@@ -41,7 +41,11 @@ def transcript():
     }
 
 
-def ground_truth(tmp_path, punch_in=HUMAN_IN, punch_out=HUMAN_OUT):
+SOURCE_SECONDS = 30.0
+
+
+def ground_truth(tmp_path, punch_in=HUMAN_IN, punch_out=HUMAN_OUT,
+                 source_duration=SOURCE_SECONDS):
     path = tmp_path / "groundtruth.json"
     path.write_text(
         json.dumps(
@@ -50,6 +54,7 @@ def ground_truth(tmp_path, punch_in=HUMAN_IN, punch_out=HUMAN_OUT):
                     {
                         "recording_id": RECORDING,
                         "desktop_label": LABEL,
+                        "source_duration": source_duration,
                         "segments": [
                             {
                                 "punch_in": punch_in,
@@ -98,6 +103,22 @@ def test_a_proposal_that_overlaps_no_labelled_segment_is_not_found(tmp_path):
     assert [cut.found for cut in graded] == [False, False]
     assert [cut.score for cut in graded] == [None, None]
     assert graded[0].human == HUMAN_IN
+
+
+def test_a_human_cut_spanning_the_whole_recording_is_not_a_cut_decision(tmp_path):
+    assert grades(tmp_path, [(7.0, 26.0)], punch_in=0.0, punch_out=SOURCE_SECONDS) == ()
+
+
+def test_a_human_cut_that_leaves_a_fifth_of_the_recording_out_is_still_a_cut(tmp_path):
+    graded = grades(tmp_path, [(7.0, 26.0)], punch_in=0.0, punch_out=24.0)
+    assert [cut.boundary for cut in graded] == ["punch_in", "punch_out"]
+
+
+def test_a_recording_whose_source_duration_is_unknown_is_graded_as_a_cut(tmp_path):
+    graded = grades(
+        tmp_path, [(7.0, 26.0)], punch_in=0.0, punch_out=SOURCE_SECONDS, source_duration=None
+    )
+    assert [cut.boundary for cut in graded] == ["punch_in", "punch_out"]
 
 
 def test_a_recording_with_no_labelled_segment_grades_nothing(tmp_path):
@@ -218,6 +239,11 @@ def test_the_corpus_walk_reads_the_ground_truth_beside_the_blocks(tmp_path):
     graded = walks(tmp_path, live=[(14.0, 26.0)])
     assert graded[0].cuts[0].human == HUMAN_IN
     assert graded[0].cuts[0].score.speech_seconds == 2.0
+
+
+def test_an_archived_whole_recording_is_left_out_of_the_walk(tmp_path):
+    stages_corpus(tmp_path, punch_in=0.0, punch_out=SOURCE_SECONDS)
+    assert walks(tmp_path, live=[(7.0, 26.0)]) == ()
 
 
 def test_a_recording_with_no_labelled_segment_is_left_out_of_the_walk(tmp_path):
