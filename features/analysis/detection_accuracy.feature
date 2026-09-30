@@ -132,7 +132,7 @@ Feature: Measuring detection accuracy against real recordings
       # "if we can get this to work 80% of the time, then it is just: hit play
       # to preview the punch-in, hit play to preview the punch-out, approve,
       # and we are done."
-      Then the headline measure is the proportion of Segments published in a period that were approved with no boundary edit
+      Then the headline measure is the proportion of a period's published Segments approved with no boundary edit
       And it is reported alongside the raw error figures, not replaced by them
 
     @happy-path

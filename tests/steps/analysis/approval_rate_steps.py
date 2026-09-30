@@ -98,8 +98,8 @@ def _(store):
 
 
 @then(
-    "the headline measure is the proportion of Segments published in a period "
-    "that were approved with no boundary edit"
+    "the headline measure is the proportion of a period's published Segments "
+    "approved with no boundary edit"
 )
 def _(store):
     rate = published_period(store)
