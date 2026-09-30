@@ -84,8 +84,8 @@ class ReportsApprovalRate:
             classification=segment.classification,
             published_on=segment.publication_date,
             boundary_source=segment.boundary_source,
-            punch_in_error_seconds=errs(proposed[0], segment.punch_in_seconds),
-            punch_out_error_seconds=errs(proposed[1], segment.punch_out_seconds),
+            punch_in_error_seconds=measures_error(proposed[0], segment.punch_in_seconds),
+            punch_out_error_seconds=measures_error(proposed[1], segment.punch_out_seconds),
         )
 
     def proposed_boundaries(self, segment):
@@ -101,7 +101,7 @@ class ReportsApprovalRate:
         return (machine[0].punch_in_seconds, machine[0].punch_out_seconds)
 
 
-def errs(proposed, chosen):
+def measures_error(proposed, chosen):
     if proposed is None:
         return None
     return round(proposed - chosen, 3)
