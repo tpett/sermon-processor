@@ -96,11 +96,12 @@ still 614 and `SPEC_STEPS` still 1942.
 ### What it costs
 
 A cold run of the feature is about 14 minutes: five sources at 70 s each and
-seven 43-minute renders at 45 s each. Warm it is about 5 minutes, because
-`The same input produces the same output` renders twice for real by design and
-the trim scenario renders a frame-aligned comparison. `tests/test_spec_harness.py`
-runs the whole spec twice as subprocesses, so a bare `pytest` pays it three
-times. The feature is `@slow` for this reason; `-m "not slow"` skips it.
+six 43-minute renders at 45 s each, leaving 452 MB in the cache. Warm it is
+about 5 minutes, because `The same input produces the same output` renders twice
+for real by design and nothing may hand it the same file twice.
+`tests/test_spec_harness.py` runs the whole spec twice as subprocesses, so a
+bare `pytest` pays the warm cost three times: 1:33 on master against 7:41 here.
+The feature is `@slow` for this reason; `-m "not slow"` skips it.
 
 ## SLICE 3.1 — the machine proposes, and the error is measured (2026-09-22)
 
