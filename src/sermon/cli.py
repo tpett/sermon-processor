@@ -819,9 +819,9 @@ def reports_derived(pair, prints):
     )
 
 
-def reports_refusal(named, pair, prints):
-    prints(f"  {named}: {pair.alignment.verdict}")
-    for refusal in pair.refusals or ("no reason recorded",):
+def reports_refusal(pair, prints):
+    prints(f"  {pair.recording_id}: {pair.alignment.verdict}")
+    for refusal in pair.refusals:
         prints(f"    {refusal}")
 
 
@@ -905,7 +905,10 @@ def aligned_against(store, asked, edit, reads, measures, prints):
     )(named, edit)
     if any(not pair.trustworthy for pair in derived):
         for pair in derived:
-            reports_refusal(pair.recording_id, pair, prints)
+            if pair.trustworthy:
+                reports_derived(pair, prints)
+            else:
+                reports_refusal(pair, prints)
         prints("nothing written")
         return 1
     for pair in derived:

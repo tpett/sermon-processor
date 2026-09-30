@@ -349,9 +349,12 @@ def test_a_spanning_edit_writes_nothing_when_either_half_is_not_trustworthy(tmp_
         settings, synthetic, prints, PART_ONE, PART_TWO, str(edit),
         "--source", str(first), "--source", str(second),
     )
+    spoken = str(prints)
     assert outcome == 1
     assert pairs_in(tmp_path) == []
-    assert "nothing written" in str(prints)
+    assert "nothing written" in spoken
+    assert f"{PART_ONE}  punch-in" in spoken
+    assert f"{PART_TWO}: cannot be aligned" in spoken
 
 
 def test_one_source_per_named_recording_is_required(tmp_path):
