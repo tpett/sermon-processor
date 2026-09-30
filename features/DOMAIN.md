@@ -454,9 +454,16 @@ wherever that labelling has none — an approval reads no audio and cannot know
 them, so replacing them with nulls would destroy a measurement rather than
 correct one (reasoning, not quoted). A boundary's difficulty is dropped when
 that boundary moves, because a difficulty grades one cut instant and not the
-pair. A labelling that derived no boundaries at all leaves boundaries already on
-the record alone: a row may not hold both a refusal verdict and an expected
-answer, and the reviewer's own cut is the stronger of the two.
+pair.
+
+**A refusal is a verdict, not an absence, so it replaces the record.** `cannot
+be aligned` and `not a contiguous excerpt` say that this pair has no
+trustworthy answer, and the table above admits no row holding both a refusal
+and an expected answer. So a refusal clears boundaries an approval had
+recorded — loudly, since the refusal names the gate that failed and is reported
+rather than silent — and the reviewer puts them back by approving again. A pair
+whose boundaries are stale is worse than a pair with none, because a row that
+is silently wrong poisons every later measurement (reasoning, not quoted).
 
 **Three standings, ranked by how strong the evidence is.** A human edit made
 with no proposal to react to is the strongest, and carries the most information:

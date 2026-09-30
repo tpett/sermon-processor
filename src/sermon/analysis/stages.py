@@ -837,6 +837,9 @@ def _deduplicated(found):
     return unique
 
 
+READ_FROM_THE_AUDIO = ("drift_ppm", "punch_in_difficulty", "punch_out_difficulty")
+
+
 @dataclass(frozen=True)
 class DerivesGroundTruth:
     store: Store
@@ -873,10 +876,7 @@ class DerivesGroundTruth:
             punch_out_difficulty=None if punch_out is None else punch_out_difficulty,
         )
         if existing:
-            held = existing[0]
-            if punch_in is None and held.punch_in_seconds is not None:
-                return held
-            return self.store.saves(replace(held, **self.merges(held, carried)))
+            return self.store.saves(replace(existing[0], **self.merges(existing[0], carried)))
         return self.store.saves(
             CorpusPair(
                 recording_id=recording_id,
@@ -890,13 +890,14 @@ class DerivesGroundTruth:
         )
 
     def merges(self, held, carried):
-        kept = {
-            field: getattr(held, field) if value is None else value
-            for field, value in carried.items()
-        }
-        for boundary in ("punch_in", "punch_out"):
-            if kept[f"{boundary}_seconds"] != getattr(held, f"{boundary}_seconds"):
-                kept[f"{boundary}_difficulty"] = carried[f"{boundary}_difficulty"]
+        kept = dict(carried)
+        if kept["punch_in_seconds"] is not None:
+            for field in READ_FROM_THE_AUDIO:
+                if kept[field] is None:
+                    kept[field] = getattr(held, field)
+            for boundary in ("punch_in", "punch_out"):
+                if kept[f"{boundary}_seconds"] != getattr(held, f"{boundary}_seconds"):
+                    kept[f"{boundary}_difficulty"] = carried[f"{boundary}_difficulty"]
         return dict(
             kept,
             covers_more_than_95_percent=self.covers_most_of(

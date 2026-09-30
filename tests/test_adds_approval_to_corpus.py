@@ -113,17 +113,17 @@ def test_a_boundary_the_reviewer_moved_loses_only_its_own_difficulty(store, adju
     assert added.drift_ppm == -0.2
 
 
-def test_an_alignment_that_derived_nothing_leaves_the_reviewers_boundaries_alone(
-    store, adjusted
-):
+def test_a_refusal_replaces_the_record_because_a_verdict_is_not_an_absence(store, adjusted):
     AddsApprovalToCorpus(store=store)(adjusted)
-    held = DerivesGroundTruth(store=store)(
+    refused = DerivesGroundTruth(store=store)(
         RECORDING_ID,
         punch_in=None,
         punch_out=None,
         classification="sermon",
         alignment="not a contiguous excerpt",
     )
-    assert (held.punch_in_seconds, held.punch_out_seconds) == (3055.026, 5597.35)
-    assert (held.alignment, held.labelled) == ("aligned", True)
+    assert (refused.punch_in_seconds, refused.punch_out_seconds) == (None, None)
+    assert (refused.drift_ppm, refused.punch_in_difficulty) == (None, None)
+    assert refused.alignment == "not a contiguous excerpt"
+    assert refused.labelled is False
     assert len(store.lists(CorpusPair)) == 1

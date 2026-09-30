@@ -13,20 +13,29 @@ and both audio-graded difficulties.
 
 It is now a merge. **On one key a labelling writes only what it actually
 measured:** the newest labelling sets the boundaries and the alignment verdict
-it carries, `drift_ppm` and the two difficulties keep the values already on the
-record wherever the incoming labelling has none, a boundary's difficulty is
-dropped when that boundary moves, and a labelling that derived no boundaries at
-all leaves the boundaries already there alone.
+it carries, and `drift_ppm` and the two difficulties keep the values already on
+the record wherever the incoming labelling has none. A boundary's difficulty is
+dropped when that boundary moves.
 
-Three clauses, three reasons. An approval's nulls are an absence of measurement,
-not a measurement of absence. A difficulty grades one cut instant rather than
+Two clauses, two reasons. An approval's nulls are an absence of measurement, not
+a measurement of absence. And a difficulty grades one cut instant rather than
 the pair, so keeping an `easy` measured at 3055.026 s against a boundary dragged
 to 5600.0 s would report that the machine did well on an easy cut nobody graded
--- drift, being a property of the two clocks, survives the move. And a refusal
-cannot both record its verdict and keep the boundaries, because a CHECK
-constraint already forbids boundaries on a row that is not an aligned human
-pair; the reviewer's own cut is the better of the two labellings, and the refusal
-is still printed and still exits non-zero.
+-- drift, being a property of the two clocks, survives the move.
+
+**A refusal is the exception, deliberately.** It was tried the other way first:
+a labelling that derived no boundaries left the boundaries already there alone,
+so a reviewer's cut could not be erased by an alignment that failed. Two
+scenarios went red for it -- `A pair that cannot be aligned` and `Drift is
+separated from a real discontinuity`, both of which run extraction over a pair
+the Background has already labelled -- and they were right. `cannot be aligned`
+and `not a contiguous excerpt` are verdicts that the pair has no trustworthy
+answer, not fields a labelling happened not to fill, and the store's own
+presence rules admit no row holding both a refusal and an expected answer. A
+stale boundary is worse than none, because a row that is silently wrong poisons
+every later measurement. So a refusal replaces the record, names the gate that
+failed, exits non-zero, and the reviewer puts the boundaries back by approving
+again.
 
 **No vocabulary value was added.** The owner ranks three standings -- a hand edit
 made with no proposal to react to, a boundary adjusted in the app, an untouched
