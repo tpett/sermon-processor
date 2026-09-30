@@ -15,7 +15,12 @@ from sermon.analysis import (
     ProposesFromStoredTranscript,
     ReadsStoredTranscript,
 )
-from sermon.analysis.aligns_edit import AlignsPublishedEdit, DerivesPairsForEdit, reads_duration
+from sermon.analysis.aligns_edit import (
+    UNALIGNABLE,
+    AlignsPublishedEdit,
+    DerivesPairsForEdit,
+    reads_duration,
+)
 from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
@@ -837,6 +842,16 @@ def stores_derived(store, pair, classification):
     )
 
 
+def records_refusal(store, pair, classification):
+    return DerivesGroundTruth(store=store)(
+        pair.recording_id,
+        punch_in=None,
+        punch_out=None,
+        classification=classification,
+        alignment=pair.alignment.verdict if not pair.trustworthy else UNALIGNABLE,
+    )
+
+
 def records_machine_cut(store, recording_id, classification, prints):
     DerivesGroundTruth(store=store)(
         recording_id,
@@ -908,7 +923,8 @@ def aligned_against(store, asked, edit, reads, measures, prints):
                 reports_derived(pair, prints)
             else:
                 reports_refusal(pair, prints)
-        prints("nothing written")
+            excluded = records_refusal(store, pair, asked.classification)
+            prints(f"  {pair.recording_id}: recorded as {excluded.alignment}; no boundaries derived")
         return 1
     for pair in derived:
         stores_derived(store, pair, asked.classification)
