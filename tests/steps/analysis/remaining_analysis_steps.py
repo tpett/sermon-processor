@@ -426,12 +426,16 @@ def _(store, kind):
 
 @given("a reviewer approved a Segment after adjusting its boundaries")
 def _(store):
-    ensure_segment(store, state="complete", boundary_source="human")
+    return store.saves(
+        replace(ensure_segment(store), state="complete", boundary_source="human")
+    )
 
 
 @given("a reviewer approved a Segment without adjusting either boundary")
 def _(store):
-    ensure_segment(store, state="complete", boundary_source="model")
+    return store.saves(
+        replace(ensure_segment(store), state="complete", boundary_source="model")
+    )
 
 
 @given("a scripture_reading Block is immediately followed by a new speaker")
