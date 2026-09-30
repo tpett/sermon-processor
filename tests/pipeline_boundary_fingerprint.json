@@ -263,7 +263,7 @@
     "boundary_source": "model-in/refined-out",
     "classification": "sermon",
     "confidence": 0.95,
-    "punch_in": 2001.4,
+    "punch_in": 2020.84,
     "punch_out": 4881.94
    }
   ],
@@ -346,7 +346,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.98,
-    "punch_in": 2001.52,
+    "punch_in": 2020.96,
     "punch_out": 4880.46
    }
   ],
@@ -461,7 +461,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.95,
-    "punch_in": 2001.52,
+    "punch_in": 2020.96,
     "punch_out": 4880.46
    }
   ],
@@ -1197,7 +1197,7 @@
     "boundary_source": "model-in/refined-out",
     "classification": "sermon",
     "confidence": 0.98,
-    "punch_in": 1562.7,
+    "punch_in": 1635.8,
     "punch_out": 5020.68
    }
   ],
@@ -1311,7 +1311,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.6,
-    "punch_in": 1050.46,
+    "punch_in": 1163.58,
     "punch_out": 3068.96
    }
   ],
@@ -1749,7 +1749,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.6,
-    "punch_in": 4188.92,
+    "punch_in": 4199.94,
     "punch_out": 7215.38
    }
   ],
@@ -1775,7 +1775,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.95,
-    "punch_in": 4188.92,
+    "punch_in": 4199.94,
     "punch_out": 7215.38
    }
   ],
@@ -1804,7 +1804,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.95,
-    "punch_in": 4188.92,
+    "punch_in": 4199.94,
     "punch_out": 7215.38
    }
   ],
@@ -1855,7 +1855,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.95,
-    "punch_in": 4188.92,
+    "punch_in": 4199.94,
     "punch_out": 7215.38
    }
   ],
@@ -1874,7 +1874,7 @@
     "boundary_source": "refined",
     "classification": "sermon",
     "confidence": 0.98,
-    "punch_in": 4188.92,
+    "punch_in": 4199.94,
     "punch_out": 7215.38
    }
   ],
