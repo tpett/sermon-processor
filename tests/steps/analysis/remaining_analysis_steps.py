@@ -13,6 +13,7 @@ from sermon.analysis import (
     SummarizesBlocks,
     seeds_segment,
 )
+from sermon.analysis.adds_approval_to_corpus import AddsApprovalToCorpus
 from sermon.analysis.io import writes_json
 from sermon.analysis.stages import CorrectsBlockSummary
 from sermon.pipeline.segments import TAIL_S
@@ -1471,3 +1472,32 @@ def _(store):
     segment = store.lists(Segment)[0]
     assert segment.punch_in_seconds == 0.0
     assert segment.leading_silence_seconds in {None, 0.0}
+
+
+@then("that recording and the approved boundaries can be added to the corpus")
+def _(store):
+    segment = store.lists(Segment)[0]
+    store._pairs_before = tuple(store.lists(CorpusPair))
+    added = AddsApprovalToCorpus(store=store)(segment)
+    assert added is not None
+    assert added.recording_id == segment.recording_id
+    assert (added.punch_in_seconds, added.punch_out_seconds) == (
+        segment.punch_in_seconds,
+        segment.punch_out_seconds,
+    )
+    assert (added.provenance, added.alignment) == ("human", "aligned")
+
+
+@then("the corpus grows without anyone hand-labelling anything")
+def _(store):
+    segment = store.lists(Segment)[0]
+    grown = store.lists(CorpusPair)
+    assert tuple(grown) != store._pairs_before
+    labelled = [
+        (pair.punch_in_seconds, pair.punch_out_seconds, pair.classification)
+        for pair in grown
+        if pair.recording_id == segment.recording_id and pair.alignment == "aligned"
+    ]
+    assert labelled == [
+        (segment.punch_in_seconds, segment.punch_out_seconds, segment.classification)
+    ]
