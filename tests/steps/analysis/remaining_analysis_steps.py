@@ -13,9 +13,9 @@ from sermon.analysis import (
     SummarizesBlocks,
     seeds_segment,
 )
-from sermon.analysis.adds_approval_to_corpus import AddsApprovalToCorpus
 from sermon.analysis.io import writes_json
 from sermon.analysis.stages import CorrectsBlockSummary
+from sermon.approves_segment import ApprovesSegment
 from sermon.pipeline.segments import TAIL_S
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.lists_recordings import ListsRecordings
@@ -426,16 +426,20 @@ def _(store, kind):
 
 @given("a reviewer approved a Segment after adjusting its boundaries")
 def _(store):
-    return store.saves(
-        replace(ensure_segment(store), state="complete", boundary_source="human")
+    store._pairs_before = tuple(store.lists(CorpusPair))
+    moved = store.saves(
+        replace(ensure_segment(store), state="proposed", boundary_source="human")
     )
+    return ApprovesSegment(store=store)(moved)
 
 
 @given("a reviewer approved a Segment without adjusting either boundary")
 def _(store):
-    return store.saves(
-        replace(ensure_segment(store), state="complete", boundary_source="model")
+    store._pairs_before = tuple(store.lists(CorpusPair))
+    untouched = store.saves(
+        replace(ensure_segment(store), state="proposed", boundary_source="model")
     )
+    return ApprovesSegment(store=store)(untouched)
 
 
 @given("a scripture_reading Block is immediately followed by a new speaker")
@@ -1481,15 +1485,18 @@ def _(store):
 @then("that recording and the approved boundaries can be added to the corpus")
 def _(store):
     segment = store.lists(Segment)[0]
-    store._pairs_before = tuple(store.lists(CorpusPair))
-    added = AddsApprovalToCorpus(store=store)(segment)
-    assert added is not None
-    assert added.recording_id == segment.recording_id
-    assert (added.punch_in_seconds, added.punch_out_seconds) == (
-        segment.punch_in_seconds,
-        segment.punch_out_seconds,
-    )
-    assert (added.provenance, added.alignment) == ("human", "aligned")
+    added = [pair for pair in store.lists(CorpusPair) if pair.labelled]
+    assert [
+        (pair.recording_id, pair.punch_in_seconds, pair.punch_out_seconds, pair.provenance)
+        for pair in added
+    ] == [
+        (
+            segment.recording_id,
+            segment.punch_in_seconds,
+            segment.punch_out_seconds,
+            "human",
+        )
+    ]
 
 
 @then("the corpus grows without anyone hand-labelling anything")
@@ -1500,7 +1507,7 @@ def _(store):
     labelled = [
         (pair.punch_in_seconds, pair.punch_out_seconds, pair.classification)
         for pair in grown
-        if pair.recording_id == segment.recording_id and pair.alignment == "aligned"
+        if pair.recording_id == segment.recording_id and pair.labelled
     ]
     assert labelled == [
         (segment.punch_in_seconds, segment.punch_out_seconds, segment.classification)

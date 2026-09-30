@@ -225,3 +225,13 @@ class CorpusPair:
     punch_in_difficulty: str | None = None
     punch_out_difficulty: str | None = None
     covers_more_than_95_percent: bool = False
+
+    @property
+    def labelled(self) -> bool:
+        return (
+            self.provenance == "human"
+            and self.alignment == "aligned"
+            and self.punch_in_seconds is not None
+            and self.punch_out_seconds is not None
+            and not self.covers_more_than_95_percent
+        )

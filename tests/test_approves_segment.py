@@ -1,9 +1,10 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
 
 from sermon.approves_segment import ApprovesSegment, ReviewSession
-from sermon.store import Job, Proposal, Recording, Segment, opens_store
+from sermon.store import CorpusPair, Job, Proposal, Recording, Segment, opens_store
 
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
 
@@ -68,3 +69,29 @@ def test_preview_does_not_open_the_waveform_editor():
     session.previews_punch_in(None)
     session.previews_punch_out(None)
     assert session.waveform_editor_opened is False
+
+
+def test_approving_a_boundary_the_reviewer_moved_leaves_a_labelled_pair(store):
+    segment = sermon_segment(store)
+    moved = store.saves(
+        replace(segment, boundary_source="human", punch_in_seconds=6970.5)
+    )
+    ApprovesSegment(store=store, clock=lambda: FROZEN)(moved)
+    pairs = store.lists(CorpusPair, recording_id=moved.recording_id)
+    assert [(pair.provenance, pair.alignment) for pair in pairs] == [("human", "aligned")]
+    assert (pairs[0].punch_in_seconds, pairs[0].punch_out_seconds) == (6970.5, 9910.0)
+    assert (pairs[0].classification, pairs[0].labelled) == ("sermon", True)
+
+
+def test_approving_an_untouched_proposal_leaves_no_labelled_pair(store):
+    segment = sermon_segment(store)
+    untouched = store.saves(replace(segment, boundary_source="model"))
+    ApprovesSegment(store=store, clock=lambda: FROZEN)(untouched)
+    assert store.lists(CorpusPair) == []
+
+
+def test_approving_a_refined_boundary_leaves_no_labelled_pair(store):
+    segment = sermon_segment(store)
+    refined = store.saves(replace(segment, boundary_source="model-in/refined-out"))
+    ApprovesSegment(store=store, clock=lambda: FROZEN)(refined)
+    assert store.lists(CorpusPair) == []

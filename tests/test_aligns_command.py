@@ -148,7 +148,7 @@ def test_the_report_names_the_boundaries_the_drift_and_the_difficulty(tmp_path, 
     assert "easy" in spoken or "moderate" in spoken or "hard" in spoken
 
 
-def test_an_untrustworthy_alignment_writes_nothing_and_fails(tmp_path):
+def test_an_untrustworthy_alignment_records_the_exclusion_and_fails(tmp_path):
     settings = settings_file(tmp_path)
     source, edit = touched(tmp_path, "source.flac", EDIT_NAME)
     registered(tmp_path, RECORDING_ID, 900.0)
@@ -160,12 +160,45 @@ def test_an_untrustworthy_alignment_writes_nothing_and_fails(tmp_path):
     outcome = run(
         settings, synthetic, prints, RECORDING_ID, str(edit), "--source", str(source)
     )
+    stored = pairs_in(tmp_path)
     assert outcome == 1
-    assert pairs_in(tmp_path) == []
+    assert [(pair.recording_id, pair.alignment) for pair in stored] == [
+        (RECORDING_ID, "cannot be aligned")
+    ]
     assert "cannot be aligned" in str(prints)
 
 
-def test_an_edit_that_is_not_a_contiguous_excerpt_writes_nothing_and_fails(tmp_path):
+def test_a_recorded_refusal_carries_no_boundaries_and_is_not_a_labelled_example(tmp_path):
+    settings = settings_file(tmp_path)
+    source, edit = touched(tmp_path, "source.flac", EDIT_NAME)
+    registered(tmp_path, RECORDING_ID, 900.0)
+    synthetic = ReadsSynthetic(
+        {source.name: speech(900), edit.name: speech(300, seed=99)},
+        {source.name: 900.0, edit.name: 300.0},
+    )
+    run(settings, synthetic, RecordsLines(), RECORDING_ID, str(edit), "--source", str(source))
+    stored = pairs_in(tmp_path)
+    assert [pair.provenance for pair in stored] == ["human"]
+    assert (stored[0].punch_in_seconds, stored[0].punch_out_seconds) == (None, None)
+    assert (stored[0].drift_ppm, stored[0].punch_in_difficulty) == (None, None)
+    assert stored[0].covers_more_than_95_percent is False
+    assert [pair for pair in stored if pair.labelled] == []
+
+
+def test_a_refused_pair_is_remembered_so_it_is_not_attempted_forever(tmp_path):
+    settings = settings_file(tmp_path)
+    source, edit = touched(tmp_path, "source.flac", EDIT_NAME)
+    registered(tmp_path, RECORDING_ID, 900.0)
+    synthetic = ReadsSynthetic(
+        {source.name: speech(900), edit.name: speech(300, seed=99)},
+        {source.name: 900.0, edit.name: 300.0},
+    )
+    run(settings, synthetic, RecordsLines(), RECORDING_ID, str(edit), "--source", str(source))
+    run(settings, synthetic, RecordsLines(), RECORDING_ID, str(edit), "--source", str(source))
+    assert [pair.alignment for pair in pairs_in(tmp_path)] == ["cannot be aligned"]
+
+
+def test_an_edit_that_is_not_a_contiguous_excerpt_records_that_verdict_and_fails(tmp_path):
     settings = settings_file(tmp_path)
     source, edit = touched(tmp_path, "source.flac", EDIT_NAME)
     registered(tmp_path, RECORDING_ID, 900.0)
@@ -181,8 +214,12 @@ def test_an_edit_that_is_not_a_contiguous_excerpt_writes_nothing_and_fails(tmp_p
     outcome = run(
         settings, synthetic, prints, RECORDING_ID, str(edit), "--source", str(source)
     )
+    stored = pairs_in(tmp_path)
     assert outcome == 1
-    assert pairs_in(tmp_path) == []
+    assert [(pair.recording_id, pair.alignment) for pair in stored] == [
+        (RECORDING_ID, "not a contiguous excerpt")
+    ]
+    assert [pair for pair in stored if pair.labelled] == []
     assert "not a contiguous excerpt" in str(prints)
 
 
@@ -341,7 +378,7 @@ def test_an_edit_spanning_two_recordings_is_written_as_two_pairs(tmp_path):
     assert {pair.classification for pair in stored} == {"seminar"}
 
 
-def test_a_spanning_edit_writes_nothing_when_either_half_is_not_trustworthy(tmp_path):
+def test_a_spanning_edit_derives_no_boundaries_when_either_half_is_not_trustworthy(tmp_path):
     settings, synthetic, first, second, edit = two_part_recording(tmp_path, 0.0)
     synthetic.envelopes[second.name] = speech(600, seed=99)
     prints = RecordsLines()
@@ -350,9 +387,13 @@ def test_a_spanning_edit_writes_nothing_when_either_half_is_not_trustworthy(tmp_
         "--source", str(first), "--source", str(second),
     )
     spoken = str(prints)
+    stored = sorted(pairs_in(tmp_path), key=lambda pair: pair.recording_id)
     assert outcome == 1
-    assert pairs_in(tmp_path) == []
-    assert "nothing written" in spoken
+    assert [(pair.recording_id, pair.alignment) for pair in stored] == [
+        (PART_ONE, "cannot be aligned"),
+        (PART_TWO, "cannot be aligned"),
+    ]
+    assert [pair for pair in stored if pair.labelled] == []
     assert f"{PART_ONE}  punch-in" in spoken
     assert f"{PART_TWO}: cannot be aligned" in spoken
 

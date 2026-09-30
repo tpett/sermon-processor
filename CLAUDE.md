@@ -207,8 +207,11 @@ the loop that had been open: the edit is made by hand about once a week and none
 of it became measurable data, so `corpus_pair` was empty and the frozen 39-example
 corpus in `experiments/data/groundtruth.json` was the only yardstick there was.
 
-**It exits non-zero and writes nothing when the alignment is not trustworthy.**
-Five gates decide: coarse correlation at least 0.30, a peak standing 1.5× above
+**It exits non-zero and derives no boundaries when the alignment is not
+trustworthy, and it records the exclusion.** One `CorpusPair` row per named
+recording carries the verdict, no boundaries and no difficulties, so a refused
+pair is on the record instead of being re-attempted forever, and
+`CorpusPair.labelled` keeps it out of ground truth. Five gates decide: coarse correlation at least 0.30, a peak standing 1.5× above
 the next alignment, probe correlation at least 0.30, probes within 0.06 s of a
 straight line, and fitted drift under 400 ppm. A row that is silently wrong
 poisons every later measurement and nothing downstream would catch it, because on
@@ -237,10 +240,12 @@ recording id, in source order, and writes one row for each. The head of the edit
 places in the first source, where that source runs out sets the split, and each
 side is fitted and gated on its own probes. If either side fails, or if the edit
 stops short of the first source's end — which would mean the seam is a human cut
-rather than a file boundary — both are refused and nothing is written.
+rather than a file boundary — both are refused and both are recorded as
+`cannot be aligned`, including a side that placed on its own probes.
 `2026-07-18 - CT-Islam.mp3` is refused for a third reason: the human removed about
 177 s from inside the first part, so it is three contiguous excerpts and a
-`CorpusPair` holds one span per recording.
+`CorpusPair` holds one span per recording. That refusal is now stored, so the
+pair is not tried again blindly.
 
 `--source` names a source that is on disk but outside the data root, which is the
 shape every historical `~/Desktop/Sermons` pair is in; one `--source` per named
@@ -249,6 +254,12 @@ sermon, since the pair is identified by recording, classification and provenance
 together. `--work` holds the cached envelopes, which are what survive the decode;
 the raw audio is deleted as soon as the envelopes exist. It sends no audio
 anywhere and invokes no transcriber.
+
+**An approval feeds the corpus.** Approving a Segment whose `boundary_source` is
+`human` writes the labelled pair, so a boundary the reviewer moved becomes
+ground truth without `sermon-align` being run by hand. An approval the reviewer
+did not touch writes nothing: it is the machine's own answer, and it is recorded
+as a `machine` pair by `sermon-align` once the output has been rendered.
 
 `sermon-render` is the whole cut in one command: it fetches and probes the source
 if it is not already local, creates the Segment from the boundaries you gave it,

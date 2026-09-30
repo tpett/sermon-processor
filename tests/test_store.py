@@ -1611,6 +1611,8 @@ def test_a_pair_that_cannot_be_aligned_is_excluded_from_the_corpus_and_the_exclu
     assert stored.alignment == "cannot be aligned"
     assert (stored.punch_in_seconds, stored.punch_out_seconds, stored.drift_ppm) == (None, None, None)
     assert store.lists(CorpusPair) == [excluded]
+    assert stored.labelled is False
+    assert [pair for pair in store.lists(CorpusPair) if pair.labelled] == []
 
 
 def test_the_drift_is_measured_rather_than_averaged_away(store):
@@ -1638,6 +1640,8 @@ def test_a_pair_whose_probes_do_not_fall_on_a_straight_line_is_excluded_as_not_a
     assert stored.alignment == "not a contiguous excerpt"
     assert (stored.punch_in_seconds, stored.punch_out_seconds, stored.drift_ppm) == (None, None, None)
     assert store.lists(CorpusPair) == [excluded]
+    assert stored.labelled is False
+    assert [pair for pair in store.lists(CorpusPair) if pair.labelled] == []
 
 
 def test_a_published_output_that_covers_more_than_95_percent_of_its_source_is_flagged_rather_than_silently_accepted(
@@ -1649,14 +1653,8 @@ def test_a_published_output_that_covers_more_than_95_percent_of_its_source_is_fl
     )
     stored = store.loads(CorpusPair, flagged.corpus_pair_id)
     assert stored.covers_more_than_95_percent is True
-    labelled = [
-        pair
-        for pair in store.lists(CorpusPair)
-        if pair.alignment == "aligned"
-        and pair.provenance == "human"
-        and not pair.covers_more_than_95_percent
-    ]
-    assert labelled == []
+    assert stored.labelled is False
+    assert [pair for pair in store.lists(CorpusPair) if pair.labelled] == []
 
 
 def test_a_published_output_the_system_produced_itself_stores_its_provenance_and_is_excluded_from_ground_truth(
@@ -1668,13 +1666,39 @@ def test_a_published_output_the_system_produced_itself_stores_its_provenance_and
     assert stored.provenance == "machine"
     assert (stored.punch_in_seconds, stored.punch_out_seconds) == (None, None)
     assert (stored.punch_in_difficulty, stored.punch_out_difficulty) == (None, None)
-    labelled = [
-        pair
-        for pair in store.lists(CorpusPair)
-        if pair.provenance == "human" and pair.alignment == "aligned"
-    ]
-    assert labelled == []
+    assert stored.labelled is False
+    assert [pair for pair in store.lists(CorpusPair) if pair.labelled] == []
     assert store.lists(CorpusPair) == [published]
+
+
+def test_only_an_aligned_human_pair_with_boundaries_is_a_labelled_example(store):
+    recording = store.saves(minimal_recording())
+    aligned = store.saves(labelled_corpus_pair(recording, classification="sermon"))
+    store.saves(
+        CorpusPair(
+            recording_id=recording.recording_id,
+            classification="lesson",
+            provenance="human",
+            alignment="cannot be aligned",
+        )
+    )
+    store.saves(
+        CorpusPair(
+            recording_id=recording.recording_id,
+            classification="seminar",
+            provenance="human",
+            alignment="not a contiguous excerpt",
+        )
+    )
+    store.saves(machine_cut_corpus_pair(recording))
+    store.saves(
+        replace(
+            labelled_corpus_pair(recording, classification="meeting"),
+            covers_more_than_95_percent=True,
+        )
+    )
+    labelled = [pair for pair in store.lists(CorpusPair) if pair.labelled]
+    assert [pair.corpus_pair_id for pair in labelled] == [aligned.corpus_pair_id]
 
 
 def test_the_corpus_includes_sermons_and_class_sessions(store):
