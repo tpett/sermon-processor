@@ -312,6 +312,37 @@ def test_candidate_edges_carry_the_union_of_transcript_and_speaker_edges(
     assert segments.candidate_edges(doc) == [1.0, 2.0, 4.321, 9.5]
 
 
+def words_inside_one_utterance():
+    return {
+        "recording_id": "rec1",
+        "duration": 20.0,
+        "utterances": [
+            {"start": 1.0, "end": 5.0, "text": "one two three",
+             "words": [{"w": "one", "start": 1.0, "end": 1.4},
+                       {"w": "two", "start": 2.5, "end": 3.0},
+                       {"w": "three", "start": 4.6, "end": 5.0}]}
+        ],
+    }
+
+
+def test_candidate_edges_carry_every_word_edge_inside_an_utterance(tmp_path, monkeypatch):
+    segments = imports_moved("segments")
+    root = plants_diarization(tmp_path / "bare", "unused", carried=False)
+    monkeypatch.setattr(segments, "DATA_ROOT", root)
+    assert segments.candidate_edges(words_inside_one_utterance()) == [
+        1.0, 1.4, 2.5, 3.0, 4.6, 5.0
+    ]
+
+
+def test_snapping_reaches_a_word_edge_the_utterance_edges_would_have_overruled(
+    tmp_path, monkeypatch
+):
+    segments = imports_moved("segments")
+    root = plants_diarization(tmp_path / "bare", "unused", carried=False)
+    monkeypatch.setattr(segments, "DATA_ROOT", root)
+    assert segments.snap(1.45, words_inside_one_utterance()) == 1.4
+
+
 def test_snapping_reaches_a_speaker_edge_no_transcript_edge_can_beat(
     tmp_path, monkeypatch
 ):
@@ -427,6 +458,46 @@ def test_the_punch_out_ignores_an_amen_too_early_to_be_the_closing_one():
         {"start": 5.0, "end": 400.0, "text": "A long stretch of teaching with no close."},
     ]
     assert segments.refine_out(utterances, "sermon") == 400.0
+
+
+def closes_into_one_merged_utterance(words):
+    return [
+        {"start": 0.0, "end": 4.0, "text": "And that is the verdict."},
+        {"start": 5.0, "end": 12.0,
+         "text": "In Jesus' name, amen. Well, if you are a visitor,",
+         "words": words},
+        {"start": 13.0, "end": 18.0, "text": "We invite you to partake of communion."},
+    ]
+
+
+MERGED_CLOSE = [
+    {"w": "In", "start": 5.0, "end": 5.4},
+    {"w": "Jesus'", "start": 5.4, "end": 5.9},
+    {"w": "name,", "start": 5.9, "end": 6.3},
+    {"w": "amen.", "start": 6.4, "end": 7.0},
+    {"w": "Well,", "start": 9.0, "end": 9.5},
+    {"w": "if", "start": 9.5, "end": 9.7},
+    {"w": "you", "start": 9.7, "end": 9.9},
+    {"w": "are", "start": 9.9, "end": 10.2},
+    {"w": "a", "start": 10.2, "end": 10.4},
+    {"w": "visitor,", "start": 10.4, "end": 12.0},
+]
+
+
+def test_the_punch_out_takes_the_closing_amen_not_the_end_it_was_merged_into():
+    segments = imports_moved("segments")
+    assert segments.refine_out(closes_into_one_merged_utterance(MERGED_CLOSE), "sermon") == 7.0
+
+
+def test_the_punch_out_keeps_the_utterance_end_when_no_word_inside_it_was_timed():
+    segments = imports_moved("segments")
+    assert segments.refine_out(closes_into_one_merged_utterance([]), "sermon") == 12.0
+
+
+def test_the_fallback_to_the_closing_amen_also_takes_the_word_not_the_utterance():
+    segments = imports_moved("segments")
+    utterances = closes_into_one_merged_utterance(MERGED_CLOSE)[:2]
+    assert segments.refine_out(utterances, "sermon") == 7.0
 
 
 def prays_into_communion(edge=600.0):
