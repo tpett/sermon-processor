@@ -272,7 +272,7 @@ def floor_window(after):
 
 
 def quiet_window(after):
-    """The passage 18 dB below the loudest."""
+    """The passage the speech stands more than 18 dB above."""
     return _cycle_at(after) + FLOOR_UNTIL + 0.2, QUIET_UNTIL - FLOOR_UNTIL - 0.4
 
 
