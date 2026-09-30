@@ -1,3 +1,97 @@
+## audio_rendering.feature is measured on the MP3 it writes (2026-09-30)
+
+**13 of its 20 scenarios are green**, and every assertion in them is a number
+taken from a real 43-minute render. The feature was entirely red, and six of its
+steps had been defined against something weaker than their Gherkin: `the output
+integrated loudness is "-17 LUFS" within 1 LU` asserted `"LUFS" in target`, `the
+output begins at the approved punch-in` asserted that a Segment row existed, and
+the two back-catalogue Thens asserted a `store._loudness_changed` flag their own
+Given had set. Those are gone.
+
+### The fixture, and what the chain achieves on it
+
+`tests/steps/_rendering.py` synthesises the source the Background describes —
+2 h 44 m, 44.1 kHz stereo FLAC with channel 2 at digital silence — and caches it
+and every render under `$TMPDIR/sermon-test-renders`. **The cache key includes a
+digest of `pipeline/render.py`**, so editing the chain re-renders rather than
+handing back what the old chain produced. Five sources, about 290 MB: the
+default plus one 8 LU quieter, one carrying an isolated peak, one clipping, and
+one at -34 LUFS. Each is one `volume` envelope away from the others.
+
+Measured on the default source, 7220.0 s to 9812.0 s:
+
+```
+source  -19.5 LUFS, -6.8 dBTP, LRA 9.0   (channel 1 over the span)
+        channel 2 digital silence, so the probe chooses channel 1
+output  -16.3 LUFS, -2.7 dBTP, 98 kbps VBR, 31.8 MB, mono 44100 Hz, 2592.0 s
+        13 distinct frame sizes over 99,224 frames
+```
+
+Every published target is met with margin: -17 ±1 LU (0.7 LU spare), -0.5 dBTP
+(2.2 dB spare), 96-108 kbps, 25-40 MB.
+
+**loudnorm runs in dynamic mode, not linear**, because the measured loudness
+range (19.3 LU) exceeds the 11 LU the chain asks for. So the gain is *not*
+uniform: the speech came up 5.9 dB and the passages 18 dB below it came up
+8.9 dB. That is why `the quiet passages are audible at a normal listening
+volume` asserts that a quiet passage rises **at least as much as** the
+programme, and why `no separate compression stage is applied` asserts the output
+range is **not narrowed** rather than preserved exactly. A compressor would do
+the opposite of both.
+
+### Two findings the scenarios turned up
+
+**`pipeline.render.render()` writes nothing and says nothing when its second
+ffmpeg pass fails.** Rendering a silent channel is the reproducer:
+`measure()` returns `input_i=-inf` and `target_offset=inf`, the loudnorm filter
+built from them is rejected, and `render()` returns a measurement dict with no
+file beside it. `RendersMp3` catches the empty destination and raises
+`RenderProducedNothing`, so nothing ships — but the message names the
+destination rather than the cause. Not fixed here: `pipeline/` is guarded.
+
+**The approved span is exactly 99,225 encoder frames.** 2592 s at 44.1 kHz is
+114,307,200 samples, and 1152 divides it exactly, so `the trim is sample-accurate
+rather than snapped to a frame boundary` cannot be shown from the duration. It is
+shown from the punch-in instead — 276,390.625 frames, off the grid — by rendering
+the same span from the nearest frame boundary and asserting the real output is
+not that file.
+
+### The seven left red, and what each needs
+
+- **Both channels carry signal** — `the reviewer is asked how the channels
+  should be treated`. `Recording.mono_source_confirmed` exists and the render
+  already refuses, but nothing asks the question or takes the answer. Needs a
+  decision: a notification, or a control on the detail view, and where the
+  reviewer's answer is entered.
+- **The loudness treatment is a single configured target** and **Encoding
+  settings are configurable in one place** — both want loudness, bitrate,
+  channel layout and sample rate to be "configuration, not code".
+  `reprocessing.feature` corroborates it (`the loudness target has been changed
+  in configuration`), so the intent is settled but the surface is not: env
+  variables beside the other six, a file, or a per-render override. There is
+  also a real ambiguity to settle first — `TARGET_I` is -16 (what loudnorm is
+  asked for) and `PUBLISHED_I` is -17 (what the output is held to). Which one is
+  "the loudness target" a reviewer changes?
+- **The back catalogue will sound quieter than new output** and **Everything
+  published before is quieter** — both turn on telling the reviewer once that
+  output volume has changed. Nothing records that it has been said, and nothing
+  says where it is said.
+- **The archive can be brought into line unattended** — an operator re-render
+  over stored boundaries, which `reprocessing.feature` specifies twice more. It
+  is a command that does not exist, not a missing assertion.
+- **A human confirms it sounds right** — `@manual`. `the speech is intelligible
+  throughout` has no measurement behind it, and the previous definition asserted
+  only that an Artifact row existed. Left undefined rather than green on that.
+
+### What it costs
+
+A cold run of the feature is about 14 minutes: five sources at 70 s each and
+seven 43-minute renders at 45 s each. Warm it is about 5 minutes, because
+`The same input produces the same output` renders twice for real by design and
+the trim scenario renders a frame-aligned comparison. `tests/test_spec_harness.py`
+runs the whole spec twice as subprocesses, so a bare `pytest` pays it three
+times. The feature is `@slow` for this reason; `-m "not slow"` skips it.
+
 ## SLICE 3.1 — the machine proposes, and the error is measured (2026-09-22)
 
 `sermon-propose <recording-id> --corpus <experiments/data> --summaries none` drives
