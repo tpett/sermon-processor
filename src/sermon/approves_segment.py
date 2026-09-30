@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from sermon.analysis.adds_approval_to_corpus import AddsApprovalToCorpus
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.settles_recording import SettlesRecording
 from sermon.store import Job, LogEntry, Store
@@ -35,6 +36,7 @@ class ReviewSession:
 class ApprovesSegment:
     store: Store
     clock: object = now
+    adds_to_corpus: object | None = None
 
     def __call__(self, segment):
         if segment.state not in {"proposed", "skipped"}:
@@ -58,6 +60,8 @@ class ApprovesSegment:
                 punch_out_seconds=approved.punch_out_seconds,
             )
         )
+        adds = self.adds_to_corpus or AddsApprovalToCorpus(store=self.store)
+        adds(approved)
         EnqueuesJob(self.store)(
             Job(
                 recording_id=approved.recording_id,
