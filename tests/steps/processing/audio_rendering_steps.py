@@ -518,7 +518,7 @@ def _(rendered):
 
 @given("a Segment has been rendered", target_fixture="rendered")
 def _(store, rendering):
-    return _renders(store, rendering, reuse=False)
+    return _renders(store, rendering)
 
 
 @when("it is rendered again with identical settings", target_fixture="rerendered")
