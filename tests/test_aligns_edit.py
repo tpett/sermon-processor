@@ -15,9 +15,15 @@ from sermon.analysis.aligns_edit import (
 PER_COARSE_FRAME = FINE_HZ // COARSE_HZ
 
 
+SYLLABLE_MS = 25
+
+
 def speech(seconds, seed=7):
+    """Smooth on a syllable, as a real envelope is; white noise decorrelates under drift."""
     generator = np.random.default_rng(seed)
-    return generator.gamma(2.0, 0.3, size=int(seconds * FINE_HZ)).astype(np.float32) + 0.01
+    loud = generator.gamma(2.0, 0.3, size=int(seconds * FINE_HZ) + SYLLABLE_MS)
+    smoothed = np.convolve(loud, np.ones(SYLLABLE_MS) / SYLLABLE_MS, mode="valid")
+    return smoothed[: int(seconds * FINE_HZ)].astype(np.float32) + 0.01
 
 
 def coarsened(fine):
@@ -89,7 +95,7 @@ def test_an_edit_that_matches_nothing_in_its_source_cannot_be_aligned():
 def test_probes_that_do_not_fall_on_a_straight_line_are_not_a_contiguous_excerpt():
     source = speech(900)
     spliced = np.concatenate(
-        [excerpt(source, 100.0, 150.0), excerpt(source, 400.0, 150.0)]
+        [excerpt(source, 100.0, 150.0), excerpt(source, 253.0, 150.0)]
     )
     found = locates(source, spliced)
     assert found.verdict == DISCONTINUOUS
@@ -105,37 +111,50 @@ def test_an_edit_that_starts_before_the_source_does_cannot_be_aligned():
     assert found.punch_in_seconds is None
 
 
-def levels(*spans):
-    return np.concatenate([np.full(int(seconds * COARSE_HZ), level) for level, seconds in spans])
+SPEECH_LEVEL = 0.3
+ROOM_LEVEL = 0.001
+LEAD_SECONDS = 30.0
+TALK_SECONDS = 60.0
+GAP_AT = LEAD_SECONDS + TALK_SECONDS
 
 
-LOUD = 0.3
-QUIET = 0.0005
+def a_service_with_a_gap_of(seconds):
+    """Quiet at both ends, because the quiet threshold is a percentile of the whole."""
+    spans = (
+        (ROOM_LEVEL, LEAD_SECONDS),
+        (SPEECH_LEVEL, TALK_SECONDS),
+        (ROOM_LEVEL, seconds),
+        (SPEECH_LEVEL, TALK_SECONDS),
+        (ROOM_LEVEL, LEAD_SECONDS),
+    )
+    return np.concatenate(
+        [np.full(int(length * COARSE_HZ), level, dtype=np.float32) for level, length in spans]
+    )
 
 
 def test_ten_seconds_of_clean_silence_before_the_first_word_grades_the_cut_easy():
-    graded = GradesCutDifficulty()(levels((LOUD, 60), (QUIET, 10), (LOUD, 60)), 65.0)
+    graded = GradesCutDifficulty()(a_service_with_a_gap_of(10.0), GAP_AT + 5.0)
     assert graded.label == "easy"
     assert graded.quiet_milliseconds == 10_000
 
 
 def test_two_seconds_of_clean_silence_grades_the_cut_easy():
-    graded = GradesCutDifficulty()(levels((LOUD, 60), (QUIET, 2), (LOUD, 60)), 61.0)
-    assert graded.label == "easy"
+    graded = GradesCutDifficulty()(a_service_with_a_gap_of(2.0), GAP_AT + 1.0)
+    assert (graded.label, graded.quiet_milliseconds) == ("easy", 2_000)
 
 
-def test_a_quarter_of_a_second_of_quiet_between_words_grades_the_cut_hard():
-    graded = GradesCutDifficulty()(levels((LOUD, 60), (QUIET, 0.2), (LOUD, 60)), 60.1)
-    assert graded.label == "hard"
+def test_a_fifth_of_a_second_of_quiet_between_words_grades_the_cut_hard():
+    graded = GradesCutDifficulty()(a_service_with_a_gap_of(0.2), GAP_AT + 0.1)
+    assert (graded.label, graded.quiet_milliseconds) == ("hard", 200)
 
 
 def test_half_a_second_of_quiet_between_words_grades_the_cut_moderate():
-    graded = GradesCutDifficulty()(levels((LOUD, 60), (QUIET, 0.5), (LOUD, 60)), 60.25)
-    assert graded.label == "moderate"
+    graded = GradesCutDifficulty()(a_service_with_a_gap_of(0.5), GAP_AT + 0.25)
+    assert (graded.label, graded.quiet_milliseconds) == ("moderate", 500)
 
 
 def test_audio_at_the_cut_point_grades_it_hard():
-    graded = GradesCutDifficulty()(levels((LOUD, 60), (QUIET, 10), (LOUD, 60)), 30.0)
+    graded = GradesCutDifficulty()(a_service_with_a_gap_of(10.0), GAP_AT - 30.0)
     assert (graded.label, graded.quiet_milliseconds) == ("hard", 0)
 
 
@@ -145,6 +164,8 @@ class RecordsDecodes:
         self.decoded = []
 
     def __call__(self, source, destination, sr=16_000):
+        if destination.exists() and destination.stat().st_size:
+            return destination
         self.decoded.append(source)
         destination.parent.mkdir(parents=True, exist_ok=True)
         samples = (speech(12) * 6000).astype(np.int16)
