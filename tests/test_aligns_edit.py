@@ -10,6 +10,7 @@ from sermon.analysis.aligns_edit import (
     FINE_HZ,
     UNALIGNABLE,
     AlignsPublishedEdit,
+    DerivesPairsForEdit,
     GradesCutDifficulty,
     LocatesEditInSource,
     ReadsEnvelopes,
@@ -263,3 +264,80 @@ def test_an_alignment_that_is_not_trustworthy_carries_no_boundaries():
     assert not derived.trustworthy
     assert (derived.punch_in_seconds, derived.punch_out_seconds) == (None, None)
     assert (derived.punch_in_difficulty, derived.punch_out_difficulty) == (None, None)
+
+
+FIRST = Path("first.flac")
+SECOND = Path("second.flac")
+FIRST_ID = "recording_20260718_081932"
+SECOND_ID = "recording_20260718_100850"
+
+
+def spans(envelopes, durations):
+    aligner = AlignsPublishedEdit(
+        work=Path("/nowhere"),
+        reads=ReadsSyntheticEnvelopes(**envelopes),
+        measures=ReadsSyntheticDurations(**durations),
+    )
+    return DerivesPairsForEdit(
+        aligns=aligner, measures=ReadsSyntheticDurations(**durations)
+    )(((FIRST_ID, FIRST), (SECOND_ID, SECOND)), EDIT)
+
+
+def two_sources(first_from, first_seconds, second_from, second_seconds):
+    first = speech(600, seed=11)
+    second = speech(600, seed=12)
+    edit = np.concatenate(
+        [
+            excerpt(first, first_from, first_seconds),
+            excerpt(second, second_from, second_seconds),
+        ]
+    )
+    return (
+        {FIRST.name: first, SECOND.name: second, EDIT.name: edit},
+        {FIRST.name: 600.0, SECOND.name: 600.0, EDIT.name: first_seconds + second_seconds},
+    )
+
+
+def test_an_edit_spanning_two_sources_is_derived_as_one_pair_for_each():
+    head, tail = spans(*two_sources(300.0, 300.0, 0.0, 300.0))
+    assert (head.trustworthy, tail.trustworthy) == (True, True)
+    assert head.punch_in_seconds == pytest.approx(300.0, abs=0.01)
+    assert head.punch_out_seconds == pytest.approx(600.0, abs=0.05)
+    assert tail.punch_in_seconds == pytest.approx(0.0, abs=0.05)
+    assert tail.punch_out_seconds == pytest.approx(300.0, abs=0.05)
+
+
+def test_the_second_source_keeps_whatever_the_human_dropped_from_its_head():
+    head, tail = spans(*two_sources(300.0, 300.0, 120.0, 300.0))
+    assert (head.trustworthy, tail.trustworthy) == (True, True)
+    assert tail.punch_in_seconds == pytest.approx(120.0, abs=0.05)
+    assert tail.punch_out_seconds == pytest.approx(420.0, abs=0.05)
+
+
+def test_an_edit_that_stops_short_of_the_first_sources_end_is_refused_rather_than_guessed():
+    head, tail = spans(*two_sources(100.0, 200.0, 0.0, 100.0))
+    assert (head.trustworthy, tail.trustworthy) == (False, False)
+    assert any("does not run to the end" in refusal for refusal in head.refusals)
+
+
+def test_neither_source_is_written_when_the_head_of_the_edit_does_not_place():
+    envelopes, durations = two_sources(300.0, 300.0, 0.0, 300.0)
+    envelopes[EDIT.name] = speech(600, seed=99)
+    head, tail = spans(envelopes, durations)
+    assert (head.trustworthy, tail.trustworthy) == (False, False)
+    assert tail.refusals
+
+
+def test_an_edit_named_against_three_sources_is_refused():
+    envelopes, durations = two_sources(300.0, 300.0, 0.0, 300.0)
+    aligner = AlignsPublishedEdit(
+        work=Path("/nowhere"),
+        reads=ReadsSyntheticEnvelopes(**envelopes),
+        measures=ReadsSyntheticDurations(**durations),
+    )
+    named = ((FIRST_ID, FIRST), (SECOND_ID, SECOND), ("recording_20260718_120000", SECOND))
+    derived = DerivesPairsForEdit(
+        aligns=aligner, measures=ReadsSyntheticDurations(**durations)
+    )(named, EDIT)
+    assert len(derived) == 3
+    assert not any(pair.trustworthy for pair in derived)

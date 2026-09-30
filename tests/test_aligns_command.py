@@ -303,3 +303,62 @@ def test_a_published_output_covering_almost_all_of_its_source_is_flagged(tmp_pat
     stored = pairs_in(tmp_path)
     assert outcome == 0
     assert [pair.covers_more_than_95_percent for pair in stored] == [True]
+
+
+PART_ONE = "recording_20260718_081932"
+PART_TWO = "recording_20260718_100850"
+SPANNING_EDIT = "2026-07-18 - CT-Islam.mp3"
+
+
+def two_part_recording(tmp_path, second_from):
+    settings = settings_file(tmp_path)
+    first, second, edit = touched(
+        tmp_path, "part1.flac", "part2.flac", SPANNING_EDIT
+    )
+    registered(tmp_path, PART_ONE, 600.0)
+    registered(tmp_path, PART_TWO, 600.0)
+    one = speech(600, seed=11)
+    two = speech(600, seed=12)
+    spliced = np.concatenate([excerpt(one, 300.0, 300.0), excerpt(two, second_from, 300.0)])
+    synthetic = ReadsSynthetic(
+        {first.name: one, second.name: two, edit.name: spliced},
+        {first.name: 600.0, second.name: 600.0, edit.name: 600.0},
+    )
+    return settings, synthetic, first, second, edit
+
+
+def test_an_edit_spanning_two_recordings_is_written_as_two_pairs(tmp_path):
+    settings, synthetic, first, second, edit = two_part_recording(tmp_path, 0.0)
+    outcome = run(
+        settings, synthetic, RecordsLines(), PART_ONE, PART_TWO, str(edit),
+        "--source", str(first), "--source", str(second), "--classification", "seminar",
+    )
+    stored = sorted(pairs_in(tmp_path), key=lambda pair: pair.recording_id)
+    assert outcome == 0
+    assert [pair.recording_id for pair in stored] == [PART_ONE, PART_TWO]
+    assert stored[0].punch_in_seconds == pytest.approx(300.0, abs=0.05)
+    assert stored[1].punch_in_seconds == pytest.approx(0.0, abs=0.05)
+    assert {pair.classification for pair in stored} == {"seminar"}
+
+
+def test_a_spanning_edit_writes_nothing_when_either_half_is_not_trustworthy(tmp_path):
+    settings, synthetic, first, second, edit = two_part_recording(tmp_path, 0.0)
+    synthetic.envelopes[second.name] = speech(600, seed=99)
+    prints = RecordsLines()
+    outcome = run(
+        settings, synthetic, prints, PART_ONE, PART_TWO, str(edit),
+        "--source", str(first), "--source", str(second),
+    )
+    assert outcome == 1
+    assert pairs_in(tmp_path) == []
+    assert "nothing written" in str(prints)
+
+
+def test_one_source_per_named_recording_is_required(tmp_path):
+    settings, synthetic, first, second, edit = two_part_recording(tmp_path, 0.0)
+    prints = RecordsLines()
+    outcome = run(
+        settings, synthetic, prints, PART_ONE, PART_TWO, str(edit), "--source", str(first)
+    )
+    assert outcome == 1
+    assert pairs_in(tmp_path) == []
