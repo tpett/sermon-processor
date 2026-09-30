@@ -447,6 +447,30 @@ one.** One Recording can yield a class and a sermon, and a machine cut is a
 different record from a human pair of that classification, so the pair is
 identified by recording, classification and provenance together.
 
+**A correction writes only what it measured.** The newest labelling of a
+standing sets the boundaries and the alignment verdict it carries, and
+`drift_ppm` and the two difficulties keep the values already on the record
+wherever that labelling has none — an approval reads no audio and cannot know
+them, so replacing them with nulls would destroy a measurement rather than
+correct one (reasoning, not quoted). A boundary's difficulty is dropped when
+that boundary moves, because a difficulty grades one cut instant and not the
+pair. A labelling that derived no boundaries at all leaves boundaries already on
+the record alone: a row may not hold both a refusal verdict and an expected
+answer, and the reviewer's own cut is the stronger of the two.
+
+**Three standings, ranked by how strong the evidence is.** A human edit made
+with no proposal to react to is the strongest, and carries the most information:
+a measured intercept, a fitted `drift_ppm`, and both difficulties graded from
+the audio. A boundary the reviewer adjusted in the app is next — the reviewer
+chose where the cut belongs, so it is a labelled example, but no audio was read
+and it carries none of the measured fields. An approval the reviewer did not
+touch is the weakest: it says only that the machine was good enough to accept,
+so it is recorded as published, counted toward the proportion approved with no
+edit, and never a labelled example (`analysis/detection_accuracy.feature`). The
+first two share one standing, `provenance` `human`, because both are human edits
+of the same pair and one row per pair is what stops a pair being graded twice
+(reasoning, not quoted).
+
 **Each kind of exclusion is its own field, not one flag.** Alignment failure
 drops the pair from the corpus and is reported; covering more than 95% of the
 source flags it and drops it from boundary statistics; a machine cut is
