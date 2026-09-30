@@ -7,7 +7,7 @@ Drawn from the running order and phrasings described in
 ../features/QUESTIONS.md (Q16, Q19, Q74) — not from reading the corpus.
 """
 
-VERSION = "cues.v4"
+VERSION = "cues.v5"
 
 SCRIPTURE = [
     "scripture reading", "our reading", "the reading this morning",
@@ -22,6 +22,9 @@ SCRIPTURE = [
     # could not see it — none of its six sermons says "chapter" early.
     "follow along as i read", "listen to the word",
 ]
+
+# Substrings: these two carry all eight phrasings the corpus uses.
+SEATING = ["be seated", "have a seat"]
 
 PRAYER = [
     "let us pray", "let's pray", "would you pray with me", "pray with me",

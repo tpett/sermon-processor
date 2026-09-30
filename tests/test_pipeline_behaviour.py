@@ -599,6 +599,58 @@ def test_a_model_segment_outside_the_plausible_length_band_loses_to_refinement()
     assert (plausible[0]["punch_in"], plausible[0]["punch_out"]) == (90.0, 3000.0)
 
 
+def seats_the_congregation_inside_the_sermon(cue):
+    return {"duration": 10_000.0, "utterances": [
+        {"start": 100.0, "end": 108.0,
+         "text": "Pastor Jeff will be preaching this morning from Hebrews 10."},
+        {"start": 110.0, "end": 155.0,
+         "text": "Therefore, brothers, since we have confidence to enter the holy places."},
+        {"start": 157.0, "end": 158.4, "text": cue},
+        {"start": 173.0, "end": 175.0, "text": "Good morning."},
+    ]}
+
+
+@pytest.mark.parametrize("cue", ["Please have a seat.", "Please be seated."])
+def test_a_sermon_starting_before_the_congregation_is_seated_starts_when_speech_resumes(cue):
+    segments = imports_moved("segments")
+    doc = seats_the_congregation_inside_the_sermon(cue)
+    derived = [{"punch_in": 100.0, "punch_out": 3000.0,
+                "classification": "sermon", "confidence": 0.9}]
+    chosen = segments.choose([{"punch_in": 100.0, "punch_out": 2900.0}], derived, doc)
+    assert chosen[0]["punch_in"] == 173.0
+    assert chosen[0]["boundary_source"] == "model-in/refined-out"
+
+
+def test_a_sermon_starting_after_the_seating_keeps_the_punch_in_it_was_given():
+    segments = imports_moved("segments")
+    doc = seats_the_congregation_inside_the_sermon("Please be seated.")
+    derived = [{"punch_in": 173.0, "punch_out": 3000.0,
+                "classification": "sermon", "confidence": 0.9}]
+    chosen = segments.choose([{"punch_in": 173.0, "punch_out": 2900.0}], derived, doc)
+    assert chosen[0]["punch_in"] == 173.0
+
+
+def test_a_seating_cue_beyond_the_run_up_window_leaves_the_sermon_alone():
+    segments = imports_moved("segments")
+    doc = seats_the_congregation_inside_the_sermon("Please be seated.")
+    doc["utterances"][2]["start"] = 400.0
+    doc["utterances"][2]["end"] = 401.4
+    doc["utterances"][3]["start"] = 416.0
+    derived = [{"punch_in": 100.0, "punch_out": 3000.0,
+                "classification": "sermon", "confidence": 0.9}]
+    chosen = segments.choose([{"punch_in": 100.0, "punch_out": 2900.0}], derived, doc)
+    assert chosen[0]["punch_in"] == 100.0
+
+
+def test_a_lesson_is_published_from_its_beginning_however_late_the_seating_is():
+    segments = imports_moved("segments")
+    doc = seats_the_congregation_inside_the_sermon("Please be seated.")
+    derived = [{"punch_in": 100.0, "punch_out": 3000.0,
+                "classification": "lesson", "confidence": 0.9}]
+    chosen = segments.choose([{"punch_in": 100.0, "punch_out": 2900.0}], derived, doc)
+    assert chosen[0]["punch_in"] == 100.0
+
+
 def test_choosing_pairs_a_model_segment_with_the_derived_span_it_overlaps():
     segments = imports_moved("segments")
     doc = {"duration": 10_000.0, "utterances": []}
@@ -695,7 +747,7 @@ def test_counting_cues_is_case_insensitive_and_counts_phrases_not_occurrences():
 
 def test_the_cue_lists_reproduce_the_fingerprint(expected):
     cues = imports_moved("cues")
-    named = ("SCRIPTURE", "PRAYER", "COMMUNION", "COMMUNION_INVITATION", "QA",
+    named = ("SCRIPTURE", "SEATING", "PRAYER", "COMMUNION", "COMMUNION_INVITATION", "QA",
              "ANNOUNCEMENTS", "GREETING_OPENERS", "PREAMBLE")
     matches_the_fingerprint(
         expected, "cues.lists",

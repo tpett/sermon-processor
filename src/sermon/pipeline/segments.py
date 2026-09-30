@@ -376,6 +376,36 @@ PLAUSIBLE_MIN_S = 30 * 60
 PLAUSIBLE_MAX_S = 75 * 60
 
 
+SEATED_WINDOW_S = 120.0
+
+
+def after_the_congregation_is_seated(punch_in: float, doc: dict) -> float | None:
+    """Where the sermon can begin, when the block was drawn before the run-up ends.
+
+    A sermon cannot start while the congregation is still standing for the
+    scripture reading, so a sermon block whose head *contains* the instruction to
+    sit was drawn too early and the punch-in belongs at the next speech after it.
+    A block already beginning after the seating carries no cue in its head and is
+    left alone, which is why this looks only forwards: every lookback tried has
+    drifted the punch-in before the opening instead (`LOOKBACK_S`, `refine_in`).
+
+    The window has to see past a whole scripture reading, and the dev result is
+    flat from 60 s to 180 s.
+    """
+    seated = [
+        utterance for utterance in doc["utterances"]
+        if punch_in <= utterance["start"] <= punch_in + SEATED_WINDOW_S
+        and C.any_hit(utterance["text"], C.SEATING)
+    ]
+    if not seated:
+        return None
+    resumes = [
+        utterance["start"] for utterance in doc["utterances"]
+        if utterance["start"] > seated[-1]["end"] - 0.01
+    ]
+    return round(resumes[0], 3) if resumes else None
+
+
 def choose(model_segments, derived, doc):
     """Prefer the model's own boundaries; fall back to refinement when it is wild.
 
@@ -449,5 +479,9 @@ def choose(model_segments, derived, doc):
                             "classification": d.get("classification"),
                             "confidence": d.get("confidence", 0.5)}
                     source = "model-in/refined-out" if use_ref else "model"
+        if pick.get("classification") == "sermon":
+            seated = after_the_congregation_is_seated(pick["punch_in"], doc)
+            if seated is not None and pick["punch_in"] < seated < pick["punch_out"]:
+                pick = dict(pick, punch_in=seated)
         out.append(dict(pick, boundary_source=source))
     return out
