@@ -38,6 +38,7 @@ SUNDAY_ORDER = (
     "prayer",
 )
 USUAL_SERVICE_S = 10 * 3600 + 30 * 60
+MOST_OF_THE_SOURCE = 0.95
 USUAL_SERVICE_WINDOW_S = 20 * 60
 QUIET_EASY_S = 2.0
 QUIET_MODERATE_S = 0.25
@@ -852,7 +853,6 @@ class DerivesGroundTruth:
         provenance="human",
         punch_in_difficulty="easy",
         punch_out_difficulty="easy",
-        covers_more_than_95_percent=False,
     ):
         existing = [
             item
@@ -871,7 +871,7 @@ class DerivesGroundTruth:
             drift_ppm=drift_ppm,
             punch_in_difficulty=None if punch_in is None else punch_in_difficulty,
             punch_out_difficulty=None if punch_out is None else punch_out_difficulty,
-            covers_more_than_95_percent=covers_more_than_95_percent,
+            covers_more_than_95_percent=self.covers_most_of(recording_id, punch_in, punch_out),
         )
         if existing:
             return self.store.saves(replace(existing[0], **payload))
@@ -883,6 +883,15 @@ class DerivesGroundTruth:
                 **payload,
             )
         )
+
+    def covers_most_of(self, recording_id, punch_in, punch_out):
+        if punch_in is None or punch_out is None:
+            return False
+        source = self.store.loads(Recording, recording_id)
+        duration = None if source is None else source.duration_seconds
+        if not duration:
+            return False
+        return (punch_out - punch_in) / duration > MOST_OF_THE_SOURCE
 
 
 @dataclass(frozen=True)

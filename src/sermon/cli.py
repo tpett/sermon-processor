@@ -9,7 +9,14 @@ from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from sermon.analysis import MeasuresBoundaryError, ProposesFromStoredTranscript, ReadsStoredTranscript
+from sermon.analysis import (
+    DerivesGroundTruth,
+    MeasuresBoundaryError,
+    ProposesFromStoredTranscript,
+    ReadsStoredTranscript,
+)
+from sermon.analysis.aligns_edit import AlignsPublishedEdit, DerivesPairsForEdit, reads_duration
+from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.analysis.grades_cut_accuracy import GradesCorpusAccuracy
@@ -54,6 +61,7 @@ from sermon.store import (
     layout,
     opens_store,
 )
+from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 from sermon.web import creates_app
 from waitress import serve
 
@@ -69,6 +77,11 @@ ANALYZE_USAGE = (
     "sermon-analyze <recording-id> --corpus <corpus-root> "
     "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] [--asr <config>]"
 )
+ALIGN_USAGE = (
+    "sermon-align <recording-id> [<recording-id> ...] <path-to-edit.mp3> "
+    "[--source <path>] [--classification <name>] [--store <data-root>] [--work <dir>]"
+)
+ALIGN_WORK = "corpus/alignment"
 PROPOSE_USAGE = (
     "sermon-propose <recording-id> [<recording-id> ...] --corpus <corpus-root> "
     "[--prompts <path>] [--model <name>] [--summaries <name-or-none>] "
@@ -748,6 +761,159 @@ def proposes(settings=None, prints=print):
         return 0 if found == wanted else 1
     finally:
         store.close()
+
+
+def parses_align_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-align", usage=ALIGN_USAGE, add_help=False)
+    parser.add_argument("names", nargs="*")
+    parser.add_argument("--source", action="append", default=[])
+    parser.add_argument("--classification", default="sermon")
+    parser.add_argument("--store")
+    parser.add_argument("--work")
+    try:
+        asked = parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {ALIGN_USAGE}")
+        return None
+    if len(asked.names) < 2 or asked.classification not in SEGMENT_CLASSIFICATIONS:
+        prints(f"usage: {ALIGN_USAGE}")
+        return None
+    return asked
+
+
+def sources_for(store, recordings, given, prints):
+    if given and len(given) != len(recordings):
+        prints(f"{len(recordings)} recordings named but {len(given)} sources given")
+        return None
+    found = []
+    for index, recording in enumerate(recordings):
+        path = Path(given[index]).resolve() if given else store.resolves(recording)
+        if path is None or not path.is_file():
+            prints(
+                f"{recording.recording_id}: the source is not on this machine; "
+                f"fetch it or name it with --source"
+            )
+            return None
+        found.append(path)
+    return found
+
+
+def reports_derived(pair, prints):
+    prints(
+        f"  {pair.recording_id}  punch-in {pair.punch_in_seconds:.4f} s  "
+        f"punch-out {pair.punch_out_seconds:.4f} s  "
+        f"({pair.punch_out_seconds - pair.punch_in_seconds:.3f} s of "
+        f"{pair.source_duration_seconds:.3f} s)"
+    )
+    prints(
+        f"  coarse NCC {pair.alignment.coarse_ncc}, peak ratio "
+        f"{pair.alignment.coarse_peak_ratio}, probe NCC floor "
+        f"{pair.alignment.probe_ncc_min}, fit residual "
+        f"{pair.alignment.fit_residual_seconds} s, drift "
+        f"{pair.alignment.drift_ppm:+.1f} ppm"
+    )
+    prints(
+        f"  difficulty {pair.punch_in_difficulty.label}/{pair.punch_out_difficulty.label} "
+        f"({pair.punch_in_difficulty.quiet_milliseconds} ms, "
+        f"{pair.punch_out_difficulty.quiet_milliseconds} ms)"
+    )
+
+
+def reports_refusal(pair, prints):
+    prints(f"  {pair.recording_id}: {pair.alignment.verdict}")
+    for refusal in pair.refusals:
+        prints(f"    {refusal}")
+
+
+def stores_derived(store, pair, classification):
+    return DerivesGroundTruth(store=store)(
+        pair.recording_id,
+        punch_in=pair.punch_in_seconds,
+        punch_out=pair.punch_out_seconds,
+        classification=classification,
+        drift_ppm=pair.alignment.drift_ppm,
+        punch_in_difficulty=pair.punch_in_difficulty.label,
+        punch_out_difficulty=pair.punch_out_difficulty.label,
+    )
+
+
+def records_machine_cut(store, recording_id, classification, prints):
+    DerivesGroundTruth(store=store)(
+        recording_id,
+        punch_in=None,
+        punch_out=None,
+        classification=classification,
+        provenance=MACHINE,
+    )
+    prints(
+        f"  {recording_id}: recorded as published with machine provenance; "
+        f"not aligned and not ground truth"
+    )
+
+
+def aligns(settings=None, arguments=None, reads=None, measures=None, prints=print):
+    asked = parses_align_command(
+        sys.argv[1:] if arguments is None else arguments, prints
+    )
+    if asked is None:
+        return 1
+    edit = Path(asked.names[-1]).resolve()
+    if not edit.is_file():
+        prints(f"{edit}: no such edit")
+        return 1
+    try:
+        configuration = ReadsConfiguration(
+            resolves_settings() if settings is None else settings
+        )()
+    except MissingConfiguration as unset:
+        prints(str(unset))
+        return 1
+    store = opens_store(Path(asked.store).resolve() if asked.store else configuration.data_root)
+    try:
+        return aligned_against(store, asked, edit, reads, measures, prints)
+    finally:
+        store.close()
+
+
+def aligned_against(store, asked, edit, reads, measures, prints):
+    recordings = []
+    for named in asked.names[:-1]:
+        known = names_the_recording(store, named)
+        if known is None:
+            prints(f"{named}: nothing in the store names it")
+            return 1
+        recordings.append(known)
+    if RecognisesMachineCut(store=store)(recordings[0].recording_id, edit):
+        records_machine_cut(store, recordings[0].recording_id, asked.classification, prints)
+        return 0
+    sources = sources_for(store, recordings, asked.source, prints)
+    if sources is None:
+        return 1
+    work = Path(asked.work).resolve() if asked.work else store.resolves_path(ALIGN_WORK)
+    aligner = AlignsPublishedEdit(
+        work=work,
+        reads=reads,
+        measures=reads_duration if measures is None else measures,
+    )
+    prints(f"{edit.name}")
+    named = [
+        (recording.recording_id, source) for recording, source in zip(recordings, sources)
+    ]
+    derived = DerivesPairsForEdit(
+        aligns=aligner, measures=reads_duration if measures is None else measures
+    )(named, edit)
+    if any(not pair.trustworthy for pair in derived):
+        for pair in derived:
+            if pair.trustworthy:
+                reports_derived(pair, prints)
+            else:
+                reports_refusal(pair, prints)
+        prints("nothing written")
+        return 1
+    for pair in derived:
+        stores_derived(store, pair, asked.classification)
+        reports_derived(pair, prints)
+    return 0
 
 
 ORGANIZE_USAGE = "sermon-organize [--dry-run]"

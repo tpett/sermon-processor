@@ -1668,3 +1668,30 @@ def _(store):
 def _(store):
     pair = store.lists(CorpusPair)[-1]
     assert pair.covers_more_than_95_percent
+
+
+ARCHIVED_WHOLE = "recording_20260628_130014"
+
+
+@then("a legitimate untrimmed archive is flagged the same way")
+def _(store):
+    archive = store.saves(
+        Recording(
+            recording_id=ARCHIVED_WHOLE,
+            object_key=f"recordings/{ARCHIVED_WHOLE}.flac",
+            state="downloaded",
+            started_at=datetime(2026, 6, 28, 13, 0, 14, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=3612.0,
+        )
+    )
+    DerivesGroundTruth(store=store)(
+        archive.recording_id,
+        punch_in=0.0,
+        punch_out=archive.duration_seconds,
+        classification="meeting",
+    )
+    flagged = store.lists(CorpusPair, recording_id=archive.recording_id)[-1]
+    assert flagged.covers_more_than_95_percent
+    assert flagged.alignment == "aligned"
