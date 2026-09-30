@@ -6,7 +6,6 @@ from pathlib import Path
 from sermon.store import Artifact, Segment, Store
 
 MACHINE = "machine"
-HUMAN = "human"
 PUBLISHED = "rendered_mp3"
 REVIEWED_STATES = frozenset({"approved", "processing", "complete"})
 UNADJUSTED = frozenset({"model", "refined", "model-in/refined-out"})

@@ -37,8 +37,6 @@ HARD = "hard"
 EASY_QUIET_MILLISECONDS = 2_000
 MODERATE_QUIET_MILLISECONDS = 250
 
-STRAIGHT_LINE_REFUSAL = "probes deviate {:.3f} s from a straight line"
-
 
 @dataclass(frozen=True, kw_only=True)
 class Probe:
@@ -59,7 +57,6 @@ class Alignment:
     coarse_peak_ratio: float | None = None
     drift_ppm: float | None = None
     fit_residual_seconds: float | None = None
-    probe_spread_seconds: float | None = None
     probe_ncc_min: float | None = None
 
     @property
@@ -154,8 +151,11 @@ class LocatesEditInSource:
             )
 
         fitted = self.fitted(usable)
-        if fitted.fit_residual_seconds > MAX_FIT_RESIDUAL_SECONDS:
-            refusals.append(STRAIGHT_LINE_REFUSAL.format(fitted.fit_residual_seconds))
+        discontinuous = fitted.fit_residual_seconds > MAX_FIT_RESIDUAL_SECONDS
+        if discontinuous:
+            refusals.append(
+                f"probes deviate {fitted.fit_residual_seconds:.3f} s from a straight line"
+            )
         if abs(fitted.drift_ppm) > MAX_DRIFT_PPM:
             refusals.append(f"clock drift {fitted.drift_ppm:.0f} ppm is implausible")
         offset = fitted.punch_in_seconds
@@ -166,22 +166,20 @@ class LocatesEditInSource:
 
         aligned = not refusals
         return Alignment(
-            verdict=self.verdict(refusals),
+            verdict=self.verdict(refusals, discontinuous),
             refusals=tuple(refusals),
             probes=probes,
             punch_in_seconds=round(offset, 4) if aligned else None,
             drift_ppm=fitted.drift_ppm if aligned else None,
             fit_residual_seconds=fitted.fit_residual_seconds,
-            probe_spread_seconds=fitted.probe_spread_seconds,
             probe_ncc_min=min(probe.ncc for probe in usable),
             **coarse.measured,
         )
 
-    def verdict(self, refusals):
+    def verdict(self, refusals, discontinuous):
         if not refusals:
             return ALIGNED
-        straight = STRAIGHT_LINE_REFUSAL.partition("{")[0]
-        return DISCONTINUOUS if any(straight in one for one in refusals) else UNALIGNABLE
+        return DISCONTINUOUS if discontinuous else UNALIGNABLE
 
     def roughly(self, source_coarse, edit_coarse):
         correlation = audio.ncc(source_coarse, edit_coarse)
@@ -224,7 +222,6 @@ class LocatesEditInSource:
     def fitted(self, usable):
         at = np.array([probe.at_seconds for probe in usable], dtype=float)
         offsets = np.array([probe.offset_seconds for probe in usable], dtype=float)
-        spread = float(offsets.max() - offsets.min())
         if len(usable) >= FITTABLE_PROBES:
             slope, intercept = np.polyfit(at, offsets, 1)
             residual = float(np.max(np.abs(offsets - (intercept + slope * at))))
@@ -234,7 +231,6 @@ class LocatesEditInSource:
             punch_in_seconds=float(intercept),
             drift_ppm=round(float(slope) * 1e6, 1),
             fit_residual_seconds=round(residual, 4),
-            probe_spread_seconds=round(spread, 4),
         )
 
 
@@ -258,7 +254,6 @@ class StraightLine:
     punch_in_seconds: float
     drift_ppm: float
     fit_residual_seconds: float
-    probe_spread_seconds: float
 
 
 @dataclass(frozen=True, kw_only=True)

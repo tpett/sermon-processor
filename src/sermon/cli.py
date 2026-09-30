@@ -838,7 +838,7 @@ def stores_derived(store, pair, classification):
 
 
 def records_machine_cut(store, recording_id, classification, prints):
-    stored = DerivesGroundTruth(store=store)(
+    DerivesGroundTruth(store=store)(
         recording_id,
         punch_in=None,
         punch_out=None,
@@ -849,7 +849,6 @@ def records_machine_cut(store, recording_id, classification, prints):
         f"  {recording_id}: recorded as published with machine provenance; "
         f"not aligned and not ground truth"
     )
-    return stored
 
 
 def aligns(settings=None, arguments=None, reads=None, measures=None, prints=print):
