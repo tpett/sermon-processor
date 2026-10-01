@@ -306,3 +306,31 @@ def test_the_outcome_is_announced_beside_the_waveform(store):
     assert page.index('<section class="waveform"') < announced
     assert announced < page.index('data-field="punch-control"')
     assert announced < page.index('data-field="span-edge-control"')
+
+
+def test_a_moved_boundary_comes_back_to_the_view_the_page_carried(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    page = moves_the_punch_in(
+        client,
+        segment,
+        "3050.00",
+        zoom="three seconds",
+        centre=3049.0,
+        playhead=3051.25,
+    )
+    assert window_step_of(page) == "three seconds"
+    assert window_centre_of(page) == 3049.0
+    assert reads_field(page, "playhead") == formats_precise(3051.25)
+
+
+def test_punching_from_the_playhead_reads_the_one_the_page_carried(store):
+    segment = a_freshly_proposed_segment(store)
+    client = creates_app(store=store).test_client()
+    client.post(
+        f"/recordings/{segment.recording_id}/segments/{segment.segment_id}"
+        f"/boundaries/punch-in",
+        data={"do": "playhead"},
+        query_string={"playhead": 3055.5},
+    )
+    assert store.loads(Segment, segment.segment_id).punch_in_seconds == 3055.5

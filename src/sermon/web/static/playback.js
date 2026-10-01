@@ -121,6 +121,17 @@
     }
   });
 
+  document.addEventListener("waveform:transport", function () {
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+    const started = audio.play();
+    if (started && started.catch) {
+      started.catch(function () {});
+    }
+  });
+
   document.addEventListener("waveform:seek", function (event) {
     const asked = event.detail || {};
     stopAt = null;

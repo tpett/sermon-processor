@@ -94,6 +94,9 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
     playheads = {}
 
     def playhead_of(recording_id, segment_id=None, focus=None):
+        carried = request.values.get("playhead", type=float)
+        if carried is not None:
+            return carried
         held = playheads.get(recording_id)
         if held is not None:
             return held
@@ -116,6 +119,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
                 focus=focus,
                 zoom=request.values.get("zoom"),
                 centre=request.values.get("centre"),
+                playhead=request.values.get("playhead"),
                 _anchor="waveform",
             ),
             code=303,

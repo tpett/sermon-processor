@@ -10,7 +10,7 @@ from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
 from steps import _audio
-from steps._markup import reads_field, reads_role, reads_rows
+from steps._markup import reads_field, reads_role, reads_rows, strips_tags
 from steps._peaks import (
     reads_peaks,
     writes_peaks,
@@ -867,6 +867,24 @@ def _(detail_page):
     assert ticks is not None
     assert ticks["seeks"] == "playhead"
     assert page.index('data-role="detail"') < page.index('data-role="detail-ticks"')
+
+
+@then("the keystroke that plays and pauses is shown beside the transport")
+def _(store):
+    page = reads_waveform(renders_detail(store))
+    transport = reads_role(page, "transport-keys")
+    assert transport is not None
+    assert transport["transport-key"] == "space"
+    assert reads_field(page, "transport-keys") == "space"
+
+
+@then("it says the key is not taken while I am typing")
+def _(store):
+    page = reads_waveform(renders_detail(store))
+    transport = reads_role(page, "transport-keys")
+    assert transport is not None
+    assert transport["transport-not-while"] == "typing in a field"
+    assert "except while typing in a field" in strips_tags(page)
 
 
 @then("the keystrokes that zoom in and out are shown beside the zoom steps")

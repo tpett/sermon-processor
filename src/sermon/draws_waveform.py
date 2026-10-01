@@ -26,10 +26,12 @@ ZOOM_STEPS = (
 )
 DEFAULT_ZOOM = "thirty seconds"
 PLACING_ZOOM = "three seconds"
-ZOOM_IN_KEYS = "⌘1 or 1"
-ZOOM_OUT_KEYS = "⌘3 or 3"
+ZOOM_IN_KEYS = "⌃1, ⌘1 or 1"
+ZOOM_OUT_KEYS = "⌃3, ⌘3 or 3"
 SCRUB_STEPS = ("50 ms", "0.1 s", "1 s")
 SCRUB_KEYS = ", and . — hold shift for 1 s, alt for 50 ms"
+TRANSPORT_KEY = "space"
+TRANSPORT_KEY_EXCEPT = "typing in a field"
 WORDS_IN_VIEW = {
     "whole recording": "more than can be read",
     "a few minutes": "more than can be read",
@@ -308,6 +310,8 @@ class WaveformView:
     zoom_out_keys: str
     scrub_steps: tuple
     scrub_keys: str
+    transport_key: str
+    transport_key_except: str
     window: WindowView | None
     cut: CutView | None
 
@@ -388,6 +392,8 @@ class DrawsWaveform:
             zoom_out_keys=ZOOM_OUT_KEYS,
             scrub_steps=SCRUB_STEPS,
             scrub_keys=SCRUB_KEYS,
+            transport_key=TRANSPORT_KEY,
+            transport_key_except=TRANSPORT_KEY_EXCEPT,
             window=window,
             cut=self._cut(duration, selected),
         )

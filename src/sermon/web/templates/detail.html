@@ -272,6 +272,7 @@
     <p class="keys">
       <span class="mono" data-field="zoom-keys">{{ wave.zoom_in_keys }} to zoom in, {{ wave.zoom_out_keys }} to zoom out</span>
       <span data-role="scrub" data-scrub-keys="{{ wave.scrub_keys }}">scrub <span class="mono" data-field="scrub-steps">{{ wave.scrub_steps|join(", ") }}</span> with <span class="mono" data-field="scrub-keys">{{ wave.scrub_keys }}</span>, or drag the playhead</span>
+      <span data-role="transport-keys" data-transport-key="{{ wave.transport_key }}" data-transport-not-while="{{ wave.transport_key_except }}"><span class="mono" data-field="transport-keys">{{ wave.transport_key }}</span> plays and pauses, except while {{ wave.transport_key_except }}</span>
     </p>
     <ol class="zoom-steps" data-role="zoom" data-zoom-in-keys="{{ wave.zoom_in_keys }}" data-zoom-out-keys="{{ wave.zoom_out_keys }}">
     {% for step in wave.zoom_steps %}

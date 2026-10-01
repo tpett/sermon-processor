@@ -118,6 +118,16 @@ Feature: Reviewing the waveform
       And the ruler beneath the detail view jumps the playhead too
 
     @happy-path
+    Scenario: Playing and pausing from the keyboard
+      # Asked for directly: "Bind the spacebar to play/pause (obviously, we'll
+      # need to make sure this doesn't make form inputs unable to type or cause
+      # a play/pause event when typing)." A space typed into a field is a space,
+      # so the transport only holds the key while the reviewer is not typing,
+      # and the screen says as much rather than leaving it to be discovered.
+      Then the keystroke that plays and pauses is shown beside the transport
+      And it says the key is not taken while I am typing
+
+    @happy-path
     Scenario: Auditioning a boundary
       When I choose to preview the punch-in
       Then playback starts 5 seconds before the punch-in

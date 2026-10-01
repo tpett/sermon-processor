@@ -260,10 +260,42 @@ function showsBoundary(handle, seconds) {
   region.style.width = `${acrossWindow(to) - acrossWindow(from)}%`;
 }
 
+const MOVES_A_BOUNDARY = /\/(boundaries|span)\//;
+
+function liveView() {
+  if (!detailPane) return [];
+  const from = Number(detailPane.dataset.windowStartSeconds);
+  const span = Number(detailPane.dataset.windowSeconds);
+  const at = detailMarker ? Number(detailMarker.dataset.playheadSeconds) : NaN;
+  const carried = [];
+  if (detailPane.dataset.windowStep) carried.push(["zoom", detailPane.dataset.windowStep]);
+  if (Number.isFinite(from) && Number.isFinite(span)) {
+    carried.push(["centre", (from + span / 2).toFixed(2)]);
+  }
+  if (Number.isFinite(at)) carried.push(["playhead", at.toFixed(2)]);
+  return carried;
+}
+
+function carriesTheView(action) {
+  const asked = new URL(action, window.location.href);
+  liveView().forEach(([name, value]) => asked.searchParams.set(name, value));
+  return asked.toString();
+}
+
+function movesABoundary(form) {
+  return MOVES_A_BOUNDARY.test(new URL(form.action, window.location.href).pathname);
+}
+
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !movesABoundary(form)) return;
+  form.action = carriesTheView(form.action);
+});
+
 function places(handle, seconds) {
   const form = document.createElement("form");
   form.method = "post";
-  form.action = handle.dataset.url;
+  form.action = carriesTheView(handle.dataset.url);
   form.innerHTML =
     '<input type="hidden" name="do" value="set">' +
     `<input type="hidden" name="timecode" value="${seconds.toFixed(2)}">`;
@@ -556,6 +588,11 @@ document.querySelectorAll('[data-field="focus-control"]').forEach((control) => {
   });
 });
 
+function typingIn(target) {
+  if (!target || typeof target.closest !== "function") return false;
+  return Boolean(target.closest("input, textarea, select")) || target.isContentEditable === true;
+}
+
 const NUDGE_KEYS = { ArrowLeft: "earlier", ArrowRight: "later" };
 
 function nudges(direction, amount) {
@@ -568,40 +605,40 @@ function nudges(direction, amount) {
   // The controls live in a collapsed <details>, so the button is not rendered
   // and clicking it is not guaranteed to submit. Submit its form instead.
   const form = control.closest("form");
-  if (form) form.submit();
-  else control.click();
+  if (form) {
+    form.action = carriesTheView(form.action);
+    form.submit();
+  } else control.click();
   return true;
 }
 
 document.addEventListener("keydown", (event) => {
   const direction = NUDGE_KEYS[event.key];
   if (!direction || event.metaKey || event.ctrlKey) return;
-  const target = event.target;
-  const typing =
-    target && typeof target.closest === "function"
-      ? target.closest("input, textarea, select")
-      : null;
-  if (typing) return;
+  if (typingIn(event.target)) return;
   const amount = event.shiftKey ? "1 s" : event.altKey ? "50 ms" : "0.1 s";
   if (nudges(direction, amount)) event.preventDefault();
 });
 
 
-const ticksRuler = document.querySelector('[data-role="detail-ticks"][data-seeks="playhead"]');
-
-if (ticksRuler && detailPane) {
-  ticksRuler.addEventListener("click", (event) => {
-    seeks(
-      secondsAt(
-        event,
-        ticksRuler,
-        Number(detailPane.dataset.windowStartSeconds),
-        Number(detailPane.dataset.windowSeconds)
-      ),
-      true
-    );
+document.querySelectorAll('[data-seeks="playhead"]').forEach((ruler) => {
+  const wholeRecording = Boolean(wave && wave.contains(ruler));
+  if (!wholeRecording && !detailPane) return;
+  ruler.addEventListener("click", (event) => {
+    if (operates(event)) return;
+    event.stopPropagation();
+    const seconds = wholeRecording
+      ? secondsAt(event, ruler, 0, duration)
+      : secondsAt(
+          event,
+          ruler,
+          Number(detailPane.dataset.windowStartSeconds),
+          Number(detailPane.dataset.windowSeconds)
+        );
+    seeks(seconds);
+    if (wholeRecording) recentres(seconds);
   });
-}
+});
 
 const scrubHandle = detailPane && detailPane.querySelector('[data-role="scrub-handle"]');
 
@@ -648,24 +685,30 @@ function zoomsBy(direction) {
   return chips[at].dataset.selected === "true" ? false : zoomsTo(chips[at]);
 }
 
-// Chrome, Safari and Firefox keep Cmd-1 and Cmd-3 for their own tabs and never
-// deliver them to a page, so the bare digits reach the same two steps.
 const ZOOM_KEYS = { 1: 1, 3: -1 };
 const SCRUB_KEYS = { ",": -1, ".": 1, "<": -1, ">": 1 };
 
+window.addEventListener(
+  "keydown",
+  (event) => {
+    if (!event.metaKey && !event.ctrlKey) return;
+    if (event.altKey || event.shiftKey || typingIn(event.target)) return;
+    const zoom = ZOOM_KEYS[event.key];
+    if (zoom === undefined) return;
+    event.preventDefault();
+    event.stopPropagation();
+    zoomsBy(zoom);
+  },
+  true
+);
+
 document.addEventListener("keydown", (event) => {
-  const target = event.target;
-  const typing =
-    target && typeof target.closest === "function"
-      ? target.closest("input, textarea, select")
-      : null;
-  if (typing) return;
+  if (typingIn(event.target) || event.metaKey || event.ctrlKey) return;
   const zoom = ZOOM_KEYS[event.key];
   if (zoom !== undefined) {
     if (zoomsBy(zoom)) event.preventDefault();
     return;
   }
-  if (event.metaKey || event.ctrlKey) return;
   const direction = SCRUB_KEYS[event.key];
   if (direction === undefined) return;
   const step = event.shiftKey ? 1 : event.altKey ? 0.05 : 0.1;
@@ -688,6 +731,16 @@ document.querySelectorAll('[data-row="punch-point"] [data-field="punch-control"]
     });
   }
 );
+
+const TRANSPORT_KEYS = new Set([" ", "Spacebar"]);
+
+document.addEventListener("keydown", (event) => {
+  if (!TRANSPORT_KEYS.has(event.key)) return;
+  if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+  if (typingIn(event.target) || !document.querySelector("audio")) return;
+  event.preventDefault();
+  document.dispatchEvent(new CustomEvent("waveform:transport"));
+});
 
 packsWords();
 window.addEventListener("resize", packsWords);
