@@ -557,8 +557,33 @@ works and inputs remain working". So Premiere's `-`, `=` and `\` lead, the
 Audacity digits and chords stay, and the Audacity chords are the preferred
 binding rather than a tolerated alias.
 
-Pins are now **34 files / 467 scenarios / 143 rules / 611 collected**, and
-`SPEC_STEPS` is 1930.
+On 2026-10-01 the owner settled two things about the webhook endpoint, which
+until then accepted any POST at all. On authentication: "Just use a simple
+bearer token configured in an environment variable. Simple enough. We have no
+auth anywhere else, but we might add it at some point." Nothing in the spec said
+the Processor authenticates its caller — the feature's own prose said "the
+network is the boundary" — so the new Rule `Only a caller presenting the bearer
+token can report a recording` was added to
+`features/ingestion/webhook_notification.feature` with a Scenario Outline over a
+wrong token, a header that is not a bearer token and no authorization at all,
+plus `The Processor has no bearer token configured`. A Background step was added
+for the token the Recorder holds, because the existing scenarios would otherwise
+depend on a credential the spec never mentions. **This is the first Rule added
+since the count last moved**, so the Rule pin goes up.
+
+On the scenario that was only ever about the Recorder: "Yeah, let's move that to
+the test suite in the other repo. No need to include that in our specs." So `The
+Processor is down when the Recorder fires the webhook` was deleted — every one of
+its five assertions was about the Recorder's retries and delivery failures, a
+component in the audio-recorder repository that this suite cannot reach, which is
+why it had never been anything but red. Its Rule `The Processor is resilient to
+delivery failures` keeps `The webhook arrives before the object is readable in
+the bucket`, so that Rule survives and the deletion moved no Rule count. A
+comment in its place cites where the behaviour is now specified, so the
+requirement is not silently absent.
+
+Pins are now **34 files / 468 scenarios / 144 rules / 614 collected**, and
+`SPEC_STEPS` is 1939.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

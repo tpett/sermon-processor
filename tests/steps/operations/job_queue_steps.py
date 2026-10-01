@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment
+from sermon.config import Credential
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob
 from sermon.jobs.downloads_recording import (
@@ -20,6 +21,7 @@ from sermon.web import creates_app
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
+WEBHOOK_TOKEN_VALUE = "the-token-only-the-spec-suite-issues"
 WEBHOOK = {
     "event": "recording.uploaded",
     "bucket": "sermons",
@@ -56,8 +58,13 @@ def worker(store, fetches):
 @when(parsers.parse('"{trigger}" happens'), target_fixture="trigger_result")
 def _(store, trigger):
     if trigger == "a webhook announces a new recording":
-        response = creates_app(store=store, clock=lambda: FROZEN).test_client().post(
-            "/api/webhooks/recordings", json=WEBHOOK
+        token = Credential(WEBHOOK_TOKEN_VALUE)
+        response = creates_app(
+            store=store, clock=lambda: FROZEN, webhook_token=token
+        ).test_client().post(
+            "/api/webhooks/recordings",
+            json=WEBHOOK,
+            headers={"Authorization": f"Bearer {WEBHOOK_TOKEN_VALUE}"},
         )
         return response
     if trigger == "a download completes":

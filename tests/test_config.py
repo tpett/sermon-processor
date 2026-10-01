@@ -9,6 +9,7 @@ import pytest
 
 from sermon.config import (
     VARIABLES,
+    WEBHOOK_TOKEN,
     Configuration,
     Credential,
     MissingConfiguration,
@@ -33,6 +34,8 @@ ENVIRONMENT = {
     "SERMON_OBJECT_STORE_SECRET_ACCESS_KEY": SECRET_ACCESS_KEY,
     "SERMON_MODEL_ENDPOINT": MODEL_ENDPOINT,
 }
+
+WEBHOOK_TOKEN_VALUE = "f1f0c4a7d2b54e0f9a6c3e8b7d1540a2"
 
 NOT_HTTP = ["ssh://mac-m1", "scp://mac-m1", "mac-m1:11434", "file:///models", "ftp://mac-m1/"]
 
@@ -222,3 +225,41 @@ def test_an_http_error_is_an_answer_not_an_unreachable_endpoint():
         ReachesModelEndpoint(endpoint=MODEL_ENDPOINT, over=answers_with_error)()
     assert raised.value is refused
     assert not isinstance(raised.value, ModelEndpointUnreachable)
+
+
+def test_the_webhook_token_is_read_as_a_credential():
+    configuration = configured(**{WEBHOOK_TOKEN: WEBHOOK_TOKEN_VALUE})
+    assert configuration.webhook_token == Credential(WEBHOOK_TOKEN_VALUE)
+    assert configuration.webhook_token.reveals() == WEBHOOK_TOKEN_VALUE
+
+
+def test_the_webhook_token_is_not_one_of_the_variables_a_deployment_must_set():
+    assert WEBHOOK_TOKEN not in VARIABLES
+    assert configured().webhook_token is None
+    assert configured(**{WEBHOOK_TOKEN: ""}).webhook_token is None
+
+
+def test_a_webhook_token_that_would_print_itself_is_refused():
+    with pytest.raises(UnusableConfiguration) as refused:
+        Configuration(
+            data_root=Path("/srv/sermons"),
+            object_store=object_store(),
+            model_endpoint=MODEL_ENDPOINT,
+            webhook_token=WEBHOOK_TOKEN_VALUE,
+        )
+    assert WEBHOOK_TOKEN in str(refused.value)
+    assert WEBHOOK_TOKEN_VALUE not in str(refused.value)
+
+
+def test_the_webhook_token_reaches_no_repr_or_log_line(caplog):
+    configuration = configured(**{WEBHOOK_TOKEN: WEBHOOK_TOKEN_VALUE})
+    with caplog.at_level(logging.INFO):
+        logging.getLogger("sermon").info("%s %r", configuration, configuration.webhook_token)
+    for rendered in (
+        repr(configuration),
+        str(configuration),
+        repr(configuration.webhook_token),
+        f"{configuration.webhook_token}",
+        caplog.text,
+    ):
+        assert WEBHOOK_TOKEN_VALUE not in rendered

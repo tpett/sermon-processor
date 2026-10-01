@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook
+from sermon.config import Credential
 from sermon.store import Discovery, Job, Recording, opens_store
 from sermon.web import creates_app
 
@@ -20,6 +21,7 @@ PAYLOAD = {
 }
 
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+WEBHOOK_TOKEN_VALUE = "the-token-only-the-spec-suite-issues"
 
 
 @pytest.fixture
@@ -30,8 +32,14 @@ def store(tmp_path):
 
 
 def test_queued_at_comes_from_the_injected_clock(store):
-    client = creates_app(store=store, clock=lambda: FROZEN).test_client()
-    response = client.post("/api/webhooks/recordings", json=PAYLOAD)
+    client = creates_app(
+        store=store, clock=lambda: FROZEN, webhook_token=Credential(WEBHOOK_TOKEN_VALUE)
+    ).test_client()
+    response = client.post(
+        "/api/webhooks/recordings",
+        headers={"Authorization": f"Bearer {WEBHOOK_TOKEN_VALUE}"},
+        json=PAYLOAD,
+    )
     assert response.status_code == 202
     assert store.lists(Job)[0].queued_at == FROZEN
 
@@ -58,3 +66,15 @@ def test_a_webhook_writes_a_discovery(store):
     assert discovery.discovered_count == 1
     assert discovery.event == "recording.uploaded"
     assert discovery.occurred_at == FROZEN
+
+
+def test_a_webhook_without_the_token_reaches_no_entity_at_all(store):
+    client = creates_app(
+        store=store, clock=lambda: FROZEN, webhook_token=Credential(WEBHOOK_TOKEN_VALUE)
+    ).test_client()
+    response = client.post("/api/webhooks/recordings", json=PAYLOAD)
+    assert response.status_code == 401
+    assert WEBHOOK_TOKEN_VALUE not in response.get_data(as_text=True)
+    assert store.lists(Recording) == []
+    assert store.lists(Discovery) == []
+    assert store.lists(Job) == []

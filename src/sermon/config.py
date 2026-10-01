@@ -13,6 +13,7 @@ OBJECT_STORE_BUCKET = "SERMON_OBJECT_STORE_BUCKET"
 OBJECT_STORE_ACCESS_KEY_ID = "SERMON_OBJECT_STORE_ACCESS_KEY_ID"
 OBJECT_STORE_SECRET_ACCESS_KEY = "SERMON_OBJECT_STORE_SECRET_ACCESS_KEY"
 MODEL_ENDPOINT = "SERMON_MODEL_ENDPOINT"
+WEBHOOK_TOKEN = "SERMON_WEBHOOK_TOKEN"
 
 VARIABLES = (
     DATA_ROOT,
@@ -90,6 +91,7 @@ class Configuration:
     data_root: Path
     object_store: ObjectStore
     model_endpoint: str
+    webhook_token: Credential | None = None
 
     def __post_init__(self):
         if not isinstance(self.data_root, Path):
@@ -101,6 +103,8 @@ class Configuration:
                 f"{DATA_ROOT} is {str(self.data_root)!r}, which moves with the working directory"
             )
         refuses_a_non_http_endpoint(MODEL_ENDPOINT, self.model_endpoint)
+        if self.webhook_token is not None:
+            refuses_a_bare_credential(WEBHOOK_TOKEN, self.webhook_token)
 
 
 @dataclass(frozen=True)
@@ -111,6 +115,7 @@ class ReadsConfiguration:
         unset = [name for name in VARIABLES if not self.environment.get(name)]
         if unset:
             raise MissingConfiguration(f"nothing sets {', '.join(unset)}")
+        offered = self.environment.get(WEBHOOK_TOKEN)
         return Configuration(
             data_root=Path(self.environment[DATA_ROOT]),
             object_store=ObjectStore(
@@ -120,6 +125,7 @@ class ReadsConfiguration:
                 secret_access_key=Credential(self.environment[OBJECT_STORE_SECRET_ACCESS_KEY]),
             ),
             model_endpoint=self.environment[MODEL_ENDPOINT],
+            webhook_token=Credential(offered) if offered else None,
         )
 
 

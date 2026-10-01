@@ -555,8 +555,12 @@ def serves(settings=None, lists_objects=None, runs=starts, prints=print):
     opened = opens_or_reports(settings, lists_objects, prints)
     if opened is None:
         return 1
-    _, store, lists_objects = opened
-    app = creates_app(store=store, lists_objects=lists_objects)
+    configuration, store, lists_objects = opened
+    app = creates_app(
+        store=store,
+        lists_objects=lists_objects,
+        webhook_token=configuration.webhook_token,
+    )
     app.config["BIND_HOST"] = settings.get(BIND_HOST, app.config["BIND_HOST"])
     runs(app, app.config["BIND_HOST"], int(settings.get(PORT, DEFAULT_PORT)))
     return 0
