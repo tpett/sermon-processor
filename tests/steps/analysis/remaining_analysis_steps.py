@@ -437,7 +437,14 @@ def _(store):
 def _(store):
     store._pairs_before = tuple(store.lists(CorpusPair))
     untouched = store.saves(
-        replace(ensure_segment(store), state="proposed", boundary_source="model")
+        replace(
+            ensure_segment(store),
+            state="proposed",
+            boundary_source="model",
+            intent="publish",
+            label="Hebrews 12.4-11",
+            publication_date=rec(store).started_at.date(),
+        )
     )
     return ApprovesSegment(store=store)(untouched)
 

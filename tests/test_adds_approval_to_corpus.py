@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from sermon.analysis import DerivesGroundTruth
 from sermon.analysis.adds_approval_to_corpus import AddsApprovalToCorpus
 from sermon.store import CorpusPair, Recording, Segment, opens_store
 
@@ -80,3 +81,49 @@ def test_adding_the_same_approval_twice_corrects_the_record_rather_than_doubling
 def test_the_difficulty_of_a_cut_is_not_invented_where_no_audio_was_read(store, adjusted):
     added = AddsApprovalToCorpus(store=store)(adjusted)
     assert (added.punch_in_difficulty, added.punch_out_difficulty) == (None, None)
+
+
+def aligned_by_measurement(store, **fields):
+    return DerivesGroundTruth(store=store)(
+        RECORDING_ID,
+        punch_in=3055.026,
+        punch_out=5597.35,
+        classification="sermon",
+        drift_ppm=-0.2,
+        punch_in_difficulty="easy",
+        punch_out_difficulty="moderate",
+        **fields,
+    )
+
+
+def test_a_reapproval_keeps_the_drift_and_difficulties_the_alignment_measured(store, adjusted):
+    aligned_by_measurement(store)
+    added = AddsApprovalToCorpus(store=store)(adjusted)
+    assert added.drift_ppm == -0.2
+    assert (added.punch_in_difficulty, added.punch_out_difficulty) == ("easy", "moderate")
+    assert added.labelled is True
+
+
+def test_a_boundary_the_reviewer_moved_loses_only_its_own_difficulty(store, adjusted):
+    aligned_by_measurement(store)
+    moved = store.saves(replace(adjusted, punch_out_seconds=5600.0))
+    added = AddsApprovalToCorpus(store=store)(moved)
+    assert (added.punch_in_seconds, added.punch_out_seconds) == (3055.026, 5600.0)
+    assert (added.punch_in_difficulty, added.punch_out_difficulty) == ("easy", None)
+    assert added.drift_ppm == -0.2
+
+
+def test_a_refusal_replaces_the_record_because_a_verdict_is_not_an_absence(store, adjusted):
+    AddsApprovalToCorpus(store=store)(adjusted)
+    refused = DerivesGroundTruth(store=store)(
+        RECORDING_ID,
+        punch_in=None,
+        punch_out=None,
+        classification="sermon",
+        alignment="not a contiguous excerpt",
+    )
+    assert (refused.punch_in_seconds, refused.punch_out_seconds) == (None, None)
+    assert (refused.drift_ppm, refused.punch_in_difficulty) == (None, None)
+    assert refused.alignment == "not a contiguous excerpt"
+    assert refused.labelled is False
+    assert len(store.lists(CorpusPair)) == 1
