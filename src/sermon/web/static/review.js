@@ -621,21 +621,24 @@ document.addEventListener("keydown", (event) => {
 });
 
 
-const ticksRuler = document.querySelector('[data-role="detail-ticks"][data-seeks="playhead"]');
-
-if (ticksRuler && detailPane) {
-  ticksRuler.addEventListener("click", (event) => {
-    seeks(
-      secondsAt(
-        event,
-        ticksRuler,
-        Number(detailPane.dataset.windowStartSeconds),
-        Number(detailPane.dataset.windowSeconds)
-      ),
-      true
-    );
+document.querySelectorAll('[data-seeks="playhead"]').forEach((ruler) => {
+  const wholeRecording = Boolean(wave && wave.contains(ruler));
+  if (!wholeRecording && !detailPane) return;
+  ruler.addEventListener("click", (event) => {
+    if (operates(event)) return;
+    event.stopPropagation();
+    const seconds = wholeRecording
+      ? secondsAt(event, ruler, 0, duration)
+      : secondsAt(
+          event,
+          ruler,
+          Number(detailPane.dataset.windowStartSeconds),
+          Number(detailPane.dataset.windowSeconds)
+        );
+    seeks(seconds);
+    if (wholeRecording) recentres(seconds);
   });
-}
+});
 
 const scrubHandle = detailPane && detailPane.querySelector('[data-role="scrub-handle"]');
 
