@@ -16,7 +16,7 @@ SPEC_MODULE = "tests/test_spec.py"
 STEP_MODULE = "steps.discovery_steps"
 SPEC_SHAPE = "spec OK — 34 files, 467 scenarios, 143 rules"
 SPEC_TESTS = 611
-SPEC_STEPS = 1928
+SPEC_STEPS = 1930
 DEFERRED_TESTS = 7
 SUMMARY_LINE = re.compile(
     r"^[= ]*(?:no tests ran|\d+ [a-z]+).* in \d+\.\d+s(?: \(\d+:\d\d:\d\d\))?[= ]*$"

@@ -271,10 +271,11 @@
     {% if wave.available %}
     <p class="keys">
       <span class="mono" data-field="zoom-keys">{{ wave.zoom_in_keys }} to zoom in, {{ wave.zoom_out_keys }} to zoom out</span>
+      <span><span class="mono" data-field="zoom-fit-key">{{ wave.zoom_fit_key }}</span> fits the whole recording</span>
       <span data-role="scrub" data-scrub-keys="{{ wave.scrub_keys }}">scrub <span class="mono" data-field="scrub-steps">{{ wave.scrub_steps|join(", ") }}</span> with <span class="mono" data-field="scrub-keys">{{ wave.scrub_keys }}</span>, or drag the playhead</span>
       <span data-role="transport-keys" data-transport-key="{{ wave.transport_key }}" data-transport-not-while="{{ wave.transport_key_except }}"><span class="mono" data-field="transport-keys">{{ wave.transport_key }}</span> plays and pauses, except while {{ wave.transport_key_except }}</span>
     </p>
-    <ol class="zoom-steps" data-role="zoom" data-zoom-in-keys="{{ wave.zoom_in_keys }}" data-zoom-out-keys="{{ wave.zoom_out_keys }}">
+    <ol class="zoom-steps" data-role="zoom" data-zoom-in-keys="{{ wave.zoom_in_keys }}" data-zoom-out-keys="{{ wave.zoom_out_keys }}" data-zoom-fit-key="{{ wave.zoom_fit_key }}">
     {% for step in wave.zoom_steps %}
       <li data-row="zoom-step" title="{{ step.purpose }} — 100 ms is {{ step.precision }}, {{ step.verdict }}; words in view: {{ step.words_in_view }}" data-zoom-index="{{ step.index }}" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
         <a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}zoom={{ step.step|urlencode }}&amp;centre={{ wave.window.centre_seconds if wave.window else 0 }}" data-field="zoom-step-name">{{ step.step }}</a>

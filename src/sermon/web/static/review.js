@@ -685,15 +685,24 @@ function zoomsBy(direction) {
   return chips[at].dataset.selected === "true" ? false : zoomsTo(chips[at]);
 }
 
-const ZOOM_KEYS = { 1: 1, 3: -1 };
+function zoomsToFit() {
+  const chips = [...document.querySelectorAll('[data-row="zoom-step"]')];
+  if (!chips.length || chips[0].dataset.selected === "true") return false;
+  return zoomsTo(chips[0]);
+}
+
+const ZOOM_CHORDS = { 1: 1, 3: -1 };
+const ZOOM_KEYS = { "=": 1, "+": 1, 1: 1, "-": -1, _: -1, 3: -1 };
+const FIT_KEYS = new Set(["\\"]);
+const SHIFTED_FIT_KEYS = new Set(["Z"]);
 const SCRUB_KEYS = { ",": -1, ".": 1, "<": -1, ">": 1 };
 
 window.addEventListener(
   "keydown",
   (event) => {
     if (!event.metaKey && !event.ctrlKey) return;
-    if (event.altKey || event.shiftKey || typingIn(event.target)) return;
-    const zoom = ZOOM_KEYS[event.key];
+    if (event.altKey || event.shiftKey) return;
+    const zoom = ZOOM_CHORDS[event.key];
     if (zoom === undefined) return;
     event.preventDefault();
     event.stopPropagation();
@@ -704,6 +713,10 @@ window.addEventListener(
 
 document.addEventListener("keydown", (event) => {
   if (typingIn(event.target) || event.metaKey || event.ctrlKey) return;
+  if (FIT_KEYS.has(event.key) || (event.shiftKey && SHIFTED_FIT_KEYS.has(event.key))) {
+    if (zoomsToFit()) event.preventDefault();
+    return;
+  }
   const zoom = ZOOM_KEYS[event.key];
   if (zoom !== undefined) {
     if (zoomsBy(zoom)) event.preventDefault();

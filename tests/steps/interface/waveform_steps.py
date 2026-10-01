@@ -32,6 +32,7 @@ SPOKEN = (
     (9812.4, 9818.0, "please stand for the closing hymn"),
 )
 NAMED_ZOOM_STEPS = ("whole recording", "a few minutes", "thirty seconds", "three seconds")
+MODIFIER_GLYPHS = "⌘⌃⌥⇧"
 NAMED_WINDOWS = {
     "whole recording": 11520.0,
     "5 minutes": 300.0,
@@ -898,6 +899,28 @@ def _(store):
         f"{control['zoom-in-keys']} to zoom in, {control['zoom-out-keys']} to zoom out"
     )
     assert reads_rows(page, "zoom-step")
+
+
+@then("the keystroke each direction leads with carries no modifier")
+def _(store):
+    control = reads_role(reads_waveform(renders_detail(store)), "zoom")
+    assert control is not None
+    leads = [control["zoom-in-keys"][:1], control["zoom-out-keys"][:1]]
+    assert all(leads)
+    assert [lead for lead in leads if lead in MODIFIER_GLYPHS] == []
+
+
+@then("one keystroke reaches the whole recording from any step")
+def _(store):
+    page = reads_waveform(renders_detail(store))
+    control = reads_role(page, "zoom")
+    assert control is not None
+    fit = control.get("zoom-fit-key")
+    assert fit
+    assert fit not in (control["zoom-in-keys"], control["zoom-out-keys"])
+    widest = max(reads_rows(page, "zoom-step"), key=lambda step: float(step["zoom-window-seconds"]))
+    assert widest["zoom-step"] == NAMED_ZOOM_STEPS[0]
+    assert f"{fit} fits the {NAMED_ZOOM_STEPS[0]}" in strips_tags(page)
 
 
 @then("each keystroke moves one named step rather than scaling smoothly")

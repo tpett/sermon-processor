@@ -26,8 +26,9 @@ ZOOM_STEPS = (
 )
 DEFAULT_ZOOM = "thirty seconds"
 PLACING_ZOOM = "three seconds"
-ZOOM_IN_KEYS = "⌃1, ⌘1 or 1"
-ZOOM_OUT_KEYS = "⌃3, ⌘3 or 3"
+ZOOM_IN_KEYS = "= or 1"
+ZOOM_OUT_KEYS = "- or 3"
+ZOOM_FIT_KEY = "\\ or shift-Z"
 SCRUB_STEPS = ("50 ms", "0.1 s", "1 s")
 SCRUB_KEYS = ", and . — hold shift for 1 s, alt for 50 ms"
 TRANSPORT_KEY = "space"
@@ -308,6 +309,7 @@ class WaveformView:
     zoom_steps: tuple
     zoom_in_keys: str
     zoom_out_keys: str
+    zoom_fit_key: str
     scrub_steps: tuple
     scrub_keys: str
     transport_key: str
@@ -390,6 +392,7 @@ class DrawsWaveform:
             zoom_steps=self._zooms(duration, window),
             zoom_in_keys=ZOOM_IN_KEYS,
             zoom_out_keys=ZOOM_OUT_KEYS,
+            zoom_fit_key=ZOOM_FIT_KEY,
             scrub_steps=SCRUB_STEPS,
             scrub_keys=SCRUB_KEYS,
             transport_key=TRANSPORT_KEY,

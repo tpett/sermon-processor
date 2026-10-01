@@ -210,8 +210,25 @@ Feature: Reviewing the waveform
       # respectively." Some browsers keep those two chords for their own tabs and
       # never hand them to a page, so a second keystroke reaches each direction
       # as well rather than the asked-for one being quietly substituted.
+      #
+      # Which second keystroke was asked again once the chords proved
+      # unreliable: "Another option is to come up with different hotkeys that
+      # wouldn't be problematic. Any thoughts based on industry standards of
+      # similar timeline based editing tools?" They then picked one: "let's adopt
+      # Premiere Pro. You can leave the Audacity bindings though too. Audacity
+      # ergonomics are actually better ... nevertheless, the - and = keys will
+      # work reliably." So Premiere's minus and equals lead, Premiere's
+      # backslash fits the whole recording in one press rather than four, and
+      # the Audacity chords stay because the owner would rather use them.
+      #
+      # Minus and equals are characters, not chords, so the typing guard is
+      # load-bearing in a way it was not for the transport: a publication label
+      # reads "Hebrews 13.7-8" and a hyphen that zoomed instead of typing would
+      # make a verse range unexpressible.
       Then the keystrokes that zoom in and out are shown beside the zoom steps
+      And the keystroke each direction leads with carries no modifier
       And each keystroke moves one named step rather than scaling smoothly
+      And one keystroke reaches the whole recording from any step
       And changing the zoom leaves the playhead where it was
 
   Rule: The readout says where the boundaries are, never how right they are
