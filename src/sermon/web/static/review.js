@@ -260,10 +260,42 @@ function showsBoundary(handle, seconds) {
   region.style.width = `${acrossWindow(to) - acrossWindow(from)}%`;
 }
 
+const MOVES_A_BOUNDARY = /\/(boundaries|span)\//;
+
+function liveView() {
+  if (!detailPane) return [];
+  const from = Number(detailPane.dataset.windowStartSeconds);
+  const span = Number(detailPane.dataset.windowSeconds);
+  const at = detailMarker ? Number(detailMarker.dataset.playheadSeconds) : NaN;
+  const carried = [];
+  if (detailPane.dataset.windowStep) carried.push(["zoom", detailPane.dataset.windowStep]);
+  if (Number.isFinite(from) && Number.isFinite(span)) {
+    carried.push(["centre", (from + span / 2).toFixed(2)]);
+  }
+  if (Number.isFinite(at)) carried.push(["playhead", at.toFixed(2)]);
+  return carried;
+}
+
+function carriesTheView(action) {
+  const asked = new URL(action, window.location.href);
+  liveView().forEach(([name, value]) => asked.searchParams.set(name, value));
+  return asked.toString();
+}
+
+function movesABoundary(form) {
+  return MOVES_A_BOUNDARY.test(new URL(form.action, window.location.href).pathname);
+}
+
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !movesABoundary(form)) return;
+  form.action = carriesTheView(form.action);
+});
+
 function places(handle, seconds) {
   const form = document.createElement("form");
   form.method = "post";
-  form.action = handle.dataset.url;
+  form.action = carriesTheView(handle.dataset.url);
   form.innerHTML =
     '<input type="hidden" name="do" value="set">' +
     `<input type="hidden" name="timecode" value="${seconds.toFixed(2)}">`;
@@ -568,8 +600,10 @@ function nudges(direction, amount) {
   // The controls live in a collapsed <details>, so the button is not rendered
   // and clicking it is not guaranteed to submit. Submit its form instead.
   const form = control.closest("form");
-  if (form) form.submit();
-  else control.click();
+  if (form) {
+    form.action = carriesTheView(form.action);
+    form.submit();
+  } else control.click();
   return true;
 }
 
