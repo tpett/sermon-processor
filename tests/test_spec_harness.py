@@ -2,10 +2,13 @@ import re
 import subprocess
 import sys
 import tomllib
+from functools import lru_cache
 from pathlib import Path
 
 import pytest
 from gherkin.parser import Parser
+
+from conftest import SPEC_OUTCOMES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SPEC_ROOT = PROJECT_ROOT / "features"
@@ -20,6 +23,7 @@ SUMMARY_LINE = re.compile(
 )
 
 
+@lru_cache(maxsize=None)
 def runs_pytest(*arguments, cwd=PROJECT_ROOT):
     finished = subprocess.run(
         [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", *arguments],
@@ -104,6 +108,49 @@ def declared_scenarios(tag=None):
         feature = Parser().parse(spec_file.read_text())["feature"]
         total += expanded_scenarios(feature["children"], tag_names(feature), tag)
     return total
+
+
+class SpecRunInSubprocess:
+    def __init__(self, returncode, report):
+        self.returncode = returncode
+        self.report = report
+
+    def counted(self, outcome):
+        return counted(outcome, self.report)
+
+    def executed(self):
+        return self.counted("passed") + self.counted("failed")
+
+    def intact(self):
+        return "INTERNALERROR" not in self.report and self.returncode in (0, 1)
+
+    def evidence(self):
+        return self.report
+
+
+class SpecRunThisSessionIsPartOf:
+    def __init__(self, watcher):
+        self.watcher = watcher
+
+    def counted(self, outcome):
+        return self.watcher.counted(outcome)
+
+    def executed(self):
+        return self.counted("passed") + self.counted("failed")
+
+    def intact(self):
+        return not self.watcher.internal_error
+
+    def evidence(self):
+        return self.watcher.evidence()
+
+
+@pytest.fixture(scope="session")
+def spec_run(pytestconfig):
+    watcher = pytestconfig.pluginmanager.get_plugin(SPEC_OUTCOMES)
+    if watcher is not None and watcher.sees_every_scenario(declared_scenarios()):
+        return SpecRunThisSessionIsPartOf(watcher)
+    return SpecRunInSubprocess(*runs_pytest("-q", SPEC_MODULE))
 
 
 def test_the_spec_is_the_size_this_harness_was_built_for(spec_guardrail, capsys):
@@ -199,17 +246,15 @@ def test_a_scenario_with_no_step_definitions_fails_rather_than_errors(tmp_path):
     assert (returncode, counted("failed", report), counted("error", report)) == (1, 1, 0), report
 
 
-def test_running_the_spec_executes_every_scenario_it_does_not_defer():
-    report = runs_pytest("-q", SPEC_MODULE)[1]
-    executed = counted("passed", report) + counted("failed", report)
-    assert (executed, counted("skipped", report)) == (
+@pytest.mark.slow
+def test_running_the_spec_executes_every_scenario_it_does_not_defer(spec_run):
+    assert (spec_run.executed(), spec_run.counted("skipped")) == (
         SPEC_TESTS - DEFERRED_TESTS,
         DEFERRED_TESTS,
-    ), report
+    ), spec_run.evidence()
 
 
-def test_running_the_spec_reports_no_errors():
-    returncode, report = runs_pytest("-q", SPEC_MODULE)
-    assert counted("error", report) == 0, report
-    assert "INTERNALERROR" not in report, report
-    assert returncode in (0, 1), report
+@pytest.mark.slow
+def test_running_the_spec_reports_no_errors(spec_run):
+    assert spec_run.counted("error") == 0, spec_run.evidence()
+    assert spec_run.intact(), spec_run.evidence()

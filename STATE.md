@@ -81,6 +81,42 @@ still 34 files / 470 scenarios / 144 rules and 614 collected.
 **Nothing surfaces the number yet.** No command and no page prints it, because no
 scenario asks for one. The owner cannot read their own headline measure until
 something does.
+## The suite is two tiers, and the slow tier is one render (2026-09-30)
+
+`pytest -m "not slow"` is **55 s** and a bare `pytest` is **2:00**, against 5:57
+and 8:00. Same verdicts either side: 258 failed / 1572 passed / 7 skipped, and
+the failing node ids diff empty. Three tests were 424 s of the old 481 s and
+nothing else in the suite reached 1.6 s.
+
+**`tests/test_spec_harness.py` ran the whole spec twice as subprocesses** —
+154 s and 143 s — to establish that every scenario the spec does not defer
+executes and that none of them errors. A conftest plugin now records the outcome
+pytest gave every `tests/test_spec.py` item, so in a bare `pytest` those two
+guards read the run they are already inside. When the session did not collect
+and finish all 614 they still spawn one subprocess run, which is what
+`pytest tests/test_spec_harness.py` alone now costs (1:30); both carry `@slow`
+for that reason, so the fast tier does not trip into rendering audio. No pin
+moved.
+
+**`The same input produces the same output` was comparing a file with itself.**
+It rendered 43 minutes twice for real, 127 s, and `_snapshots` kept each output
+aside with `os.link`. ffmpeg `-y` truncates in place, so the second render
+erased the first through the shared inode and `once == again` could not fail.
+Renders are now copied out of the cache, into the cache and aside, which also
+lets the first of the pair come from the cache — one real render rather than
+two, 64 s, and the comparison bites. Proved by mutation: with
+`-metadata comment=<clock>` added to the encode the old fixture still passed and
+the new one fails.
+
+**The rendering scenarios still discriminate.** Shifting the render's `-ss` by
+2 s reddens `Trimming to the approved boundaries` and nothing else; `loudness=False`
+reddens `Normalizing to a target loudness` and nothing else; `fades=False` reddens
+`The cut does not click or pop` and nothing else. A **1 s** shift does not: the
+synthesised programme cycles every 30 s and the structure check tolerates a
+second of slip, so that step catches misalignment from about 2 s.
+
+Nothing was deleted. Once the duplication was gone no test above 1.9 s was left,
+so the rule that a low-value long spec is worse than none had nothing to bite on.
 
 ## audio_rendering.feature is measured on the MP3 it writes (2026-09-30)
 
@@ -179,13 +215,11 @@ still 614 and `SPEC_STEPS` still 1942.
 
 ### What it costs
 
-A cold run of the feature is about 14 minutes: five sources at 70 s each and
-six 43-minute renders at 45 s each, leaving 452 MB in the cache. Warm it is
-about 5 minutes, because `The same input produces the same output` renders twice
-for real by design and nothing may hand it the same file twice.
-`tests/test_spec_harness.py` runs the whole spec twice as subprocesses, so a
-bare `pytest` pays the warm cost three times: 1:33 on master against 7:41 here.
-The feature is `@slow` for this reason; `-m "not slow"` skips it.
+A cold run of the feature is about a quarter of an hour: five sources at 70 s
+each and seven 43-minute renders at about 65 s each, leaving 452 MB in the
+cache. Warm it is one render — see the two-tier section at the top of this file,
+which supersedes the figures this paragraph first carried. The feature is
+`@slow`; `-m "not slow"` skips it.
 
 ## SLICE 3.1 — the machine proposes, and the error is measured (2026-09-22)
 

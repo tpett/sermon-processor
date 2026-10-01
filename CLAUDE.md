@@ -71,12 +71,35 @@ number in `FINDINGS.md` traces to the code there.
 
 ```bash
 uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of range
+.venv/bin/python -m pytest -m "not slow"            # the normal run
+.venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest                          # full suite: store, pipeline, harness, or before master
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 610 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 614 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
+
+**There are two tiers, and `-m "not slow"` is the one to reach for.** 55 s for
+the 1,764 tests it selects: the store, config, the three pipeline instruments,
+all of the spec but its four `@slow` features, and every harness guard that
+reads the spec without running it.
+
+**A bare `pytest` is the pre-merge run**, 2:00 for all 1,837. It adds the four
+`@slow` features and the two guards that prove the spec suite is honest — that
+every scenario it does not defer actually executed, and that none of them
+errored rather than failed. Those two read the outcomes of the run they are part
+of, so a bare `pytest` pays for the spec once. Asked for on their own
+(`pytest tests/test_spec_harness.py`) they have no run to read and start one in
+a subprocess, which is why that file alone costs 1:30 rather than 3 s. Nothing
+between the two tiers is worth a third: the whole difference is one render.
+
+Only `processing/audio_rendering.feature` costs anything. It renders a
+43-minute MP3 through the real chain and measures the file, caching the
+synthesised sources and every render under `$TMPDIR/sermon-test-renders`
+against a digest of `pipeline/render.py`. Warm that is a single render, because
+`The same input produces the same output` has to write one for real to have
+anything to compare it against. A cold cache is about a quarter of an hour and
+450 MB; editing the chain re-renders but keeps the sources.
 
 For a feature-file change, run that file's scenarios, `validate_spec.py`, and
 unit tests for modules you touched. Do not run a bare `pytest` on scenario work.

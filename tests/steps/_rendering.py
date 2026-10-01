@@ -96,6 +96,14 @@ def places(source, destination):
     return destination
 
 
+def copies(source, destination):
+    """A render a later pass may overwrite; sharing the inode would erase it."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.unlink(missing_ok=True)
+    shutil.copyfile(source, destination)
+    return destination
+
+
 def _digests(*parts):
     return hashlib.sha256("|".join(str(part) for part in parts).encode()).hexdigest()[:16]
 
@@ -300,13 +308,13 @@ def _renders_or_reuses(source_path, start, end, destination, channel=0):
     held = CACHE / f"render-{key}.mp3"
     measured = CACHE / f"render-{key}.json"
     if held.is_file() and held.stat().st_size and measured.is_file():
-        places(held, destination)
+        copies(held, destination)
         return json.loads(measured.read_text())
     found = chain.render(source_path, start, end, destination, channel=channel)
     if not destination.is_file():
         raise RuntimeError(f"the render chain wrote nothing to {destination}")
     CACHE.mkdir(parents=True, exist_ok=True)
-    places(destination, held)
+    copies(destination, held)
     measured.write_text(json.dumps(found))
     return found
 
@@ -330,7 +338,7 @@ def _keeps(renderer, produced):
 def _snapshots(rendered):
     """A re-render overwrites the published name, so each output is kept aside."""
     aside = Path(tempfile.mkdtemp()) / rendered.path.name
-    return replace(rendered, path=places(rendered.path, aside))
+    return replace(rendered, path=copies(rendered.path, aside))
 
 
 def renders(store, reuse=True):

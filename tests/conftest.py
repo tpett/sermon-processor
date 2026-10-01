@@ -7,6 +7,8 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SPEC_ROOT = PROJECT_ROOT / "features"
 STEP_ROOT = Path(__file__).parent / "steps"
+SPEC_ITEM = "test_spec.py::"
+SPEC_OUTCOMES = "spec-outcomes"
 
 
 def names_step_module(path):
@@ -36,11 +38,54 @@ def refuses_hooks(manager, module, path):
         )
 
 
+class RecordsSpecOutcomes:
+    def __init__(self):
+        self.collected = 0
+        self.outcomes = {}
+        self.internal_error = False
+
+    def pytest_collection_modifyitems(self, items):
+        self.collected = sum(1 for item in items if SPEC_ITEM in item.nodeid)
+
+    def pytest_internalerror(self, excrepr):
+        self.internal_error = True
+
+    def pytest_runtest_logreport(self, report):
+        if SPEC_ITEM not in report.nodeid:
+            return
+        held = self.outcomes.setdefault(report.nodeid, set())
+        if report.skipped:
+            held.add("skipped")
+        elif report.failed:
+            held.add("failed" if report.when == "call" else "error")
+        elif report.when == "call":
+            held.add("passed")
+
+    def finished(self):
+        return sum(1 for held in self.outcomes.values() if held)
+
+    def counted(self, outcome):
+        return sum(1 for held in self.outcomes.values() if outcome in held)
+
+    def sees_every_scenario(self, declared):
+        return self.collected == declared and self.finished() == declared
+
+    def evidence(self):
+        return (
+            f"{self.collected} spec scenarios collected, {self.finished()} finished: "
+            + ", ".join(
+                f"{self.counted(outcome)} {outcome}"
+                for outcome in ("passed", "failed", "error", "skipped")
+            )
+        )
+
+
 def pytest_configure(config):
     for path in sorted(STEP_ROOT.rglob("[!_]*.py")):
         module = loads_step_definitions(path)
         refuses_hooks(config.pluginmanager, module, path)
         config.pluginmanager.register(module, names_step_module(path))
+    config.pluginmanager.register(RecordsSpecOutcomes(), SPEC_OUTCOMES)
 
 
 @pytest.fixture(scope="session")
