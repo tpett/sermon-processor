@@ -451,7 +451,7 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
   excludes them from ground truth. Add to that set whenever a proposal ships
   unedited, or the corpus starts grading itself.
 
-### The pins have moved twice, on purpose
+### The pins have moved, on purpose
 
 The harness pins were **34 files / 460 scenarios / 142 rules / 604 collected**.
 On 2026-09-22 the user asked for a visual indicator of the cut instant during a
@@ -522,8 +522,18 @@ is converted, not produced` (an archive-intent Segment is this week's members
 meeting, not an old file) and `Re-rendering after changing render settings` (one
 Segment, not a bulk pass).
 
-Pins are now **34 files / 466 scenarios / 143 rules / 610 collected**, and
-`SPEC_STEPS` is 1926.
+Also on 2026-09-30, after using the waveform editor, they asked for the
+transport on the spacebar: "Bind the spacebar to play/pause (obviously, we'll
+need to make sure this doesn't make form inputs unable to type or cause a
+play/pause event when typing)". No scenario put the transport on a key at all —
+`Playing from anywhere` clicks the waveform and `Zooming in and out from the
+keyboard` only reaches the zoom steps — and the exemption they named is half the
+requirement, so `Playing and pausing from the keyboard` was added to
+`features/interface/waveform_review.feature` under `Rule: I can listen to the
+audio`, asserting both the key and that the screen says when it is not taken.
+
+Pins are now **34 files / 467 scenarios / 143 rules / 611 collected**, and
+`SPEC_STEPS` is 1928.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
