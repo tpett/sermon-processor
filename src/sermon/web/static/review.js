@@ -588,6 +588,11 @@ document.querySelectorAll('[data-field="focus-control"]').forEach((control) => {
   });
 });
 
+function typingIn(target) {
+  if (!target || typeof target.closest !== "function") return false;
+  return Boolean(target.closest("input, textarea, select")) || target.isContentEditable === true;
+}
+
 const NUDGE_KEYS = { ArrowLeft: "earlier", ArrowRight: "later" };
 
 function nudges(direction, amount) {
@@ -610,12 +615,7 @@ function nudges(direction, amount) {
 document.addEventListener("keydown", (event) => {
   const direction = NUDGE_KEYS[event.key];
   if (!direction || event.metaKey || event.ctrlKey) return;
-  const target = event.target;
-  const typing =
-    target && typeof target.closest === "function"
-      ? target.closest("input, textarea, select")
-      : null;
-  if (typing) return;
+  if (typingIn(event.target)) return;
   const amount = event.shiftKey ? "1 s" : event.altKey ? "50 ms" : "0.1 s";
   if (nudges(direction, amount)) event.preventDefault();
 });
@@ -691,12 +691,7 @@ const ZOOM_KEYS = { 1: 1, 3: -1 };
 const SCRUB_KEYS = { ",": -1, ".": 1, "<": -1, ">": 1 };
 
 document.addEventListener("keydown", (event) => {
-  const target = event.target;
-  const typing =
-    target && typeof target.closest === "function"
-      ? target.closest("input, textarea, select")
-      : null;
-  if (typing) return;
+  if (typingIn(event.target)) return;
   const zoom = ZOOM_KEYS[event.key];
   if (zoom !== undefined) {
     if (zoomsBy(zoom)) event.preventDefault();
@@ -725,6 +720,16 @@ document.querySelectorAll('[data-row="punch-point"] [data-field="punch-control"]
     });
   }
 );
+
+const TRANSPORT_KEYS = new Set([" ", "Spacebar"]);
+
+document.addEventListener("keydown", (event) => {
+  if (!TRANSPORT_KEYS.has(event.key)) return;
+  if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+  if (typingIn(event.target) || !document.querySelector("audio")) return;
+  event.preventDefault();
+  document.dispatchEvent(new CustomEvent("waveform:transport"));
+});
 
 packsWords();
 window.addEventListener("resize", packsWords);
