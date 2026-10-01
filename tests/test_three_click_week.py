@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from sermon.config import Credential
 from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
 from sermon.jobs.renders_mp3 import RendersMp3
@@ -15,6 +16,7 @@ from sermon.web import creates_app
 
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+WEBHOOK_TOKEN_VALUE = "the-token-only-the-spec-suite-issues"
 SERMON = RecordingContents(segments=(("sermon", 0.5, 2.5),))
 
 
@@ -77,9 +79,12 @@ def test_webhook_to_named_mp3(store, tmp_path):
     writes_tone(tone)
     fetches = FetchesObject()
     fetches.stores(OBJECT_KEY, tone.read_bytes())
-    client = creates_app(store=store, clock=lambda: FROZEN).test_client()
+    client = creates_app(
+        store=store, clock=lambda: FROZEN, webhook_token=Credential(WEBHOOK_TOKEN_VALUE)
+    ).test_client()
     announced = client.post(
         "/api/webhooks/recordings",
+        headers={"Authorization": f"Bearer {WEBHOOK_TOKEN_VALUE}"},
         json={
             "event": "recording.uploaded",
             "bucket": "sermons",

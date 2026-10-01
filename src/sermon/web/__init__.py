@@ -17,6 +17,7 @@ from sermon.adjusts_punch_point import (
 from sermon.analysis.io import reads_json
 from sermon.approves_segment import ApprovesSegment, PublicationLabelRequired, SegmentNotReady
 from sermon.archives_whole_recording import ArchivesWholeRecording
+from sermon.authorizes_webhook import AuthorizesWebhook
 from sermon.classifies_segment import ClassificationRejected, ClassifiesSegment
 from sermon.discards_recording import (
     DiscardsRecording,
@@ -44,6 +45,7 @@ from sermon.store import Artifact, Discovery, Job, Recording, Segment, layout
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 
 
+AUTHORIZATION = "Authorization"
 BOUNDARIES = ("punch-in", "punch-out")
 INLINE_KINDS = frozenset({"preview"})
 ARTIFACT_UNAVAILABLE = "the artifact is unavailable"
@@ -62,7 +64,9 @@ def unavailable(path, entity):
     return body, 404
 
 
-def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
+def creates_app(
+    *, store, clock=now, lists_objects=None, fetches_object=None, webhook_token=None
+):
     web_dir = Path(__file__).parent
     app = Flask(
         __name__,
@@ -73,6 +77,7 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
     app.add_template_filter(formats_precise, "precise")
     app.add_template_filter(formats_seconds, "seconds")
     accepts = AcceptsRecordingWebhook(store=store, clock=clock)
+    authorizes = AuthorizesWebhook(token=webhook_token)
     lists = ListsRecordings(store=store, clock=clock)
     shows = ShowsRecording(store=store)
     approves = ApprovesSegment(store=store, clock=clock)
@@ -250,6 +255,9 @@ def creates_app(*, store, clock=now, lists_objects=None, fetches_object=None):
 
     @app.post("/api/webhooks/recordings")
     def recordings_webhook():
+        refusal, named = authorizes(request.headers.get(AUTHORIZATION))
+        if refusal is not None:
+            return {"error": named}, refusal
         status, detail = accepts(request.get_json(silent=True) or {})
         if status == 422:
             return {"missing": detail}, 422

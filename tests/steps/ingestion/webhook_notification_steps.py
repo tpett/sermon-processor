@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
 
+from sermon.config import Credential
 from sermon.store import Discovery, Job, Recording
 from sermon.web import creates_app
 
@@ -36,7 +37,7 @@ def posts_webhook(processor_client, webhook_endpoint, payload, credentials):
 
 @given("the Sermon Processor is running", target_fixture="processor_client")
 def _(store):
-    return creates_app(store=store).test_client()
+    return creates_app(store=store, webhook_token=Credential(SPEC_TOKEN)).test_client()
 
 
 @given(
@@ -334,7 +335,7 @@ def _(store):
 
 @given("the Processor has no bearer token configured", target_fixture="processor_client")
 def _(store):
-    return creates_app(store=store).test_client()
+    return creates_app(store=store, webhook_token=None).test_client()
 
 
 @when(
