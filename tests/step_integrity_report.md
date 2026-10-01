@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1317 step definitions read from `tests/steps`
+- 1325 step definitions read from `tests/steps`
 - 0 condemned
-- 0 of 463 non-deferred scenarios rest on at least one condemned step
-- 0 of 604 expanded scenario tests likewise
+- 0 of 464 non-deferred scenarios rest on at least one condemned step
+- 0 of 607 expanded scenario tests likewise
 - 0 scenarios whose every Then is condemned, so nothing they claim is checked
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 335 Gherkin steps matched no definition
+- 330 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -45,7 +45,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/discovery_steps.py` | 2 | 0 | sound |
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
 | `tests/steps/ingestion/s3_reconciliation_steps.py` | 37 | 0 | sound |
-| `tests/steps/ingestion/webhook_notification_steps.py` | 34 | 0 | sound |
+| `tests/steps/ingestion/webhook_notification_steps.py` | 42 | 0 | sound |
 | `tests/steps/interface/approval_steps.py` | 48 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
 | `tests/steps/interface/cut_light_steps.py` | 4 | 0 | sound |
@@ -238,13 +238,8 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences, or the stated main point"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the passage announcement"`
 - `ingestion/s3_reconciliation.feature:64 then the next scheduled scan runs normally`
-- `ingestion/webhook_notification.feature:112 given the Sermon Processor is unreachable`
-- `ingestion/webhook_notification.feature:113 when the Recorder attempts to deliver a webhook`
-- `ingestion/webhook_notification.feature:114 then the Recorder retries with exponential backoff`
-- `ingestion/webhook_notification.feature:115 then after the retry budget is exhausted the Recorder records a delivery failure`
-- `ingestion/webhook_notification.feature:116 then the Recording is still ingested later by S3 reconciliation`
-- `ingestion/webhook_notification.feature:76 then a Recording is uniquely identified by its bucket and object key`
-- `ingestion/webhook_notification.feature:77 then the same key always refers to the same audio`
+- `ingestion/webhook_notification.feature:79 then a Recording is uniquely identified by its bucket and object key`
+- `ingestion/webhook_notification.feature:80 then the same key always refers to the same audio`
 - `interface/discarding_recordings.feature:106 then I do not have to discard it for the queue to stay clean`
 - `interface/discarding_recordings.feature:107 then it remains available if I ever want it`
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`

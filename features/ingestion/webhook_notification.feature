@@ -6,8 +6,10 @@ Feature: Upload webhook notification
 
   The Recorder and the Processor sit on the same tailnet, so the Recorder simply
   calls a web endpoint on the Processor. There is no signing ceremony and no
-  replay window — the network is the boundary. What matters instead is that the
-  handler is **idempotent**, because the same file must never be ingested twice.
+  replay window, but the network is not the whole boundary: anything else on the
+  tailnet could otherwise fabricate a recording, so the Recorder presents a
+  bearer token. What matters as much is that the handler is **idempotent**,
+  because the same file must never be ingested twice.
 
   A matching feature belongs in the audio-recorder repository; this defines the
   contract from the Processor's side. The webhook is an optimisation, never a
@@ -17,6 +19,7 @@ Feature: Upload webhook notification
     Given the Sermon Processor is running
     And the webhook endpoint is "POST /api/webhooks/recordings"
     And the Recorder reaches it over the tailnet
+    And the Recorder holds the bearer token the Processor was configured with
 
   Rule: A valid webhook creates exactly one Recording
 
@@ -105,15 +108,42 @@ Feature: Upload webhook notification
       And no Recording is created
       And the ignored event type is logged
 
-  Rule: The Processor is resilient to delivery failures
+  Rule: Only a caller presenting the bearer token can report a recording
+
+    # The token is the second boundary behind the tailnet. The scan in
+    # s3_reconciliation.feature stays the backstop, so a refused webhook costs a
+    # delay rather than a recording.
 
     @edge-case
-    Scenario: The Processor is down when the Recorder fires the webhook
-      Given the Sermon Processor is unreachable
-      When the Recorder attempts to deliver a webhook
-      Then the Recorder retries with exponential backoff
-      And after the retry budget is exhausted the Recorder records a delivery failure
-      And the Recording is still ingested later by S3 reconciliation
+    Scenario Outline: A webhook the Processor cannot authenticate is refused
+      When the Recorder presents <credential> with an otherwise valid webhook
+      Then the Processor responds with "401 Unauthorized"
+      And the refusal does not repeat what was presented
+      And no Recording is created
+      And no Discovery is recorded
+      And no download is queued
+
+      Examples:
+        | credential                          |
+        | a token the Processor was not given  |
+        | a header that is not a bearer token  |
+        | no authorization at all              |
+
+    @edge-case
+    Scenario: The Processor has no bearer token configured
+      Given the Processor has no bearer token configured
+      When the Recorder sends a webhook presenting the token it holds
+      Then the Processor responds with "503 Service Unavailable"
+      And the response body names the configuration that is missing
+      And no Recording is created
+      And no Discovery is recorded
+      And no download is queued
+
+  Rule: The Processor is resilient to delivery failures
+
+    # The Recorder's own retry, backoff and delivery-failure behaviour is
+    # specified and tested in the audio-recorder repository; this suite cannot
+    # reach that component.
 
     @edge-case
     Scenario: The webhook arrives before the object is readable in the bucket

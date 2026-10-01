@@ -19,14 +19,32 @@ WEBHOOK_WITHOUT_HOST_IDENTITY = {
 }
 
 
-def posts_webhook(processor_client, webhook_endpoint, payload):
+SPEC_TOKEN = "the-token-only-the-spec-suite-issues"
+UNISSUED_TOKEN = "a-token-the-processor-was-never-given"
+WEBHOOK_TOKEN_VARIABLE = "SERMON_WEBHOOK_TOKEN"
+PRESENTED = {
+    "a token the Processor was not given": {"Authorization": f"Bearer {UNISSUED_TOKEN}"},
+    "a header that is not a bearer token": {"Authorization": SPEC_TOKEN},
+    "no authorization at all": {},
+}
+
+
+def posts_webhook(processor_client, webhook_endpoint, payload, credentials):
     method, path = webhook_endpoint.split(" ", 1)
-    return processor_client.open(path, method=method, json=payload)
+    return processor_client.open(path, method=method, json=payload, headers=credentials)
 
 
 @given("the Sermon Processor is running", target_fixture="processor_client")
 def _(store):
     return creates_app(store=store).test_client()
+
+
+@given(
+    "the Recorder holds the bearer token the Processor was configured with",
+    target_fixture="webhook_credentials",
+)
+def _():
+    return {"Authorization": f"Bearer {SPEC_TOKEN}"}
 
 
 @given(parsers.parse('the webhook endpoint is "{webhook_endpoint}"'), target_fixture="webhook_endpoint")
@@ -40,13 +58,17 @@ def _():
 
 
 @when("the Recorder sends a webhook with the payload:", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint, datatable):
-    return posts_webhook(processor_client, webhook_endpoint, dict(datatable[1:]))
+def _(processor_client, webhook_endpoint, webhook_credentials, datatable):
+    return posts_webhook(
+        processor_client, webhook_endpoint, dict(datatable[1:]), webhook_credentials
+    )
 
 
 @when("the Recorder sends a webhook with no host identity", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint):
-    return posts_webhook(processor_client, webhook_endpoint, WEBHOOK_WITHOUT_HOST_IDENTITY)
+def _(processor_client, webhook_endpoint, webhook_credentials):
+    return posts_webhook(
+        processor_client, webhook_endpoint, WEBHOOK_WITHOUT_HOST_IDENTITY, webhook_credentials
+    )
 
 
 @then(parsers.parse('the Processor responds with "{status}"'))
@@ -130,8 +152,8 @@ def _(store, object_key, clock):
 
 
 @when("the Recorder sends an identical webhook for that object key", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint):
-    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL)
+def _(processor_client, webhook_endpoint, webhook_credentials):
+    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
 
 
 @then("no duplicate Recording is created")
@@ -165,8 +187,8 @@ def _(store):
 
 
 @when("a webhook arrives for the same object key", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint):
-    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL)
+def _(processor_client, webhook_endpoint, webhook_credentials):
+    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
 
 
 @then("whichever arrived first owns the Recording")
@@ -175,9 +197,9 @@ def _(store):
 
 
 @when("two identical webhooks are handled concurrently", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint):
-    first = posts_webhook(processor_client, webhook_endpoint, IDENTICAL)
-    posts_webhook(processor_client, webhook_endpoint, IDENTICAL)
+def _(processor_client, webhook_endpoint, webhook_credentials):
+    first = posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
+    posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
     return first
 
 
@@ -192,10 +214,10 @@ def _(store):
 
 
 @when(parsers.parse('the Recorder sends a webhook with "{field}" omitted'), target_fixture="processor_response")
-def _(processor_client, webhook_endpoint, field):
+def _(processor_client, webhook_endpoint, webhook_credentials, field):
     payload = dict(IDENTICAL)
     payload.pop(field, None)
-    return posts_webhook(processor_client, webhook_endpoint, payload)
+    return posts_webhook(processor_client, webhook_endpoint, payload, webhook_credentials)
 
 
 @then(parsers.parse('the response body names the missing field "{field}"'))
@@ -209,10 +231,10 @@ def _(store):
 
 
 @when(parsers.parse('the Recorder sends a webhook with event "{event}"'), target_fixture="processor_response")
-def _(processor_client, webhook_endpoint, event):
+def _(processor_client, webhook_endpoint, webhook_credentials, event):
     payload = dict(IDENTICAL)
     payload["event"] = event
-    return posts_webhook(processor_client, webhook_endpoint, payload)
+    return posts_webhook(processor_client, webhook_endpoint, payload, webhook_credentials)
 
 
 @then("the ignored event type is logged")
@@ -233,8 +255,8 @@ def _():
 
 
 @when("the Recorder sends a webhook for that object key", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint):
-    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL)
+def _(processor_client, webhook_endpoint, webhook_credentials):
+    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
 
 
 @then("the download is queued anyway")
@@ -283,3 +305,46 @@ def _(store):
 @then("it is queued for download")
 def _(store):
     assert store.lists(Job, kind="download")
+
+
+@when(
+    parsers.parse("the Recorder presents {credential} with an otherwise valid webhook"),
+    target_fixture="processor_response",
+)
+def _(processor_client, webhook_endpoint, credential):
+    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL, PRESENTED[credential])
+
+
+@then("the refusal does not repeat what was presented")
+def _(processor_response):
+    body = processor_response.get_data(as_text=True)
+    assert SPEC_TOKEN not in body
+    assert UNISSUED_TOKEN not in body
+
+
+@then("no Discovery is recorded")
+def _(store):
+    assert store.lists(Discovery) == []
+
+
+@then("no download is queued")
+def _(store):
+    assert store.lists(Job, kind="download") == []
+
+
+@given("the Processor has no bearer token configured", target_fixture="processor_client")
+def _(store):
+    return creates_app(store=store).test_client()
+
+
+@when(
+    "the Recorder sends a webhook presenting the token it holds",
+    target_fixture="processor_response",
+)
+def _(processor_client, webhook_endpoint, webhook_credentials):
+    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
+
+
+@then("the response body names the configuration that is missing")
+def _(processor_response):
+    assert WEBHOOK_TOKEN_VARIABLE in processor_response.get_data(as_text=True)
