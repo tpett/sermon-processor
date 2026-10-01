@@ -129,13 +129,6 @@ Feature: Rendering a segment's audio
       And the noise floor is not raised to a distracting level
       And the Segment is flagged "source was very quiet"
 
-    @manual
-    Scenario: The back catalogue will sound quieter than new output
-      # New files will be noticeably louder than everything published before,
-      # because the published archive sits between -23.9 and -29.9 LUFS.
-      Given the first Segment rendered under the new loudness target
-      Then a reviewer is told that output volume has changed relative to earlier files
-      And the option to re-render past Segments to match is available
 
   Rule: The MP3 matches what is already being shipped
 
@@ -174,26 +167,6 @@ Feature: Rendering a segment's audio
       And loudness normalization is still applied
       And the same single loudness treatment is applied
 
-  Rule: The back catalogue does not match the new output
-
-    @happy-path @measured
-    Scenario: Everything published before is quieter
-      # Measured: new output sits at -16.8 to -17.4 LUFS. Files published by hand
-      # run -23.9 to -29.9. Every new sermon will be 7 to 11 LU louder than
-      # anything before it — correct in isolation, and a step change in a feed
-      # played in sequence.
-      Given a Segment rendered under the current loudness target
-      And earlier published files sit 7 to 11 LU quieter
-      Then the difference is stated to the reviewer once, not on every render
-
-    @happy-path
-    Scenario: The archive can be brought into line unattended
-      # Every past boundary is already stored, so this needs no reviewer input.
-      Given past Segments with stored boundaries
-      When an operator re-renders the archive
-      Then each is re-rendered from its stored boundaries under the current target
-      And any whose source is no longer available fails individually and is reported
-      And the reviewer is not asked to approve anything again
 
   Rule: Rendering is deterministic
 

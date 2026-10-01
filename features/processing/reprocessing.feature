@@ -51,15 +51,6 @@ Feature: Re-cutting a completed segment
       And a new MP3 is produced with the new settings
       And the render settings used are recorded
 
-    @happy-path @assumption
-    Scenario: Re-rendering the back catalogue after settling the loudness target
-      # Q48 — if the target changes, older files will sit at a different volume
-      # than newer ones. Worth being able to bring them into line in one pass.
-      Given 20 Segments are "complete" under the previous loudness settings
-      When an operator re-renders them all
-      Then each is re-rendered from its stored boundaries
-      And no reviewer input is required
-      And any whose source is no longer available fails individually and is reported
 
     @happy-path
     Scenario: Renaming without re-rendering

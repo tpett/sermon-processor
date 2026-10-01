@@ -483,8 +483,24 @@ boundary in from beside the waveform` was added to
 `features/interface/punch_point_adjustment.feature` asserting where the control
 sits.
 
-Pins are now **34 files / 470 scenarios / 144 rules / 614 collected**, and
-`SPEC_STEPS` is 1942.
+On 2026-09-30 the product owner declined the back-catalogue work outright —
+"do nothing with teh old stuff" — and then authorised removing the scenarios that
+claimed it: "Yes you can cut those specs". Four went, because a scenario the owner
+has refused is not a backlog item, it is the spec asserting something untrue:
+`The back catalogue will sound quieter than new output` and the whole Rule `The
+back catalogue does not match the new output` with both its scenarios, from
+`features/processing/audio_rendering.feature`, and `Re-rendering the back
+catalogue after settling the loudness target` from
+`features/processing/reprocessing.feature`. That Rule emptied, so the Rule count
+moved too — the first time a pin has gone *down*.
+
+Deliberately kept, because they are not the back catalogue: `An archival segment
+is converted, not produced` (an archive-intent Segment is this week's members
+meeting, not an old file) and `Re-rendering after changing render settings` (one
+Segment, not a bulk pass).
+
+Pins are now **34 files / 466 scenarios / 143 rules / 610 collected**, and
+`SPEC_STEPS` is 1926.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
