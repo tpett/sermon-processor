@@ -214,11 +214,17 @@ Feature: Reviewing the waveform
       # Which second keystroke was asked again once the chords proved
       # unreliable: "Another option is to come up with different hotkeys that
       # wouldn't be problematic. Any thoughts based on industry standards of
-      # similar timeline based editing tools?" Minus and equals are the pair
-      # Premiere, Reaper and Ableton all step the timeline with, and no browser
-      # reserves either, so they lead. Fitting the whole recording is one
-      # keystroke of its own because stepping out to it is four presses
-      # otherwise, and it is the step a reviewer returns to most.
+      # similar timeline based editing tools?" They then picked one: "let's adopt
+      # Premiere Pro. You can leave the Audacity bindings though too. Audacity
+      # ergonomics are actually better ... nevertheless, the - and = keys will
+      # work reliably." So Premiere's minus and equals lead, Premiere's
+      # backslash fits the whole recording in one press rather than four, and
+      # the Audacity chords stay because the owner would rather use them.
+      #
+      # Minus and equals are characters, not chords, so the typing guard is
+      # load-bearing in a way it was not for the transport: a publication label
+      # reads "Hebrews 13.7-8" and a hyphen that zoomed instead of typing would
+      # make a verse range unexpressible.
       Then the keystrokes that zoom in and out are shown beside the zoom steps
       And the keystroke each direction leads with carries no modifier
       And each keystroke moves one named step rather than scaling smoothly

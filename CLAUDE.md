@@ -548,6 +548,15 @@ scenario beside it, because the behaviour is the one it already describes and
 only the keys differ. No scenario, Rule or file count moved; `SPEC_STEPS` moved
 by the two declared steps.
 
+Which keys was then settled by the owner rather than by us: "let's adopt
+Premiere Pro. You can leave the Audacity bindings though too. Audacity
+ergonomics are actually better (left handed with mouse in right hand whereas on
+my keyboard - is on the right side and = is on the left) nevertheless, the - and
+= keys will work reliably. Similar to spacebar we will need to make sure this
+works and inputs remain working". So Premiere's `-`, `=` and `\` lead, the
+Audacity digits and chords stay, and the Audacity chords are the preferred
+binding rather than a tolerated alias.
+
 Pins are now **34 files / 467 scenarios / 143 rules / 611 collected**, and
 `SPEC_STEPS` is 1930.
 
