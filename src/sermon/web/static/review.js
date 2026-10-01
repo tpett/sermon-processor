@@ -685,19 +685,30 @@ function zoomsBy(direction) {
   return chips[at].dataset.selected === "true" ? false : zoomsTo(chips[at]);
 }
 
-// Chrome, Safari and Firefox keep Cmd-1 and Cmd-3 for their own tabs and never
-// deliver them to a page, so the bare digits reach the same two steps.
 const ZOOM_KEYS = { 1: 1, 3: -1 };
 const SCRUB_KEYS = { ",": -1, ".": 1, "<": -1, ">": 1 };
 
+window.addEventListener(
+  "keydown",
+  (event) => {
+    if (!event.metaKey && !event.ctrlKey) return;
+    if (event.altKey || event.shiftKey || typingIn(event.target)) return;
+    const zoom = ZOOM_KEYS[event.key];
+    if (zoom === undefined) return;
+    event.preventDefault();
+    event.stopPropagation();
+    zoomsBy(zoom);
+  },
+  true
+);
+
 document.addEventListener("keydown", (event) => {
-  if (typingIn(event.target)) return;
+  if (typingIn(event.target) || event.metaKey || event.ctrlKey) return;
   const zoom = ZOOM_KEYS[event.key];
   if (zoom !== undefined) {
     if (zoomsBy(zoom)) event.preventDefault();
     return;
   }
-  if (event.metaKey || event.ctrlKey) return;
   const direction = SCRUB_KEYS[event.key];
   if (direction === undefined) return;
   const step = event.shiftKey ? 1 : event.altKey ? 0.05 : 0.1;
