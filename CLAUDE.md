@@ -532,8 +532,24 @@ requirement, so `Playing and pausing from the keyboard` was added to
 `features/interface/waveform_review.feature` under `Rule: I can listen to the
 audio`, asserting both the key and that the screen says when it is not taken.
 
+On 2026-10-01 they reported the zoom chords working only intermittently and
+asked for better keys: "The CMD-1 and CMD-3 ones still only work sometimes.
+Seems to be dependent on what part of the page I'm focused on. Any thoughts for
+fixing that? Another option is to come up with different hotkeys that wouldn't
+be problematic. Any thoughts based on industry standards of similar timeline
+based editing tools?"
+
+Half of that was a bug — the chord handler bailed out while focus sat in a
+field, which handed the chord back to the browser — and needed no spec change.
+The other half did: nothing said a zoom keystroke had to be one the browser
+would actually deliver, and nothing reached the whole recording in one press. So
+`Zooming in and out from the keyboard` grew two assertions rather than gaining a
+scenario beside it, because the behaviour is the one it already describes and
+only the keys differ. No scenario, Rule or file count moved; `SPEC_STEPS` moved
+by the two declared steps.
+
 Pins are now **34 files / 467 scenarios / 143 rules / 611 collected**, and
-`SPEC_STEPS` is 1928.
+`SPEC_STEPS` is 1930.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

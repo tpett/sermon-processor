@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1315 step definitions read from `tests/steps`
+- 1317 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 463 non-deferred scenarios rest on at least one condemned step
 - 0 of 604 expanded scenario tests likewise
@@ -57,7 +57,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 36 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 37 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 101 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 0 | sound |
@@ -328,10 +328,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:96 then it is processed using its stored boundaries`
 - `interface/segment_review.feature:97 then Analysis does not need to run again`
 - `interface/segment_review.feature:98 then the resulting MP3 is identical to what it would have been in August`
-- `interface/waveform_review.feature:312 given the configured model endpoint does not answer`
-- `interface/waveform_review.feature:313 then reviewing, adjusting and approving continue to work`
-- `interface/waveform_review.feature:314 then only the actions that need a model are shown as unavailable`
-- `interface/waveform_review.feature:315 then the reason names the endpoint rather than blaming the Recording`
+- `interface/waveform_review.feature:323 given the configured model endpoint does not answer`
+- `interface/waveform_review.feature:324 then reviewing, adjusting and approving continue to work`
+- `interface/waveform_review.feature:325 then only the actions that need a model are shown as unavailable`
+- `interface/waveform_review.feature:326 then the reason names the endpoint rather than blaming the Recording`
 - `notifications/approval_notifications.feature:171 then no further notifications are sent to them`
 - `notifications/approval_notifications.feature:172 then recordings still appear in the recordings list`
 - `notifications/approval_notifications.feature:37 given no delivery channel is configured`

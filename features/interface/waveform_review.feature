@@ -210,8 +210,19 @@ Feature: Reviewing the waveform
       # respectively." Some browsers keep those two chords for their own tabs and
       # never hand them to a page, so a second keystroke reaches each direction
       # as well rather than the asked-for one being quietly substituted.
+      #
+      # Which second keystroke was asked again once the chords proved
+      # unreliable: "Another option is to come up with different hotkeys that
+      # wouldn't be problematic. Any thoughts based on industry standards of
+      # similar timeline based editing tools?" Minus and equals are the pair
+      # Premiere, Reaper and Ableton all step the timeline with, and no browser
+      # reserves either, so they lead. Fitting the whole recording is one
+      # keystroke of its own because stepping out to it is four presses
+      # otherwise, and it is the step a reviewer returns to most.
       Then the keystrokes that zoom in and out are shown beside the zoom steps
+      And the keystroke each direction leads with carries no modifier
       And each keystroke moves one named step rather than scaling smoothly
+      And one keystroke reaches the whole recording from any step
       And changing the zoom leaves the playhead where it was
 
   Rule: The readout says where the boundaries are, never how right they are
