@@ -218,12 +218,20 @@ def test_every_admitted_pair_satisfies_the_labelled_rule(store, recorded):
             alignment="cannot be aligned",
         )
     )
-    store.saves(aligned(classification="seminar", covers_more_than_95_percent=True))
+    store.saves(
+        aligned(
+            classification="seminar",
+            punch_in_seconds=100.0,
+            punch_out_seconds=SOURCE_SECONDS,
+            covers_more_than_95_percent=True,
+        )
+    )
     assert len(store.lists(CorpusPair, recording_id=RECORDING_ID)) == 4
-    admitted = {held["punch_in"] for held in reads(store)["segments"]}
-    assert admitted == {
+    admitted = [held["punch_in"] for held in reads(store)["segments"]]
+    assert admitted == [
         pair.punch_in_seconds for pair in store.lists(CorpusPair) if pair.labelled
-    }
+    ]
+    assert admitted == [PUNCH_IN]
 
 
 def ground_truth(tmp_path):

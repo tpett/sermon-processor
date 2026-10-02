@@ -51,8 +51,8 @@ class ReadsLabelledFromStore:
             return None
         return {
             "recording_id": recording_id,
-            "desktop_label": self.displays(recording_id),
-            "source_duration": self.duration_of(recording_id),
+            "desktop_label": self._displays(recording_id),
+            "source_duration": self._joins_duration(recording_id),
             "segments": [
                 {
                     "punch_in": pair.punch_in_seconds,
@@ -64,7 +64,7 @@ class ReadsLabelledFromStore:
             ],
         }
 
-    def displays(self, recording_id):
+    def _displays(self, recording_id):
         published = [
             held.label
             for held in self.store.lists(Segment, recording_id=recording_id)
@@ -72,7 +72,7 @@ class ReadsLabelledFromStore:
         ]
         return published[0] if published else recording_id
 
-    def duration_of(self, recording_id):
+    def _joins_duration(self, recording_id):
         source = self.store.loads(Recording, recording_id)
         return None if source is None else source.duration_seconds
 
@@ -92,9 +92,8 @@ class ArchivesRatherThanCuts:
     coverage: float = ARCHIVE_WHOLE_COVERAGE
 
     def __call__(self, recording_id):
-        labelled = (self.reads or ReadsLabelledFromFile(ground_truth=self.ground_truth))(
-            recording_id
-        )
+        reads = self.reads or ReadsLabelledFromFile(ground_truth=self.ground_truth)
+        labelled = reads(recording_id)
         if labelled is None:
             return False
         source = float(labelled.get("source_duration") or 0.0)
@@ -112,9 +111,8 @@ class MeasuresBoundaryError:
     reads: object | None = None
 
     def __call__(self, recording_id, proposed):
-        labelled = (self.reads or ReadsLabelledFromFile(ground_truth=self.ground_truth))(
-            recording_id
-        )
+        reads = self.reads or ReadsLabelledFromFile(ground_truth=self.ground_truth)
+        labelled = reads(recording_id)
         if labelled is None:
             return ()
         return tuple(
