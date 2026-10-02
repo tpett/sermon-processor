@@ -1,3 +1,79 @@
+## The guards cannot see the seam the bead named (2026-10-02, `sp-vaw`, closed)
+
+Two results, and the second matters more than the work.
+
+### The validation exists and moves nothing
+
+`classify.edges_inside_speech` and `classify.word_spans` are pure and need no
+injected root; `RecordsEdgesInsideSpeech` writes one `LogEntry` per flagged edge
+on the shipping path, `kind="block_edge_inside_speech"`, no new column and no
+migration. Only edges on a block that can seed a Segment are logged -- 763 of
+2848 edges (26.8%) are mid-word corpus-wide, but only 4-5 per dev config can
+reach a cut, so flagging all of them would bury the ones that matter.
+`coerce_blocks`'s return value is deliberately unchanged, so neither fingerprint
+moved.
+
+### `sermon-regrade --before` cannot see a change at this seam. At all.
+
+The bead's acceptance was "measured by `sermon-regrade --before` against the
+pre-change fingerprint with zero degraded cuts". I shifted **every block edge by
++30 seconds** inside `coerce_blocks` on the shipping path and ran the guards:
+
+```
+sermon-regrade --corpus experiments/data --before <fingerprint>
+    147 proposals graded, 318 cut points, 0 moved: 0 improved, 0 degraded   exit 0
+pytest tests/test_pipeline_library.py        129 passed, 2 skipped
+pytest tests/test_pipeline_behaviour.py      3 failed      <-- the only one that noticed
+```
+
+Both blind guards re-derive from the **stored** block files, and those already
+hold **post-coerce** blocks: `DerivesStoredSegments` reads `stored["blocks"]` →
+`derive` → `choose`, so `coerce_blocks` never executes. The acceptance criterion
+was satisfied **vacuously**, and would be for any pre-derive change.
+`tests/pipeline_behaviour_fingerprint.json` is the only instrument with real
+coverage here. Filed as `sp-glwk` (P1): an acceptance criterion must not be able
+to cite a blind guard again.
+
+### The premise was wrong, measured
+
+Over the 107 shipping-tag seeding block starts that pair to a human cut:
+
+| block start | n | `same_run` | median speech-s to human |
+|---|---|---|---|
+| inside a word | 26 | **0 / 26** | **0.448** |
+| clear of speech | 81 | 16 / 81 | 0.961 |
+
+Mid-word starts are **nearer** the human by median, and their `same_run` is 0 **by
+construction** -- a cut inside a word is in no silence run, so it can never be in
+the human's. "Falls inside speech" selects edges that are good in seconds and
+unscoreable as cuts. Both docstrings now say the entry is a record, not a verdict.
+
+A fourth correction was measured (move a mid-word edge to its word's boundary):
+5 moved, 4 improved, 1 degraded -- and the one degradation is the `sp-amgn` tie
+bug, not a regression. No correction survives zero-degraded.
+
+### The defect was somewhere else entirely, and I named the wrong cause twice
+
+I told the owner the plausibility band judged the model's edge implausible. False:
+the model's segment is 4151.9 → 7600.8 = **57.5 min, inside the 30-75 min band**.
+The band rejected nothing.
+
+The real mechanism, traced to a line: `jobs/analyzes_recording.py:174-175` calls
+`RefinesPunchIn/Out` with **no `chooses=`**; `stages.py` then builds a bare
+`ChoosesBoundaries()`, whose `model_segments` defaults to `()`. So the shipping
+walk runs `choose([], derived, doc)` -- the model's answer was never in the room,
+and the punch-in can only come from `refine_in`. `ProposesFromStoredTranscript` is
+the only caller that passes them.
+
+```
+shipping analyze walk        4160.210  'refined'             4.360 speech-seconds out
+sermon-corpus (passes them)  4151.900  model-in/refined-out  0.030 speech-seconds out
+```
+
+Same recording, same answer key; the only difference is whether the caller carried
+`model_segments`. That is `sp-atw`, now P1 and confirmed on the shipping path
+rather than latent.
+
 ## The measurement loop is closed, and refinement is the defect (2026-10-02, `sp-pu2.2` + `sp-i1a`)
 
 `recording_20260920_094416` went from no stored transcript to a graded cut, and
