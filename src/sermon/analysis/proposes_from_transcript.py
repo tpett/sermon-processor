@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from sermon.analysis.io import writes_json
+from sermon.analysis.records_edges_inside_speech import RecordsEdgesInsideSpeech
 from sermon.analysis.stages import (
     ClassifiesBlocks,
     DividesIntoBlocks,
@@ -166,6 +167,7 @@ class ProposesFromStoredTranscript:
         writes_json(self.store, recording, "transcript", doc)
         recording = TranscribesRecording(store=self.store)(recording)
         answer = (self.reasons or ReasonsOverTranscript(self.model))(doc)
+        RecordsEdgesInsideSpeech(store=self.store)(recording, answer["blocks"], doc)
         DividesIntoBlocks(store=self.store, divides=lambda _: answer["blocks"])(recording)
         ClassifiesBlocks(store=self.store)(recording)
         if self.summarizer:

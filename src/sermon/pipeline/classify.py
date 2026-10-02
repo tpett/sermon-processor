@@ -135,7 +135,12 @@ def call_json(model: str, prompt: str, think: bool = False) -> tuple[dict | None
 
 
 def coerce_blocks(raw: dict, doc: dict) -> list[dict]:
-    """Clamp a model's blocks into the contiguous, in-range shape we require."""
+    """Clamp a model's blocks into the contiguous, in-range shape we require.
+
+    Shape only: an edge is never moved towards a pause, so a model that ended a
+    block mid-word still ends it mid-word. `edges_inside_speech` is what reports
+    that.
+    """
     out = []
     for b in raw.get("blocks", []) or []:
         try:
@@ -154,6 +159,34 @@ def coerce_blocks(raw: dict, doc: dict) -> list[dict]:
         if out[i]["start"] < out[i - 1]["end"]:
             out[i]["start"] = out[i - 1]["end"]
     return [b for b in out if b["end"] > b["start"]]
+
+
+def word_spans(doc: dict) -> list[tuple[float, float]]:
+    return sorted(
+        (float(w["start"]), float(w["end"]))
+        for u in doc.get("utterances") or ()
+        for w in (u.get("words") or ())
+    )
+
+
+def edges_inside_speech(blocks: list[dict], doc: dict) -> tuple[dict, ...]:
+    """Which of these block edges land in the middle of a spoken word.
+
+    A transcript without word timings reports nothing, because no edge can be
+    placed or faulted against it.
+    """
+    spoken = word_spans(doc)
+    found = []
+    for index, block in enumerate(blocks):
+        for edge in ("start", "end"):
+            at = float(block[edge])
+            for starts, ends in spoken:
+                if starts < at < ends:
+                    found.append({"block": index, "edge": edge, "at": at,
+                                  "word_start": starts, "word_end": ends,
+                                  "type": str(block.get("type", "other"))})
+                    break
+    return tuple(found)
 
 
 def run_whole(model: str, doc: dict, think: bool = False) -> dict:

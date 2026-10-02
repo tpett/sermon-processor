@@ -32,6 +32,7 @@ from sermon.store import (
     Notification,
     Proposal,
     Recording,
+    LogEntry,
     Reviewer,
     Segment,
     opens_store,
@@ -374,3 +375,28 @@ def test_draining_the_analyze_job_takes_the_job_for_the_recording_it_was_asked_a
         other: "queued",
         recording_id: "succeeded",
     }
+
+
+EDGE_INSIDE_SPEECH = "block_edge_inside_speech"
+
+
+def edges_logged(store, recording_id):
+    return sorted(
+        entry.punch_in_seconds
+        for entry in store.lists(LogEntry, recording_id=recording_id)
+        if entry.kind == EDGE_INSIDE_SPEECH
+    )
+
+
+@spike_data_required
+def test_a_seeding_block_edge_that_lands_inside_a_word_is_logged(store):
+    recording_id = "recording_20260412_102318"
+    answer, _ = proposes(store, recording_id)
+    assert edges_logged(store, recording_id) == [2021.0]
+
+
+@spike_data_required
+def test_an_edge_inside_a_word_on_a_block_that_cannot_seed_a_segment_is_not_logged(store):
+    recording_id = "recording_20260510_102947"
+    proposes(store, recording_id)
+    assert edges_logged(store, recording_id) == []
