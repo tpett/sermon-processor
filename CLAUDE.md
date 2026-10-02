@@ -128,6 +128,8 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-regrade --corpus experiments/data   # grade every proposal against the human cut
 .venv/bin/sermon-regrade --corpus experiments/data --before tests/pipeline_boundary_fingerprint.json
 .venv/bin/sermon-regrade --corpus experiments/data --store ./data  # grade against the stored corpus
+.venv/bin/sermon-approvals   # the headline: what fraction was approved untouched
+.venv/bin/sermon-approvals --since 2026-09-01 --until 2026-09-30
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
 .venv/bin/sermon-align recording_20260927_095721 "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.mp3" \
     --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
@@ -231,6 +233,24 @@ the archived-whole exclusion is keyed on `duration_seconds`.
 look at the shipping `*.whole.v2` configs alone. It reads the corpus and writes
 nothing to it, sends no audio anywhere, and invokes neither a transcriber nor a
 classifier, so it needs no `.env` and no model host.
+
+`sermon-approvals` prints the owner's headline measure: of the Segments
+published in a period, the fraction approved with no boundary edit. The period
+**defaults to all time**, because at one recording a week a calendar month is
+usually empty and the whole record is still only a handful of cuts; `--since`
+and `--until` take ISO dates and either may stand alone. It reads the store and
+nothing else — no corpus, no object store, no model host — so it needs only
+`SERMON_DATA_ROOT`, and `--store <data-root>` points it at another root.
+
+**It exits non-zero when the period published nothing**, saying there is no rate
+rather than printing 0%: the proportion is undefined over an empty period, and a
+zero would read as every cut having been edited. The summary names the
+denominator beside the proportion, because a rate over two cuts is not a trend.
+Each published cut is listed with whether the reviewer moved its boundaries and,
+where they did, the signed error of the machine's proposal against the boundary
+they chose. **An untouched cut carries no error figure and says so** — there is
+no human answer to subtract, and a printed 0.000 would be the system scoring
+itself.
 
 `sermon-analyze` is `sermon-propose` without the corpus grading and with the
 store the server reads: it registers the Recording from the stored transcript,

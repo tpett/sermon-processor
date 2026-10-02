@@ -22,6 +22,7 @@ from sermon.analysis.aligns_edit import (
     reads_duration,
 )
 from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
+from sermon.analysis.reports_approval_rate import ReportsApprovalRate
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.analysis.grades_cut_accuracy import GradesCorpusAccuracy
@@ -1228,3 +1229,92 @@ def regrades(arguments=None, prints=print, derives=None):
     finally:
         if store is not None:
             store.close()
+
+
+APPROVALS_USAGE = (
+    "sermon-approvals [--since <YYYY-MM-DD>] [--until <YYYY-MM-DD>] [--store <data-root>]"
+)
+ALL_TIME = "all time"
+
+
+def parses_approvals_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-approvals", usage=APPROVALS_USAGE, add_help=True)
+    parser.add_argument("--since", type=date.fromisoformat)
+    parser.add_argument("--until", type=date.fromisoformat)
+    parser.add_argument("--store")
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {APPROVALS_USAGE}")
+        return None
+
+
+def names_period(since, until):
+    if since is None and until is None:
+        return ALL_TIME
+    if since is None:
+        return f"up to {until.isoformat()}"
+    if until is None:
+        return f"from {since.isoformat()} onward"
+    return f"{since.isoformat()} to {until.isoformat()}"
+
+
+def reports_published_cut(cut, prints):
+    prints(
+        f"{cut.recording_id}  {cut.classification:<8} {cut.published_on.isoformat()}  "
+        f"{'edited' if cut.edited else 'unedited'}"
+    )
+    if cut.punch_in_error_seconds is None and cut.punch_out_error_seconds is None:
+        prints(
+            "  no error figure: "
+            + (
+                "nothing the machine proposed is on record"
+                if cut.edited
+                else "the reviewer moved nothing, so there is no human answer to subtract"
+            )
+        )
+        return
+    prints(f"  punch-in   error {cut.punch_in_error_seconds:+8.3f} s")
+    prints(f"  punch-out  error {cut.punch_out_error_seconds:+8.3f} s")
+
+
+def reports_rate(rate, prints):
+    for cut in rate.cuts:
+        reports_published_cut(cut, prints)
+    if rate.proportion is None:
+        prints("nothing was published in that period, so there is no rate to report")
+        return 1
+    prints(
+        f"{rate.published} Segment{'' if rate.published == 1 else 's'} published, "
+        f"{len(rate.approved_with_no_edit)} approved with no boundary edit: "
+        f"{rate.proportion:.0%}"
+    )
+    return 0
+
+
+def reports_approvals(settings=None, arguments=None, prints=print):
+    """Print the fraction of a period's published Segments approved with no boundary edit.
+
+    Reads the store and nothing else: no corpus, no object store, no model host.
+    """
+    asked = parses_approvals_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    settings = resolves_settings() if settings is None else settings
+    configured = settings.get(DATA_ROOT)
+    if not asked.store and not configured:
+        prints(f"nothing sets {DATA_ROOT}")
+        return 1
+    data_root = Path(asked.store).resolve() if asked.store else Path(configured)
+    try:
+        store = opens_store(data_root)
+    except StoredSchemaDiffers as stale:
+        prints(str(stale))
+        return 1
+    try:
+        prints(f"reading approvals from {data_root}, {names_period(asked.since, asked.until)}")
+        return reports_rate(
+            ReportsApprovalRate(store=store)(since=asked.since, until=asked.until), prints
+        )
+    finally:
+        store.close()
