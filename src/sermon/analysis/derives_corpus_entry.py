@@ -81,6 +81,7 @@ class DerivesCorpusEntry:
         return CorpusEntry(transcript=transcript, blocks=recorded, chosen=tuple(chosen))
 
     def _chooses(self, blocks, model_segments, doc):
+        segments.DATA_ROOT = Path(self.corpus_root)
         segments._EDGE_CACHE.clear()
         return segments.choose(model_segments, segments.derive(blocks, doc), doc)
 
