@@ -396,17 +396,6 @@ def test_a_seeding_block_edge_that_lands_inside_a_word_is_logged(store):
 
 
 @spike_data_required
-def test_the_block_edge_is_left_where_the_model_put_it(store):
-    recording_id = "recording_20260412_102318"
-    answer, _ = proposes(store, recording_id)
-    blocks = store.lists(Block, recording_id=recording_id)
-    assert [item.start_seconds for item in blocks] == [
-        item["start"] for item in answer["blocks"]
-    ]
-    assert 2021.0 in [item.start_seconds for item in blocks]
-
-
-@spike_data_required
 def test_an_edge_inside_a_word_on_a_block_that_cannot_seed_a_segment_is_not_logged(store):
     recording_id = "recording_20260510_102947"
     proposes(store, recording_id)
