@@ -25,7 +25,10 @@ from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.analysis.grades_cut_accuracy import GradesCorpusAccuracy
-from sermon.analysis.measures_boundary_error import ReadsLabelledFromStore
+from sermon.analysis.measures_boundary_error import (
+    ReadsLabelledFromFile,
+    ReadsLabelledFromStore,
+)
 from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals, RegradesStoredCuts
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
@@ -736,7 +739,9 @@ def proposes(settings=None, prints=print):
         return 1
     BindsModelEndpoint(configuration=configuration)()
     store = opens_store(Path(asked.store).resolve() if asked.store else configuration.data_root)
-    measures = MeasuresBoundaryError(ground_truth=corpus / "groundtruth.json")
+    measures = MeasuresBoundaryError(
+        reads=ReadsLabelledFromFile(ground_truth=corpus / "groundtruth.json")
+    )
     found = 0
     wanted = 0
     try:
