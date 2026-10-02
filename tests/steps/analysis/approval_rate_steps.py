@@ -1,11 +1,11 @@
 from datetime import UTC, date, datetime
 
-import pytest
 from pytest_bdd import then
 
 from sermon.adjusts_punch_point import AdjustsPunchPoint
-from sermon.analysis.reports_approval_rate import ReportsApprovalRate
 from sermon.approves_segment import ApprovesSegment
+from sermon.cli import reports_approvals
+from sermon.config import DATA_ROOT
 from sermon.store import CorpusPair, Recording, Segment
 
 SINCE = date(2026, 9, 1)
@@ -15,8 +15,12 @@ MACHINE_CUT = (3060.0, 5594.5)
 REVIEWER_CUT = (3055.0, 5597.3)
 
 
-def reports(store):
-    return ReportsApprovalRate(store=store)(SINCE, UNTIL)
+def surfaces(tmp_path, *period):
+    collected = []
+    reports_approvals(
+        settings={DATA_ROOT: str(tmp_path)}, arguments=list(period), prints=collected.append
+    )
+    return "\n".join(collected)
 
 
 def proposes(store, recording_id, published_on):
@@ -62,10 +66,10 @@ def publishes_one_untouched_and_one_edited(store):
     approves(store, moved)
 
 
-def published_period(store):
-    if not reports(store).cuts:
+def surfaced_period(store, tmp_path):
+    if not store.lists(Segment, intent="publish"):
         publishes_one_untouched_and_one_edited(store)
-    return reports(store)
+    return surfaces(tmp_path, "--since", SINCE.isoformat(), "--until", UNTIL.isoformat())
 
 
 def dispositioned(store):
@@ -73,13 +77,13 @@ def dispositioned(store):
 
 
 @then("it counts toward the proportion approved with no edit")
-def _(store):
-    rate = ReportsApprovalRate(store=store)()
-    assert [cut.segment_id for cut in rate.cuts] == [
-        segment.segment_id for segment in dispositioned(store)
-    ]
-    assert rate.approved_with_no_edit == rate.cuts
-    assert rate.proportion == 1.0
+def _(store, tmp_path):
+    printed = surfaces(tmp_path)
+    assert [segment.recording_id for segment in dispositioned(store)]
+    for segment in dispositioned(store):
+        assert f"{segment.recording_id}  {segment.classification:<8}" in printed
+    assert "unedited" in printed
+    assert "1 Segment published, 1 approved with no boundary edit: 100%" in printed
 
 
 @then("it does not become a labelled example")
@@ -101,24 +105,16 @@ def _(store):
     "the headline measure is the proportion of a period's published Segments "
     "approved with no boundary edit"
 )
-def _(store):
-    rate = published_period(store)
-    assert (rate.since, rate.until) == (SINCE, UNTIL)
-    assert rate.published == 2
-    assert [cut.edited for cut in rate.cuts] == [False, True]
-    assert rate.proportion == 0.5
+def _(store, tmp_path):
+    printed = surfaced_period(store, tmp_path)
+    assert f"{SINCE.isoformat()} to {UNTIL.isoformat()}" in printed
+    assert "2 Segments published, 1 approved with no boundary edit: 50%" in printed
 
 
 @then("it is reported alongside the raw error figures, not replaced by them")
-def _(store):
-    rate = published_period(store)
-    assert rate.proportion == 0.5
-    assert [
-        (cut.punch_in_error_seconds, cut.punch_out_error_seconds) for cut in rate.cuts
-    ] == [
-        (None, None),
-        (
-            pytest.approx(MACHINE_CUT[0] - REVIEWER_CUT[0]),
-            pytest.approx(MACHINE_CUT[1] - REVIEWER_CUT[1]),
-        ),
-    ]
+def _(store, tmp_path):
+    printed = surfaced_period(store, tmp_path)
+    assert "2 Segments published, 1 approved with no boundary edit: 50%" in printed
+    assert "punch-in   error   +5.000 s" in printed
+    assert "punch-out  error   -2.800 s" in printed
+    assert "no error figure" in printed
