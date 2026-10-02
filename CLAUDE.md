@@ -250,7 +250,10 @@ Each published cut is listed with whether the reviewer moved its boundaries and,
 where they did, the signed error of the machine's proposal against the boundary
 they chose. **An untouched cut carries no error figure and says so** — there is
 no human answer to subtract, and a printed 0.000 would be the system scoring
-itself.
+itself. **A published Segment carrying no `publication_date` is in no period at
+all**, so those are counted on their own line rather than vanishing: that is the
+state all four of production's published Segments are in, and without the line
+the command would report nothing published and give no hint why.
 
 `sermon-analyze` is `sermon-propose` without the corpus grading and with the
 store the server reads: it registers the Recording from the stored transcript,

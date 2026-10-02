@@ -133,3 +133,24 @@ def test_an_untouched_cut_carries_no_error_figures_because_there_is_no_human_ans
     assert [
         (cut.punch_in_error_seconds, cut.punch_out_error_seconds) for cut in rate.cuts
     ] == [(None, None)]
+
+
+def test_a_published_segment_carrying_no_publication_date_falls_in_no_period(store):
+    approves(store, proposed(store, "recording_20260920_094416", None))
+    approves(store, proposed(store, "recording_20260913_090014", SUNDAY))
+    rate = ReportsApprovalRate(store=store)()
+    assert rate.published == 1
+    assert rate.unplaced == 1
+    assert rate.proportion == 1.0
+
+
+def test_a_period_holding_only_unplaced_publications_still_has_no_proportion(store):
+    approves(store, proposed(store, "recording_20260920_094416", None))
+    rate = ReportsApprovalRate(store=store)()
+    assert (rate.published, rate.unplaced) == (0, 1)
+    assert rate.proportion is None
+
+
+def test_a_segment_nobody_published_is_not_counted_as_unplaced(store):
+    proposed(store, "recording_20260927_095721", None)
+    assert ReportsApprovalRate(store=store)().unplaced == 0

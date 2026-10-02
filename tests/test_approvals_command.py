@@ -137,6 +137,15 @@ def test_a_period_in_which_nothing_was_published_reports_no_rate_and_exits_non_z
     assert "0%" not in printed
 
 
+def test_a_published_segment_carrying_no_publication_date_is_counted_as_unplaced(tmp_path):
+    store = store_for(tmp_path)
+    publishes_untouched(store, "recording_20260920_094416", None)
+    store.close()
+    code, printed = runs(tmp_path)
+    assert code == 1
+    assert "1 published Segment carries no publication date and is in no period" in printed
+
+
 def test_the_store_flag_reads_a_data_root_other_than_the_configured_one(tmp_path):
     elsewhere = tmp_path / "elsewhere"
     store = opens_store(data_root=elsewhere)

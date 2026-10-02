@@ -1281,6 +1281,15 @@ def reports_published_cut(cut, prints):
 def reports_rate(rate, prints):
     for cut in rate.cuts:
         reports_published_cut(cut, prints)
+    if rate.unplaced:
+        prints(
+            f"{rate.unplaced} published Segment"
+            + (
+                " carries no publication date and is in no period"
+                if rate.unplaced == 1
+                else "s carry no publication date and are in no period"
+            )
+        )
     if rate.proportion is None:
         prints("nothing was published in that period, so there is no rate to report")
         return 1

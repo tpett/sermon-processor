@@ -31,6 +31,7 @@ class ApprovalRate:
     since: date | None
     until: date | None
     cuts: tuple[PublishedCut, ...]
+    unplaced: int = 0
 
     @property
     def published(self) -> int:
@@ -52,6 +53,9 @@ class ReportsApprovalRate:
     store: Store
 
     def __call__(self, since=None, until=None):
+        published = [
+            segment for segment in self.store.lists(Segment) if self.dispositioned(segment)
+        ]
         return ApprovalRate(
             since=since,
             until=until,
@@ -59,17 +63,19 @@ class ReportsApprovalRate:
                 sorted(
                     (
                         self.reads(segment)
-                        for segment in self.store.lists(Segment)
-                        if self.published_between(segment, since, until)
+                        for segment in published
+                        if self.placed_between(segment, since, until)
                     ),
                     key=lambda cut: (cut.published_on, cut.segment_id),
                 )
             ),
+            unplaced=sum(1 for segment in published if segment.publication_date is None),
         )
 
-    def published_between(self, segment, since, until):
-        if segment.intent != FOR_PUBLICATION or segment.state not in PUBLISHED_STATES:
-            return False
+    def dispositioned(self, segment):
+        return segment.intent == FOR_PUBLICATION and segment.state in PUBLISHED_STATES
+
+    def placed_between(self, segment, since, until):
         if segment.publication_date is None:
             return False
         if since is not None and segment.publication_date < since:
