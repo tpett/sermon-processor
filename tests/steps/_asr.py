@@ -34,8 +34,8 @@ UTTERANCE_PERIOD_S = 12.0
 PHRASE = ("and", "he", "said", "to", "them", "let", "us", "pray", "amen", "brothers")
 
 
-def stand_in_seconds(window):
-    return len(window) / STAND_IN_RATE
+def stand_in_seconds(window, rate=STAND_IN_RATE):
+    return len(window) / rate
 
 
 class StatedAudio(DecodedAudio):
@@ -97,13 +97,14 @@ class RecognizesSteadily:
     words_per_second: float = SPEECH_WORDS_PER_S
     logprob: float = CLEAR_LOGPROB
     language: str = "en"
+    rate: int = STAND_IN_RATE
     windows: list = field(default_factory=list)
 
     def where(self):
         return "a stand-in recogniser"
 
     def __call__(self, window, language="en"):
-        seconds = stand_in_seconds(window)
+        seconds = stand_in_seconds(window, self.rate)
         self.windows.append(seconds)
         return Recognized(
             utterances=utterances_across(seconds, self.words_per_second, self.logprob),

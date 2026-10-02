@@ -3,15 +3,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from steps._asr import RecognizesSteadily
 
+from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
+from sermon.analysis.transcribes_audio import SAMPLE_RATE, TranscribesAudio
 from sermon.config import Credential
 from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
 from sermon.jobs.renders_mp3 import RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
+from sermon.pipeline import classify, segments
 from sermon.sends_notification import SendsNotification
-from sermon.store import Artifact, Reviewer, Segment, opens_store
+from sermon.store import Artifact, Reviewer, Segment, layout, opens_store
 from sermon.web import creates_app
 
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
@@ -20,11 +24,27 @@ WEBHOOK_TOKEN_VALUE = "the-token-only-the-spec-suite-issues"
 SERMON = RecordingContents(segments=(("sermon", 0.5, 2.5),))
 
 
+def divides_into_one_sermon(doc):
+    return [{"start": 0.0, "end": doc["duration"], "type": "sermon", "confidence": 0.9}]
+
+
 @pytest.fixture
 def store(tmp_path):
     opened = opens_store(tmp_path)
     yield opened
     opened.close()
+
+
+@pytest.fixture
+def injected_roots(tmp_path):
+    held = (classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
+    layout.diarization_root(tmp_path).mkdir(parents=True, exist_ok=True)
+    BindsCorpusRoots(
+        corpus_root=layout.corpus_root(tmp_path),
+        prompts_root=Path(__file__).resolve().parents[1] / "experiments/prompts",
+    )()
+    yield
+    classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
 
 
 def writes_tone(path: Path):
@@ -63,6 +83,10 @@ def queued_worker(store, fetches):
             notifies=SendsNotification(store=store),
             contents=SERMON,
             clock=lambda: FROZEN,
+            transcribes=TranscribesAudio(
+                store=store, engine=RecognizesSteadily(rate=SAMPLE_RATE)
+            ),
+            divides=divides_into_one_sermon,
         ),
         renders=RunsRenderJob(
             store=store,
@@ -74,7 +98,7 @@ def queued_worker(store, fetches):
     )
 
 
-def test_webhook_to_named_mp3(store, tmp_path):
+def test_webhook_to_named_mp3(store, tmp_path, injected_roots):
     tone = tmp_path / "tone.flac"
     writes_tone(tone)
     fetches = FetchesObject()
@@ -110,7 +134,7 @@ def test_webhook_to_named_mp3(store, tmp_path):
     assert approved.status_code == 200
     worker()
     artifacts = store.lists(Artifact, kind="rendered_mp3")
-    assert artifacts[0].path == "2026-08-23 - Hebrews 12.4-11.mp3"
+    assert artifacts[0].path == layout.published_path("2026-08-23 - Hebrews 12.4-11.mp3")
     rendered = store.resolves(artifacts[0])
     assert rendered.is_file()
     assert artifacts[0].size_bytes > 1000
