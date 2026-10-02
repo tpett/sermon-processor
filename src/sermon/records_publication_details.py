@@ -6,6 +6,10 @@ from datetime import date
 from sermon.store import Artifact, Store, layout
 
 
+def places_publication_date(segment, recording):
+    return segment.publication_date or recording.started_at.date()
+
+
 def names_rendered_mp3(published_on, label=None):
     day = published_on.isoformat() if hasattr(published_on, "isoformat") else str(published_on)
     if not label:
@@ -33,7 +37,7 @@ class RecordsPublicationDetails:
 
     def opens(self, segment, recording):
         return PublicationForm(
-            date=segment.publication_date or recording.started_at.date(),
+            date=places_publication_date(segment, recording),
             label=segment.label or "",
         )
 

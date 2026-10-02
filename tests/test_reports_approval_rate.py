@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 import pytest
@@ -54,6 +55,10 @@ def proposed(store, recording_id, published_on=SUNDAY, **fields):
 
 def approves(store, segment):
     return ApprovesSegment(store=store, clock=lambda: FROZEN)(segment)
+
+
+def published_before_approval_placed_it(store, recording_id):
+    return store.saves(replace(proposed(store, recording_id, None), state="complete"))
 
 
 def adjusted(store, recording_id, published_on=SUNDAY, punch_in=3055.0, punch_out=5597.3):
@@ -136,7 +141,7 @@ def test_an_untouched_cut_carries_no_error_figures_because_there_is_no_human_ans
 
 
 def test_a_published_segment_carrying_no_publication_date_falls_in_no_period(store):
-    approves(store, proposed(store, "recording_20260920_094416", None))
+    published_before_approval_placed_it(store, "recording_20260920_094416")
     approves(store, proposed(store, "recording_20260913_090014", SUNDAY))
     rate = ReportsApprovalRate(store=store)()
     assert rate.published == 1
@@ -145,7 +150,7 @@ def test_a_published_segment_carrying_no_publication_date_falls_in_no_period(sto
 
 
 def test_a_period_holding_only_unplaced_publications_still_has_no_proportion(store):
-    approves(store, proposed(store, "recording_20260920_094416", None))
+    published_before_approval_placed_it(store, "recording_20260920_094416")
     rate = ReportsApprovalRate(store=store)()
     assert (rate.published, rate.unplaced) == (0, 1)
     assert rate.proportion is None

@@ -8,7 +8,7 @@ from sermon.jobs.renders_mp3 import (
     reads_source_channel,
     refuses_unsettled_stereo,
 )
-from sermon.records_publication_details import names_rendered_mp3
+from sermon.records_publication_details import names_rendered_mp3, places_publication_date
 from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store, layout
 
 
@@ -76,10 +76,9 @@ class RendersSegment:
             )
             raise StepFailed(step, str(error)) from error
         recording = self.store.loads(Recording, processing.recording_id)
-        published_on = processing.publication_date
-        if published_on is None:
-            published_on = recording.started_at.date()
-        filename = names_rendered_mp3(published_on, processing.label)
+        filename = names_rendered_mp3(
+            places_publication_date(processing, recording), processing.label
+        )
         warnings = list(processing.warnings)
         if recording.integrated_loudness_lufs is not None and recording.integrated_loudness_lufs <= -30:
             if "source was very quiet" not in warnings:

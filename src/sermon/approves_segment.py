@@ -5,8 +5,9 @@ from datetime import UTC, datetime
 
 from sermon.analysis.adds_approval_to_corpus import AddsApprovalToCorpus
 from sermon.jobs.enqueues_job import EnqueuesJob
+from sermon.records_publication_details import places_publication_date
 from sermon.settles_recording import SettlesRecording
-from sermon.store import Job, LogEntry, Store
+from sermon.store import Job, LogEntry, Recording, Store
 
 
 class SegmentNotReady(ValueError):
@@ -45,7 +46,14 @@ class ApprovesSegment:
             raise PublicationLabelRequired("a publication label is required")
         occurred = self.clock()
         approved = self.store.saves(
-            replace(segment, state="approved", disposition_at=occurred)
+            replace(
+                segment,
+                state="approved",
+                disposition_at=occurred,
+                publication_date=places_publication_date(
+                    segment, self.store.loads(Recording, segment.recording_id)
+                ),
+            )
         )
         self.store.saves(
             LogEntry(

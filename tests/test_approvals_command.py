@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 from sermon.adjusts_punch_point import AdjustsPunchPoint
@@ -47,6 +48,10 @@ def proposed(store, recording_id, published_on, **fields):
             **fields,
         )
     )
+
+
+def published_before_approval_placed_it(store, recording_id):
+    return store.saves(replace(proposed(store, recording_id, None), state="complete"))
 
 
 def publishes_untouched(store, recording_id, published_on):
@@ -139,7 +144,7 @@ def test_a_period_in_which_nothing_was_published_reports_no_rate_and_exits_non_z
 
 def test_a_published_segment_carrying_no_publication_date_is_counted_as_unplaced(tmp_path):
     store = store_for(tmp_path)
-    publishes_untouched(store, "recording_20260920_094416", None)
+    published_before_approval_placed_it(store, "recording_20260920_094416")
     store.close()
     code, printed = runs(tmp_path)
     assert code == 1
