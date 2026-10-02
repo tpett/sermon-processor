@@ -457,10 +457,23 @@ def test_a_newly_added_pair_changes_the_reported_number(tmp_path):
     assert "1 proposal graded, 2 cut points: 2 in the human's run" in after
 
 
+def unlabelled_pair(data_root, provenance="human", alignment="cannot be aligned"):
+    store = opens_store(data_root)
+    store.saves(
+        CorpusPair(
+            recording_id=RECORDING,
+            classification="sermon",
+            provenance=provenance,
+            alignment=alignment,
+        )
+    )
+    store.close()
+
+
 def test_a_refused_pair_added_to_the_store_changes_no_reported_number(tmp_path):
     unlabelled_corpus(tmp_path)
     data_root = stages_store(tmp_path)
-    labels(data_root, alignment="cannot be aligned", punch_in=None, punch_out=None)
+    unlabelled_pair(data_root)
     code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
     assert code == 1
     assert "0 proposals graded, 0 cut points" in printed
@@ -469,7 +482,7 @@ def test_a_refused_pair_added_to_the_store_changes_no_reported_number(tmp_path):
 def test_a_machine_pair_added_to_the_store_changes_no_reported_number(tmp_path):
     unlabelled_corpus(tmp_path)
     data_root = stages_store(tmp_path)
-    labels(data_root, provenance="machine", alignment=None, punch_in=None, punch_out=None)
+    unlabelled_pair(data_root, provenance="machine", alignment=None)
     code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
     assert code == 1
     assert "0 proposals graded, 0 cut points" in printed
