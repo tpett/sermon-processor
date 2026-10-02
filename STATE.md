@@ -1,3 +1,94 @@
+## The measurement loop is closed, and refinement is the defect (2026-10-02, `sp-pu2.2` + `sp-i1a`)
+
+`recording_20260920_094416` went from no stored transcript to a graded cut, and
+the number it produces is the first new ground truth any instrument here has
+been able to read since the frozen corpus was derived on 2026-08-31.
+
+### The end-to-end run (`sp-pu2.2`, closed)
+
+Local faster-whisper, int8, in process. **7.55x realtime** (the spike measured
+5.94x), 1674 utterances, **13,911 words, every one carrying both a start and an
+end**, 271 silences, 6 chunks. State `awaiting_review`, duration 10121.581315 by
+ffprobe, 12 blocks all `high`, one real sermon Segment. No audio left the
+machine; the only network traffic was text to the model host and a 0-byte S3
+HEAD.
+
+**The source was proven, not assumed.** `head_object` on the bucket key returned
+ETag `73a052801e9f6b5f5802e64c8cf39c1d` with no multipart suffix, and the md5
+computed while streaming the Desktop FLAC matched it exactly, so the Desktop file
+is byte-identical to the object. That md5 is now the recording's stored checksum.
+`~/Desktop/Sermons` still holds 74 files and that FLAC is untouched -- inode and
+mtime verified unchanged.
+
+**A symlink into the Desktop corpus was the wrong idea and the store already knew
+it.** An earlier attempt pointed `source.flac` at `~/Desktop/Sermons` by symlink.
+`ResolvesStoredPath` ends in `resolved.resolve().is_relative_to(data_root)` and
+`.resolve()` follows links, so the store's own guard rejects it with
+`PathEscapesDataRoot` -- the guard working as designed. Worse, the destination
+being a symlink meant `DownloadsRecording`'s `destination.write_bytes(...)` would
+have written **through** it into the read-only corpus. A real copy was made
+instead, and deliberately not a hardlink: a hardlink would leave the only copy of
+the ground truth mutable under a second name inside a tree the pipeline writes to.
+
+`tests/test_three_click_week.py::test_webhook_to_named_mp3` was red on master and
+is green, taking the fast suite from 229 failures to 228 with a node-id diff of
+exactly that one line. Beyond the missing `transcribes=`, three further blockers:
+`AnalyzesRecording` had no seam for `DividesByReasoning` (added `divides`,
+mirroring `transcribes`; production passes nothing, behaviour unchanged),
+`segment_proposal` refused an unset `segments.DATA_ROOT`, and a stale assertion
+predated `layout.published_path`.
+
+### The loop (`sp-i1a`, closed)
+
+```
+BEFORE  sermon-regrade --corpus ./data/corpus --store ./data
+        no stored proposals under .../data/corpus/blocks
+AFTER   sermon-corpus recording_20260920_094416 --prompts experiments/prompts
+        sermon-regrade --corpus ./data/corpus --store ./data
+        1 proposal graded, 2 cut points: 1 in the human's run, 1 mid-word
+```
+
+A hand edit changes the reported numbers. That is what `sp-e4g` asked for on
+2026-10-01 and could not reach.
+
+### What the first new measurement actually says
+
+```
+punch-out  7599.985  same silence run as the human (504)   speech 0.000 s
+punch-in   4160.210  run 166, human in run 164             speech 4.360 s
+```
+
+The punch-out is effectively the human's cut. The punch-in is wrong, and **the
+block grid is not why.** The classifier's sermon block started at **4151.90 --
+0.61 s from the human, 0.030 speech-seconds off** -- and its only flaw is landing
+inside a word, which the silence-run metric ranks worst. `choose()` judged it
+implausible, fell back to `refine_in`, and refinement overshot into the next gap
+but one: **0.030 speech-seconds traded for 4.360.**
+
+Two independent paths agree. A fresh draw through `sermon-corpus` kept the model
+edge (`model-in/refined-out`) and graded 0.030 s; the shipping analyze walk
+refined away and graded 4.360 s. Same recording, same answer key, ~145x apart.
+The Proposal reported `boundary_confidence='high'` and both grades `easy`.
+
+**So `sp-vaw`'s premise needs re-reading.** This is the second recording where the
+model's edge is not the substantive error, and it is not one of the three
+corrections already measured and rejected -- the suspect is the *plausibility
+test* that discards a good mid-word edge, and the overshoot after it. Filed.
+
+### Defects this run exposed
+
+Two are serious enough to name here. `sermon-work` -- the deployed worker, and the
+only thing that runs queued jobs -- builds `RunsAnalyzeJob` without `contents=`,
+so when the real walk proposes nothing it **mints two hardcoded Segments** at
+`('lesson', 60, 3300)` and `('sermon', 5400, 10800)`, stamps each with a
+`high`/`medium`/`easy`/`easy` Proposal, and notifies the reviewer that publishable
+Segments were found. `sermon-analyze` passes `NOTHING_FABRICATED`; the worker does
+not. And `AnalyzesRecording.__call__` ends with
+`store.saves(replace(analyzing, state='awaiting_review'))` on a snapshot it has
+held for the whole walk, **clobbering every field the stages wrote** -- which is
+why this recording has NULL loudness and peak and an empty
+`recording_channel_level` after a real ebur128/astats pass.
+
 ## The population is a block file, and the store cannot hold one (2026-10-02, `sp-i1a`)
 
 `tpett/ai/corpustree`. `sp-e4g` made the **answer key** pluggable and changed no
