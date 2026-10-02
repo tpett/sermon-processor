@@ -131,6 +131,7 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-approvals   # the headline: what fraction was approved untouched
 .venv/bin/sermon-approvals --since 2026-09-01 --until 2026-09-30
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
+.venv/bin/sermon-corpus recording_20260920_094416 --prompts experiments/prompts
 .venv/bin/sermon-align recording_20260927_095721 "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.mp3" \
     --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
 ```
@@ -263,6 +264,27 @@ queues an `analyze` job for it, drains that one job through the same analysis
 stages, and leaves the Blocks, the Segment, the Proposal and the reviewer
 notification in the configured data root with the Recording `awaiting_review`.
 One recording id per invocation. It exits non-zero when nothing was proposed.
+
+`sermon-corpus` makes an analysed Recording gradeable. **The population
+`sermon-regrade` walks is the tagged block files, not the answer key**, so a
+`CorpusPair` for a recording with no block file is graded against nothing — which
+is why `--store` reported 0 proposals while the store held a labelled pair. The
+command reads the Recording's stored transcript artifact, writes it and any
+diarization where `pipeline.segments` looks, reasons over it once, and records
+the classifier's `blocks`, its own `model_segments` and the chosen boundaries as
+`<corpus>/blocks/<id>.<tag>.json`. `--corpus` defaults to `<data-root>/corpus`,
+which the layout already reserves; `--prompts` defaults beside it the way
+`sermon-analyze` does, so a real run needs `--prompts experiments/prompts`.
+
+**The classifier's answer has to be frozen, not re-read from the store.** The
+store keeps no part of it but the Blocks it became — not `model_segments`, which
+`choose` prefers at the punch-in. Measured over the 181 corpus block files,
+dropping `model_segments` changes the boundaries of 64 proposals and moves 68
+punch-ins by a median 2.100 s and a maximum 650.360 s, so a store-fed population
+would grade a different algorithm from the one that ships. The command therefore
+**refuses to overwrite a block file it already wrote**, for the same reason
+`rederive.py` must never be pointed at `experiments/data`, and it writes no
+stored row — `sermon-organize` is still the only command that does.
 
 `sermon-align` turns one human edit into ground truth. It finds where a published
 MP3 sits inside its Recording's source, writes one `CorpusPair` row, and prints

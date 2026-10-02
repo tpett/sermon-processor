@@ -1,3 +1,103 @@
+## The population is a block file, and the store cannot hold one (2026-10-02, `sp-i1a`)
+
+`tpett/ai/corpustree`. `sp-e4g` made the **answer key** pluggable and changed no
+number. The reason is the other half: `regrades_stored_cuts.py:78` iterates
+`glob("<corpus>/blocks/*.json")`, so **the population is the tagged block
+files**, and those 181 files stop at `recording_20260913`. A `CorpusPair` for a
+recording the analysis chain has never blocked contributes no rows by
+construction.
+
+**Design (a) — mirror the `sp-e4g` seam and read the population from the store —
+is not possible, and that is the finding.** Field by field, a block file holds
+`blocks`, `model_segments`, `segments`, `asr_config`, `recording_id` and
+`config_id`. The store supplies four of the six:
+
+| block file | store | verdict |
+| --- | --- | --- |
+| `blocks[].start/end/type/confidence` | `Block.start_seconds/end_seconds/type/self_reported_confidence` | present; `_spans_of` at `stages.py:544` already reshapes exactly these four for `derive()` |
+| `blocks[].evidence` (a string) | `Block.evidence` (`Evidence` tuples) | different shape, and `derive()` reads it only when coalescing adjacent same-type blocks, never into a boundary |
+| transcript doc | `Artifact` kind `transcript` | present; there is no `transcript` table |
+| `segments` (the chosen boundaries) | `Segment.punch_in_seconds/punch_out_seconds` | present, and only `--drift` reads the field |
+| **`model_segments`** | **nothing** | **absent from every table, column and artifact kind** |
+| `config_id` / the tag | **nothing** | absent; the store records no classifier identity either |
+
+`model_segments` is the classifier's own segment boundaries. `classify.run_whole`
+returns it, `ProposesFromStoredTranscript` holds it for the length of one call
+and hands it to `ChoosesBoundaries`, and nothing persists it —
+`RefinesPunchIn/Out` reached from anywhere else default to
+`ChoosesBoundaries()` with an empty list. **`choose()` prefers it at the
+punch-in**, so losing it is not cosmetic. Measured over the real 181 block
+files, `choose([], ...)` against `choose(model_segments, ...)`:
+
+```
+boundaries differ on          64 of 181 proposals
+punch-ins moved               68 cut points, median 2.100 s, max 650.360 s
+model-led segments lost       87 of 189 became `refined`
+corpus-wide                   139 -> 142 in the human's run, 25 -> 6 mid-word,
+                              median 0.020 -> 0.000 s
+```
+
+Partial recovery from `Segment.boundary_source` is worse than useless: it is
+`refined` on 102 of 189, and on the acceptance case it is **`human`**, because
+the pair exists precisely when the reviewer moved the boundary and the row was
+overwritten with their answer.
+
+**So design (b), and the entry is written where the classifier answer exists.**
+`sermon-corpus <recording-id>` reads the Recording's stored transcript artifact,
+writes it and any diarization where `pipeline.segments` looks, reasons over it
+once, and records `blocks`, `model_segments` and the chosen boundaries as
+`<corpus>/blocks/<id>.<tag>.json`. `--corpus` defaults to `<data-root>/corpus`,
+which `layout.py` already reserves. It writes **no stored row** — `sermon-organize`
+is still the only command that does — and **refuses to overwrite a block file**,
+for the same reason `rederive.py` must never be pointed at `experiments/data`.
+
+**Proved against real rows.** `recording_20260712_103000` is the one recording
+with both store Blocks and a stored transcript. One real run over mac-m1 with
+`qwen3.6:35b-mlx` wrote the entry and the grader read it:
+
+```
+sermon-corpus recording_20260712_103000 --prompts experiments/prompts
+  sermon   0:19:25 -> 1:10:43  (model-in/refined-out)
+
+punch-in  human 1167.880  proposed 1165.700  a run away, 0.680 speech-s  [moderate]
+punch-out human 4243.680  proposed 4243.780  same run,   0.000 speech-s  [easy]
+1 proposal graded, 2 cut points: 1 in the human's run, 0 mid-word, 0 not found
+```
+
+The draw's `model_segments[0].punch_in` came back 1165.7 — the same value the
+store's existing Segment and sermon Block carry, so the regime reproduced. The
+file source and `--store` printed those lines identically.
+
+**What is not met.** The 09-20 recording still has no blocks: `sp-pu2.2` is
+transcribing it. Once the transcript artifact is in `./data`, one command closes
+it:
+
+```
+.venv/bin/sermon-corpus recording_20260920_094416 --prompts experiments/prompts \
+  && .venv/bin/sermon-regrade --corpus ./data/corpus --store ./data
+```
+
+Two honest caveats. The entry is a **fresh** classifier draw, so the graded
+proposal is not the one the reviewer saw — that is the right semantics for a
+regression instrument over a frozen population, and it is not the approval-rate
+measure. And the store holds no `diarization` artifact for 20260712, so the entry
+has none and `candidate_edges` loses the speaker edges the frozen corpus has.
+
+Also found, not this bead: **`sermon-regrade --corpus <dir>` with no
+`groundtruth.json` beside the blocks dies with an unhandled `FileNotFoundError`
+traceback** rather than refusing with a message. Reachable before and much more
+reachable now, since a data-root corpus never has that file.
+
+Pins unmoved: 34 files / 468 scenarios / 144 rules / 614 collected / 1939 steps.
+Fast suite 229 failed / 1635 passed / 7 skipped, the branch point being 229 /
+1617 / 7 and the 18 new passes being this branch's tests. No pre-existing test
+changed outcome, after one did: `test_every_caller_of_the_library_sets_the_roots_it_needs`
+caught `derives_corpus_entry.py` reaching `segments.derive` while the only
+`DATA_ROOT` assignment sat in `BindsCorpusRoots`, in another file. The guard was
+right and `_chooses` now binds the root it derives through.
+`sermon-regrade --corpus experiments/data --before
+tests/pipeline_boundary_fingerprint.json` reports 147 proposals / 318 cut points,
+0 moved, exit 0. Frozen md5s unchanged both ends.
 ## Approval places a Segment in a period (2026-10-02, `sp-91s`)
 
 `tpett/ai/pubdate`. Production's four published Segments had `publication_date`
