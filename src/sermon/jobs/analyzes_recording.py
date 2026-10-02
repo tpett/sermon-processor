@@ -94,6 +94,7 @@ class AnalyzesRecording:
     measures: object = None
     analyses: object = None
     transcribes: object = None
+    divides: object = None
 
     def _run_stage(self, recording, name):
         records = RecordsStageProgress(store=self.store, clock=self.clock)
@@ -154,7 +155,7 @@ class AnalyzesRecording:
                 pass
             return
         if name == "blocking":
-            DividesIntoBlocks(store=self.store)(recording)
+            DividesIntoBlocks(store=self.store, divides=self.divides)(recording)
             return
         if name == "block_classification":
             if self.reaches is not None:
@@ -307,6 +308,7 @@ class RunsAnalyzeJob:
     measures: object = None
     analyses: object = None
     transcribes: object = None
+    divides: object = None
     recording_id: str | None = None
 
     def __call__(self):
@@ -329,6 +331,7 @@ class RunsAnalyzeJob:
                 measures=self.measures,
                 analyses=self.analyses,
                 transcribes=self.transcribes,
+                divides=self.divides,
             )(recording)
         except StageFailed as error:
             self.store.saves(
