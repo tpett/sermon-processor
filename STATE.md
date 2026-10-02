@@ -1,3 +1,71 @@
+## Approval places a Segment in a period (2026-10-02, `sp-91s`)
+
+`tpett/ai/pubdate`. Production's four published Segments had `publication_date`
+NULL, so `sermon-approvals` reported no rate at all against the only store that
+matters. The filed cause named `RunsRenderJob`; the writer is one level down in
+`RendersSegment`, and the deeper fault is a layer above both.
+
+**Every writer of the field, traced.** `RecordsPublicationDetails.saves` is the
+only thing that writes it, reached from `PUT /api/segments/<id>/publication` and
+from `cli.cuts_by_hand` (so `sermon-render`). `RendersSegment` computed
+`segment.publication_date or recording.started_at.date()` for the **filename**
+and never wrote it back. `RecordsPublicationDetails.opens` computed the same
+default for the form the spec calls prefilled -- **and no surface in the app
+calls it**: there is no date input in `detail.html` and nothing in `review.js`
+reaches the PUT. So the default the spec asserts existed twice in code and in
+neither place did it land on a row. The approval path
+(`POST /api/segments/<id>/approve`, and the form post that `chosen_intent`
+serves) sets `intent` and `label` and never a date, while `ApprovesSegment`
+required a label for a publication and required no date. The filed cause is
+right about the symptom and wrong about the writer.
+
+**Settled as backfilled from the Recording's own date, at approval.**
+`interface/publication_details.feature` says "the date is prefilled with
+2026-08-23" and "I can change it", and that the archival case is "named from the
+recording date" with "I am not prompted for anything else" -- the spec never
+asks the reviewer to supply a date, so making it a precondition of approval
+would refuse every approval the app can currently make, and would not place
+production's four rows anyway. Having the report fall back to the Recording
+would redefine "a period's published Segments"
+(`analysis/detection_accuracy.feature:135`) and make `ApprovalRate.unplaced`
+unreachable. So `ApprovesSegment` writes the default, `places_publication_date`
+is its one definition, read by the prefill, the approval and the renderer's
+filename, and the row and the MP3's name now agree by construction.
+
+**The measure is untouched and `unplaced` still works.** It counts rows that
+reached a published state without approval placing them, which is exactly what
+production holds; the three tests for it now build that row directly, because
+approving no longer produces it.
+
+**A scenario went green honestly.** `Untouched approvals are counted, not used
+as truth` was passing because its Given set `publication_date` itself. That line
+is gone and the scenario now fails without the implementation -- mutation-checked
+both ways: dropping the write from `ApprovesSegment` reds the scenario and two
+unit tests while every filename test stays green, which is the defect in
+miniature; gutting `places_publication_date` reds `The date defaults from the
+recording` as well.
+
+**Production needs a backfill and it has not been run.** Four
+`PUT /api/segments/<id>/publication` calls, the date each MP3 is already named
+with. Rehearsed against a store seeded row for row from production (14 Segments,
+the four artifact paths, the boundary history of 5, 9 and 12): all four 200,
+each Artifact path unchanged because the computed filename is identical, and
+`sermon-approvals` goes from `4 published Segments carry no publication date` /
+exit 1 to **4 Segments published, 1 approved with no boundary edit: 25%**, with
+punch-in errors -3.250, +8.158 and +5.804 s. The 09-27 figure matches the
+stored-corpus number `sp-e4g` recorded, which is how the rehearsal is known to
+be faithful.
+
+**Found, not filed:** a cut where the reviewer moved only one boundary prints
+`punch-out  error   +0.000 s` for the one they did not move. The "no error
+figure" rule is applied per cut, not per boundary, so that 0.000 is the system
+scoring itself on a boundary with no human answer -- the thing the rule exists to
+prevent.
+
+Pins unmoved: 34 files / 468 scenarios / 144 rules / 614 collected / 1939 steps.
+Fast suite 229 failed / 1620 passed / 7 skipped, the failure set identical to the
+branch point line for line. Frozen md5s unchanged.
+
 ## The approval rate has a surface, and the stored corpus still feeds nothing (2026-10-02)
 
 Two pieces of work, both merged to `master`. One closed a gap; the other proved
