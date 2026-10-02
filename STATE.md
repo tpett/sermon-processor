@@ -1,3 +1,58 @@
+## The graders can read the stored corpus (2026-10-01, `sp-e4g`)
+
+`tpett/ai/corpusread`. `corpus_pair` was write-only: `sermon-align` wrote rows,
+approvals of a reviewer-moved boundary wrote rows, and every accuracy figure
+still came from `experiments/data/groundtruth.json`, frozen at 39 recordings
+derived 2026-08-31. The human cut points for 2026-09-27 existed and no
+measurement could see them.
+
+**One seam, two implementations.** `reads_labelled(ground_truth, recording_id)`
+is now an injected collaborator: `ReadsLabelledFromFile(ground_truth)` and
+`ReadsLabelledFromStore(store)`, both callable on `(recording_id)` and both
+returning the same dict. `ArchivesRatherThanCuts` and `MeasuresBoundaryError`
+take it as `reads`, `GradesCutAccuracy` and `GradesCorpusAccuracy` carry it
+down, and `sermon-regrade --store <data-root>` supplies the store one.
+`scores_cut.py` and `grades_cut_accuracy.py`'s scoring are untouched -- the
+change is which corpus the grader reads, not how a cut is scored.
+
+**The dict is wider than `CorpusPair` and no field was added to it.**
+`source_duration` joins `Recording.duration_seconds` the way
+`DerivesGroundTruth.covers_most_of` already does, and `ArchivesRatherThanCuts`
+needs it or the archived-whole exclusion silently stops working.
+`desktop_label` is display-only, so it reads `Segment.label` and falls back to
+the recording id; `CorpusPair` stays closed and DOMAIN-pinned. One recording can
+hold several pairs -- the key is `(recording_id, classification, provenance)` --
+so the reader returns one `segments` entry per admitted pair in punch-in order.
+
+**Admission is `CorpusPair.labelled` and nothing else.** A pair that cannot be
+aligned, one that is not a contiguous excerpt, a machine cut, an untouched
+approval, and one covering more than 95% of its source are all refused, and a
+refusal sitting beside a labelled pair leaves only the labelled one.
+`test_every_admitted_pair_satisfies_the_labelled_rule` pins the rule rather than
+the list of cases -- it compared sets of punch-in values and the pair it expected
+to exclude carried the same punch-in as the admitted one, so weakening the filter
+left it green. Verified by mutation, fixed, and verified again.
+
+**Both sources agree line for line over the frozen 39**: 147 proposals / 318 cut
+points, 106 / 226 with `--tag whole.v2`, identical medians and worst cases, 467
+lines of output identical. Drop one recording's pair from the store and the
+figures move to 136 / 296 with the median at 0.004 s; put it back and they
+return. The 2026-09-27 pair is the point of the whole thing -- the frozen file
+reports nothing for it and the stored corpus reports punch-in +5.804 s and
+punch-out -2.775 s against difficulty easy/easy.
+
+`sermon-regrade --corpus experiments/data --before
+tests/pipeline_boundary_fingerprint.json` still reports 147 proposals / 318 cut
+points, 0 moved, exit 0. Pins unmoved at 34 files / 468 scenarios / 144 rules /
+614 collected / 1939 steps, and the failing node ids are identical to the branch
+point.
+
+**The store is still empty of pairs in both roots.** `./data` holds 93
+Recordings, 3 Segments and 0 `corpus_pair` rows, and production is empty too, so
+`--store` has nothing to read yet in either place. The seam exists and is proven
+against a store seeded from the frozen file; what it needs now is
+`sermon-align` run over the standing pairs.
+
 ## A corpus pair is corrected, not overwritten, and the approval rate has one definition (2026-09-30)
 
 Two product decisions, both settled by the owner, on `tpett/ai/ranking`.

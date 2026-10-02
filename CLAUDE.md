@@ -127,6 +127,7 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-propose recording_20260412_102318 --corpus experiments/data
 .venv/bin/sermon-regrade --corpus experiments/data   # grade every proposal against the human cut
 .venv/bin/sermon-regrade --corpus experiments/data --before tests/pipeline_boundary_fingerprint.json
+.venv/bin/sermon-regrade --corpus experiments/data --store ./data  # grade against the stored corpus
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
 .venv/bin/sermon-align recording_20260927_095721 "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.mp3" \
     --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
@@ -210,6 +211,21 @@ only one in the corpus and grading it cost an hour chasing a phantom regression.
 **Excluding it moves every corpus-wide figure**: 158 proposals / 340 cut points
 becomes 147 / 318, and `--tag whole.v2` 112 / 238 becomes 106 / 226. Read older
 numbers against the older baseline.
+
+**`--store <data-root>` grades against the stored corpus instead of the frozen
+file.** `groundtruth.json` is frozen at the 39 recordings derived 2026-08-31,
+while `sermon-align` and every approval of a reviewer-moved boundary write
+`CorpusPair` rows that nothing could measure against. With `--store` the
+accuracy mode and the `--before` gate read those rows, admitting a pair only
+when `CorpusPair.labelled` says so — human provenance, `aligned`, both
+boundaries present, not `covers_more_than_95_percent` — so a refusal, a machine
+cut and an untouched approval can never become the yardstick. Without the flag
+nothing changes and the frozen file is still the source, which is why the
+summary line names the source it graded against rather than always naming
+`groundtruth.json`. Seeded with the frozen 39 the two sources agree line for
+line: 147 proposals / 318 cut points, 106 / 226 with `--tag whole.v2`, same
+medians and same worst case. The store needs a `Recording` row per pair, because
+the archived-whole exclusion is keyed on `duration_seconds`.
 
 `--tag <text>` restricts every mode to the tags containing it, which is how to
 look at the shipping `*.whole.v2` configs alone. It reads the corpus and writes
