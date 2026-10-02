@@ -4,6 +4,10 @@ from sermon.analysis.proposes_from_transcript import (
     ProposesFromStoredTranscript,
     ReadsStoredTranscript,
 )
+from sermon.analysis.records_edges_inside_speech import (
+    EDGE_INSIDE_SPEECH,
+    RecordsEdgesInsideSpeech,
+)
 from sermon.analysis.stages import (
     TEACHING,
     ClassifiesBlocks,
@@ -22,6 +26,7 @@ from sermon.analysis.stages import (
 )
 
 __all__ = [
+    "EDGE_INSIDE_SPEECH",
     "TEACHING",
     "BindsCorpusRoots",
     "BoundaryError",
@@ -35,6 +40,7 @@ __all__ = [
     "ProposesFromStoredTranscript",
     "ProposesSegments",
     "ReadsStoredTranscript",
+    "RecordsEdgesInsideSpeech",
     "RefinesPunchIn",
     "RefinesPunchOut",
     "ScoresProposals",
