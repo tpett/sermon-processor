@@ -1,3 +1,92 @@
+## The approval rate has a surface, and the stored corpus still feeds nothing (2026-10-02)
+
+Two pieces of work, both merged to `master`. One closed a gap; the other proved
+that the gap I thought I had closed the day before is one layer deeper.
+
+### `sermon-approvals` prints the headline measure (`sp-wyb`, closed)
+
+`ReportsApprovalRate` was complete and had no caller. It now has one:
+`sermon-approvals [--store <root>] [--since <ISO>] [--until <ISO>]`. A command,
+not a column in the accuracy report, and the reason is populations --
+`sermon-regrade` grades proposals against ground truth while this measures
+Segments published in a period. Merging them is the two-definitions hazard
+`sp-xll` was narrowed to avoid, and `detection_accuracy.feature:117` already
+reserves that line for the accuracy suite, which is `sp-1sw`.
+
+Decisions, all visible in the output. The period defaults to **all time** --
+at one recording a week a calendar month is usually empty. An empty period
+**exits 1 and says there is no rate**, because `0%` would read as "every cut was
+edited". An untouched approval prints **no error figure and names why** rather
+than a misleading `0.000`; a test asserts `"0.000" not in printed`. The
+denominator always sits beside the proportion.
+
+**No scenario went green and no pin moved**, because no scenario asks for a
+surface. What changed instead: three of the four `Then`s in
+`approval_rate_steps.py` now assert **through the command** rather than
+constructing `ReportsApprovalRate` themselves -- which is exactly why they sat
+green while nothing called it. Mutation-checked: rewording the summary in
+`cli.py` turns both scenarios red.
+
+### Production's four published sermons are in no period (`sp-91s`, P2)
+
+Production holds 14 Segments and **4 published** (`intent publish`, state
+`complete`): segments 5, 6, 9 and 12. **Every one has `publication_date` NULL.**
+`ReportsApprovalRate` places its population by that field, so against
+production as it stands the measure reports no rate at all. Had they carried
+their recorded dates the figure would read **1 of 4 approved with no boundary
+edit -- 25%**, three being reviewer-edited and one `refined`. Denominator 4; not
+a trend.
+
+Only `sermon-render` (via `RecordsPublicationDetails`) and
+`PUT /api/segments/<id>/publication` write the field. `RunsRenderJob` falls back
+to `recording.started_at.date()` for the **filename** and never writes that
+fallback onto the Segment, so a Segment approved and rendered through the app
+keeps a NULL date while its MP3 carries a dated name. The measure was **not**
+redefined to paper over this: `ApprovalRate` gained `unplaced`, the count of
+publications no period can hold, printed on its own line, so an empty report now
+says *which* empty thing it is.
+
+### The corpus has real rows now and they change no number (`sp-i1a`, P1)
+
+`sermon-align` was run over the three reclaimable edits.
+`recording_20260920_094416` aligned and admitted; both CT-Islam lessons refused
+with exit 1 **and recorded the refusal**, so they will not be retried blindly.
+The 09-20 alignment was re-located at eleven probe windows the command never
+uses -- 5, 10, 20 and 60 s slices at each end plus three interior slices -- and
+every one landed within **0.5 ms** of the stored boundaries. 2026-09-27
+reproduced read-only field for field (punch-in 3055.0258, NCC 0.986, ratio
+13.72, residual 0.0004, drift -0.2 ppm) without creating a Recording row.
+
+And it adds **nothing measurable**:
+
+```
+sermon-regrade --corpus experiments/data           147 proposals, 318 cut points
+sermon-regrade --corpus experiments/data --store     0 proposals,   0 cut points
+```
+
+The frozen file is only the **answer key**. The *population* is the tagged block
+files -- `regrades_stored_cuts.py:78` iterates
+`glob("<corpus>/blocks/*.json")`, and those 181 files stop at
+`recording_20260913`. A pair for a recording the analysis chain has never
+processed contributes no rows by construction, and that is true of **every**
+future hand edit. So `sp-e4g`'s acceptance -- a newly aligned pair changes the
+reported numbers -- is **still unmet in practice, for want of a block file, not
+a pair**. The seam is proven and idle. A recording needs transcribing and
+blocking into a *writable* corpus tree, and `experiments/` is frozen; that is
+the substance of `sp-i1a`, not a detail of it.
+
+`covers_more_than_95_percent` is **inert when a Recording has no measured
+duration** (`sp-abt`, P2). The 09-20 recording is `discovered` with
+`duration_seconds` NULL because its source sits on the Desktop and was never
+probed, so the archived-whole check returns "not an archive" for the wrong
+reason. A members meeting archived whole and aligned from a Desktop source would
+be admitted and graded as a cut -- the phantom-regression class that cost hours
+in September. Latent only because no such pair exists yet.
+
+Pins unmoved: 34 files / 468 scenarios / 144 rules / 614 collected / 1939 steps.
+Fast suite on `master` after both merges: 229 failed / 1616 passed / 8 skipped,
+no pre-existing test changing outcome. Frozen md5s unchanged both ends.
+
 ## The graders can read the stored corpus (2026-10-01, `sp-e4g`)
 
 `tpett/ai/corpusread`. `corpus_pair` was write-only: `sermon-align` wrote rows,
