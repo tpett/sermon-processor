@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -95,3 +95,30 @@ def test_approving_a_refined_boundary_leaves_no_labelled_pair(store):
     refined = store.saves(replace(segment, boundary_source="model-in/refined-out"))
     ApprovesSegment(store=store, clock=lambda: FROZEN)(refined)
     assert store.lists(CorpusPair) == []
+
+
+def test_approving_a_publication_places_it_on_the_recordings_own_date(store):
+    offered = store.saves(
+        replace(sermon_segment(store), intent="publish", label="Hebrews 12.25-29")
+    )
+    approved = ApprovesSegment(store=store, clock=lambda: FROZEN)(offered)
+    assert store.loads(Segment, approved.segment_id).publication_date == date(2026, 9, 13)
+
+
+def test_a_publication_date_the_reviewer_entered_survives_approval(store):
+    entered = store.saves(
+        replace(
+            sermon_segment(store),
+            intent="publish",
+            label="Hebrews 12.25-29",
+            publication_date=date(2026, 9, 20),
+        )
+    )
+    approved = ApprovesSegment(store=store, clock=lambda: FROZEN)(entered)
+    assert store.loads(Segment, approved.segment_id).publication_date == date(2026, 9, 20)
+
+
+def test_an_archival_segment_is_placed_on_the_date_its_filename_is_built_from(store):
+    offered = store.saves(replace(sermon_segment(store), intent="archive"))
+    approved = ApprovesSegment(store=store, clock=lambda: FROZEN)(offered)
+    assert store.loads(Segment, approved.segment_id).publication_date == date(2026, 9, 13)
