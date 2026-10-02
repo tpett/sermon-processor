@@ -5,13 +5,16 @@ from pathlib import Path
 
 import pytest
 
+from sermon.analysis.io import writes_json
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG
 from sermon.cli import (
     ENVIRONMENT_FILE,
     analyzes,
+    derives_corpus,
     fetches,
     lists_bucket,
     reconciles,
+    regrades,
     renders,
     resolves_settings,
     serves,
@@ -23,6 +26,7 @@ from sermon.store import (
     DATABASE_NAME,
     Artifact,
     Block,
+    CorpusPair,
     Job,
     Notification,
     Proposal,
@@ -620,3 +624,143 @@ def test_analyzing_a_recording_with_no_stored_transcript_is_refused(tmp_path, in
     (tmp_path / "empty" / "transcripts").mkdir(parents=True)
     assert analyses(tmp_path, printed, corpus=tmp_path / "empty") == 1
     assert "no whisper-large-v3-turbo+words transcript" in str(printed)
+
+
+EDITED = "recording_20260920_094416"
+HUMAN_IN = 4151.2935
+HUMAN_OUT = 7599.5667
+MODEL_IN = 4151.0
+SERVICE_SECONDS = 9000.0
+
+
+def hand_edited_service():
+    return {
+        "recording_id": EDITED,
+        "duration": SERVICE_SECONDS,
+        "started_at": "2026-09-20T09:44:16",
+        "utterances": [
+            {
+                "start": float(start),
+                "end": float(start) + 20.0,
+                "text": "Good morning church we are glad you are here today",
+                "words": [{"w": "morning", "start": float(start), "end": float(start) + 1.0}],
+            }
+            for start in range(0, int(SERVICE_SECONDS), 60)
+        ],
+        "silences": [],
+    }
+
+
+def reasoned_service(_doc=None):
+    return {
+        "blocks": [
+            {"start": 0.0, "end": 4150.0, "type": "music", "confidence": 0.9},
+            {"start": 4150.0, "end": 7600.0, "type": "sermon", "confidence": 0.95},
+            {"start": 7600.0, "end": 9000.0, "type": "other", "confidence": 0.8},
+        ],
+        "model_segments": [{"punch_in": MODEL_IN, "punch_out": 7599.0}],
+    }
+
+
+def store_holding_the_hand_edit(root, transcript=True):
+    data_root = root / "data"
+    store = opens_store(data_root)
+    recording = store.saves(
+        Recording(
+            recording_id=EDITED,
+            object_key=f"{EDITED}.flac",
+            state="discovered",
+            started_at=datetime(2026, 9, 20, 9, 44, 16, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+        )
+    )
+    if transcript:
+        writes_json(store, recording, "transcript", hand_edited_service())
+    store.saves(
+        CorpusPair(
+            recording_id=EDITED,
+            classification="sermon",
+            provenance="human",
+            alignment="aligned",
+            punch_in_seconds=HUMAN_IN,
+            punch_out_seconds=HUMAN_OUT,
+            punch_in_difficulty="easy",
+            punch_out_difficulty="easy",
+        )
+    )
+    store.close()
+    return data_root
+
+
+def derives_corpus_entry(root, printed, **overrides):
+    return derives_corpus(
+        settings=settings_file(root),
+        arguments=[EDITED, *overrides.pop("flags", ())],
+        reasons=reasoned_service,
+        prints=printed,
+    )
+
+
+def test_deriving_a_corpus_entry_writes_the_block_file_and_the_transcript(tmp_path, injected_roots):
+    store_holding_the_hand_edit(tmp_path)
+    printed = RecordsLines()
+    assert derives_corpus_entry(tmp_path, printed) == 0
+    corpus = tmp_path / "data" / "corpus"
+    assert (corpus / "transcripts" / f"{EDITED}.{ASR_CONFIG}.json").is_file()
+    recorded = json.loads(
+        (corpus / "blocks" / f"{EDITED}.stored.whole.v2.json").read_text()
+    )
+    assert recorded["model_segments"] == [{"punch_in": MODEL_IN, "punch_out": 7599.0}]
+    assert str(corpus) in str(printed)
+    assert "sermon   1:09:11 -> 2:06:21  (model-in/refined-out)" in str(printed)
+
+
+def test_the_derived_entry_makes_the_stored_pair_change_the_reported_numbers(tmp_path, injected_roots):
+    data_root = store_holding_the_hand_edit(tmp_path)
+    corpus = data_root / "corpus"
+    before = RecordsLines()
+    (corpus / "blocks").mkdir(parents=True)
+    assert regrades(
+        arguments=["--corpus", str(corpus), "--store", str(data_root)], prints=before
+    ) == 1
+    assert "no stored proposals" in str(before)
+    assert derives_corpus_entry(tmp_path, RecordsLines()) == 0
+    after = RecordsLines()
+    assert regrades(
+        arguments=["--corpus", str(corpus), "--store", str(data_root)], prints=after
+    ) == 0
+    assert "1 proposal graded, 2 cut points" in str(after)
+    assert f"human   {HUMAN_IN:.3f}" in str(after)
+    assert f"proposed   {MODEL_IN:.3f}" in str(after)
+
+
+def test_deriving_a_corpus_entry_for_a_recording_with_no_transcript_is_refused(tmp_path, injected_roots):
+    store_holding_the_hand_edit(tmp_path, transcript=False)
+    printed = RecordsLines()
+    assert derives_corpus_entry(tmp_path, printed) == 1
+    assert f"no transcript is stored for {EDITED}" in str(printed)
+
+
+def test_deriving_a_corpus_entry_twice_refuses_to_redraw_the_block_file(tmp_path, injected_roots):
+    store_holding_the_hand_edit(tmp_path)
+    assert derives_corpus_entry(tmp_path, RecordsLines()) == 0
+    recorded = (
+        tmp_path / "data" / "corpus" / "blocks" / f"{EDITED}.stored.whole.v2.json"
+    ).read_text()
+    printed = RecordsLines()
+    assert derives_corpus_entry(tmp_path, printed) == 1
+    assert "already records a classifier answer" in str(printed)
+    assert (
+        tmp_path / "data" / "corpus" / "blocks" / f"{EDITED}.stored.whole.v2.json"
+    ).read_text() == recorded
+
+
+def test_a_tag_names_the_configuration_the_corpus_entry_came_from(tmp_path, injected_roots):
+    store_holding_the_hand_edit(tmp_path)
+    assert derives_corpus_entry(
+        tmp_path, RecordsLines(), flags=("--tag", "t3-qwen3.6.whole.v2")
+    ) == 0
+    assert (
+        tmp_path / "data" / "corpus" / "blocks" / f"{EDITED}.t3-qwen3.6.whole.v2.json"
+    ).is_file()

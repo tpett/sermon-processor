@@ -23,7 +23,13 @@ from sermon.analysis.aligns_edit import (
 )
 from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
 from sermon.analysis.reports_approval_rate import ReportsApprovalRate
-from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
+from sermon.analysis.derives_corpus_entry import (
+    DEFAULT_TAG,
+    BlockFileAlreadyWritten,
+    DerivesCorpusEntry,
+    NothingToBlock,
+)
+from sermon.analysis.proposes_from_transcript import BindsCorpusRoots, ReasonsOverTranscript
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.analysis.grades_cut_accuracy import GradesCorpusAccuracy
 from sermon.analysis.measures_boundary_error import (
@@ -1327,3 +1333,76 @@ def reports_approvals(settings=None, arguments=None, prints=print):
         )
     finally:
         store.close()
+
+
+CORPUS_USAGE = (
+    "sermon-corpus <recording-id> [--corpus <corpus-root>] [--prompts <dir>] "
+    "[--tag <text>] [--model <name>] [--asr <config>] [--store <data-root>]"
+)
+
+
+def parses_corpus_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-corpus", usage=CORPUS_USAGE, add_help=True)
+    parser.add_argument("recording")
+    parser.add_argument("--corpus")
+    parser.add_argument("--prompts")
+    parser.add_argument("--tag", default=DEFAULT_TAG)
+    parser.add_argument("--model", default=CLASSIFIER)
+    parser.add_argument("--asr", default=ASR_CONFIG)
+    parser.add_argument("--store")
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {CORPUS_USAGE}")
+        return None
+
+
+def derives_corpus(settings=None, arguments=None, reasons=None, prints=print):
+    """Record one Recording's classifier answer in a corpus tree the graders walk.
+
+    The population `sermon-regrade` grades is the tagged block files, and the
+    store holds no part of a classifier answer but the Blocks it became, so a
+    stored pair for a recording with no block file is graded against nothing.
+    Reads the store, writes no row, and sends no audio anywhere.
+    """
+    asked = parses_corpus_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    try:
+        configuration = ReadsConfiguration(
+            resolves_settings() if settings is None else settings
+        )()
+    except MissingConfiguration as unset:
+        prints(str(unset))
+        return 1
+    data_root = Path(asked.store).resolve() if asked.store else Path(configuration.data_root)
+    corpus = Path(asked.corpus).resolve() if asked.corpus else layout.corpus_root(data_root)
+    prompts = Path(asked.prompts).resolve() if asked.prompts else corpus.parent / "prompts"
+    BindsModelEndpoint(configuration=configuration)()
+    store = opens_store(data_root)
+    try:
+        entry = DerivesCorpusEntry(
+            store=store,
+            corpus_root=corpus,
+            prompts_root=prompts,
+            asr_config=asked.asr,
+            tag=asked.tag,
+            reasons=reasons or ReasonsOverTranscript(asked.model),
+        )(asked.recording)
+    except (
+        BlockFileAlreadyWritten,
+        NothingToBlock,
+        RootNotConfigured,
+        TranscriptNotStored,
+    ) as refused:
+        prints(str(refused))
+        return 1
+    finally:
+        store.close()
+    prints(f"recorded {entry.blocks.name} beside {entry.transcript.name} under {corpus}")
+    for chosen in entry.chosen:
+        prints(
+            f"  {chosen['classification']:<8} {hms(chosen['punch_in'])} -> "
+            f"{hms(chosen['punch_out'])}  ({chosen['boundary_source']})"
+        )
+    return 0
