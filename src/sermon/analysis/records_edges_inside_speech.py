@@ -1,4 +1,4 @@
-"""What the classifier's block table got wrong about where speech stops.
+"""Where the classifier's block table sits relative to speech.
 
 The model is handed the rendered transcript and answers with its own block
 table. `classify.coerce_blocks` makes that table contiguous and in range and
@@ -27,11 +27,11 @@ def now():
 class RecordsEdgesInsideSpeech:
     """One log entry per block edge the model placed inside a spoken word.
 
-    Only the blocks that can seed a Segment, because only their edges can reach
-    a cut. Flagged and not moved: every correction measured so far trades one
-    improved cut for one degraded one, and `segment_proposal.feature` asks for a
-    boundary that cannot satisfy a speech invariant to be flagged rather than
-    moved silently.
+    A record, not a verdict: such an edge is often nearer the human cut than one
+    that lands clear of speech, but it sits in no silence run, so it scores
+    `degraded` however small its error. This is what says which of the two it is.
+
+    Only the blocks that can seed a Segment, because only their edges reach a cut.
     """
 
     store: object
