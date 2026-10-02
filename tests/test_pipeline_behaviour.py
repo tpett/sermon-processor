@@ -1654,3 +1654,72 @@ def test_the_constants_no_code_reads_are_the_ones_the_fingerprint_names(expected
         if name not in read
     )
     matches_the_fingerprint(expected, "constants.unread", unread)
+
+
+def transcript_with_words(words, duration=100.0):
+    return {
+        "recording_id": "fixture_words",
+        "duration": duration,
+        "started_at": "2026-09-27T09:57:21",
+        "utterances": [
+            {
+                "start": words[0][0],
+                "end": words[-1][1],
+                "text": " ".join(word[2] for word in words),
+                "words": [{"start": start, "end": end, "w": spoken}
+                          for start, end, spoken in words],
+            }
+        ],
+    }
+
+
+SPOKEN = ((10.0, 10.5, "Well"), (10.5, 11.2, "good"), (11.2, 12.0, "morning"),
+          (20.0, 20.4, "Please"), (20.4, 21.0, "open"))
+
+
+def test_an_edge_falling_inside_a_word_is_reported_against_its_block():
+    classify = imports_moved("classify")
+    blocks = [{"start": 0.0, "end": 11.0, "type": "scripture_reading"},
+              {"start": 11.0, "end": 30.0, "type": "sermon"}]
+    found = classify.edges_inside_speech(blocks, transcript_with_words(SPOKEN))
+    assert found == (
+        {"block": 0, "edge": "end", "at": 11.0, "word_start": 10.5, "word_end": 11.2,
+         "type": "scripture_reading"},
+        {"block": 1, "edge": "start", "at": 11.0, "word_start": 10.5, "word_end": 11.2,
+         "type": "sermon"},
+    )
+
+
+def test_an_edge_falling_between_words_is_not_reported():
+    classify = imports_moved("classify")
+    blocks = [{"start": 0.0, "end": 15.0, "type": "scripture_reading"},
+              {"start": 15.0, "end": 30.0, "type": "sermon"}]
+    assert classify.edges_inside_speech(blocks, transcript_with_words(SPOKEN)) == ()
+
+
+def test_an_edge_exactly_on_a_word_boundary_is_not_reported():
+    classify = imports_moved("classify")
+    blocks = [{"start": 10.5, "end": 20.0, "type": "sermon"}]
+    assert classify.edges_inside_speech(blocks, transcript_with_words(SPOKEN)) == ()
+
+
+def test_a_transcript_without_word_timings_reports_nothing_rather_than_passing_everything():
+    classify = imports_moved("classify")
+    doc = transcript_with_words(SPOKEN)
+    for utterance in doc["utterances"]:
+        del utterance["words"]
+    assert classify.edges_inside_speech(
+        [{"start": 10.2, "end": 20.2, "type": "sermon"}], doc
+    ) == ()
+
+
+def test_coercing_leaves_an_edge_that_falls_inside_a_word_where_the_model_put_it():
+    classify = imports_moved("classify")
+    doc = transcript_with_words(SPOKEN)
+    coerced = classify.coerce_blocks(
+        {"blocks": [{"start": 0.0, "end": 11.0, "type": "scripture_reading"},
+                    {"start": 11.0, "end": 30.0, "type": "sermon"}]}, doc
+    )
+    assert [block["start"] for block in coerced] == [0.0, 11.0]
+    assert [block["end"] for block in coerced] == [11.0, 30.0]
+    assert classify.edges_inside_speech(coerced, doc)
