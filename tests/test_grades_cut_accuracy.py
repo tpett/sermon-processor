@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 
 from sermon import cli
 
@@ -8,6 +9,7 @@ from sermon.analysis.grades_cut_accuracy import (
     compares,
 )
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT
+from sermon.store import CorpusPair, Recording, opens_store
 
 RECORDING = "recording_20260628_130014"
 LABEL = "2026-06-28 - Members Meeting"
@@ -383,3 +385,141 @@ def test_a_tag_filter_reaches_the_command(tmp_path):
     _, printed = runs(tmp_path, [(7.0, 26.0)], "--tag", "perblock")
     assert "another-tag.perblock.v2" in printed
     assert "1 proposal graded" in printed
+
+
+def unlabelled_corpus(root, tag=TAG):
+    stages_corpus(root, tag=tag)
+    (root / "groundtruth.json").write_text(json.dumps({"recordings": []}))
+    return root
+
+
+def stages_store(root, duration=SOURCE_SECONDS):
+    data_root = root / "data"
+    store = opens_store(data_root)
+    store.saves(
+        Recording(
+            recording_id=RECORDING,
+            object_key=f"recordings/{RECORDING}.flac",
+            state="reviewed",
+            started_at=datetime(2026, 6, 28, 13, 0, 14, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=duration,
+        )
+    )
+    store.close()
+    return data_root
+
+
+def labels(data_root, punch_in=HUMAN_IN, punch_out=HUMAN_OUT, **overrides):
+    store = opens_store(data_root)
+    store.saves(
+        CorpusPair(
+            recording_id=RECORDING,
+            classification="sermon",
+            provenance=overrides.pop("provenance", "human"),
+            alignment=overrides.pop("alignment", "aligned"),
+            punch_in_seconds=punch_in,
+            punch_out_seconds=punch_out,
+            punch_in_difficulty="easy",
+            punch_out_difficulty="hard",
+            **overrides,
+        )
+    )
+    store.close()
+
+
+def test_the_command_grades_against_the_stored_corpus_when_given_a_store(tmp_path):
+    unlabelled_corpus(tmp_path)
+    labels(stages_store(tmp_path))
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(tmp_path / "data"))
+    assert code == 0
+    assert "1 proposal graded, 2 cut points: 2 in the human's run" in printed
+    assert "human      8.000" in printed
+
+
+def test_the_frozen_file_is_still_what_the_command_reads_without_a_store(tmp_path):
+    unlabelled_corpus(tmp_path)
+    labels(stages_store(tmp_path))
+    code, printed = runs(tmp_path, [(7.0, 26.0)])
+    assert code == 1
+    assert "0 proposals graded, 0 cut points" in printed
+
+
+def test_a_newly_added_pair_changes_the_reported_number(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    before_code, before = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    labels(data_root)
+    after_code, after = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert (before_code, after_code) == (1, 0)
+    assert "0 proposals graded, 0 cut points" in before
+    assert "1 proposal graded, 2 cut points: 2 in the human's run" in after
+
+
+def unlabelled_pair(data_root, provenance="human", alignment="cannot be aligned"):
+    store = opens_store(data_root)
+    store.saves(
+        CorpusPair(
+            recording_id=RECORDING,
+            classification="sermon",
+            provenance=provenance,
+            alignment=alignment,
+        )
+    )
+    store.close()
+
+
+def test_a_refused_pair_added_to_the_store_changes_no_reported_number(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    unlabelled_pair(data_root)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 1
+    assert "0 proposals graded, 0 cut points" in printed
+
+
+def test_a_machine_pair_added_to_the_store_changes_no_reported_number(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    unlabelled_pair(data_root, provenance="machine", alignment=None)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 1
+    assert "0 proposals graded, 0 cut points" in printed
+
+
+def test_the_command_names_the_stored_corpus_it_graded_against(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    _, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert f"against {data_root}" in printed
+    assert "groundtruth.json" not in printed
+
+
+def test_a_recording_archived_whole_is_left_out_of_the_stored_corpus_walk(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root, punch_in=0.0, punch_out=SOURCE_SECONDS)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 1
+    assert "0 proposals graded, 0 cut points" in printed
+
+
+def test_the_stored_corpus_reaches_the_regression_gate(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    (tmp_path / "before.json").write_text(
+        json.dumps({BLOCK: {"chosen": [{"punch_in": 7.0, "punch_out": 26.0}]}})
+    )
+    code, printed = runs(
+        tmp_path,
+        [(7.0, 26.0)],
+        "--store",
+        str(data_root),
+        "--before",
+        str(tmp_path / "before.json"),
+    )
+    assert code == 0
+    assert "2 cut points, 0 moved: 0 improved, 0 degraded, 0 same cut" in printed

@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from sermon.store import CorpusPair, Recording, Segment, Store
+
 
 @dataclass(frozen=True)
 class BoundaryError:
@@ -23,12 +25,56 @@ class BoundaryError:
 ARCHIVE_WHOLE_COVERAGE = 0.95
 
 
-def reads_labelled(ground_truth, recording_id):
-    corpus = json.loads(Path(ground_truth).read_text())
-    for held in corpus["recordings"]:
-        if held.get("recording_id") == recording_id:
-            return held
-    return None
+@dataclass(frozen=True)
+class ReadsLabelledFromFile:
+    ground_truth: Path
+
+    def __call__(self, recording_id):
+        corpus = json.loads(Path(self.ground_truth).read_text())
+        for held in corpus["recordings"]:
+            if held.get("recording_id") == recording_id:
+                return held
+        return None
+
+
+@dataclass(frozen=True)
+class ReadsLabelledFromStore:
+    store: Store
+
+    def __call__(self, recording_id):
+        admitted = [
+            pair
+            for pair in self.store.lists(CorpusPair, recording_id=recording_id)
+            if pair.labelled
+        ]
+        if not admitted:
+            return None
+        return {
+            "recording_id": recording_id,
+            "desktop_label": self._displays(recording_id),
+            "source_duration": self._joins_duration(recording_id),
+            "segments": [
+                {
+                    "punch_in": pair.punch_in_seconds,
+                    "punch_out": pair.punch_out_seconds,
+                    "difficulty_in": {"label": pair.punch_in_difficulty},
+                    "difficulty_out": {"label": pair.punch_out_difficulty},
+                }
+                for pair in admitted
+            ],
+        }
+
+    def _displays(self, recording_id):
+        published = [
+            held.label
+            for held in self.store.lists(Segment, recording_id=recording_id)
+            if held.label
+        ]
+        return published[0] if published else recording_id
+
+    def _joins_duration(self, recording_id):
+        source = self.store.loads(Recording, recording_id)
+        return None if source is None else source.duration_seconds
 
 
 @dataclass(frozen=True)
@@ -41,11 +87,13 @@ class ArchivesRatherThanCuts:
     an untrimmed archive by.
     """
 
-    ground_truth: Path
+    ground_truth: Path | None = None
+    reads: object | None = None
     coverage: float = ARCHIVE_WHOLE_COVERAGE
 
     def __call__(self, recording_id):
-        labelled = reads_labelled(self.ground_truth, recording_id)
+        reads = self.reads or ReadsLabelledFromFile(ground_truth=self.ground_truth)
+        labelled = reads(recording_id)
         if labelled is None:
             return False
         source = float(labelled.get("source_duration") or 0.0)
@@ -59,10 +107,12 @@ class ArchivesRatherThanCuts:
 
 @dataclass(frozen=True)
 class MeasuresBoundaryError:
-    ground_truth: Path
+    ground_truth: Path | None = None
+    reads: object | None = None
 
     def __call__(self, recording_id, proposed):
-        labelled = reads_labelled(self.ground_truth, recording_id)
+        reads = self.reads or ReadsLabelledFromFile(ground_truth=self.ground_truth)
+        labelled = reads(recording_id)
         if labelled is None:
             return ()
         return tuple(

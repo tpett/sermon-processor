@@ -37,16 +37,21 @@ class GradesCutAccuracy:
     same way a recording with no labelled segment is.
     """
 
-    ground_truth: Path
+    ground_truth: Path | None = None
+    reads: object | None = None
     measures: object | None = None
     archives: object | None = None
     scores: object = ScoresCut
 
     def __call__(self, recording_id, transcript, proposed):
-        archives = self.archives or ArchivesRatherThanCuts(ground_truth=self.ground_truth)
+        archives = self.archives or ArchivesRatherThanCuts(
+            ground_truth=self.ground_truth, reads=self.reads
+        )
         if archives(recording_id):
             return ()
-        measures = self.measures or MeasuresBoundaryError(ground_truth=self.ground_truth)
+        measures = self.measures or MeasuresBoundaryError(
+            ground_truth=self.ground_truth, reads=self.reads
+        )
         scoring = self.scores(transcript=transcript)
         return tuple(
             self._grades(measured, boundary, scoring)
@@ -102,6 +107,7 @@ class GradedProposal:
 class GradesCorpusAccuracy:
     corpus_root: Path
     ground_truth: Path | None = None
+    reads: object | None = None
     derives: object | None = None
     grades: object | None = None
     before: dict | None = None
@@ -109,7 +115,8 @@ class GradesCorpusAccuracy:
 
     def __call__(self):
         grades = self.grades or GradesCutAccuracy(
-            ground_truth=self.ground_truth or Path(self.corpus_root) / "groundtruth.json"
+            ground_truth=self.ground_truth or Path(self.corpus_root) / "groundtruth.json",
+            reads=self.reads,
         )
         graded = []
         for found in DerivesStoredProposals(

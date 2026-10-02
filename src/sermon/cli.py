@@ -25,6 +25,10 @@ from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG, CLASSIFIER, SUMMARIZER, TranscriptNotStored
 from sermon.analysis.grades_cut_accuracy import GradesCorpusAccuracy
+from sermon.analysis.measures_boundary_error import (
+    ReadsLabelledFromFile,
+    ReadsLabelledFromStore,
+)
 from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals, RegradesStoredCuts
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
@@ -735,7 +739,9 @@ def proposes(settings=None, prints=print):
         return 1
     BindsModelEndpoint(configuration=configuration)()
     store = opens_store(Path(asked.store).resolve() if asked.store else configuration.data_root)
-    measures = MeasuresBoundaryError(ground_truth=corpus / "groundtruth.json")
+    measures = MeasuresBoundaryError(
+        reads=ReadsLabelledFromFile(ground_truth=corpus / "groundtruth.json")
+    )
     found = 0
     wanted = 0
     try:
@@ -994,14 +1000,15 @@ def organizes(settings=None, arguments=None, prints=print):
 
 
 REGRADE_USAGE = (
-    "sermon-regrade --corpus <corpus-root> [--before <path>] [--save <path>] "
-    "[--tag <text>] [--drift]"
+    "sermon-regrade --corpus <corpus-root> [--store <data-root>] [--before <path>] "
+    "[--save <path>] [--tag <text>] [--drift]"
 )
 
 
 def parses_regrade_command(arguments, prints):
     parser = argparse.ArgumentParser(prog="sermon-regrade", usage=REGRADE_USAGE, add_help=True)
     parser.add_argument("--corpus", required=True)
+    parser.add_argument("--store")
     parser.add_argument("--before")
     parser.add_argument("--save")
     parser.add_argument("--tag")
@@ -1178,19 +1185,23 @@ def regrades(arguments=None, prints=print, derives=None):
     if asked is None:
         return 1
     corpus = Path(asked.corpus).resolve()
-    stored = sorted((corpus / "blocks").glob("*.json"))
-    if not stored:
+    blocks = sorted((corpus / "blocks").glob("*.json"))
+    if not blocks:
         prints(f"no stored proposals under {corpus / 'blocks'}")
         return 1
+    data_root = Path(asked.store).resolve() if asked.store else None
+    store = opens_store(data_root) if data_root else None
+    reads = ReadsLabelledFromStore(store=store) if store else None
+    labelled = data_root or corpus / "groundtruth.json"
     try:
         if asked.drift:
-            prints(f"reading drift against {len(stored)} stored proposals under {corpus}")
+            prints(f"reading drift against {len(blocks)} stored proposals under {corpus}")
             return reports_drift(
                 RegradesStoredCuts(corpus_root=corpus, derives=derives, tag=asked.tag)(), prints
             )
         before = reads_stored_proposals(asked.before) if asked.before else None
         graded = GradesCorpusAccuracy(
-            corpus_root=corpus, derives=derives, before=before, tag=asked.tag
+            corpus_root=corpus, reads=reads, derives=derives, before=before, tag=asked.tag
         )()
         if asked.save:
             writes_stored_proposals(
@@ -1203,10 +1214,10 @@ def regrades(arguments=None, prints=print, derives=None):
                     if found.regraded
                 },
             )
-            prints(f"saved {len(stored)} live proposals to {asked.save}")
+            prints(f"saved {len(blocks)} live proposals to {asked.save}")
         prints(
             f"grading {len(graded)} labelled proposal{'' if len(graded) == 1 else 's'} "
-            f"against {corpus / 'groundtruth.json'}"
+            f"against {labelled}"
         )
         return reports_change(graded, prints) if before is not None else reports_accuracy(
             graded, prints
@@ -1214,3 +1225,6 @@ def regrades(arguments=None, prints=print, derives=None):
     except RootNotConfigured as refused:
         prints(str(refused))
         return 1
+    finally:
+        if store is not None:
+            store.close()
