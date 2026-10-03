@@ -9,6 +9,7 @@ from sermon.analysis.measures_boundary_error import (
     MeasuresBoundaryError,
     ReadsLabelledFromFile,
     ReadsLabelledFromStore,
+    SourceDurationUnknown,
 )
 from sermon.store import CorpusPair, Recording, Segment, opens_store
 
@@ -275,6 +276,14 @@ def test_the_stored_corpus_answers_the_archive_check(store, recorded):
     archives = ArchivesRatherThanCuts(reads=ReadsLabelledFromStore(store=store))
     assert archives(RECORDING_ID) is True
     assert ArchivesRatherThanCuts(reads=lambda recording_id: None)(RECORDING_ID) is False
+
+
+def test_a_stored_pair_whose_recording_was_never_measured_is_refused(store, recorded):
+    store.saves(replace(recorded, duration_seconds=None))
+    store.saves(aligned(punch_in_seconds=0.0, punch_out_seconds=SOURCE_SECONDS))
+    archives = ArchivesRatherThanCuts(reads=ReadsLabelledFromStore(store=store))
+    with pytest.raises(SourceDurationUnknown, match=RECORDING_ID):
+        archives(RECORDING_ID)
 
 
 def test_the_stored_corpus_answers_the_boundary_measurement(store, recorded):

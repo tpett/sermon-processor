@@ -6,6 +6,7 @@ from pathlib import Path
 from sermon.analysis.measures_boundary_error import (
     ArchivesRatherThanCuts,
     MeasuresBoundaryError,
+    SourceDurationUnknown,
 )
 from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT, CutScore, ScoresCut
@@ -112,6 +113,7 @@ class GradesCorpusAccuracy:
     grades: object | None = None
     before: dict | None = None
     tag: str | None = None
+    refuses: object | None = None
 
     def __call__(self):
         grades = self.grades or GradesCutAccuracy(
@@ -124,7 +126,13 @@ class GradesCorpusAccuracy:
         )():
             if not found.regraded:
                 continue
-            cuts = grades(found.recording_id, found.transcript, found.live)
+            try:
+                cuts = grades(found.recording_id, found.transcript, found.live)
+            except SourceDurationUnknown as refused:
+                if self.refuses is None:
+                    raise
+                self.refuses(refused)
+                continue
             if not cuts:
                 continue
             graded.append(

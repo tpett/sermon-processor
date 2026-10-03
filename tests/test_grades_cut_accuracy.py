@@ -1,7 +1,10 @@
 import json
 from datetime import UTC, datetime
 
+import pytest
+
 from sermon import cli
+from sermon.analysis.measures_boundary_error import SourceDurationUnknown
 
 from sermon.analysis.grades_cut_accuracy import (
     GradesCorpusAccuracy,
@@ -116,11 +119,18 @@ def test_a_human_cut_that_leaves_a_fifth_of_the_recording_out_is_still_a_cut(tmp
     assert [cut.boundary for cut in graded] == ["punch_in", "punch_out"]
 
 
-def test_a_recording_whose_source_duration_is_unknown_is_graded_as_a_cut(tmp_path):
-    graded = grades(
-        tmp_path, [(7.0, 26.0)], punch_in=0.0, punch_out=SOURCE_SECONDS, source_duration=None
-    )
-    assert [cut.boundary for cut in graded] == ["punch_in", "punch_out"]
+@pytest.mark.parametrize("source_duration", [None, 0.0])
+def test_a_recording_whose_source_duration_is_unknown_is_refused_rather_than_graded(
+    tmp_path, source_duration
+):
+    with pytest.raises(SourceDurationUnknown, match="source duration is unknown"):
+        grades(
+            tmp_path,
+            [(7.0, 26.0)],
+            punch_in=0.0,
+            punch_out=SOURCE_SECONDS,
+            source_duration=source_duration,
+        )
 
 
 def test_a_recording_with_no_labelled_segment_grades_nothing(tmp_path):
@@ -262,6 +272,26 @@ def test_the_corpus_walk_reads_the_ground_truth_beside_the_blocks(tmp_path):
 def test_an_archived_whole_recording_is_left_out_of_the_walk(tmp_path):
     stages_corpus(tmp_path, punch_in=0.0, punch_out=SOURCE_SECONDS)
     assert walks(tmp_path, live=[(7.0, 26.0)]) == ()
+
+
+def test_a_recording_whose_source_duration_is_unknown_is_named_and_left_out_of_the_walk(
+    tmp_path,
+):
+    stages_corpus(tmp_path, source_duration=None)
+    refused = []
+    graded = GradesCorpusAccuracy(
+        corpus_root=tmp_path,
+        derives=lambda stored, doc: [{"punch_in": 7.0, "punch_out": 26.0}],
+        refuses=refused.append,
+    )()
+    assert graded == ()
+    assert [one.recording_id for one in refused] == [RECORDING]
+
+
+def test_a_walk_with_nowhere_to_report_a_refusal_does_not_drop_it_silently(tmp_path):
+    stages_corpus(tmp_path, source_duration=None)
+    with pytest.raises(SourceDurationUnknown):
+        walks(tmp_path, live=[(7.0, 26.0)])
 
 
 def test_a_recording_with_no_labelled_segment_is_left_out_of_the_walk(tmp_path):
@@ -539,3 +569,34 @@ def test_the_stored_corpus_reaches_the_regression_gate(tmp_path):
     )
     assert code == 0
     assert "2 cut points, 0 moved: 0 improved, 0 degraded, 0 same cut" in printed
+
+
+@pytest.mark.parametrize(
+    ("punch_in", "punch_out"), [(0.0, SOURCE_SECONDS), (HUMAN_IN, HUMAN_OUT)]
+)
+def test_a_stored_pair_whose_recording_has_no_measured_duration_is_refused_by_name(
+    tmp_path, punch_in, punch_out
+):
+    unlabelled_corpus(tmp_path)
+    stages_corpus(tmp_path, tag="another-tag.whole.v2")
+    (tmp_path / "groundtruth.json").write_text(json.dumps({"recordings": []}))
+    data_root = stages_store(tmp_path, duration=None)
+    labels(data_root, punch_in=punch_in, punch_out=punch_out)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 1
+    assert printed.count(f"{RECORDING} is not graded: its source duration is unknown") == 1
+    assert "0 proposals graded, 0 cut points" in printed
+
+
+def test_a_stored_pair_whose_duration_is_unknown_is_refused_by_the_gate_too(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path, duration=None)
+    labels(data_root)
+    (tmp_path / "before.json").write_text(
+        json.dumps({BLOCK: {"chosen": [{"punch_in": 14.0, "punch_out": 26.0}]}})
+    )
+    code, printed = runs(
+        tmp_path, [(7.0, 26.0)], "--store", str(data_root), "--before", str(tmp_path / "before.json")
+    )
+    assert f"{RECORDING} is not graded: its source duration is unknown" in printed
+    assert "0 proposals graded, 0 cut points, 0 moved" in printed

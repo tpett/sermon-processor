@@ -1207,9 +1207,17 @@ def regrades(arguments=None, prints=print, derives=None):
                 RegradesStoredCuts(corpus_root=corpus, derives=derives, tag=asked.tag)(), prints
             )
         before = reads_stored_proposals(asked.before) if asked.before else None
+        refused = {}
         graded = GradesCorpusAccuracy(
-            corpus_root=corpus, reads=reads, derives=derives, before=before, tag=asked.tag
+            corpus_root=corpus,
+            reads=reads,
+            derives=derives,
+            before=before,
+            tag=asked.tag,
+            refuses=lambda unknown: refused.setdefault(unknown.recording_id, str(unknown)),
         )()
+        for reason in refused.values():
+            prints(reason)
         if asked.save:
             writes_stored_proposals(
                 asked.save,
