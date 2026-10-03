@@ -220,6 +220,7 @@ def _(store, run_up):
 @then("the punch-in is placed at least 250 ms away from the nearest audible sound")
 def _(store):
     segment = the_segment(store)
+    assert not words_either_side(store, segment.punch_in_seconds)[2], f"the punch-in {segment.punch_in_seconds} falls inside a word"
     nearest = min(min(abs(word["start"] - segment.punch_in_seconds), abs(word["end"] - segment.punch_in_seconds)) for word in words_of(store))
     assert milliseconds(nearest) >= milliseconds(QUIET_MARGIN_S)
 
