@@ -150,7 +150,6 @@ Feature: Analysis orchestration
         | stage                |
         | probe                |
         | transcription        |
-        | diarization          |
         | blocking             |
         | block_classification |
         | segment_proposal     |

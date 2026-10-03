@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 614 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 613 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -657,7 +657,18 @@ the bucket`, so that Rule survives and the deletion moved no Rule count. A
 comment in its place cites where the behaviour is now specified, so the
 requirement is not silently absent.
 
-Pins are now **34 files / 468 scenarios / 144 rules / 614 collected**, and
+On 2026-10-03 the owner settled a contradiction about diarization. They want it
+built and treated as useful when it is there — "It might be useful in certain
+cases, we should build it unless there's a major lift" — and
+`features/analysis/speaker_diarization.feature`'s `Diarization fails` already
+said analysis carries on with transcript evidence alone. The Outline `A stage
+fails permanently` in `features/analysis/analysis_orchestration.feature`
+disagreed, listing `diarization` among the stages whose failure sends the
+Recording to `analysis_failed`. Evidence that is only useful when available
+cannot also be fatal when absent, so the `diarization` Examples row was removed.
+One expanded test went; no scenario, Rule or step count moved.
+
+Pins are now **34 files / 468 scenarios / 144 rules / 613 collected**, and
 `SPEC_STEPS` is 1939.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
