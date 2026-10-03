@@ -1,15 +1,18 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
+from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
-from sermon.store import Job, LogEntry, Notification, Recording, Reviewer, Segment
+from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Reviewer, Segment
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+WORKER_POLL_GAP = timedelta(hours=1)
+MOST_WORKER_PASSES = 50
 
 
 @pytest.fixture
@@ -87,6 +90,18 @@ def _(store, process_log, process_sent):
     )()
 
 
+class MovesOn:
+    def __init__(self, at):
+        self.at = at
+
+    def __call__(self):
+        return self.at
+
+
+def refuses_other_work():
+    raise AssertionError("processing ran a job that is not a render")
+
+
 @when("processing runs")
 def _(store, process_log, process_sent):
     def steps(name):
@@ -102,14 +117,25 @@ def _(store, process_log, process_sent):
         if getattr(store, "_object_missing", False):
             raise StepFailed("extract", "source audio is no longer available")
 
-    queued = store.lists(Job, kind="render", state="queued")
-    if queued:
-        RunsRenderJob(
+    clock = MovesOn(FROZEN)
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=refuses_other_work,
+        analyzes=refuses_other_work,
+        renders=RunsRenderJob(
             store=store,
             steps=steps,
             notifies=SendsNotification(store=store, sends=process_sent.append),
-            clock=lambda: FROZEN,
-        )()
+            clock=clock,
+        ),
+        clock=clock,
+    )
+    for _ in range(MOST_WORKER_PASSES):
+        if not store.lists(Job, kind="render", state="queued"):
+            return
+        if runs() is None:
+            clock.at += WORKER_POLL_GAP
+    raise AssertionError("render jobs were still queued after the worker gave up")
 
 
 @then("the MP3 starts at the approved punch-in")
@@ -163,15 +189,16 @@ def _(store, segment, clock):
 @then("both Segments are processed")
 def _(store, segment):
     segments = store.lists(Segment, recording_id=segment.recording_id)
-    assert {item.state for item in segments} <= {"complete", "approved", "processing"}
+    assert [item.state for item in segments] == ["complete", "complete"], [item.state for item in segments]
 
 
 @then("each produces its own MP3")
 def _(store, segment):
-    from sermon.store import Artifact
-
+    segments = sorted(item.segment_id for item in store.lists(Segment, recording_id=segment.recording_id))
     artifacts = store.lists(Artifact, recording_id=segment.recording_id, kind="rendered_mp3")
-    assert len(artifacts) >= 1
+    assert sorted(item.segment_id for item in artifacts) == segments
+    assert len({item.path for item in artifacts}) == len(segments), [item.path for item in artifacts]
+    assert all(store.resolves(item).is_file() for item in artifacts)
 
 
 @then("the recordings list shows this Segment as processing")
@@ -203,5 +230,7 @@ def _(store, segment, state):
 
 
 @then("the reviewer is notified")
-def _(store):
-    assert store.lists(Notification)
+def _(store, segment, process_sent):
+    told = [(item.kind, item.segment_id, item.recipient) for item in store.lists(Notification)]
+    assert told == [("render_complete", segment.segment_id, "reviewer")], told
+    assert [item.segment_id for item in process_sent] == [segment.segment_id]

@@ -401,14 +401,21 @@ def _(store, minutes):
 
 
 @then(parsers.parse('the failure names the step "{step}" and its error'))
-def _(store, step):
-    entries = store.lists(LogEntry)
-    assert any(entry.error and step in entry.error for entry in entries) or store.lists(Job)
+def _(store, segment, step):
+    failures = [
+        entry.error
+        for entry in store.lists(LogEntry, segment_id=segment.segment_id)
+        if entry.entered_state == "processing_failed"
+    ]
+    assert failures, "no processing_failed entry was logged"
+    assert failures[-1] == f"{step}: {step} failed", failures[-1]
 
 
 @then("processing completes normally")
-def _(store):
-    assert store.lists(Segment)
+def _(store, segment):
+    assert store.loads(Segment, segment.segment_id).state == "complete"
+    rendered = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
+    assert [store.resolves(item).is_file() for item in rendered] == [True]
 
 
 @then(parsers.parse('the failure reason is "{reason}"'))
@@ -421,14 +428,14 @@ def _(store, reason):
 
 
 @then("processing does not begin")
-def _(store):
-    segments = store.lists(Segment)
-    assert segments[0].state in {"approved", "processing_failed", "processing"}
+def _(store, segment):
+    entered = [entry.entered_state for entry in store.lists(LogEntry, segment_id=segment.segment_id)]
+    assert "processing" not in entered, entered
 
 
 @then('the Segment stays in "approved" pending space')
-def _(store):
-    assert store.lists(Segment)
+def _(store, segment):
+    assert store.loads(Segment, segment.segment_id).state == "approved"
 
 
 @then('the Segment is detected as stuck in "processing"')
