@@ -286,3 +286,25 @@ def test_a_colliding_label_can_be_changed_instead_of_replacing_the_file(store, r
     renamed = _forms.submits(store, refused, approving, label="Hebrews 12.1-3")
     assert reads_field(renamed, "action-notice") == NOTICES["approved"]
     assert store.loads(Segment, segment.segment_id).label == "Hebrews 12.1-3"
+
+
+def test_publication_details_that_collide_answer_409_not_500(store, recording):
+    from sermon.store import Artifact, layout
+
+    segment = saves_segment(store, recording)
+    store.saves(
+        Artifact(
+            recording_id=recording.recording_id,
+            kind="rendered_mp3",
+            path=layout.published_path("2026-09-13 - Hebrews 12.mp3"),
+            size_bytes=1,
+            checksum="existing",
+        )
+    )
+    client = creates_app(store=store).test_client()
+    url = f"/api/segments/{segment.segment_id}/publication"
+    refused = client.put(url, json={"date": "2026-09-13", "label": "Hebrews 12"})
+    assert refused.status_code == 409
+    assert refused.get_json()["path"] == "published/2026-09-13 - Hebrews 12.mp3"
+    replaced = client.put(url, json={"date": "2026-09-13", "label": "Hebrews 12", "replace": True})
+    assert replaced.status_code == 200

@@ -672,11 +672,15 @@ def creates_app(
         segment = store.loads(Segment, segment_id)
         if segment is None:
             return NO_SUCH_SEGMENT
-        RecordsPublicationDetails(store=store).saves(
-            segment,
-            publication_date=date.fromisoformat(body["date"]),
-            label=body["label"],
-        )
+        try:
+            RecordsPublicationDetails(store=store).saves(
+                segment,
+                publication_date=date.fromisoformat(body["date"]),
+                label=body["label"],
+                replace_existing=body.get("replace") is True,
+            )
+        except FilenameCollision as collision:
+            return {"error": NOTICES["label-collides"], "path": str(collision)}, 409
         return asdict(shows(segment.recording_id))
 
     return app
