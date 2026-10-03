@@ -195,9 +195,20 @@ def models_on_this_machine():
     return None
 
 
+SPEECH_TIMEOUT_S = 60
 SPOKEN = "In the beginning was the Word, and the Word was with God, and the Word was God."
 
 
+def synthesises(spoken):
+    try:
+        subprocess.run(["say", "-o", str(spoken), SPOKEN], check=True, timeout=SPEECH_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        pytest.skip(f"the local speech synthesiser did not finish within {SPEECH_TIMEOUT_S} s")
+    except (OSError, subprocess.CalledProcessError) as refused:
+        pytest.skip(f"the local speech synthesiser is unusable: {type(refused).__name__}")
+
+
+@pytest.mark.slow
 @pytest.mark.skipif(models_on_this_machine() is None, reason="diarization models are not on this machine")
 @pytest.mark.skipif(shutil.which("say") is None, reason="no local speech synthesiser")
 def test_the_real_engine_hears_synthetic_speech_and_nothing_in_a_tone(store, tmp_path):
@@ -205,7 +216,7 @@ def test_the_real_engine_hears_synthetic_speech_and_nothing_in_a_tone(store, tmp
     source = store.resolves(recording)
     source.parent.mkdir(parents=True, exist_ok=True)
     spoken = tmp_path / "spoken.aiff"
-    subprocess.run(["say", "-o", str(spoken), SPOKEN], check=True)
+    synthesises(spoken)
     subprocess.run(
         [
             "ffmpeg", "-y", "-v", "error",
@@ -214,6 +225,7 @@ def test_the_real_engine_hears_synthetic_speech_and_nothing_in_a_tone(store, tmp
             "[tone][speech]concat=n=2:v=0:a=1", "-ac", "1", str(source),
         ],
         check=True,
+        timeout=SPEECH_TIMEOUT_S,
     )
     turns = DiarizesAudio(
         store=store, engine=RunsSherpaDiarizer(models=models_on_this_machine(), threads=2)
