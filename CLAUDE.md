@@ -675,6 +675,17 @@ have. Its text is unchanged; it is tagged `@deferred` with the owner's words, so
 it is a decision on the record rather than a gap. No pin moved; `DEFERRED_TESTS`
 went from 7 to 8.
 
+On mobile they said "Mobile is good enough as is." The Rule in
+`features/interface/segment_review.feature` still read `Mobile can check and
+approve; editing is a desktop job`, and `A segment needing real editing says so
+on mobile` asserted a "better made at a desk" message and no editor at all on a
+phone — the opposite of what shipped, which offers the phone the full editor
+and reflows it to fit. The Rule is now `A phone gets the full editor, reflowed
+to fit`, and that scenario became `A segment needing real editing can be edited
+on a phone`, asserting in a phone-sized Chromium that the waveform and the nudge
+controls are offered, the page is no wider than the screen, and skip and approve
+are still there. Same step count; no pin moved.
+
 Pins are now **34 files / 468 scenarios / 144 rules / 613 collected**, and
 `SPEC_STEPS` is 1939.
 
