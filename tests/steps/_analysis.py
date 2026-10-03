@@ -21,7 +21,7 @@ from sermon.analysis.io import reads_json, writes_json
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob
 from sermon.sends_notification import SendsNotification
-from sermon.store import Block, Job, Proposal, Recording, Segment
+from sermon.store import Block, Job, Notification, Proposal, Recording, Segment
 
 READS = ReadsTimecode()
 RECORDING_ID = "recording_20260823_103015"
@@ -185,6 +185,8 @@ def lays_out(store, recording, spans, *, typed=True):
     for segment in store.lists(Segment, recording_id=recording.recording_id):
         for proposal in store.lists(Proposal, segment_id=segment.segment_id):
             store.forgets(proposal)
+        for notification in store.lists(Notification, segment_id=segment.segment_id):
+            store.forgets(notification)
         store.forgets(segment)
     for block in store.lists(Block, recording_id=recording.recording_id):
         store.forgets(block)

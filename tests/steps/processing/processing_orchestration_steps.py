@@ -229,7 +229,11 @@ def _(store, segment, state):
     assert store.loads(Segment, segment.segment_id).state == state
 
 
-NOTIFIED_OF = {"complete": "render_complete", "processing_failed": "processing_failed"}
+NOTIFIED_OF = {
+    "proposed": "segment_proposed",
+    "complete": "render_complete",
+    "processing_failed": "processing_failed",
+}
 
 
 @then("the reviewer is notified")

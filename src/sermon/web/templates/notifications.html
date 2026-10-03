@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notifications</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
+</head>
+<body>
+<p><a href="/">Recordings</a></p>
+<h1>Notifications</h1>
+<p><span data-field="unread">{{ page.unread }}</span> unread</p>
+
+<form class="inline" method="post" action="/notifications/preference">
+  {% if page.receives_notifications %}
+  <span data-field="preference">Notifications are sent to you.</span>
+  <input type="hidden" name="receives" value="off">
+  <button type="submit" data-field="preference-control">Stop sending notifications</button>
+  {% else %}
+  <span data-field="preference">Notifications are not being sent; they are still listed here.</span>
+  <input type="hidden" name="receives" value="on">
+  <button type="submit" data-field="preference-control">Send notifications again</button>
+  {% endif %}
+</form>
+
+{% if page.notifications %}
+<ol class="notifications">
+{% for item in page.notifications %}
+  <li data-row="notification" data-id="{{ item.notification_id }}" data-kind="{{ item.kind }}" data-state="{{ item.state }}" data-unread="{{ item.unread|lower }}">
+    <span data-field="raised-at">{{ item.raised_at }}</span>
+    <span data-field="summary">{{ item.summary }}</span>
+    <span data-field="standing">{{ item.standing }}</span>
+    {% for href, label in item.links %}<a href="{{ href }}">{{ label }}</a> {% endfor %}
+  </li>
+{% endfor %}
+</ol>
+{% else %}
+<p data-field="empty">Nothing has been raised for you yet.</p>
+{% endif %}
+</body>
+</html>

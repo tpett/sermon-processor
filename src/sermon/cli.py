@@ -69,7 +69,8 @@ from sermon.queues_new_recordings import QueuesNewRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.scans_on_schedule import IntervalNotUnderstood, ScansOnSchedule, interval_from
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, LONG_RUN_SECONDS, SAME_CUT
-from sermon.sends_notification import SendsNotification
+from sermon.reminds_reviewer import RemindsReviewer
+from sermon.sends_notification import SendsNotification, opens_channel
 from sermon.store import (
     Artifact,
     Block,
@@ -365,7 +366,7 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
         RunsRenderJob(
             store=store,
             steps=lambda _name: None,
-            notifies=SendsNotification(store=store),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
             renders=keeps_what_it_rendered(RendersMp3(), produced),
             job_id=queued[0].job_id,
         )()
@@ -498,7 +499,7 @@ def analyses_for(store, asked, prints):
     )
 
 
-def drains(runs, asked, prints, sleeps, scans=None):
+def drains(runs, asked, prints, sleeps, scans=None, reminds=lambda: ()):
     """Run queued work until asked to stop.
 
     --once runs a single job. The queue holds 93 downloads against a read-only
@@ -518,6 +519,7 @@ def drains(runs, asked, prints, sleeps, scans=None):
         if asked.once or asked.limit:
             prints("nothing queued")
             return 0
+        reminds()
         sleeps(asked.poll)
 
 
@@ -570,14 +572,14 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
             analyzes=RunsAnalyzeJob(
                 store=store,
                 stages=lambda _name: None,
-                notifies=SendsNotification(store=store),
+                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
                 analyses=analyses,
                 transcribes=transcribes_with(store=store),
             ),
             renders=RunsRenderJob(
                 store=store,
                 steps=lambda _name: None,
-                notifies=SendsNotification(store=store),
+                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
                 renders=RendersMp3(),
             ),
         )
@@ -593,7 +595,11 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
                 interval=interval,
                 prints=prints,
             )
-        return drains(runs, asked, prints, sleeps, scans=scans)
+        reminds = RemindsReviewer(
+            store=store,
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+        )
+        return drains(runs, asked, prints, sleeps, scans=scans, reminds=reminds)
     finally:
         store.close()
 
@@ -679,7 +685,7 @@ def analyzes(settings=None, arguments=None, reasons=None, prints=print):
         RunsAnalyzeJob(
             store=store,
             stages=lambda _name: None,
-            notifies=SendsNotification(store=store),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
             contents=NOTHING_FABRICATED,
             recording_id=recording.recording_id,
             analyses=ProposesFromStoredTranscript(

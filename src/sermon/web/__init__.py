@@ -31,6 +31,7 @@ from sermon.extends_segment_span import (
     SpanWouldOverlapNeighbour,
 )
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
+from sermon.lists_notifications import ListsNotifications, MarksNotificationsSeen, SetsNotificationPreference
 from sermon.lists_recordings import ListsRecordings
 from sermon.object_store import UnsatisfiableRange
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
@@ -47,6 +48,7 @@ from sermon.reconciles_bucket import (
 )
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
+from sermon.sends_notification import lists_undelivered
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import (
     NOTICES,
@@ -155,6 +157,9 @@ def creates_app(
     merges = MergesSegments(store=store)
     creates = CreatesSegment(store=store)
     extends = ExtendsSegmentSpan(store=store)
+    lists_notifications = ListsNotifications(store=store)
+    marks_seen = MarksNotificationsSeen(store=store, clock=clock)
+    sets_preference = SetsNotificationPreference(store=store)
     playheads = {}
 
     def playhead_of(recording_id, segment_id=None, focus=None):
@@ -249,7 +254,28 @@ def creates_app(
             next_url=keeps_the_narrowing(paged.next),
             notice=scan_notice(),
             searched=request.args.get("q"),
+            unread_notifications=lists_notifications().unread,
         )
+
+    @app.get("/notifications")
+    def notifications():
+        listed = lists_notifications()
+        marks_seen(listed)
+        return render_template("notifications.html", page=listed)
+
+    @app.post("/notifications/preference")
+    def notification_preference():
+        sets_preference(request.form.get("receives") != "off")
+        return redirect(url_for("notifications"), code=303)
+
+    @app.get("/api/notifications")
+    def notifications_api():
+        listed = lists_notifications()
+        return {
+            "notifications": [asdict(view) for view in listed.notifications],
+            "unread": listed.unread,
+            "receives_notifications": listed.receives_notifications,
+        }
 
     @app.get("/recordings/<recording_id>")
     def html_detail(recording_id):
@@ -419,7 +445,8 @@ def creates_app(
         scan_failure = None if last_scan is None else last_scan.failure
         object_store_status = "unhealthy" if scan_failure else "healthy"
         disk_status = "healthy"
-        channel_status = "healthy"
+        undelivered = lists_undelivered(store)
+        channel_status = "unhealthy" if undelivered else "healthy"
         alerts = []
         recordings = store.lists(Recording)
         if any("source no longer available" in recording.warnings for recording in recordings):
@@ -445,6 +472,7 @@ def creates_app(
             "storage_alert": bool(short_on_disk) or bool(alerts),
             "storage_alert_reason": "local disk is short" if short_on_disk else (alerts[0] if alerts else None),
             "alerts": alerts,
+            "undelivered_notifications": len(undelivered),
             "object_store": object_store_status,
             "ffmpeg": ffmpeg_ok,
             "dependencies": {

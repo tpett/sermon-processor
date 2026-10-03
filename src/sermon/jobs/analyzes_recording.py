@@ -20,7 +20,8 @@ from sermon.extends_segment_span import WidensProposedSpan
 from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
-from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, Recording, Segment, Store
+from sermon.raises_notification import TellsAnalysisFailed, TellsAnalysisOutcome
+from sermon.store import Artifact, Job, LogEntry, Proposal, Recording, Segment, Store
 
 
 def now():
@@ -223,6 +224,9 @@ class AnalyzesRecording:
                     error=f"{stage}: {error}",
                 )
             )
+            TellsAnalysisFailed(store=self.store, notifies=self.notifies, clock=self.clock)(
+                recording, f"{stage}: {error}"
+            )
             raise StageFailed(stage, str(error)) from error
         analyzed = self.store.loads(Recording, recording.recording_id)
         if not self.store.lists(Segment, recording_id=recording.recording_id):
@@ -260,18 +264,7 @@ class AnalyzesRecording:
                 entered_state="awaiting_review",
             )
         )
-        if self.store.lists(Segment, recording_id=recording.recording_id):
-            notification = self.store.saves(
-                Notification(
-                    recording_id=recording.recording_id,
-                    kind="segment_proposed",
-                    recipient="reviewer",
-                    summary="publishable Segments were found",
-                    created_at=self.clock(),
-                    state="pending",
-                )
-            )
-            self.notifies(notification)
+        TellsAnalysisOutcome(store=self.store, notifies=self.notifies, clock=self.clock)(reviewed)
         return reviewed
 
 

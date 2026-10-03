@@ -121,7 +121,8 @@ def test_a_landed_recording_is_downloaded_analysed_and_the_reviewer_told(store):
     ]
     told = store.lists(Notification, recording_id=LANDED)
     assert [(item.kind, item.recipient) for item in told] == [("segment_proposed", "reviewer")]
-    assert sent == told
+    assert [item.notification_id for item in sent] == [item.notification_id for item in told]
+    assert [item.state for item in told] == ["delivered"]
 
 
 def test_only_the_landed_recording_is_fetched(store):
@@ -132,10 +133,12 @@ def test_only_the_landed_recording_is_fetched(store):
     assert store.lists(Job, recording_id="recording_20260412_102318") == []
 
 
-def test_an_analysis_that_proposes_nothing_tells_nobody(store):
+def test_an_analysis_that_proposes_nothing_is_recorded_but_not_pushed(store):
     sent = []
     runs_itself(store, finds_nothing, sent)
 
     assert store.loads(Recording, LANDED).state == "awaiting_review"
-    assert store.lists(Notification) == []
+    assert [(item.kind, item.state) for item in store.lists(Notification)] == [
+        ("nothing_publishable", "suppressed")
+    ]
     assert sent == []
