@@ -668,6 +668,13 @@ Recording to `analysis_failed`. Evidence that is only useful when available
 cannot also be fatal when absent, so the `diarization` Examples row was removed.
 One expanded test went; no scenario, Rule or step count moved.
 
+The same day, asked about the list's transcript search: "Search is less
+important for now." `Finding a recording by what it was` in
+`features/interface/recording_list.feature` asserts a search the list does not
+have. Its text is unchanged; it is tagged `@deferred` with the owner's words, so
+it is a decision on the record rather than a gap. No pin moved; `DEFERRED_TESTS`
+went from 7 to 8.
+
 Pins are now **34 files / 468 scenarios / 144 rules / 613 collected**, and
 `SPEC_STEPS` is 1939.
 
