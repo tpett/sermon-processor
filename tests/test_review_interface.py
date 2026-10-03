@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from sermon.store import Recording, Segment, opens_store
+from sermon.store import Evidence, Proposal, Recording, Segment, opens_store
 from sermon.web import creates_app
-from steps._markup import reads_role, reads_rows
+from steps._markup import reads_field, reads_role, reads_rows
 
 
 @pytest.fixture
@@ -150,3 +150,78 @@ def test_seeking_an_unknown_recording_holds_no_playhead_for_it(store):
     )
     shown = client.get(f"/api/recordings/{recording.recording_id}").get_json()
     assert shown["playhead_seconds"] == 0.0
+
+
+def opens_segment(store, segment):
+    return (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        .get_data(as_text=True)
+    )
+
+
+def test_the_detail_page_shows_the_proposal_the_reviewer_is_deciding_on(store, recording):
+    segment = saves_segment(store, recording)
+    store.saves(
+        Proposal(
+            segment_id=segment.segment_id,
+            classification_confidence="high",
+            boundary_confidence="low",
+            punch_in_grade="moderate",
+            punch_out_grade="hard",
+            evidence=(
+                Evidence(timecode=1800.5, finding="a closing prayer", implies="punch-out"),
+                Evidence(timecode=1170.25, finding="a speaker change", implies="punch-in"),
+            ),
+            missing_evidence=("where the sermon ends",),
+        )
+    )
+    page = opens_segment(store, segment)
+    assert reads_field(page, "classification-confidence") == "high confidence"
+    assert reads_field(page, "boundary-confidence") == "low confidence"
+    assert reads_field(page, "punch-in-grade") == "moderate to place"
+    assert reads_field(page, "punch-out-grade") == "hard to place"
+    evidence = reads_rows(page, "evidence")
+    assert [
+        (row["evidence-at"], row["evidence-finding"], row["evidence-implies"]) for row in evidence
+    ] == [
+        ("0:19:30.25", "a speaker change", "punch-in"),
+        ("0:30:00.50", "a closing prayer", "punch-out"),
+    ]
+    assert reads_field(page, "missing-evidence") == "nothing was found to show where the sermon ends"
+    assert reads_field(page, "no-evidence") is None
+    assert reads_field(page, "no-proposal") is None
+
+
+def test_a_superseded_proposal_is_not_the_one_shown(store, recording):
+    segment = saves_segment(store, recording)
+    later = store.saves(
+        Proposal(
+            segment_id=segment.segment_id,
+            classification_confidence="medium",
+            boundary_confidence="medium",
+            punch_in_grade="easy",
+            punch_out_grade="easy",
+        )
+    )
+    store.saves(
+        Proposal(
+            segment_id=segment.segment_id,
+            classification_confidence="low",
+            boundary_confidence="low",
+            punch_in_grade="hard",
+            punch_out_grade="hard",
+            superseded_by=later.proposal_id,
+        )
+    )
+    page = opens_segment(store, segment)
+    assert reads_field(page, "classification-confidence") == "medium confidence"
+    assert reads_field(page, "punch-in-grade") == "easy to place"
+    assert reads_field(page, "no-evidence") == "No evidence was recorded for this proposal."
+
+
+def test_a_segment_with_no_proposal_says_so(store, recording):
+    page = opens_segment(store, saves_segment(store, recording))
+    assert reads_field(page, "no-proposal") == "No proposal has been recorded for this Segment."
+    assert reads_field(page, "punch-in-grade") is None
