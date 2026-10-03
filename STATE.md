@@ -1,3 +1,77 @@
+## The spec notices the product now, and the worker stops inventing cuts (2026-10-02, triage round)
+
+Triage took the tracker from 58 open to the set below, then six parallel
+branches and a handful of direct fixes worked everything that did not need the
+owner. 71 commits since `3af49fc`. Master: **200 failed / 1850 passed** on
+`-m "not slow"` (was 228 / 1646); drift guard 147 / 318 / 0 moved; pins
+unchanged at 34 / 468 / 144 / 614 / 1939; frozen md5s unchanged.
+
+### The specification can now see the product
+
+This afternoon, shifting every chosen punch-in by +60 s left the spec's failures
+identical line for line, and deleting `ProposesSegments` made the spec score
+*better*. After the honesty work, re-measured on master: **+60 s turns 14
+scenarios red; deleting the proposal product turns 52 red.** The 11 that go
+green under the deletion assert the *absence* of a proposal.
+
+`tests/step_integrity.py` now condemns the shapes that hid this: bare
+`assert store.lists(X)` Thens, tautologous disjuncts (`x in CLOSED_SET` where
+the Gherkin can only pass a member), assertions behind guards, `x == x`, a Then
+that invokes a `sermon.*` unit or writes the store, a Then asserting a flag a
+step wrote, duplicate Thens, staging Whens. Fed four deliberately dishonest
+definitions it went from 0/4 to 4/4. It reports 113 still condemned and its own
+9 refusal tests are red: that is the honest record, not a regression. An honest
+analysis harness (`tests/steps/_analysis.py`) runs `RunsAnalyzeJob` as
+`sermon-work` builds it with deterministic doubles; no model call is possible
+from a spec item. **39 scenarios went green→red, every one a dishonest green
+unmasked** — notably the 17 cue-phrase rows (no cue-based classification
+ships) and every length/started-late/stopped-early warning (none is emitted).
+
+### Production defects fixed (need a deploy to take effect)
+
+- **The worker fabricated cuts** (`sp-5g0v`, P0). `sermon-work` defaulted
+  `contents` to `CLASS_AND_SERVICE` and minted `('lesson', 60, 3300)` and
+  `('sermon', 5400, 10800)` when analysis found nothing, then told the reviewer
+  they were publishable. Production holds **8 such Segments on 605–978 s
+  recordings** — the sermon rows start past the end of the audio — and 4
+  notifications. Default is now `NOTHING_FABRICATED`. The rows are untouched.
+- **The analyze walk clobbered its own measurements** (`sp-3zpi`): a stale
+  snapshot saved at the end erased loudness, true peak and channel levels, so
+  every production recording has them NULL until re-probed.
+- **The punch buttons beside the waveform went dead** after listening past the
+  punch-out (`sp-9mut`) — server-decided disabled state that no script
+  re-evaluated. Now judged in the browser on every playhead move; the scenario
+  for it drives Chromium and failed on the old code.
+- The scan no longer queues a download per discovery; malformed ingest/webhook
+  input answers 422 (and a date-shaped bad key no longer ends the whole scan);
+  "Retry ingestion" re-downloads; a failed render offers "Retry processing"
+  (the transition README allows) instead of a reversal that raised;
+  `sermon-render` renders its own cut rather than the first queued render.
+- Jobs retry with a growing delay (1/2/4/8 min) derived from a per-attempt
+  `LogEntry`, with no schema change; analyze jobs still do not retry.
+- Grading: per-boundary error figures in `sermon-approvals`; a pair with
+  unknown source duration is refused, not graded; `sermon-regrade` refuses a
+  missing answer key and a gate that compared nothing.
+
+### Corrections to the record
+
+- **The `--before` gate never had the placement-tie bug** (`sp-amgn`). It ranks
+  by same run then speech-seconds against the human. The tie lived in
+  `scores_cut._decides`, which feeds only `--drift`; the "1 degraded" that
+  rejected `sp-vaw`'s fourth correction came from a harness scoring through
+  `_decides`.
+- The 20260920 punch-in was not a plausibility-band rejection: the analyze
+  walk never passes `model_segments` to `choose()` (`sp-atw`).
+- `sp-atw`'s obvious fix currently scores *worse* on the frozen corpus (110 vs
+  107 cuts in the human's run, `whole.v2`) because the fix produces 29 mid-word
+  cuts, 26 of them within 50 ms of a word edge, which the metric ranks worst.
+  That is `sp-jbnn`, and it blocks `sp-atw` and `sp-l3p`.
+
+### What is left is decisions
+
+Every open bead now waits on the owner except the honesty remainder in
+progress. The questions are collected in the session report rather than here.
+
 ## The guards cannot see the seam the bead named (2026-10-02, `sp-vaw`, closed)
 
 Two results, and the second matters more than the work.
