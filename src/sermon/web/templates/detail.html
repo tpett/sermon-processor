@@ -218,7 +218,8 @@
     <p class="notice" data-field="action-notice">{{ view.notice }}</p>
     {% endif %}
     {% if view.boundary_controls == "editable" %}
-    <ol class="punch">
+    {% set reach = view.span_edges | map(attribute="seconds") | list %}
+    <ol class="punch" data-role="punch"{% if reach %} data-span-start-seconds="{{ reach[0] }}" data-span-end-seconds="{{ reach[1] }}"{% endif %} data-unavailable-reason="{{ playhead_outside_span }}">
     {% for boundary in view.boundaries %}
       <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}">
         <form method="post" action="{{ boundary.url }}{{ window }}">
@@ -228,9 +229,7 @@
       </li>
     {% endfor %}
     </ol>
-    {% if view.punch_unavailable %}
-    <p class="warn" data-field="punch-unavailable">{{ view.punch_unavailable }}</p>
-    {% endif %}
+    <p class="warn" data-field="punch-unavailable"{% if not view.punch_unavailable %} hidden{% endif %}>{{ view.punch_unavailable or "" }}</p>
     {% if view.span_edges %}
     <div class="reach">
       <p class="quiet">A punch point can only sit inside the Segment's own span. Move the span to reach past it.</p>

@@ -168,6 +168,29 @@ function movesPlayhead(seconds) {
     }
   }
   if (readout) readout.textContent = formatsPrecise(seconds);
+  judgesPunch(seconds);
+}
+
+const punch = document.querySelector('[data-role="punch"]');
+const punchWarning = document.querySelector('[data-field="punch-unavailable"]');
+
+// Judged on the timecode the punch form will submit, which is rounded to 10 ms.
+function judgesPunch(seconds) {
+  if (!punch || !("spanStartSeconds" in punch.dataset)) return;
+  const submitted = Number(seconds.toFixed(2));
+  const inside =
+    submitted >= Number(punch.dataset.spanStartSeconds) &&
+    submitted <= Number(punch.dataset.spanEndSeconds);
+  const reason = inside ? "" : punch.dataset.unavailableReason;
+  punch.querySelectorAll('[data-field="punch-control"]').forEach((control) => {
+    control.disabled = !inside;
+    if (inside) control.removeAttribute("title");
+    else control.title = reason;
+  });
+  if (punchWarning) {
+    punchWarning.hidden = inside;
+    punchWarning.textContent = reason;
+  }
 }
 
 function secondsAt(event, element, fromSeconds, windowSeconds) {

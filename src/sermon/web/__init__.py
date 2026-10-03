@@ -37,7 +37,12 @@ from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.reconciles_bucket import ReconcilesBucket
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.reruns_analysis import RerunsAnalysis
-from sermon.shows_recording import ShowsRecording, formats_precise, formats_seconds
+from sermon.shows_recording import (
+    PLAYHEAD_OUTSIDE_SPAN,
+    ShowsRecording,
+    formats_precise,
+    formats_seconds,
+)
 from sermon.skips_segment import SkipsSegment
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.splits_segment import NothingToMerge
@@ -76,6 +81,7 @@ def creates_app(
     app.config["BIND_HOST"] = os.environ.get("SERMON_BIND_HOST", "100.64.0.1")
     app.add_template_filter(formats_precise, "precise")
     app.add_template_filter(formats_seconds, "seconds")
+    app.jinja_env.globals["playhead_outside_span"] = PLAYHEAD_OUTSIDE_SPAN
     accepts = AcceptsRecordingWebhook(store=store, clock=clock)
     authorizes = AuthorizesWebhook(token=webhook_token)
     lists = ListsRecordings(store=store, clock=clock)
