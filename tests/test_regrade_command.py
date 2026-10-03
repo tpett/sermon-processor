@@ -124,3 +124,9 @@ def test_a_corpus_with_no_answer_key_cannot_gate(accepted, tmp_path):
     code, printed = runs(accepted, {}, tmp_path=tmp_path)
     assert code == 2
     assert "no answer key" in printed
+
+
+def test_cuts_that_moved_without_changing_the_judgement_are_counted(accepted, tmp_path):
+    code, printed = runs(accepted, {DEV: ((13.0, HUMANS_PAUSE_OUT),)}, tmp_path=tmp_path)
+    assert code == 0
+    assert "1 cut moved without changing its judgement" in printed

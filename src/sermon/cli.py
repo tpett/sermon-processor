@@ -1368,6 +1368,16 @@ def reports_gate(report, asked, prints):
         f"{counted[judges_cut.WORSE]} worse, {counted[gate.MIXED]} mixed, "
         f"{counted[judges_cut.UNCHANGED]} unchanged"
     )
+    quietly = sum(
+        cut.before.proposed != cut.after.proposed and cut.verdict == judges_cut.UNCHANGED
+        for judged in report.recordings
+        for cut in judged.cuts
+    )
+    if quietly:
+        prints(
+            f"{quietly} cut{'' if quietly == 1 else 's'} moved without changing "
+            f"{'its' if quietly == 1 else 'their'} judgement (--all shows where)"
+        )
     for judged in report.recordings:
         if judged.verdict == judges_cut.UNCHANGED:
             continue
