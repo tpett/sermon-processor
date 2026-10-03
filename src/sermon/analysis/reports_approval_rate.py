@@ -20,6 +20,7 @@ class PublishedCut:
     boundary_source: str | None
     punch_in_error_seconds: float | None = None
     punch_out_error_seconds: float | None = None
+    proposal_recorded: bool = False
 
     @property
     def edited(self) -> bool:
@@ -83,7 +84,8 @@ class ReportsApprovalRate:
         return until is None or segment.publication_date <= until
 
     def reads(self, segment):
-        proposed = self.proposed_boundaries(segment) or (None, None)
+        recorded = self.proposed_boundaries(segment)
+        proposed = recorded or (None, None)
         return PublishedCut(
             recording_id=segment.recording_id,
             segment_id=segment.segment_id,
@@ -92,6 +94,7 @@ class ReportsApprovalRate:
             boundary_source=segment.boundary_source,
             punch_in_error_seconds=measures_error(proposed[0], segment.punch_in_seconds),
             punch_out_error_seconds=measures_error(proposed[1], segment.punch_out_seconds),
+            proposal_recorded=recorded is not None,
         )
 
     def proposed_boundaries(self, segment):
@@ -108,6 +111,6 @@ class ReportsApprovalRate:
 
 
 def measures_error(proposed, chosen):
-    if proposed is None:
+    if proposed is None or proposed == chosen:
         return None
     return round(proposed - chosen, 3)

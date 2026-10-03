@@ -1270,7 +1270,7 @@ def reports_published_cut(cut, prints):
         f"{cut.recording_id}  {cut.classification:<8} {cut.published_on.isoformat()}  "
         f"{'edited' if cut.edited else 'unedited'}"
     )
-    if cut.punch_in_error_seconds is None and cut.punch_out_error_seconds is None:
+    if not cut.edited or not cut.proposal_recorded:
         prints(
             "  no error figure: "
             + (
@@ -1280,8 +1280,16 @@ def reports_published_cut(cut, prints):
             )
         )
         return
-    prints(f"  punch-in   error {cut.punch_in_error_seconds:+8.3f} s")
-    prints(f"  punch-out  error {cut.punch_out_error_seconds:+8.3f} s")
+    for named, error in (
+        ("punch-in", cut.punch_in_error_seconds),
+        ("punch-out", cut.punch_out_error_seconds),
+    ):
+        prints(
+            f"  {named:<10} no error figure: the reviewer did not move it, "
+            "so there is no human answer to subtract"
+            if error is None
+            else f"  {named:<10} error {error:+8.3f} s"
+        )
 
 
 def reports_rate(rate, prints):

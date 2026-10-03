@@ -140,6 +140,26 @@ def test_an_untouched_cut_carries_no_error_figures_because_there_is_no_human_ans
     ] == [(None, None)]
 
 
+def test_a_boundary_the_reviewer_did_not_move_carries_no_error_figure(store):
+    moved = AdjustsPunchPoint(store=store, clock=lambda: FROZEN)(
+        proposed(store, "recording_20260830_102838"), punch_in_seconds=3056.75
+    )
+    approves(store, moved)
+    rate = ReportsApprovalRate(store=store)()
+    assert [cut.edited for cut in rate.cuts] == [True]
+    assert [cut.proposal_recorded for cut in rate.cuts] == [True]
+    assert [
+        (cut.punch_in_error_seconds, cut.punch_out_error_seconds) for cut in rate.cuts
+    ] == [(pytest.approx(3.25), None)]
+
+
+def test_an_edited_cut_with_no_machine_proposal_on_record_says_so(store):
+    approves(store, proposed(store, "recording_20260830_102838", boundary_source="human"))
+    rate = ReportsApprovalRate(store=store)()
+    assert [cut.edited for cut in rate.cuts] == [True]
+    assert [cut.proposal_recorded for cut in rate.cuts] == [False]
+
+
 def test_a_published_segment_carrying_no_publication_date_falls_in_no_period(store):
     published_before_approval_placed_it(store, "recording_20260920_094416")
     approves(store, proposed(store, "recording_20260913_090014", SUNDAY))
