@@ -117,8 +117,8 @@ def creates_app(
             return 0.0
         working = chosen[0]
         if focus == "punch-out":
-            return working.punch_out_seconds
-        return working.punch_in_seconds
+            return min(working.punch_out_seconds, working.span_end_seconds)
+        return max(working.punch_in_seconds, working.span_start_seconds)
 
     def returns_to(recording_id, notice, segment_id=None, focus=None):
         return redirect(
