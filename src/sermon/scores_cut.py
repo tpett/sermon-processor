@@ -6,7 +6,7 @@ from functools import cached_property
 SILENCE_RUN_SECONDS = 1.0
 EDGE_RUN_SECONDS = 1.0
 LONG_RUN_SECONDS = 30.0
-WORD_BUFFER_SECONDS = 0.050
+WORD_BUFFER_SECONDS = 0.250
 
 EQUAL = "equal"
 SAME_CUT = "same cut"

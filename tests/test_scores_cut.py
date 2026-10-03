@@ -302,7 +302,7 @@ BEFORE_A_WORD_STARTS = 6.97
 
 
 def test_the_word_buffer_is_the_named_constant():
-    assert WORD_BUFFER_SECONDS == 0.050
+    assert WORD_BUFFER_SECONDS == 0.250
 
 
 def test_a_cut_in_a_run_but_within_the_buffer_of_a_word_crowds_it():
@@ -319,8 +319,8 @@ def test_a_cut_on_a_word_edge_is_within_the_buffer():
 
 def test_a_cut_exactly_the_buffer_from_a_word_is_clear_of_it():
     scoring = ScoresCut(transcript=three_runs())
-    assert scoring(2.05, IN_FIRST_RUN).within_buffer is False
-    assert scoring(2.049, IN_FIRST_RUN).within_buffer is True
+    assert scoring(2.25, IN_FIRST_RUN).within_buffer is False
+    assert scoring(2.249, IN_FIRST_RUN).within_buffer is True
 
 
 def test_a_cut_just_inside_a_word_is_mid_word_rather_than_within_the_buffer():
@@ -341,6 +341,6 @@ def test_two_cuts_within_the_buffer_at_either_end_of_one_run_are_the_same_cut():
 
 
 def test_the_buffer_can_be_widened():
-    widened = ScoresCut(transcript=three_runs(), buffer_seconds=0.150)
-    assert widened(2.1, IN_FIRST_RUN).within_buffer is True
-    assert ScoresCut(transcript=three_runs())(2.1, IN_FIRST_RUN).within_buffer is False
+    widened = ScoresCut(transcript=three_runs(), buffer_seconds=0.500)
+    assert widened(2.4, IN_FIRST_RUN).within_buffer is True
+    assert ScoresCut(transcript=three_runs())(2.4, IN_FIRST_RUN).within_buffer is False

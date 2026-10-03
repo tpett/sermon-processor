@@ -371,7 +371,7 @@ def test_the_command_counts_the_cuts_within_the_buffer_of_a_word(tmp_path):
     stages_corpus(tmp_path)
     code, printed = runs(tmp_path, [(6.02, 26.0)])
     assert code == 0
-    assert "0 not found, 1 within 50 ms of a word" in printed
+    assert "0 not found, 1 within 250 ms of a word" in printed
     assert "speech   0.000 s within the buffer" in printed
 
 
