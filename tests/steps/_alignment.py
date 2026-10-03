@@ -26,6 +26,10 @@ from sermon.store import Recording
 
 PER_COARSE_FRAME = FINE_HZ // COARSE_HZ
 SYLLABLE_MS = 25
+ROOM_LEVEL = 0.001
+PAUSE_EVERY_S = 4.0
+PAUSE_S = 0.6
+CLEAR_OF_THE_CUT_S = 12.0
 NOWHERE = "http://127.0.0.1:9"
 
 
@@ -61,6 +65,9 @@ class Pair:
     spliced_at: float | None = None
     unrelated: bool = False
     seed: int = 7
+    quiet: tuple = ()
+    pauses: bool = False
+
 
     @property
     def source_name(self):
@@ -71,7 +78,16 @@ class Pair:
         return f"{self.recording_id}.edit.mp3"
 
     def source_fine(self):
-        return speech(self.source_seconds, seed=self.seed)
+        fine = speech(self.source_seconds, seed=self.seed)
+        spacing = np.random.default_rng(self.seed + 1)
+        at = PAUSE_EVERY_S
+        while self.pauses and at < self.source_seconds:
+            if abs(at - self.offset_seconds) > CLEAR_OF_THE_CUT_S:
+                fine[int(at * FINE_HZ) : int((at + PAUSE_S) * FINE_HZ)] = ROOM_LEVEL
+            at += spacing.uniform(PAUSE_EVERY_S / 2, PAUSE_EVERY_S * 1.5)
+        for start, end in self.quiet:
+            fine[int(start * FINE_HZ) : int(end * FINE_HZ)] = ROOM_LEVEL
+        return fine
 
     def edit_fine(self):
         source = self.source_fine()

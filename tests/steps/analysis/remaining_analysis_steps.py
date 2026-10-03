@@ -144,12 +144,6 @@ def _(store, condition):
     store._cut_grade = grade
 
 
-@given(parsers.parse('the audio around the true cut point is "{condition}"'))
-def _(store, condition):
-    ensure_segment(store)
-    store._cut_grade = "hard" if "under 250" in condition or "noise" in condition or "music" in condition else "easy"
-
-
 @given(parsers.parse('a Recording that is "{kind}"'))
 def _(store, kind):
     recording = rec(store)
@@ -935,12 +929,6 @@ def _(store):
     ClassifiesBlocks(store=store)(rec(store))
     teaching = [block for block in store.lists(Block) if block.type in {"sermon", "lesson", "seminar"}]
     assert teaching and teaching[0].type == "lesson"
-
-
-@then(parsers.parse('the transition is graded "{grade}"'))
-def _(store, grade):
-    store._cut_grade = grade
-    assert grade in CUT_DIFFICULTIES
 
 
 @given(parsers.parse('a communion Block begins at "{timecode}"'))

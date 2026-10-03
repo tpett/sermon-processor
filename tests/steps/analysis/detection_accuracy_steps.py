@@ -1,5 +1,5 @@
 import pytest
-from pytest_bdd import given, then, when
+from pytest_bdd import given, parsers, then, when
 from steps import _alignment
 
 from sermon.cli import aligns
@@ -234,3 +234,30 @@ def _(store, corpus):
     assert row.alignment == "aligned"
     assert row.covers_more_than_95_percent
     assert not row.labelled
+
+
+QUIET_AROUND_THE_CUT = {
+    "10 seconds of clean silence before the first word": ((-9.0, 1.0),),
+    "2 seconds of clean silence": ((-1.5, 0.5),),
+    "under 250 ms of quiet, words either side": ((-0.1, 0.1),),
+    "audible noise or feedback near the cut point": (),
+    "music fading under the first words": (),
+}
+
+
+@given(parsers.parse('the audio around the true cut point is "{condition}"'))
+def _(corpus, condition):
+    pair = subject(corpus)
+    pair.pauses = True
+    pair.quiet = tuple(
+        (pair.offset_seconds + before, pair.offset_seconds + after)
+        for before, after in QUIET_AROUND_THE_CUT[condition]
+    )
+    extracts(corpus)
+
+
+@then(parsers.parse('the transition is graded "{difficulty}"'))
+def _(store, corpus, difficulty):
+    row = derived(store, subject(corpus))
+    assert row.alignment == "aligned"
+    assert row.punch_in_difficulty == difficulty
