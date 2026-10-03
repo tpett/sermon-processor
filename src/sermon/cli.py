@@ -50,7 +50,12 @@ from sermon.jobs.recovers_interrupted_jobs import RecoversInterruptedJobs
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.jobs.renders_mp3 import ChannelsNeedReview, RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
-from sermon.object_store import FetchesBucketObject, ListsBucketObjects, OpensObjectStore
+from sermon.object_store import (
+    FetchesBucketObject,
+    ListsBucketObjects,
+    OpensObjectStore,
+    StreamsBucketObject,
+)
 from sermon.organizes_data_root import IN_PLACE, OrganizesDataRoot
 from sermon.pipeline.classify import hms
 from sermon.pipeline.roots import RootNotConfigured
@@ -196,6 +201,13 @@ def reconciles(settings=None, lists_objects=None, prints=print):
         return 0
     finally:
         store.close()
+
+
+def streams_from(configuration, builds_client=None):
+    return StreamsBucketObject(
+        bucket=configuration.object_store.bucket,
+        client=OpensObjectStore(object_store=configuration.object_store, builds=builds_client)(),
+    )
 
 
 def fetch_for(configuration, fetches_object):
@@ -562,7 +574,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
         store.close()
 
 
-def serves(settings=None, lists_objects=None, runs=starts, prints=print):
+def serves(settings=None, lists_objects=None, runs=starts, prints=print, builds_client=None):
     settings = resolves_settings() if settings is None else settings
     opened = opens_or_reports(settings, lists_objects, prints)
     if opened is None:
@@ -571,6 +583,7 @@ def serves(settings=None, lists_objects=None, runs=starts, prints=print):
     app = creates_app(
         store=store,
         lists_objects=lists_objects,
+        streams_object=streams_from(configuration, builds_client),
         webhook_token=configuration.webhook_token,
     )
     app.config["BIND_HOST"] = settings.get(BIND_HOST, app.config["BIND_HOST"])
