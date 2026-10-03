@@ -347,11 +347,13 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
             store, recording, punch_in, punch_out, label, published_on, intent
         )
         produced = []
+        queued = store.lists(Job, kind="render", state="queued", segment_id=segment.segment_id)
         RunsRenderJob(
             store=store,
             steps=lambda _name: None,
             notifies=SendsNotification(store=store),
             renders=keeps_what_it_rendered(RendersMp3(), produced),
+            job_id=queued[0].job_id,
         )()
         artifacts = store.lists(Artifact, kind="rendered_mp3", segment_id=segment.segment_id)
         if not artifacts or not produced:

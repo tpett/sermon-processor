@@ -392,6 +392,37 @@ def test_rendering_a_hand_specified_cut_writes_a_named_mp3(tmp_path):
         store.close()
 
 
+def test_rendering_a_cut_renders_that_cut_when_another_render_is_queued(tmp_path):
+    rendered_by_hand(tmp_path, RecordsLines())
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        earlier = store.lists(Segment)[0]
+        store.saves(
+            Job(
+                recording_id=earlier.recording_id,
+                segment_id=earlier.segment_id,
+                kind="render",
+                state="queued",
+                max_attempts=5,
+                dedupe_key=f"render:{earlier.segment_id}:waiting",
+                queued_at=datetime.now(UTC),
+            )
+        )
+    finally:
+        store.close()
+    rendered_by_hand(tmp_path, RecordsLines(), punch_in="0:00:04", label="Hebrews 12.12-17")
+    store = opens_store(str(tmp_path / "data"))
+    try:
+        latest = store.lists(Segment)[-1]
+        assert store.lists(Artifact, kind="rendered_mp3", segment_id=latest.segment_id)
+        assert [job.state for job in store.lists(Job, segment_id=earlier.segment_id)] == [
+            "succeeded",
+            "queued",
+        ]
+    finally:
+        store.close()
+
+
 def test_rendering_fetches_and_probes_the_source_it_needs(tmp_path):
     rendered_by_hand(tmp_path, RecordsLines())
     store = opens_store(str(tmp_path / "data"))
