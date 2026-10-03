@@ -254,10 +254,14 @@ class RunsDownloadJob:
     probes: object
     clock: object = now
     free_bytes: object = None
+    job_id: int | None = None
 
     def __call__(self):
-        queued = self.store.lists(Job, kind="download", state="queued")
-        job = queued[0]
+        job = [
+            queued
+            for queued in self.store.lists(Job, kind="download", state="queued")
+            if self.job_id in (None, queued.job_id)
+        ][0]
         running = self.store.saves(replace(job, state="running", started_at=self.clock()))
         recording = self.store.loads(Recording, running.recording_id)
         try:
@@ -300,7 +304,7 @@ class RunsDownloadJob:
                         state="failed",
                         last_error=str(error),
                         attempts=attempts,
-                        failed_permanently=attempts >= running.max_attempts,
+                        failed_permanently=True,
                     )
                 )
                 return

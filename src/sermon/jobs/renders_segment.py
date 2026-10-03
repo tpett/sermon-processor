@@ -147,9 +147,14 @@ class RunsRenderJob:
     notifies: object
     clock: object = now
     renders: object = None
+    job_id: int | None = None
 
     def __call__(self):
-        job = self.store.lists(Job, kind="render", state="queued")[0]
+        job = [
+            queued
+            for queued in self.store.lists(Job, kind="render", state="queued")
+            if self.job_id in (None, queued.job_id)
+        ][0]
         running = self.store.saves(replace(job, state="running", started_at=self.clock()))
         segment = self.store.loads(Segment, running.segment_id)
         try:
@@ -162,7 +167,12 @@ class RunsRenderJob:
             )(segment)
         except StepFailed as error:
             self.store.saves(
-                replace(running, state="failed", last_error=str(error), attempts=(running.attempts or 0) + 1)
+                replace(
+                    running,
+                    state="failed",
+                    last_error=f"{error.step}: {error}",
+                    attempts=(running.attempts or 0) + 1,
+                )
             )
             return
         self.store.saves(replace(running, state="succeeded"))

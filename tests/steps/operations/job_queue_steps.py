@@ -1,5 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
+import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment
@@ -13,12 +14,18 @@ from sermon.jobs.downloads_recording import (
 )
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.jobs.recovers_interrupted_jobs import RecoversInterruptedJobs
-from sermon.jobs.runs_queued_jobs import RetriesFailedJob, RunsQueuedJobs
+from sermon.jobs.runs_queued_jobs import (
+    ATTEMPT,
+    RetriesFailedJob,
+    RunsQueuedJobs,
+    retry_delay,
+)
 from sermon.sends_notification import SendsNotification
-from sermon.store import Job, Recording, Reviewer, Segment
+from sermon.store import Job, LogEntry, Recording, Reviewer, Segment
 from sermon.web import creates_app
 
 FLAC_BYTES = b"fLaC" + bytes(64)
+SECOND = timedelta(seconds=1)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
 WEBHOOK_TOKEN_VALUE = "the-token-only-the-spec-suite-issues"
@@ -29,6 +36,44 @@ WEBHOOK = {
     "size_bytes": len(FLAC_BYTES),
     "recorded_at": "2026-08-23T10:30:15-05:00",
 }
+
+
+class MovesOn:
+    def __init__(self, at):
+        self.at = at
+
+    def __call__(self):
+        return self.at
+
+    def passes(self, interval):
+        self.at += interval
+
+
+@pytest.fixture
+def queue_clock():
+    return MovesOn(FROZEN)
+
+
+@pytest.fixture
+def unreachable_bucket():
+    fetches = FetchesObject()
+    fetches.error = "connection refused"
+    return fetches
+
+
+def worker_at(store, fetches, clock):
+    return RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(
+            store=store,
+            fetches=fetches,
+            probes=ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1),
+            clock=clock,
+        ),
+        analyzes=lambda: None,
+        renders=lambda: None,
+        clock=clock,
+    )
 
 
 def worker(store, fetches):
@@ -273,44 +318,58 @@ def _(store):
     assert store.lists(Recording)[0].state == "awaiting_review"
 
 
-@given("a job fails")
-def _(store):
+@given("a job fails", target_fixture="failing_job")
+def _(store, queue_clock, unreachable_bucket):
     recording = store.saves(
         Recording(
             recording_id="recording_20260823_103015",
             object_key=OBJECT_KEY,
-            state="downloaded",
+            state="discovered",
             started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
             started_at_source="key",
-            size_bytes=1,
+            size_bytes=len(FLAC_BYTES),
         )
     )
-    store.saves(
+    job = store.saves(
         Job(
             recording_id=recording.recording_id,
-            kind="analyze",
-            state="failed",
-            attempts=1,
+            kind="download",
+            state="queued",
             max_attempts=5,
-            dedupe_key=f"analyze:{recording.recording_id}",
+            dedupe_key=f"download:{recording.recording_id}",
             queued_at=FROZEN,
-            last_error="transcription timed out",
         )
     )
+    worker_at(store, unreachable_bucket, queue_clock)()
+    return store.loads(Job, job.job_id)
 
 
 @then("it is retried with increasing delay between attempts")
-def _(store):
-    job = store.lists(Job, kind="analyze")[0]
-    retried = RetriesFailedJob(store=store, clock=lambda: FROZEN)(job)
-    assert retried.state == "queued"
-    assert retried.attempts == 1
+def _(store, failing_job, queue_clock, unreachable_bucket):
+    assert retry_delay(2) - SECOND >= retry_delay(1)
+    runs = worker_at(store, unreachable_bucket, queue_clock)
+    for attempt in (1, 2):
+        queue_clock.passes(retry_delay(attempt) - SECOND)
+        assert runs() is None, f"retried before attempt {attempt}'s delay had passed"
+        assert store.loads(Job, failing_job.job_id).attempts == attempt
+        queue_clock.passes(SECOND)
+        assert runs() is not None
+        assert store.loads(Job, failing_job.job_id).attempts == attempt + 1
 
 
 @then("each attempt is recorded with its error")
-def _(store):
-    job = store.lists(Job, kind="analyze")[0]
-    assert job.last_error
+def _(store, failing_job):
+    job = store.loads(Job, failing_job.job_id)
+    logged = [
+        entry
+        for entry in store.lists(LogEntry, job_id=job.job_id)
+        if entry.kind == ATTEMPT
+    ]
+    assert job.attempts >= 1
+    assert len(logged) == job.attempts
+    assert [entry.error for entry in logged] == ["connection refused"] * job.attempts
+    assert len({entry.occurred_at for entry in logged}) == len(logged)
+    assert all(entry.duration_seconds is not None for entry in logged)
 
 
 @given("jobs are queued, running, and failed")
