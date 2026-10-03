@@ -3,6 +3,8 @@ from pytest_bdd import given, then, when
 from sermon.jobs.generates_waveform_peaks import DETAIL_HZ, FULL_SCALE, GeneratesWaveformPeaks
 from sermon.store import Artifact, Recording, Segment
 from sermon.web import creates_app
+from steps import _audio, _forms, _web
+from steps._markup import reads_field, reads_role, reads_rows
 from steps._peaks import TONE_AMPLITUDE, reads_peaks, signed, writes_tone
 
 PLACEABLE_HZ = 10
@@ -64,7 +66,8 @@ def _(store, recording):
 
 
 @given("the waveform stage fails on every attempt")
-def _(store):
+def _(store, recording):
+    _audio.local_source(store, recording, recording.duration_seconds)
     store._failing_stage = "waveform"
 
 
@@ -91,7 +94,16 @@ def _(store, recording):
 
 @then("the reviewer can still adjust Segment boundaries using playback and the transcript")
 def _(store, recording):
-    assert store.lists(Segment, recording_id=recording.recording_id)
+    proposed = store.lists(Segment, recording_id=recording.recording_id, state="proposed")
+    assert proposed, "analysis proposed no Segment to adjust"
+    segment = proposed[0]
+    page = _web.opens_detail(store, recording.recording_id, segment=segment.segment_id)
+    assert reads_role(page, "preview-punch-in") is not None, "the punch-in cannot be auditioned"
+    assert reads_rows(page, "utterance"), "no transcript is shown beside the Segment"
+    assert page.count('data-field="playhead-control"') == 2, "boundaries cannot be set from the playhead"
+    later = _forms.submits(store, page, 'data-nudge="later ')
+    assert reads_field(later, "action-notice") == "the adjustment is saved without approving"
+    assert store.loads(Segment, segment.segment_id).punch_in_seconds > segment.punch_in_seconds
 
 
 @then("the peaks span the full duration of the source recording")
