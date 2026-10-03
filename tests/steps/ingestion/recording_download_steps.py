@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, then, when
 
+from sermon.analysis.transcribes_audio import RETRY_ATTEMPTS
 from sermon.jobs.downloads_recording import (
     FetchesObject,
     ProbesAudio,
@@ -271,9 +272,15 @@ def _(store, recording, object_store):
 
 @then(parsers.parse('after the retry budget is exhausted the Recording enters "{state}"'))
 def _(store, recording, state):
-    job, attempts = download_attempts(store)
-    assert (job.state, job.failed_permanently) == ("failed", True)
-    assert len(attempts) == job.max_attempts, f"{len(attempts)} of {job.max_attempts} attempts"
+    failing = [one for one in store.lists(Job, recording_id=recording.recording_id) if one.state != "succeeded"]
+    if failing:
+        (job,) = failing
+        attempts = [entry for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+        assert (job.state, job.failed_permanently) == ("failed", True)
+        assert len(attempts) == job.max_attempts, f"{len(attempts)} of {job.max_attempts} attempts"
+    else:
+        tried = store._asr_attempts
+        assert len(tried) == RETRY_ATTEMPTS, f"the transcriber was tried {len(tried)} times"
     assert store.loads(Recording, recording.recording_id).state == state
 
 
