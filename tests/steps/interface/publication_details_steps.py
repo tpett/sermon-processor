@@ -1,4 +1,3 @@
-from dataclasses import replace
 from datetime import UTC, datetime, date
 
 from pytest_bdd import given, parsers, then, when
@@ -92,31 +91,14 @@ def _(store, segment, value, label):
 
 
 @when("the Segment is processed", target_fixture="processed_segment")
-def _(store, segment):
-    from sermon.jobs.enqueues_job import EnqueuesJob
+def _(store, segment, clock):
+    from sermon.approves_segment import ApprovesSegment
     from sermon.jobs.renders_segment import RunsRenderJob
     from sermon.sends_notification import SendsNotification
-    from sermon.store import Job, Reviewer
 
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    approved = store.saves(replace(segment, state="approved"))
-    EnqueuesJob(store)(
-        Job(
-            recording_id=approved.recording_id,
-            segment_id=approved.segment_id,
-            kind="render",
-            state="queued",
-            max_attempts=5,
-            dedupe_key=f"render:{approved.segment_id}",
-            queued_at=datetime(2026, 8, 23, 16, 0, tzinfo=UTC),
-        )
-    )
-    RunsRenderJob(
-        store=store,
-        steps=lambda _name: None,
-        notifies=SendsNotification(store=store),
-    )()
-    return store.loads(Segment, approved.segment_id)
+    ApprovesSegment(store=store, clock=clock)(store.loads(Segment, segment.segment_id))
+    RunsRenderJob(store=store, steps=lambda _name: None, notifies=SendsNotification(store=store), clock=clock)()
+    return store.loads(Segment, segment.segment_id)
 
 
 @then(parsers.parse('the output file is named "{filename}"'))
