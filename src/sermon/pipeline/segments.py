@@ -371,7 +371,7 @@ def derive(blocks: list[dict], doc: dict, refine: bool = True,
     return segs
 
 
-WORD_BUFFER_S = 0.050
+WORD_BUFFER_S = 0.250
 LEAD_IN_MAX_S = 2.0
 
 

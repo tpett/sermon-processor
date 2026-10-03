@@ -782,7 +782,7 @@
    "SPEAKER_SNAP_S": "4.0",
    "TAIL_GUARD_S": "0.4",
    "TAIL_S": "1.5",
-   "WORD_BUFFER_S": "0.05"
+   "WORD_BUFFER_S": "0.25"
   }
  },
  "constants.unread": [

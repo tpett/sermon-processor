@@ -1735,7 +1735,7 @@ def timed(*spoken, duration=100.0):
 
 def test_the_word_buffer_and_the_lead_in_ceiling_are_the_named_constants():
     segments = imports_moved("segments")
-    assert segments.WORD_BUFFER_S == 0.050
+    assert segments.WORD_BUFFER_S == 0.250
     assert segments.LEAD_IN_MAX_S == 2.0
 
 
@@ -1745,11 +1745,12 @@ OPENING = timed(("before", 10.0, 11.0), ("well", 20.0, 20.5), ("good", 20.5, 21.
 @pytest.mark.parametrize(
     ("proposed", "cleared"),
     [
-        (20.2, 19.95),
-        (20.0, 19.95),
-        (19.97, 19.95),
+        (20.2, 19.75),
+        (20.0, 19.75),
+        (19.97, 19.75),
+        (19.8, 19.75),
         (19.0, 19.0),
-        (19.95, 19.95),
+        (19.75, 19.75),
         (15.0, 18.0),
     ],
 )
@@ -1762,14 +1763,14 @@ def test_a_punch_in_sits_the_buffer_before_the_first_word_and_no_more_than_the_c
 
 def test_a_punch_in_keeps_the_buffer_after_the_word_before_it_too():
     segments = imports_moved("segments")
-    close = segments.spoken_intervals(timed(("before", 18.0, 19.5), ("well", 20.0, 20.5)))
-    assert segments.clear_in(19.51, close) == 19.55
+    close = segments.spoken_intervals(timed(("before", 18.0, 19.0), ("well", 20.0, 20.5)))
+    assert segments.clear_in(19.01, close) == 19.25
 
 
 def test_a_punch_in_between_words_too_close_for_both_buffers_takes_the_middle_of_the_gap():
     segments = imports_moved("segments")
-    tight = segments.spoken_intervals(timed(("before", 18.0, 19.95), ("well", 20.0, 20.5)))
-    assert segments.clear_in(20.2, tight) == 19.975
+    tight = segments.spoken_intervals(timed(("before", 18.0, 19.7), ("well", 20.0, 20.5)))
+    assert segments.clear_in(20.2, tight) == 19.85
 
 
 def test_a_punch_in_before_any_word_near_the_start_of_the_recording_stays_at_the_start():
@@ -1787,8 +1788,9 @@ CLOSING = timed(("in", 29.0, 30.0), ("amen", 30.0, 30.5), ("next", 40.0, 41.0))
         (30.3, 32.0),
         (30.5, 32.0),
         (30.52, 32.0),
+        (30.7, 32.0),
         (31.0, 31.0),
-        (39.98, 39.95),
+        (39.98, 39.75),
     ],
 )
 def test_a_punch_out_inside_or_against_the_last_word_moves_past_its_decay(proposed, cleared):
@@ -1798,7 +1800,7 @@ def test_a_punch_out_inside_or_against_the_last_word_moves_past_its_decay(propos
 
 def test_the_decay_after_a_punch_out_stops_the_buffer_short_of_the_next_word():
     segments = imports_moved("segments")
-    close = segments.spoken_intervals(timed(("amen", 30.0, 30.5), ("next", 31.0, 32.0)))
+    close = segments.spoken_intervals(timed(("amen", 30.0, 30.5), ("next", 31.2, 32.0)))
     assert segments.clear_out(30.3, close, 100.0) == 30.95
 
 
@@ -1832,7 +1834,7 @@ def test_choosing_moves_the_models_punch_in_out_of_the_word_it_landed_in():
     derived = [{"punch_in": 20.0, "punch_out": 1902.0,
                 "classification": "sermon", "confidence": 0.9}]
     chosen = segments.choose([{"punch_in": 20.2, "punch_out": 1900.3}], derived, doc)
-    assert (chosen[0]["punch_in"], chosen[0]["punch_out"]) == (19.95, 1902.0)
+    assert (chosen[0]["punch_in"], chosen[0]["punch_out"]) == (19.75, 1902.0)
     assert chosen[0]["boundary_source"] == "model-in/refined-out"
 
 
@@ -1851,7 +1853,7 @@ def test_choosing_without_the_models_answer_clears_the_refined_punch_in_too():
     derived = [{"punch_in": 20.0, "punch_out": 1902.0,
                 "classification": "sermon", "confidence": 0.9}]
     chosen = segments.choose([], derived, doc)
-    assert chosen[0]["punch_in"] == 19.95
+    assert chosen[0]["punch_in"] == 19.75
     assert chosen[0]["boundary_source"] == "refined"
 
 
