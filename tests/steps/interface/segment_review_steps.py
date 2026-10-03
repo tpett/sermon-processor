@@ -377,3 +377,22 @@ def _(store, classification):
             punch_out_seconds=900.0,
         )
     )
+
+
+@then("it still appears as needing attention")
+def _(store, recording):
+    client = creates_app(store=store).test_client()
+    for query in ("", "?filter=Needs attention"):
+        rows = reads_rows(client.get(f"/{query}").get_data(as_text=True), "recording")
+        listed = [row for row in rows if row["id"] == recording.recording_id]
+        assert listed and listed[0]["attention"] == "true", query
+
+
+@then("I am not forced to disposition everything in one sitting")
+def _(store, recording):
+    untouched = numbered_segment(store, recording, 1)
+    page = _web.opens_detail(store, recording.recording_id, segment=untouched.segment_id)
+    offered = [row["action"] for row in reads_rows(page, "segment-action")]
+    assert {"Approve", "Skip"} <= set(offered)
+    states = {row["segment"]: row["state"] for row in reads_rows(page, "segment")}
+    assert states[str(untouched.segment_id)] == "proposed"
