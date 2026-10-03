@@ -274,13 +274,21 @@ def _(store):
     assert reads_json(store, recording, "transcript")["utterances"]
 
 
+def resolves_nothing(host):
+    raise OSError(f"the spec suite resolves no names; {host} was asked for")
+
+
+def resolves_publicly(host):
+    return ["93.184.216.34"]
+
+
 @then("no third-party transcription API is called")
 def _(store):
     from sermon.analysis.transcribes_audio import refuses_a_public_transcriber
 
     assert reads_json(store, _analysis.the_recording(store), "transcript") is not None
     for destination in getattr(store, "_asr_destinations", ()):
-        refuses_a_public_transcriber(destination)
+        refuses_a_public_transcriber(destination, resolves=resolves_nothing)
 
 
 @given("the transcription model is hosted on another machine on the tailnet", target_fixture="model_endpoint")
@@ -339,9 +347,9 @@ def _(store):
     )
 
     for destination in getattr(store, "_asr_destinations", ()):
-        refuses_a_public_transcriber(destination)
+        refuses_a_public_transcriber(destination, resolves=resolves_nothing)
     with pytest.raises(TranscriberRefused):
-        PostsToTranscriber(endpoint="https://transcription.example.com")
+        PostsToTranscriber(endpoint="https://transcription.example.com", resolves=resolves_publicly)
 
 
 @then("the stage is retried with backoff")

@@ -81,6 +81,10 @@ def refuses_a_foreign_slack_webhook(webhook):
             f"{NOTIFICATION_CHANNEL} is {SLACK!r} but nothing sets {SLACK_WEBHOOK_URL}"
         )
     refuses_a_bare_credential(SLACK_WEBHOOK_URL, webhook)
+    if any(character.isspace() or not character.isprintable() for character in webhook.reveals()):
+        raise UnusableConfiguration(
+            f"{SLACK_WEBHOOK_URL} holds whitespace or control characters, so it is not a usable URL"
+        )
     reached = urlparse(webhook.reveals())
     if reached.scheme != "https" or reached.netloc != SLACK_HOOK_HOST:
         raise UnusableConfiguration(

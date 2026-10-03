@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields, is_dataclass, replace
 from datetime import UTC, datetime, timedelta
 
+from sermon.jobs.downloads_recording import fails_ingest
 from sermon.store import Job, LogEntry, Store
 from sermon.store.vocabularies import JOB_STATES_IN_FLIGHT
 
@@ -91,6 +92,8 @@ class RunsQueuedJobs:
         job = eligible[0]
         if job.attempts >= job.max_attempts:
             self.store.saves(replace(job, state="failed", failed_permanently=True))
+            if job.kind == "download":
+                fails_ingest(self.store, job.recording_id, "download: retry budget exhausted", clock=self.clock)
             return job
         handler = {
             "download": self.downloads,

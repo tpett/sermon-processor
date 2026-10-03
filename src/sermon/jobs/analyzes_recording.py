@@ -17,12 +17,11 @@ from sermon.analysis import (
 from sermon.analysis.progress import RecordsStageProgress
 from sermon.analysis.transcribes_audio import AudioNotDecodable
 from sermon.config import ModelEndpointUnreachable
-from sermon.extends_segment_span import WidensProposedSpan
 from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
 from sermon.raises_notification import TellsAnalysisFailed, TellsAnalysisOutcome
-from sermon.store import Artifact, Job, LogEntry, Proposal, Recording, Segment, Store
+from sermon.store import Artifact, Job, LogEntry, Recording, Store
 
 
 def now():
@@ -49,20 +48,6 @@ STAGE_ORDER = (
     "boundary_refinement",
     "scoring",
 )
-
-
-@dataclass(frozen=True)
-class RecordingContents:
-    segments: tuple
-
-
-CLASS_AND_SERVICE = RecordingContents(
-    segments=(
-        ("lesson", 60.0, 3300.0),
-        ("sermon", 5400.0, 10800.0),
-    )
-)
-NOTHING_FABRICATED = RecordingContents(segments=())
 
 
 ITERATED_STAGES = ("blocking", "block_classification")
@@ -113,7 +98,6 @@ class AnalyzesRecording:
     store: Store
     stages: object
     notifies: object
-    contents: object = NOTHING_FABRICATED
     clock: object = now
     reaches: object = None
     only: str | None = None
@@ -248,31 +232,6 @@ class AnalyzesRecording:
             self._fails(recording, f"{stage}: {error}", final=final_attempt or permanent)
             raise StageFailed(stage, str(error), permanent=permanent) from error
         analyzed = self.store.loads(Recording, recording.recording_id)
-        if not self.store.lists(Segment, recording_id=recording.recording_id):
-            for classification, punch_in, punch_out in self.contents.segments:
-                segment = self.store.saves(
-                    WidensProposedSpan(store=self.store)(
-                        Segment(
-                            recording_id=recording.recording_id,
-                            classification=classification,
-                            state="proposed",
-                            span_start_seconds=punch_in,
-                            span_end_seconds=punch_out,
-                            punch_in_seconds=punch_in,
-                            punch_out_seconds=punch_out,
-                        ),
-                        analyzed.duration_seconds,
-                    )
-                )
-                self.store.saves(
-                    Proposal(
-                        segment_id=segment.segment_id,
-                        classification_confidence="high",
-                        boundary_confidence="medium",
-                        punch_in_grade="easy",
-                        punch_out_grade="easy",
-                    )
-                )
         reviewed = self.store.saves(replace(analyzed, state="awaiting_review"))
         self.store.saves(
             LogEntry(
@@ -292,7 +251,6 @@ class RunsAnalyzeJob:
     store: Store
     stages: object
     notifies: object
-    contents: object = NOTHING_FABRICATED
     clock: object = now
     reaches: object = None
     only: str | None = None
@@ -320,7 +278,6 @@ class RunsAnalyzeJob:
                 store=self.store,
                 stages=self.stages,
                 notifies=self.notifies,
-                contents=self.contents,
                 clock=self.clock,
                 reaches=self.reaches,
                 only=self.only,

@@ -5,7 +5,9 @@ import pytest
 
 from sermon.analysis.derives_corpus_entry import (
     BlockFileAlreadyWritten,
+    CorpusFileAlreadyWritten,
     DerivesCorpusEntry,
+    FrozenCorpus,
     NothingToBlock,
 )
 from sermon.analysis.io import writes_json
@@ -220,3 +222,62 @@ def test_the_store_rows_are_left_untouched(tmp_path, injected_roots):
         assert store.loads(Recording, RECORDING) == recording_row()
     finally:
         store.close()
+
+
+def never_asked(doc=None):
+    pytest.fail("the classifier was asked before the corpus was checked")
+
+
+def every_file_under(root):
+    return {path: path.read_bytes() for path in root.rglob("*") if path.is_file()}
+
+
+@pytest.mark.parametrize("held", ["transcripts/{id}.{asr}.json", "diarization/{id}.json"])
+def test_any_file_the_corpus_already_holds_is_never_overwritten(tmp_path, injected_roots, held):
+    turns = {"turns": [{"start": 4151.5, "end": 7598.0, "speaker": "A"}]}
+    root = data_root_holding_the_transcript(tmp_path, diarization=turns)
+    frozen = root / "corpus" / held.format(id=RECORDING, asr=ASR)
+    frozen.parent.mkdir(parents=True)
+    frozen.write_text("the frozen baseline")
+    before = every_file_under(root / "corpus")
+    with pytest.raises(CorpusFileAlreadyWritten) as refused:
+        derives(tmp_path, data_root=root, reasons=never_asked)
+    assert frozen.name in str(refused.value)
+    assert every_file_under(root / "corpus") == before
+
+
+def a_frozen_tree(tmp_path):
+    frozen = tmp_path / "experiments"
+    (frozen / "data").mkdir(parents=True)
+    (frozen / "data" / "test_access.log").write_text("held-out runs\n")
+    (frozen / "prompts").mkdir()
+    return frozen
+
+
+@pytest.mark.parametrize("inside", ["data", "data/blocks", ".", "prompts", "elsewhere/../data"])
+def test_a_corpus_root_inside_the_frozen_tree_is_refused_before_anything_is_touched(
+    tmp_path, injected_roots, inside
+):
+    root = data_root_holding_the_transcript(tmp_path)
+    frozen = a_frozen_tree(tmp_path)
+    before = every_file_under(frozen)
+    with pytest.raises(FrozenCorpus):
+        derives(tmp_path, data_root=root, corpus_root=frozen / inside, reasons=never_asked)
+    assert every_file_under(frozen) == before
+    assert sorted(path.name for path in frozen.rglob("*")) == ["data", "prompts", "test_access.log"]
+
+
+def test_a_classifier_that_fails_leaves_the_corpus_as_it_found_it(tmp_path, injected_roots):
+    def refuses(doc=None):
+        raise RuntimeError("the model host did not answer")
+
+    root = data_root_holding_the_transcript(tmp_path)
+    with pytest.raises(RuntimeError):
+        derives(tmp_path, data_root=root, reasons=refuses)
+    assert every_file_under(root / "corpus") == {}
+    derives(tmp_path, data_root=root)
+    assert block_file(tmp_path)["blocks"] == BLOCKS
+
+
+def test_a_block_file_already_written_is_a_corpus_file_already_written():
+    assert issubclass(BlockFileAlreadyWritten, CorpusFileAlreadyWritten)

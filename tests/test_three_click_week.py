@@ -8,7 +8,7 @@ from steps._asr import RecognizesSteadily
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.analysis.transcribes_audio import SAMPLE_RATE, TranscribesAudio
 from sermon.config import Credential
-from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
+from sermon.jobs.analyzes_recording import RunsAnalyzeJob
 from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
 from sermon.jobs.renders_mp3 import RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
@@ -21,7 +21,6 @@ from sermon.web import creates_app
 OBJECT_KEY = "recordings/recording_20260823_103015.flac"
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 WEBHOOK_TOKEN_VALUE = "the-token-only-the-spec-suite-issues"
-SERMON = RecordingContents(segments=(("sermon", 0.5, 2.5),))
 
 
 def divides_into_one_sermon(doc):
@@ -81,7 +80,6 @@ def queued_worker(store, fetches):
             store=store,
             stages=lambda _name: None,
             notifies=SendsNotification(store=store),
-            contents=SERMON,
             clock=lambda: FROZEN,
             transcribes=TranscribesAudio(
                 store=store, engine=RecognizesSteadily(rate=SAMPLE_RATE)

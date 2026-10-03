@@ -233,21 +233,91 @@ def test_the_model_may_be_reached_over_http_on_the_tailnet():
     assert doc["utterances"][0]["words"]
 
 
+class Resolves:
+    """A resolver the test states; nothing here reaches a real DNS server."""
+
+    def __init__(self, answers):
+        self.answers = dict(answers)
+        self.asked = []
+
+    def __call__(self, host):
+        self.asked.append(host)
+        if host not in self.answers:
+            raise OSError(f"no such host {host}")
+        return list(self.answers[host])
+
+
+NAMES = {
+    "localhost": ["127.0.0.1", "::1"],
+    "mac-m1.ts.net": ["100.88.211.71"],
+    "asr.home.internal": ["192.168.1.9"],
+    "evil.example.com.local": ["93.184.216.34"],
+    "split.home.internal": ["192.168.1.9", "93.184.216.34"],
+    "funnel.ts.net": ["100.88.211.71", "203.0.113.7"],
+    "lan.ts.net": ["192.168.1.9"],
+    "api.example.com": ["93.184.216.34"],
+}
+
+
+def resolving():
+    return Resolves(NAMES)
+
+
 def test_a_transcriber_that_is_not_on_this_network_is_refused():
     for endpoint in ("https://api.example.com/v1", "http://8.8.8.8:9000", "http://"):
         with pytest.raises(TranscriberRefused):
-            PostsToTranscriber(endpoint=endpoint)
+            PostsToTranscriber(endpoint=endpoint, resolves=resolving())
 
 
 def test_a_private_transcriber_is_allowed():
     for endpoint in (
         "http://100.88.211.71:9000",
         "http://192.168.1.9:9000",
+        "http://10.0.0.4:9000",
+        "http://172.16.0.4:9000",
+        "http://169.254.1.1:9000",
         "http://127.0.0.1:9000",
+        "http://[::1]:9000",
         "http://localhost:9000",
         "http://mac-m1.ts.net:9000",
+        "http://asr.home.internal:9000",
     ):
-        assert refuses_a_public_transcriber(endpoint) == endpoint
+        assert refuses_a_public_transcriber(endpoint, resolves=resolving()) == endpoint
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://evil.example.com.local:9000",
+        "http://split.home.internal:9000",
+        "http://funnel.ts.net:9000",
+        "http://lan.ts.net:9000",
+        "http://unresolvable.internal:9000",
+        "http://[::ffff:8.8.8.8]:9000",
+        "http://0.0.0.0:9000",
+        "http://192.0.2.1:9000",
+        "http://[2001:db8::1]:9000",
+    ],
+)
+def test_a_name_is_judged_by_every_address_it_resolves_to(endpoint):
+    with pytest.raises(TranscriberRefused):
+        refuses_a_public_transcriber(endpoint, resolves=resolving())
+
+
+def test_a_literal_address_is_never_resolved():
+    resolver = resolving()
+    refuses_a_public_transcriber("http://100.88.211.71:9000", resolves=resolver)
+    assert resolver.asked == []
+
+
+def test_the_name_is_checked_again_before_audio_is_posted():
+    resolver = resolving()
+    answers = AnswersOnTheTailnet(destinations=[])
+    engine = PostsToTranscriber(endpoint="http://mac-m1.ts.net:9000", opens=answers, resolves=resolver)
+    resolver.answers["mac-m1.ts.net"] = ["93.184.216.34"]
+    with pytest.raises(TranscriberRefused):
+        engine([0.0] * 16)
+    assert answers.destinations == []
 
 
 def test_the_local_engine_is_chosen_when_no_endpoint_is_named():

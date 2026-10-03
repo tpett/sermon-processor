@@ -21,9 +21,11 @@ from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
 from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
+from sermon.sends_notification import SendsNotification
 from steps._peaks import writes_peaks
 from sermon.store import Artifact, Block, Job, LogEntry, Proposal, Recording, Segment, layout
 from sermon.web import creates_app
+from steps._worker import refuses_other_work
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -715,6 +717,31 @@ def _(publication_form):
 @then("no ID3 tags beyond title and date are written to the MP3")
 def _(publication_form):
     assert set(publication_form.fields()) <= {"Date", "Label"}
+
+
+ONE_JOB_AT_A_TIME = 1
+MOST_WORKER_PASSES = 20
+
+
+@dataclass
+class WatchesAnalyses:
+    """An analysis that records what else was running and waiting while it ran."""
+
+    store: object
+    seen: list
+    job_id: int | None = None
+
+    def __call__(self):
+        job = self.store.loads(Job, self.job_id)
+        self.store.saves(replace(job, state="running", started_at=FROZEN))
+        analyses = self.store.lists(Job, kind="analyze")
+        self.seen.append(
+            {
+                "running": sum(1 for item in analyses if item.state == "running"),
+                "queued": sum(1 for item in analyses if item.state == "queued"),
+            }
+        )
+        self.store.saves(replace(self.store.loads(Job, self.job_id), state="succeeded"))
 
 
 @given("10 Recordings are ingested at once")

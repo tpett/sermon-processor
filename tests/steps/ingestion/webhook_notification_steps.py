@@ -8,6 +8,7 @@ from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDown
 from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.store import Discovery, Job, LogEntry, Recording
 from sermon.web import creates_app
+from steps._worker import refuses_other_work
 
 WEBHOOK_WITHOUT_HOST_IDENTITY = {
     "event": "recording.uploaded",
@@ -274,10 +275,6 @@ class MovesOn:
 
     def __call__(self):
         return self.at
-
-
-def refuses_other_work():
-    raise AssertionError("ingestion ran a job that is not a download")
 
 
 @given("the object store has not yet made the object available", target_fixture="object_store")

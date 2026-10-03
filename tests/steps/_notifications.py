@@ -11,13 +11,17 @@ from datetime import UTC, datetime, timedelta
 
 from sermon.jobs.renders_segment import RendersSegment, StepFailed
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob
+from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.reminds_reviewer import RemindsReviewer
 from sermon.sends_notification import SendsNotification, does_not_send
 from sermon.store import Job, LogEntry, Notification, Recording, Segment
 
 from steps import _analysis
+from steps._worker import refuses_other_work
 
 STARTED = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+ANALYZE_ATTEMPTS = 5
+WORKER_POLL_GAP = timedelta(hours=1)
 SUNDAY = _analysis.SUNDAY
 LESSON_AND_SERMON = (
     ("0:00:00", "0:05:00", "music"),
@@ -124,8 +128,32 @@ def finishes_analysis(store, rows, channel, moments, recording_id=_analysis.RECO
 
 
 def fails_analysis(store, channel, moments):
-    """A Recording with no transcript: the walk fails at transcription."""
-    return runs_analysis(store, registered(store), channel, moments)
+    """A Recording with no transcript, drained by the worker until its analyze budget is spent."""
+    recording = registered(store)
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="queued",
+            max_attempts=ANALYZE_ATTEMPTS,
+            dedupe_key=f"analyze:{recording.recording_id}",
+            queued_at=moments(),
+        )
+    )
+    worker = RunsQueuedJobs(
+        store=store,
+        downloads=refuses_other_work,
+        analyzes=RunsAnalyzeJob(
+            store=store, stages=lambda _name: None, notifies=delivers(store, channel, moments), clock=moments
+        ),
+        renders=refuses_other_work,
+        clock=moments,
+    )
+    for _ in range(ANALYZE_ATTEMPTS):
+        worker()
+        moments.passes(WORKER_POLL_GAP)
+    assert not store.lists(Job, kind="analyze", state="queued"), "the analyze job was still queued"
+    return store.loads(Recording, recording.recording_id)
 
 
 def approved_segment(store):

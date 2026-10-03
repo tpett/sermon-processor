@@ -10,10 +10,11 @@ from steps._asr import transcribes_for
 from sermon.analysis.diarizes_audio import DiarizationUnavailable
 from sermon.analysis.io import reads_json, reads_model_segments, writes_json, writes_model_segments
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots, DividesByReasoning
-from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
+from sermon.jobs.analyzes_recording import AnalyzesRecording, RunsAnalyzeJob, StageFailed
 from sermon.jobs.probes_recording import ProbeResult
 from sermon.pipeline import classify, segments
 from sermon.sends_notification import SendsNotification
+from sermon.store.vocabularies import CONFIDENCE_LEVELS
 from sermon.store import (
     Artifact,
     ChannelLevel,
@@ -54,6 +55,16 @@ def divides_into_nothing_publishable(doc):
     return [{"start": 0.0, "end": doc["duration"], "type": "music", "confidence": 0.9}]
 
 
+CLASS_AND_SERVICE = ((0.0, 60.0, "music"), (60.0, 3300.0, "lesson"), (3300.0, 5400.0, "music"), (5400.0, 10800.0, "sermon"), (10800.0, 11520.0, "music"))
+
+
+def divides_into_class_and_service(doc):
+    return [
+        {"start": start, "end": end, "type": kind, "confidence": 0.9, "evidence": "speaker change"}
+        for start, end, kind in CLASS_AND_SERVICE
+    ]
+
+
 def downloaded_recording():
     return Recording(
         recording_id="recording_20260913_090014",
@@ -85,10 +96,9 @@ def analyzes(store, stages, sent):
         store=store,
         stages=stages.append,
         notifies=SendsNotification(store=store, sends=sent.append),
-        contents=CLASS_AND_SERVICE,
         clock=lambda: FROZEN,
         transcribes=transcribes_for(store, downloaded_recording()),
-        divides=divides_into_nothing_publishable,
+        divides=divides_into_class_and_service,
     )
 
 
@@ -128,21 +138,23 @@ def test_two_segments_have_distinct_punch_points_and_classifications(store, root
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
-    segments = store.lists(Segment, recording_id=recording.recording_id)
-    assert {(s.classification, s.punch_in_seconds, s.punch_out_seconds) for s in segments} == {
-        ("lesson", 60.0, 3300.0),
-        ("sermon", 5400.0, 10800.0),
-    }
+    segments = sorted(store.lists(Segment, recording_id=recording.recording_id), key=lambda s: s.punch_in_seconds)
+    assert [(s.classification, s.punch_in_seconds, s.punch_out_seconds) for s in segments] == [
+        ("lesson", pytest.approx(60.0, abs=3.0), pytest.approx(3300.0, abs=3.0)),
+        ("sermon", pytest.approx(5400.0, abs=3.0), pytest.approx(10800.0, abs=3.0)),
+    ]
 
 
 def test_each_segment_has_a_proposal_with_confidence(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
-    for segment in store.lists(Segment, recording_id=recording.recording_id):
+    proposed = store.lists(Segment, recording_id=recording.recording_id)
+    assert len(proposed) == 2
+    for segment in proposed:
         proposal = store.lists(Proposal, segment_id=segment.segment_id)[0]
-        assert proposal.classification_confidence == "high"
-        assert proposal.boundary_confidence == "medium"
+        assert proposal.classification_confidence in CONFIDENCE_LEVELS
+        assert proposal.boundary_confidence in CONFIDENCE_LEVELS
 
 
 def test_a_notification_is_sent_when_segments_are_proposed(store, roots):
@@ -417,3 +429,10 @@ def test_a_diarizer_that_is_unavailable_leaves_the_walk_carrying_on(store, roots
     assert [error for error in optional_failures(store, recording) if error.startswith("diarization")] == [
         "diarization: no diarization models are configured"
     ]
+
+
+def test_the_analyze_job_has_no_segments_to_fall_back_on():
+    from dataclasses import fields
+
+    for job in (AnalyzesRecording, RunsAnalyzeJob):
+        assert "contents" not in {field.name for field in fields(job)}, job.__name__
