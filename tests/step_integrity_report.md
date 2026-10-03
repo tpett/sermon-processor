@@ -5,11 +5,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1336 step definitions read from `tests/steps`
-- 125 condemned
-- 106 of 464 non-deferred scenarios rest on at least one condemned step
-- 142 of 607 expanded scenario tests likewise
-- 32 scenarios whose every Then is condemned, so nothing they claim is checked
-- 14 scenarios whose every step outside the Background is condemned
+- 116 condemned
+- 98 of 464 non-deferred scenarios rest on at least one condemned step
+- 134 of 607 expanded scenario tests likewise
+- 27 scenarios whose every Then is condemned, so nothing they claim is checked
+- 11 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
 - 292 Gherkin steps matched no definition
@@ -23,13 +23,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an interface Then that reads the view model rather than the rendered page | 0 |
 | an assertion that cannot fail | 0 |
 | a boolean operand of True, which neutralises what it joins | 0 |
-| a Then whose every assertion only checks that some row exists | 42 |
+| a Then whose every assertion only checks that some row exists | 38 |
 | an assertion that any existing row satisfies | 5 |
 | an assertion operand that some scenario's own arguments make true | 2 |
-| a Then with a path through it that asserts nothing | 16 |
+| a Then with a path through it that asserts nothing | 13 |
 | an assertion that compares a value with itself | 1 |
-| a Then that constructs and invokes a unit of the system | 32 |
-| a Then that writes to the store | 25 |
+| a Then that constructs and invokes a unit of the system | 26 |
+| a Then that writes to the store | 20 |
 | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets | 11 |
 | a Then that asserts word for word what another Then in its scenario asserts | 10 |
 | a When with an empty body | 0 |
@@ -49,12 +49,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 3 | partly condemned |
 | `tests/steps/analysis/block_classification_steps.py` | 23 | 1 | partly condemned |
 | `tests/steps/analysis/blocking_steps.py` | 35 | 0 | sound |
+| `tests/steps/analysis/confidence_steps.py` | 27 | 0 | sound |
 | `tests/steps/analysis/detection_accuracy_steps.py` | 29 | 0 | sound |
-| `tests/steps/analysis/domain_steps.py` | 98 | 8 | partly condemned |
+| `tests/steps/analysis/domain_steps.py` | 84 | 8 | partly condemned |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 5 | partly condemned |
 | `tests/steps/analysis/punch_in_steps.py` | 34 | 0 | sound |
 | `tests/steps/analysis/punch_out_steps.py` | 25 | 0 | sound |
-| `tests/steps/analysis/remaining_analysis_steps.py` | 107 | 38 | partly condemned |
+| `tests/steps/analysis/remaining_analysis_steps.py` | 94 | 29 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
 | `tests/steps/analysis/summarization_steps.py` | 22 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 1 | partly condemned |
@@ -88,7 +89,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## Condemned outside the six named files
 
-105 definitions.
+96 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
@@ -114,44 +115,35 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/preview_audio_steps.py:298` | then | `the transcript, summaries and waveform are still usable` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/analysis/preview_audio_steps.py:304` | then | `boundaries can still be adjusted and approved` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/analysis/preview_audio_steps.py:328` | then | `no reviewer ever hears audio from a different Recording` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:404` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:447` | then | `the Segment does not claim more certainty than one analysis supports` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:453` | then | `the Segment carries, most useful first:` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:460` | then | `no transcript leaves the local network` | a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:465` | then | `no reviewer-facing behaviour depends on a model's self-reported confidence` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:471` | then | `each evidence entry states what was found, where, and what it implies, for example:` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:477` | then | `a confidence band tells the reviewer where to look first` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:483` | when | `the reviewer retypes it as "{block_type}"` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:489` | then | `the Recording kind is "{kind}"` | an assertion operand that some scenario's own arguments make true; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:534` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:539` | then | `a Proposal is still produced for every Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:545` | then | `the Block keeps the type the classifier gave it` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:550` | then | `the Block type is updated` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:555` | then | `the Segment is shown as needing attention` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:565` | then | `it is shown as needing attention` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/remaining_analysis_steps.py:570` | then | `its classification confidence is "{level}"` | a Then with a path through it that asserts nothing; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:577` | then | `the reviewer can split it` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:591` | then | `the punch-out falls back to the end of the seeding Block` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:601` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:612` | when | `the reviewer presses Preview on that Block` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:632` | then | `the simpler structure makes the boundaries easier, not harder` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:650` | then | `a Block from that speaker is less likely to be typed "sermon"` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/remaining_analysis_steps.py:655` | then | `this is evidence only, since the preacher occasionally gives the benediction` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/remaining_analysis_steps.py:660` | then | `no Segment is proposed` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:666` | then | `the Recording is shown as needing no attention` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:701` | then | `a proposal exceeding it is flagged to the reviewer before approval` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:706` | then | `nothing implies a second opinion was sought and agreed` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:712` | then | `the recordings list shows the sermon Segment's confidence` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:720` | then | `the other Segments and all Blocks are visible on the detail view` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:727` | then | `it is not shown as needing attention` | a Then with a path through it that asserts nothing; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:737` | then | `the Proposal confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:750` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:758` | then | `its confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:765` | then | `playback starts at the excerpt` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/analysis/remaining_analysis_steps.py:778` | then | `the reviewer can tell what the Block is without further scrubbing` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:783` | then | `the machine it used is recorded with the summary` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/analysis/remaining_analysis_steps.py:790` | then | `Analysis completes without summaries` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/remaining_analysis_steps.py:803` | then | `the reviewer is told summaries were unavailable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:341` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:384` | then | `no transcript leaves the local network` | a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:389` | then | `no reviewer-facing behaviour depends on a model's self-reported confidence` | a Then with a path through it that asserts nothing |
+| `tests/steps/analysis/remaining_analysis_steps.py:395` | when | `the reviewer retypes it as "{block_type}"` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:401` | then | `the Recording kind is "{kind}"` | an assertion operand that some scenario's own arguments make true; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:446` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:451` | then | `a Proposal is still produced for every Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:457` | then | `the Block keeps the type the classifier gave it` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:462` | then | `the Block type is updated` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:472` | then | `it is shown as needing attention` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
+| `tests/steps/analysis/remaining_analysis_steps.py:477` | then | `its classification confidence is "{level}"` | a Then with a path through it that asserts nothing; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:484` | then | `the reviewer can split it` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:498` | then | `the punch-out falls back to the end of the seeding Block` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:503` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:514` | when | `the reviewer presses Preview on that Block` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:534` | then | `the simpler structure makes the boundaries easier, not harder` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:552` | then | `a Block from that speaker is less likely to be typed "sermon"` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:557` | then | `this is evidence only, since the preacher occasionally gives the benediction` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:562` | then | `no Segment is proposed` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:568` | then | `the Recording is shown as needing no attention` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:603` | then | `a proposal exceeding it is flagged to the reviewer before approval` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:608` | then | `the Proposal confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:621` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:629` | then | `its confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:636` | then | `playback starts at the excerpt` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/analysis/remaining_analysis_steps.py:649` | then | `the reviewer can tell what the Block is without further scrubbing` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:654` | then | `the machine it used is recorded with the summary` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/analysis/remaining_analysis_steps.py:661` | then | `Analysis completes without summaries` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:674` | then | `the reviewer is told summaries were unavailable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/waveform_generation_steps.py:92` | then | `the reviewer can still adjust Segment boundaries using playback and the transcript` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/ingestion/recording_download_steps.py:209` | then | `the download is discarded` | a Then with a path through it that asserts nothing |
 | `tests/steps/ingestion/recording_download_steps.py:224` | then | `after the retry budget is exhausted the Recording enters "{state}"` | a Then that constructs and invokes a unit of the system |
@@ -224,44 +216,35 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/preview_audio_steps.py:298` | then | `the transcript, summaries and waveform are still usable` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/analysis/preview_audio_steps.py:304` | then | `boundaries can still be adjusted and approved` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/analysis/preview_audio_steps.py:328` | then | `no reviewer ever hears audio from a different Recording` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:404` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:447` | then | `the Segment does not claim more certainty than one analysis supports` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:453` | then | `the Segment carries, most useful first:` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:460` | then | `no transcript leaves the local network` | a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:465` | then | `no reviewer-facing behaviour depends on a model's self-reported confidence` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:471` | then | `each evidence entry states what was found, where, and what it implies, for example:` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:477` | then | `a confidence band tells the reviewer where to look first` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:483` | when | `the reviewer retypes it as "{block_type}"` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:489` | then | `the Recording kind is "{kind}"` | an assertion operand that some scenario's own arguments make true; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:534` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:539` | then | `a Proposal is still produced for every Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:545` | then | `the Block keeps the type the classifier gave it` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:550` | then | `the Block type is updated` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:555` | then | `the Segment is shown as needing attention` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:565` | then | `it is shown as needing attention` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/remaining_analysis_steps.py:570` | then | `its classification confidence is "{level}"` | a Then with a path through it that asserts nothing; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:577` | then | `the reviewer can split it` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:591` | then | `the punch-out falls back to the end of the seeding Block` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:601` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:612` | when | `the reviewer presses Preview on that Block` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:632` | then | `the simpler structure makes the boundaries easier, not harder` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:650` | then | `a Block from that speaker is less likely to be typed "sermon"` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/remaining_analysis_steps.py:655` | then | `this is evidence only, since the preacher occasionally gives the benediction` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/remaining_analysis_steps.py:660` | then | `no Segment is proposed` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:666` | then | `the Recording is shown as needing no attention` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:701` | then | `a proposal exceeding it is flagged to the reviewer before approval` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:706` | then | `nothing implies a second opinion was sought and agreed` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:712` | then | `the recordings list shows the sermon Segment's confidence` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:720` | then | `the other Segments and all Blocks are visible on the detail view` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:727` | then | `it is not shown as needing attention` | a Then with a path through it that asserts nothing; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:737` | then | `the Proposal confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:750` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:758` | then | `its confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:765` | then | `playback starts at the excerpt` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/analysis/remaining_analysis_steps.py:778` | then | `the reviewer can tell what the Block is without further scrubbing` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:783` | then | `the machine it used is recorded with the summary` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/analysis/remaining_analysis_steps.py:790` | then | `Analysis completes without summaries` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/remaining_analysis_steps.py:803` | then | `the reviewer is told summaries were unavailable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:341` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:384` | then | `no transcript leaves the local network` | a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:389` | then | `no reviewer-facing behaviour depends on a model's self-reported confidence` | a Then with a path through it that asserts nothing |
+| `tests/steps/analysis/remaining_analysis_steps.py:395` | when | `the reviewer retypes it as "{block_type}"` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:401` | then | `the Recording kind is "{kind}"` | an assertion operand that some scenario's own arguments make true; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:446` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:451` | then | `a Proposal is still produced for every Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:457` | then | `the Block keeps the type the classifier gave it` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:462` | then | `the Block type is updated` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:472` | then | `it is shown as needing attention` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
+| `tests/steps/analysis/remaining_analysis_steps.py:477` | then | `its classification confidence is "{level}"` | a Then with a path through it that asserts nothing; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:484` | then | `the reviewer can split it` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:498` | then | `the punch-out falls back to the end of the seeding Block` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:503` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:514` | when | `the reviewer presses Preview on that Block` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:534` | then | `the simpler structure makes the boundaries easier, not harder` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:552` | then | `a Block from that speaker is less likely to be typed "sermon"` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:557` | then | `this is evidence only, since the preacher occasionally gives the benediction` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:562` | then | `no Segment is proposed` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:568` | then | `the Recording is shown as needing no attention` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:603` | then | `a proposal exceeding it is flagged to the reviewer before approval` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:608` | then | `the Proposal confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:621` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:629` | then | `its confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:636` | then | `playback starts at the excerpt` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/analysis/remaining_analysis_steps.py:649` | then | `the reviewer can tell what the Block is without further scrubbing` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/remaining_analysis_steps.py:654` | then | `the machine it used is recorded with the summary` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/analysis/remaining_analysis_steps.py:661` | then | `Analysis completes without summaries` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/remaining_analysis_steps.py:674` | then | `the reviewer is told summaries were unavailable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/waveform_generation_steps.py:92` | then | `the reviewer can still adjust Segment boundaries using playback and the transcript` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/catch_all_thens.py:4` | then | `the Segment stays in "proposed"` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/ingestion/recording_download_steps.py:209` | then | `the download is discarded` | a Then with a path through it that asserts nothing |
@@ -333,12 +316,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | feature | line | scenario |
 | --- | --- | --- |
 | `analysis/analysis_confidence.feature` | 60 | A model's own confidence number is not used for anything |
-| `analysis/analysis_confidence.feature` | 217 | Confidence is a reviewer aid, not a quality claim |
 | `analysis/analysis_confidence.feature` | 179 | Degrading gracefully |
-| `analysis/analysis_confidence.feature` | 120 | Evidence is human readable |
-| `analysis/analysis_confidence.feature` | 133 | One analysis is the v1 behaviour, not a degraded mode |
-| `analysis/analysis_confidence.feature` | 112 | What a reviewer is told, in order of usefulness |
-| `analysis/analysis_confidence.feature` | 151 | What the reviewer loses, stated where they can see it |
 | `analysis/audio_probe.feature` | 116 | Ignored recordings stay out of the way but remain visible |
 | `analysis/block_classification.feature` | 377 | A block that is genuinely two things |
 | `analysis/block_classification.feature` | 367 | An unsure teaching Block still produces a Segment |

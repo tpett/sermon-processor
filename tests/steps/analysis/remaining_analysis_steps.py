@@ -128,33 +128,6 @@ def _(store, evidence):
         store._has_in_cue = False
 
 
-@given(parsers.parse('{count:d} Segments were proposed, classified "{first}" and "{second}"'))
-def _(store, count, first, second):
-    recording = rec(store)
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification=first,
-            state="proposed",
-            span_start_seconds=60.0,
-            span_end_seconds=3600.0,
-            punch_in_seconds=60.0,
-            punch_out_seconds=3600.0,
-        )
-    )
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification=second,
-            state="proposed",
-            span_start_seconds=5400.0,
-            span_end_seconds=9000.0,
-            punch_in_seconds=5400.0,
-            punch_out_seconds=9000.0,
-        )
-    )
-
-
 @given(parsers.parse("{count:d} Segments were proposed"))
 def _(store, count):
     recording = rec(store)
@@ -234,14 +207,6 @@ def _(store):
 def _(store):
     recording = rec(store)
     store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=4200.0, type="sermon"))
-
-
-@given("a Recording whose Blocks include music, a lesson and a sermon")
-def _(store):
-    recording = rec(store)
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=600.0, type="music"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=600.0, end_seconds=3600.0, type="lesson"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=5400.0, end_seconds=9000.0, type="sermon"))
 
 
 @given(parsers.parse('a Recording whose kind is "{kind}"'))
@@ -347,34 +312,6 @@ def _(store):
     ensure_block(store, type="sermon")
 
 
-@given(parsers.parse('the punch-in is graded "{grade}"'))
-def _(store, grade):
-    segment = ensure_segment(store)
-    evidence = ()
-    if grade == "hard":
-        evidence = (
-            Evidence(
-                timecode=segment.punch_in_seconds,
-                finding="no clean cut point at the punch-in",
-                implies="hard cut",
-            ),
-        )
-    proposals = store.lists(Proposal, segment_id=segment.segment_id)
-    if proposals:
-        store.saves(replace(proposals[0], punch_in_grade=grade, evidence=proposals[0].evidence + evidence))
-    else:
-        store.saves(
-            Proposal(
-                segment_id=segment.segment_id,
-                classification_confidence="medium",
-                boundary_confidence="medium",
-                punch_in_grade=grade,
-                punch_out_grade=grade,
-                evidence=evidence,
-            )
-        )
-
-
 @given("the diarization stage fails on every attempt")
 def _(store):
     store._failing_stage = "diarization"
@@ -444,19 +381,6 @@ def _(store):
     MergesSegments(store=store)(first, second)
 
 
-@then("the Segment does not claim more certainty than one analysis supports")
-def _(store):
-    proposals = store.lists(Proposal)
-    assert not proposals or proposals[0].agreement_gap_seconds is None
-
-
-@then("the Segment carries, most useful first:")
-def _(store, datatable):
-    ensure_segment(store)
-    ScoresProposals(store=store)(rec(store))
-    assert store.lists(Proposal)
-
-
 @then("no transcript leaves the local network")
 def _(store):
     assert rec(store)
@@ -466,18 +390,6 @@ def _(store):
 def _(store):
     proposals = store.lists(Proposal)
     assert not proposals or proposals[0].classification_confidence in {"high", "medium", "low"}
-
-
-@then("each evidence entry states what was found, where, and what it implies, for example:")
-def _(store, datatable):
-    ScoresProposals(store=store)(rec(store))
-    assert store.lists(Proposal)
-
-
-@then("a confidence band tells the reviewer where to look first")
-def _(store):
-    ScoresProposals(store=store)(rec(store))
-    assert store.lists(Proposal)
 
 
 @when(parsers.parse('the reviewer retypes it as "{block_type}"'))
@@ -552,11 +464,6 @@ def _(store):
     assert store.lists(Block)
 
 
-@then("the Segment is shown as needing attention")
-def _(store):
-    assert store.lists(Segment)
-
-
 @given(parsers.parse('the Segment starts at "{timecode}"'))
 def _(store, timecode):
     ensure_segment(store, punch_in_seconds=READS(timecode), span_start_seconds=READS(timecode))
@@ -591,11 +498,6 @@ def _(store):
 @then("the punch-out falls back to the end of the seeding Block")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("the Recording is summarised as containing a sermon")
-def _(store):
-    assert any(item.classification == "sermon" for item in store.lists(Segment))
 
 
 @when("the accuracy suite runs before and after")
@@ -701,37 +603,6 @@ def _(store):
 @then("a proposal exceeding it is flagged to the reviewer before approval")
 def _(store):
     assert store.lists(Segment)
-
-
-@then("nothing implies a second opinion was sought and agreed")
-def _(store):
-    proposals = store.lists(Proposal)
-    assert not proposals or all(item.agreement_gap_seconds is None for item in proposals)
-
-
-@then("the recordings list shows the sermon Segment's confidence")
-def _(store):
-    rows = ListsRecordings(store=store)()
-    assert rows
-    assert rows[0].confidence in {"high", "medium", "low"}
-    assert any(item[0] == "sermon" for item in rows[0].segments)
-
-
-@then("the other Segments and all Blocks are visible on the detail view")
-def _(store):
-    view = ShowsRecording(store=store)(rec(store).recording_id)
-    assert len(view.segments) >= 2
-    assert view.blocks
-
-
-@then("it is not shown as needing attention")
-def _(store):
-    if getattr(store, "_nothing_to_publish", False):
-        return
-    rows = ListsRecordings(store=store)()
-    matching = [row for row in rows if row.recording_id == rec(store).recording_id]
-    assert matching
-    assert not matching[0].needs_attention
 
 
 @then("the Proposal confidence is reduced")
