@@ -82,9 +82,10 @@ def _(store):
 
 @then("I see:")
 def _(detail_page, datatable):
+    wanted = {label: value for label, value in datatable[1:]}
+    assert wanted, "the table names nothing to see"
     shown = reads_pairs(detail_page)
-    for label, value in datatable[1:]:
-        assert shown.get(label) == value, f"{label}: {shown.get(label)!r}"
+    assert {label: shown.get(label) for label in wanted} == wanted
 
 
 @then("I see both Segments listed in the order they occur")
