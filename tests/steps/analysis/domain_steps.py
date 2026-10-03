@@ -981,11 +981,6 @@ def _(store):
     ProposesSegments(store=store)(recording_of(store))
 
 
-@when("segment proposal runs")
-def _(store):
-    ProposesSegments(store=store)(recording_of(store))
-
-
 @then("one Segment is seeded, not two")
 def _(store):
     assert len(store.lists(Segment)) == 1
@@ -1055,44 +1050,6 @@ def _(store, text):
         for evidence in getattr(item, "evidence", ())
     )
     assert text.lower() in findings.lower()
-
-
-@then("the Q&A is excluded")
-def _(store):
-    segment = store.lists(Segment)[0]
-    qa = [block for block in store.lists(Block) if block.type == "qa"]
-    assert not qa or segment.punch_out_seconds <= qa[0].start_seconds + 1
-
-
-@given("the Recording contains a lesson Block and a sermon Block")
-def _(store):
-    recording = recording_of(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=250.0, end_seconds=3680.0, type="lesson")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=3680.0, end_seconds=3835.0, type="prayer")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=5400.0, end_seconds=9000.0, type="sermon")),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
-@then("each is independently classified, dispositionable and renderable")
-def _(store):
-    assert len(store.lists(Segment)) == 2
-
-
-@given("the Recording contains only announcements and music Blocks")
-def _(store):
-    recording = recording_of(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=240.0, type="announcements")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=240.0, end_seconds=1200.0, type="music")),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
-@then('the Recording is summarised as "nothing to publish"')
-def _(store):
-    assert getattr(store, "_nothing_to_publish", False) or not store.lists(Segment)
 
 
 @when("the summarization stage runs")
@@ -1288,17 +1245,9 @@ def _(store):
 
 @then(parsers.parse('the Segment is flagged "{warning}"'))
 def _(store, warning):
-    segments = store.lists(Segment)
-    warnings = segments[0].warnings if segments else ()
-    if warning == "recording may have started late":
-        assert segments[0].punch_in_seconds == 0.0
-        return
-    if warning == "recording may have stopped early":
-        duration = recording_of(store).duration_seconds
-        assert duration is not None
-        assert abs(segments[0].punch_out_seconds - duration) < 0.05
-        return
-    assert warning in warnings or getattr(store, "_length_flag", None) == warning or warning == "length outside expected range"
+    segments = sorted(store.lists(Segment), key=lambda item: item.punch_in_seconds)
+    assert segments, "no Segment exists to carry the flag"
+    assert warning in segments[0].warnings
 
 
 @then("the reviewer is prompted to place it by hand")

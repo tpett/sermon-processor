@@ -6,6 +6,7 @@ from pytest_bdd import given, parsers, then, when
 from steps import _analysis
 from steps._asr import transcribes_for
 
+from sermon.approves_segment import ApprovesSegment
 from sermon.config import ModelEndpointUnreachable, ReachesModelEndpoint
 from sermon.jobs.analyzes_recording import CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
 from sermon.sends_notification import SendsNotification
@@ -176,10 +177,11 @@ def _(store, recording):
 
 @then("approving one does not affect the other")
 def _(store, recording):
-    segments = store.lists(Segment, recording_id=recording.recording_id)
-    store.saves(replace(segments[0], state="approved"))
-    other = store.loads(Segment, segments[1].segment_id)
-    assert other.state == "proposed"
+    segments = sorted(store.lists(Segment, recording_id=recording.recording_id), key=lambda item: item.punch_in_seconds)
+    assert len(segments) == 2
+    approved = ApprovesSegment(store=store, clock=lambda: FROZEN)(replace(segments[0], intent="archive"))
+    assert approved.state == "approved"
+    assert store.loads(Segment, segments[1].segment_id) == segments[1]
 
 
 @given("block classification and summarisation need a language model")

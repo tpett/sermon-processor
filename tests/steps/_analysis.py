@@ -19,7 +19,9 @@ from sermon.analysis import (
 )
 from sermon.analysis.io import reads_json, writes_json
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.store import Block, Proposal, Recording, Segment
+from sermon.jobs.analyzes_recording import RunsAnalyzeJob
+from sermon.sends_notification import SendsNotification
+from sermon.store import Block, Job, Proposal, Recording, Segment
 
 READS = ReadsTimecode()
 RECORDING_ID = "recording_20260823_103015"
@@ -81,6 +83,12 @@ def recording_of(store, duration=DURATION_S):
             duration_seconds=duration,
         )
     )
+
+
+def the_recording(store):
+    recordings = store.lists(Recording)
+    assert len(recordings) == 1, f"{len(recordings)} Recordings are stored"
+    return recordings[0]
 
 
 def words_over(start, end, text):
@@ -212,6 +220,29 @@ def proposes(store, recording):
     return sorted(
         store.lists(Segment, recording_id=recording.recording_id), key=lambda item: item.punch_in_seconds
     )
+
+
+def analyses(store, recording, sent=None):
+    """The analyze job as the worker builds it when no corpus is named: the stage walk."""
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"analyze:{recording.recording_id}:{len(store.lists(Job))}",
+            queued_at=datetime(2026, 8, 23, 16, 0, tzinfo=UTC),
+        )
+    )
+    RunsAnalyzeJob(
+        store=store,
+        stages=lambda _name: None,
+        notifies=SendsNotification(store=store, sends=(sent if sent is not None else []).append),
+        recording_id=recording.recording_id,
+    )()
+    ran = store.lists(Job, recording_id=recording.recording_id, kind="analyze")[-1]
+    assert ran.state == "succeeded", f"the analyze job {ran.state}: {ran.last_error}"
+    return proposed(store, recording)
 
 
 def proposed(store, recording=None):

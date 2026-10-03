@@ -185,17 +185,6 @@ def _(store, words):
     store._first_word = 1900.0
 
 
-@given(parsers.parse('a sermon Block followed by a prayer Block followed by a "{following}" Block'))
-def _(store, following):
-    recording = rec(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=1900.0, end_seconds=4360.0, type="sermon")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=4360.0, end_seconds=4492.0, type="prayer")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=4492.0, end_seconds=4800.0, type=following)),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
 @given(parsers.parse('a teaching Block is followed by a "{middle}" Block and then a "{following}" Block'))
 def _(store, middle, following):
     recording = rec(store)
@@ -328,49 +317,6 @@ def _(store):
     ensure_block(store, type="prayer", force=True)
 
 
-@given("a prayer Block immediately precedes the sermon Block")
-def _(store):
-    recording = rec(store)
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=1700.0, end_seconds=1900.0, type="prayer"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=1900.0, end_seconds=4300.0, type="sermon"))
-
-
-@given(parsers.parse("a proposed Segment {minutes:d} minutes long"))
-def _(store, minutes):
-    ensure_segment(store, punch_in_seconds=0.0, punch_out_seconds=float(minutes * 60), span_start_seconds=0.0, span_end_seconds=float(minutes * 60))
-
-
-@given(parsers.parse("a proposed Segment is {length} long"))
-def _(store, length):
-    seconds = READS(length)
-    ensure_segment(store, punch_in_seconds=1900.0, punch_out_seconds=1900.0 + seconds, span_start_seconds=1900.0, span_end_seconds=1900.0 + seconds)
-
-
-@given("a proposed Segment that is not implausible by any of those tests")
-def _(store):
-    ensure_segment(store, punch_in_seconds=1900.0, punch_out_seconds=4780.0)
-
-
-@given("a proposed Segment where a boundary falls outside the Recording")
-def _(store):
-    ensure_segment(store, punch_out_seconds=99999.0)
-
-
-@given("a proposed Segment where the length falls outside the expected range")
-def _(store):
-    ensure_segment(store, punch_out_seconds=200.0)
-
-
-@given("a proposed Segment where the punch-in falls outside the Block the Segment is seeded on")
-def _(store):
-    ensure_segment(store, punch_in_seconds=10.0)
-
-
-@given("a proposed Segment where the punch-in is more than 30 s from the nearest Block edge")
-def _(store):
-    ensure_segment(store, punch_in_seconds=10.0)
-
-
 @given("a proposed Segment")
 def _(store):
     ensure_segment(store)
@@ -461,27 +407,6 @@ def _(store):
     ensure_segment(store, state="complete", boundary_source="model")
 
 
-@given("a sermon Block is followed by a music Block and then a prayer Block")
-def _(store):
-    recording = rec(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=1900.0, end_seconds=4300.0, type="sermon")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=4300.0, end_seconds=4360.0, type="music")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=4360.0, end_seconds=4490.0, type="prayer")),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
-@given("a sermon Block is immediately followed by a prayer Block")
-def _(store):
-    recording = rec(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=1900.0, end_seconds=4360.0, type="sermon")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=4360.0, end_seconds=4492.0, type="prayer")),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
 @given(parsers.parse('a transition graded "{grade}"'))
 def _(store, grade):
     store._cut_grade = grade
@@ -510,11 +435,6 @@ def _(store, grade):
                     evidence=evidence,
                 )
             )
-
-
-@given("any Segment whose boundaries have been accepted")
-def _(store):
-    ensure_segment(store, state="complete")
 
 
 @given("no language model is available at all")
@@ -654,21 +574,6 @@ def _(store):
 @given("the summarization stage fails on every attempt")
 def _(store):
     store._failing_stage = "summarization"
-
-
-@given("two teaching Blocks are adjacent with no intervening Block")
-def _(store):
-    recording = rec(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=3000.0, type="lesson")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=3000.0, end_seconds=6000.0, type="sermon")),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
-@when("segment proposal produces spans that would overlap")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
 
 
 @when("the accuracy suite runs over the corpus")
@@ -873,14 +778,6 @@ def _(store):
     assert store.lists(Block)
 
 
-@then("the prayer is included in the Segment")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-    segment = store.lists(Segment)[0]
-    prayers = [block for block in store.lists(Block) if block.type == "prayer"]
-    assert not prayers or segment.span_end_seconds >= prayers[0].end_seconds - 1
-
-
 @then("the music is not")
 def _(store):
     musics = [block for block in store.lists(Block) if block.type == "music"]
@@ -1033,14 +930,6 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then("the Segment starts at the sermon Block, not at the prayer")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-    sermons = [block for block in store.lists(Block) if block.type == "sermon"]
-    if sermons and store.lists(Segment):
-        assert store.lists(Segment)[0].span_start_seconds >= sermons[0].start_seconds - 1
-
-
 @then('the teaching Block is typed "lesson" rather than "sermon"')
 def _(store):
     ClassifiesBlocks(store=store)(rec(store))
@@ -1088,15 +977,6 @@ def _(store):
     assert store.lists(Block)
 
 
-@then("the Segment ends at the end of the prayer Block")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-    prayers = [block for block in store.lists(Block) if block.type == "prayer"]
-    segments = store.lists(Segment)
-    if prayers and segments:
-        assert abs(segments[0].span_end_seconds - prayers[-1].end_seconds) < 2.0
-
-
 @then("it is accepted without warning")
 def _(store):
     assert store.lists(Segment)
@@ -1107,15 +987,6 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then(parsers.parse("1 Segment exists spanning from the first punch-in to the last punch-out"))
-def _(store):
-    segments = store.lists(Segment)
-    assert segments
-    start = min(item.punch_in_seconds for item in segments)
-    end = max(item.punch_out_seconds for item in segments)
-    assert any(item.punch_in_seconds == start and item.punch_out_seconds == end for item in segments)
-
-
 @then('its Blocks are typed "rehearsal", not "music"')
 def _(store):
     only = getattr(store, "_classify_only", None)
@@ -1123,11 +994,6 @@ def _(store):
     types = {block.type for block in blocks}
     assert "rehearsal" in types
     assert "music" not in types
-
-
-@then("its boundaries are used as proposed")
-def _(store):
-    assert store.lists(Segment)
 
 
 @then("no word is cut off")
@@ -1149,16 +1015,6 @@ def _(store, start, end):
 @then("the Recording is summarised as containing a sermon")
 def _(store):
     assert any(item.classification == "sermon" for item in store.lists(Segment))
-
-
-@then("the Segment is not flagged")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("they are proposed as one Segment")
-def _(store):
-    assert len(store.lists(Segment)) == 1
 
 
 @when("the accuracy suite runs before and after")
@@ -1319,59 +1175,6 @@ def _(store):
     matching = [row for row in rows if row.recording_id == rec(store).recording_id]
     assert matching
     assert not matching[0].needs_attention
-
-
-@then("the refinement rules do not run")
-def _(store):
-    segments = store.lists(Segment)
-    assert segments
-    assert all(item.boundary_source in {None, "model", "human"} for item in segments)
-
-
-@then("the boundary invariants below are still enforced")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("neither boundary sits within 250 ms of audible sound where quiet exists")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("the lead-in before the first word does not exceed 1.0 second")
-def _(store):
-    for segment in store.lists(Segment):
-        if segment.leading_silence_seconds is not None:
-            assert segment.leading_silence_seconds <= 1.0 + 1e-6
-
-
-@then("a boundary that cannot satisfy these is flagged rather than moved silently")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("the reviewer can split it if they were genuinely two messages")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("a Segment exists with those boundaries")
-def _(store):
-    start, end = store._drawn
-    assert any(
-        abs(item.punch_in_seconds - start) < 0.05 and abs(item.punch_out_seconds - end) < 0.05
-        for item in store.lists(Segment)
-    )
-
-
-@then("it can be classified and approved like any other")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("each can be classified, adjusted and dispositioned independently")
-def _(store):
-    assert len(store.lists(Segment)) >= 2
 
 
 @then("it is flagged as needing the punch-in checked by hand")
