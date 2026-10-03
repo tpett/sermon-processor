@@ -1,9 +1,11 @@
+from argparse import Namespace
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment
+from sermon.cli import drains
 from sermon.config import Credential
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob
@@ -194,10 +196,19 @@ def _(store, trigger):
     raise AssertionError(trigger)
 
 
+ENQUEUED_BY = {
+    "a webhook announces a new recording": "download",
+    "a download completes": "analyze",
+    "a reviewer approves a recording": "render",
+    "an operator retries a failed stage": "analyze",
+}
+
+
 @then("a job is enqueued")
-def _(store):
-    queued = store.lists(Job, state="queued")
-    assert queued
+def _(store, _pytest_bdd_example):
+    expected = ENQUEUED_BY[_pytest_bdd_example["trigger"]]
+    queued = [(job.kind, job.recording_id) for job in store.lists(Job, state="queued")]
+    assert queued == [(expected, "recording_20260823_103015")], queued
 
 
 @then("the triggering request returns immediately")
@@ -248,23 +259,25 @@ def _(store):
 
 @when("the application restarts")
 def _(store):
-    return RecoversInterruptedJobs(store=store)()
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    RecoversInterruptedJobs(store=store)()
+    waiting = len(store.lists(Job, state="queued"))
+    drains(worker(store, store._queued_fetches), Namespace(once=False, limit=waiting, poll=0), print, None)
 
 
 @then("the queued jobs still run")
 def _(store):
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    worker(store, store._queued_fetches)()
-    assert store.lists(Job, kind="download")[0].state == "succeeded"
+    downloads = store.lists(Job, kind="download")
+    assert [job.state for job in downloads] == ["succeeded"], [job.state for job in downloads]
     assert store.lists(Recording)[0].state == "downloaded"
 
 
 @then("no job runs twice as a result of the restart")
 def _(store):
-    worker(store, store._queued_fetches)()
     downloads = store.lists(Job, kind="download")
     assert len(downloads) == 1
-    assert downloads[0].state == "succeeded"
+    attempts = [entry for entry in store.lists(LogEntry, job_id=downloads[0].job_id) if entry.kind == ATTEMPT]
+    assert len(attempts) == 1, f"{len(attempts)} attempts were logged"
 
 
 @given("an analysis job is already queued for a Recording")
