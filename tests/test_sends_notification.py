@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import pytest
 
 from sermon.sends_notification import SendsNotification
-from sermon.store import Recording, opens_store
+from sermon.store import Notification, Recording, opens_store
 from test_store import configured_reviewer, minimal_notification, minimal_recording
 
 
@@ -51,7 +51,7 @@ def test_a_notification_already_pending_is_not_sent_after_opt_out(store):
     sent = []
     SendsNotification(store=store, sends=sent.append)(pending)
     assert sent == []
-    assert pending.state == "pending"
+    assert store.loads(Notification, pending.notification_id).state == "pending"
 
 
 def test_opting_out_does_not_hide_recordings_from_the_list(store):
@@ -64,3 +64,4 @@ def test_sending_with_no_channel_configured_does_not_fail(store):
     store.saves(configured_reviewer())
     notification = store.saves(minimal_notification(store.saves(minimal_recording())))
     assert SendsNotification(store=store)(notification) == notification
+    assert store.loads(Notification, notification.notification_id) == notification
