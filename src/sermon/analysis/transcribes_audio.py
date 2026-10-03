@@ -10,6 +10,7 @@ import ipaddress
 import json
 import math
 import os
+import socket
 import subprocess
 import tempfile
 import time
@@ -49,7 +50,20 @@ MUSIC_MIN_S = 60.0
 POOR_CONFIDENCE = 0.55
 
 TAILNET = ipaddress.ip_network("100.64.0.0/10")
-PRIVATE_SUFFIXES = (".local", ".internal", ".ts.net")
+TAILNET_SUFFIX = ".ts.net"
+THIS_NETWORK = tuple(
+    ipaddress.ip_network(network)
+    for network in (
+        "127.0.0.0/8",
+        "::1/128",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "fe80::/10",
+        TAILNET,
+    )
+)
 RETRY_ATTEMPTS = 3
 RETRY_FIRST_DELAY_S = 2.0
 
@@ -73,24 +87,34 @@ class TranscriberRefused(ValueError):
     pass
 
 
-def refuses_a_public_transcriber(endpoint):
+def resolves_host(host):
+    return [info[4][0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)]
+
+
+def addresses_of(host, resolves):
+    try:
+        return [ipaddress.ip_address(host)]
+    except ValueError:
+        pass
+    try:
+        return [ipaddress.ip_address(str(found).split("%")[0]) for found in resolves(host)]
+    except (OSError, ValueError, UnicodeError):
+        return []
+
+
+def refuses_a_public_transcriber(endpoint, resolves=resolves_host):
     """Audio may only be sent to a machine on this network. Nothing else."""
     host = urlparse(endpoint).hostname
     if not host:
         raise TranscriberRefused(f"{endpoint!r} names no host to send audio to")
-    if host == "localhost" or host.endswith(PRIVATE_SUFFIXES):
-        return endpoint
-    try:
-        address = ipaddress.ip_address(host)
-    except ValueError as named:
-        raise TranscriberRefused(
-            f"{host!r} is a public name; audio may only go to a private address"
-        ) from named
-    if address.is_loopback or address.is_private or address.is_link_local:
-        return endpoint
-    if address.version == 4 and address in TAILNET:
-        return endpoint
-    raise TranscriberRefused(f"{host} is not on this network; audio may not go there")
+    addresses = addresses_of(host, resolves)
+    if not addresses:
+        raise TranscriberRefused(f"{host!r} could not be resolved; audio may only go to a private address")
+    allowed = (TAILNET,) if host.rstrip(".").endswith(TAILNET_SUFFIX) else THIS_NETWORK
+    elsewhere = [address for address in addresses if not any(address in network for network in allowed)]
+    if elsewhere:
+        raise TranscriberRefused(f"{host} reaches {elsewhere[0]}, which is not on this network; audio may not go there")
+    return endpoint
 
 
 def confidence_of(avg_logprob):
@@ -337,14 +361,16 @@ class PostsToTranscriber:
     endpoint: str
     opens: object = urllib.request.urlopen
     timeout_s: float = 3600.0
+    resolves: object = field(default=resolves_host, repr=False)
 
     def __post_init__(self):
-        refuses_a_public_transcriber(self.endpoint)
+        refuses_a_public_transcriber(self.endpoint, self.resolves)
 
     def where(self):
         return self.endpoint
 
     def __call__(self, samples, language=EXPECTED_LANGUAGE):
+        refuses_a_public_transcriber(self.endpoint, self.resolves)
         asked = f"{self.endpoint.rstrip('/')}/transcribe"
         query = urlencode({"language": language} if language else {})
         request = urllib.request.Request(
