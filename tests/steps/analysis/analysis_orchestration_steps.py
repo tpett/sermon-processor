@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 
 import pytest
 from pytest_bdd import given, parsers, then, when
+from steps import _analysis
+from steps._asr import transcribes_for
 
 from sermon.config import ModelEndpointUnreachable, ReachesModelEndpoint
 from sermon.jobs.analyzes_recording import CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
@@ -82,7 +84,22 @@ def runs_analysis(store, recording, stage_log, sent, contents, clock, **fields):
         clock=clock,
         reaches=fields.get("reaches", getattr(store, "_reaches", None)),
         only=fields.get("only"),
+        transcribes=transcribes_for(store, recording),
+        divides=_analysis.divides_as(answers_for(recording, contents)),
     )()
+
+
+def answers_for(recording, contents):
+    """What the reasoning stage would say of a Recording holding these Segments."""
+    spans, at = [], 0.0
+    for classification, starts, ends in sorted(contents.segments, key=lambda item: item[1]):
+        if starts > at:
+            spans.append((at, starts, "music"))
+        spans.append((starts, ends, classification))
+        at = ends
+    if recording.duration_seconds and recording.duration_seconds > at:
+        spans.append((at, recording.duration_seconds, "music"))
+    return spans
 
 
 @when("Analysis starts")

@@ -1,8 +1,10 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from pytest_bdd import given, parsers, then, when
+from steps import _analysis
 from steps._asr import transcribes_for
 from steps._transcripts import covering_transcript
 
@@ -22,6 +24,8 @@ from sermon.analysis import (
     seeds_segment,
 )
 from sermon.analysis.io import reads_json, writes_json
+from sermon.pipeline import classify
+from sermon.pipeline import segments as pipeline_segments
 from sermon.pipeline.segments import TAIL_S
 
 LEAD_IN_S = 1.0
@@ -40,6 +44,22 @@ from sermon.web import creates_app
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+PROMPTS = Path(__file__).resolve().parents[3] / "experiments" / "prompts"
+
+
+@pytest.fixture(autouse=True)
+def holds_every_model_seam(request, monkeypatch, tmp_path):
+    if "test_spec.py::" not in request.node.nodeid:
+        return
+    corpus = tmp_path / "corpus"
+    (corpus / "diarization").mkdir(parents=True)
+    monkeypatch.setattr(pipeline_segments, "DATA_ROOT", corpus)
+    monkeypatch.setattr(pipeline_segments, "_EDGE_CACHE", {})
+    monkeypatch.setattr(classify, "DATA", corpus)
+    monkeypatch.setattr(classify, "PROMPTS", PROMPTS)
+    monkeypatch.setattr(classify, "ollama", _analysis.refuses_a_model_call)
+    monkeypatch.setattr(classify, "run_whole", _analysis.refuses_a_model_call)
+    monkeypatch.setattr(classify, "call_json", _analysis.answers_a_summary_prompt)
 
 
 def recording_of(store):
@@ -63,7 +83,7 @@ def recording_of(store):
 def _(store):
     recording = recording_of(store)
     duration = recording.duration_seconds or 5412.0
-    writes_json(store, recording, "transcript", covering_transcript(duration))
+    writes_json(store, recording, "transcript", covering_transcript(duration, recording_id=recording.recording_id))
     TranscribesRecording(store=store)(recording)
 
 
@@ -150,7 +170,7 @@ def _(store):
 @given("the first 22 minutes of the service is congregational singing")
 def _(store):
     recording = recording_of(store)
-    doc = covering_transcript(recording.duration_seconds or 5412.0, confidence=0.12, text="[music]")
+    doc = covering_transcript(recording.duration_seconds or 5412.0, confidence=0.12, text="[music]", recording_id=recording.recording_id)
     doc["likely_music"] = [{"start": 0.0, "end": 1320.0}]
     for item in doc["utterances"]:
         if item["start"] < 1320:
@@ -439,7 +459,7 @@ def _(store):
 @then("every transcript utterance is attributed to a speaker segment")
 def _(store):
     recording = recording_of(store)
-    transcript = reads_json(store, recording, "transcript") or covering_transcript(recording.duration_seconds or 0)
+    transcript = reads_json(store, recording, "transcript") or covering_transcript(recording.duration_seconds or 0, recording_id=recording.recording_id)
     turns = reads_json(store, recording, "diarization")["turns"]
     for utterance in transcript["utterances"]:
         assert any(turn["start"] - 1 <= utterance["start"] <= turn["end"] + 1 for turn in turns)
@@ -570,7 +590,7 @@ def _(store):
 @given("a Recording with a completed transcript and speaker spans")
 def _(store):
     recording = recording_of(store)
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0))
+    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id))
     writes_json(
         store,
         recording,
@@ -589,7 +609,7 @@ def _(store):
 @given("diarization reports a speaker change near a block boundary")
 def _(store):
     recording = recording_of(store)
-    doc = covering_transcript(recording.duration_seconds or 5412.0)
+    doc = covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id)
     writes_json(store, recording, "transcript", doc)
     writes_json(
         store,
@@ -601,8 +621,10 @@ def _(store):
 
 @when("blocking runs")
 def _(store):
-    store._rebuild_blocks = True
-    DividesIntoBlocks(store=store)(recording_of(store))
+    recording = recording_of(store)
+    turns = reads_json(store, recording, "diarization")["turns"]
+    answered = [(turn["start"], turn["end"], "other") for turn in turns]
+    DividesIntoBlocks(store=store, divides=_analysis.divides_as(answered))(recording)
 
 
 @then("the boundary is placed on the nearest utterance edge")
@@ -699,7 +721,7 @@ def _(store, datatable):
             }
         )
     writes_json(store, recording, "diarization", {"turns": turns})
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or turns[-1]["end"]))
+    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or turns[-1]["end"], recording_id=recording.recording_id))
 
 
 @then("a Block is produced for each contiguous speaker span")
@@ -754,7 +776,7 @@ def _(store):
 def _(store):
     recording = recording_of(store)
     duration = recording.duration_seconds or 11520.0
-    writes_json(store, recording, "transcript", covering_transcript(duration))
+    writes_json(store, recording, "transcript", covering_transcript(duration, recording_id=recording.recording_id))
     writes_json(
         store,
         recording,
@@ -786,7 +808,7 @@ def _(store):
 @given(parsers.parse('the sermon contains {seconds:d} seconds of near-silence at "{timecode}"'))
 def _(store, seconds, timecode):
     recording = recording_of(store)
-    doc = covering_transcript(recording.duration_seconds or 5412.0)
+    doc = covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id)
     doc["silences"] = [{"start": READS(timecode), "end": READS(timecode) + seconds}]
     writes_json(store, recording, "transcript", doc)
 
@@ -881,7 +903,7 @@ def _(store):
 @given("the diarization stage failed")
 def _(store):
     recording = recording_of(store)
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0))
+    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id))
 
 
 @then("Blocks are produced from transcript structure and silence alone")
@@ -925,16 +947,9 @@ def _(store):
 @given("a Recording divided into Blocks with a completed transcript")
 def _(store):
     recording = recording_of(store)
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0))
-    for index, block_type in enumerate(("announcements", "prayer", "music", "sermon", "communion")):
-        store.saves(
-            Block(
-                recording_id=recording.recording_id,
-                start_seconds=float(index * 600),
-                end_seconds=float(index * 600 + 600),
-                type=block_type,
-            )
-        )
+    spans = _analysis.reads_rows(_analysis.SUNDAY)
+    _analysis.lays_out(store, recording, spans, typed=False)
+    _analysis.divides(store, recording, spans)
 
 
 @when("block classification runs")
@@ -995,31 +1010,12 @@ def _(store, datatable):
 
 @given("a Recording divided into classified Blocks")
 def _(store):
-    recording = recording_of(store)
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=240.0, type="announcements"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=240.0, end_seconds=270.0, type="prayer"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=1900.0, end_seconds=4360.0, type="sermon"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=4360.0, end_seconds=4492.0, type="prayer"))
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=4492.0, end_seconds=4800.0, type="communion"))
+    _analysis.lays_out(store, recording_of(store), _analysis.reads_rows(_analysis.SUNDAY))
 
 
 @given("the Blocks are:")
 def _(store, datatable):
-    recording = recording_of(store)
-    created = []
-    for row in datatable[1:]:
-        start, end, block_type = row[0], row[1], row[2]
-        created.append(
-            store.saves(
-                Block(
-                    recording_id=recording.recording_id,
-                    start_seconds=READS(start),
-                    end_seconds=READS(end),
-                    type=block_type,
-                )
-            )
-        )
-    store._proposal_only = [item.block_id for item in created]
+    _analysis.lays_out(store, recording_of(store), _analysis.reads_rows(datatable[1:]))
 
 
 @then(parsers.parse("{count:d} Segment is proposed"))
