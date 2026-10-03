@@ -8,10 +8,11 @@ from sermon.approves_segment import ApprovesSegment, ReviewSession
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.reopens_segment import ReopensSegment
 from sermon.settles_recording import SettlesRecording
+from sermon.shows_recording import NOTICES
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps import _audio, _web
+from steps import _audio, _forms, _web
 from steps._markup import reads_field, reads_rows
 
 READS = ReadsTimecode()
@@ -396,3 +397,21 @@ def _(store, recording):
     assert {"Approve", "Skip"} <= set(offered)
     states = {row["segment"]: row["state"] for row in reads_rows(page, "segment")}
     assert states[str(untouched.segment_id)] == "proposed"
+
+
+@then("approving is available without any further step")
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    approving = 'data-field="action-control">Approve'
+    assert page.index(approving) < page.index("<h3>Boundaries</h3>")
+    approved = _forms.submits(store, page, approving)
+    assert reads_field(approved, "action-notice") == NOTICES["approved"]
+    reopened = _forms.submits(store, approved, 'data-field="action-control">Cancel processing')
+    assert reads_field(reopened, "action-notice") == NOTICES["reopened"]
+
+
+@then("boundary editing is available but not required")
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "boundary-controls") in {"editable", "collapsed"}
+    assert [row["boundary"] for row in reads_rows(page, "boundary")] == ["punch-in", "punch-out"]
