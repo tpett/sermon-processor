@@ -5,10 +5,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1348 step definitions read from `tests/steps`
-- 212 condemned
-- 139 of 464 non-deferred scenarios rest on at least one condemned step
-- 188 of 607 expanded scenario tests likewise
-- 54 scenarios whose every Then is condemned, so nothing they claim is checked
+- 196 condemned
+- 132 of 464 non-deferred scenarios rest on at least one condemned step
+- 175 of 607 expanded scenario tests likewise
+- 50 scenarios whose every Then is condemned, so nothing they claim is checked
 - 14 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
@@ -23,15 +23,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an interface Then that reads the view model rather than the rendered page | 0 |
 | an assertion that cannot fail | 1 |
 | a boolean operand of True, which neutralises what it joins | 0 |
-| a Then whose every assertion only checks that some row exists | 69 |
+| a Then whose every assertion only checks that some row exists | 60 |
 | an assertion that any existing row satisfies | 9 |
 | an assertion operand that some scenario's own arguments make true | 5 |
-| a Then with a path through it that asserts nothing | 27 |
-| an assertion that compares a value with itself | 2 |
+| a Then with a path through it that asserts nothing | 24 |
+| an assertion that compares a value with itself | 1 |
 | a Then that constructs and invokes a unit of the system | 36 |
 | a Then that writes to the store | 68 |
-| a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 26 |
-| a Then that asserts word for word what another Then in its scenario asserts | 16 |
+| a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 24 |
+| a Then that asserts word for word what another Then in its scenario asserts | 14 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
 | a When that writes the outcome itself instead of invoking the system | 18 |
@@ -44,7 +44,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | module | definitions | condemned | verdict |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 19 | partly condemned |
+| `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 3 | partly condemned |
 | `tests/steps/analysis/approval_rate_steps.py` | 4 | 2 | partly condemned |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 3 | partly condemned |
 | `tests/steps/analysis/block_classification_steps.py` | 23 | 1 | partly condemned |
@@ -86,29 +86,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## Condemned outside the six named files
 
-189 definitions.
+173 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:178` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:224` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:260` | then | `the stages already cached are not recomputed` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:276` | then | `the transcript is retrievable for the Recording` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:281` | then | `the speaker spans, Blocks and their classifications are retrievable` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:287` | then | `the waveform peak data is retrievable for the Recording` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:292` | then | `every Segment's boundaries and classification are stored` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/analysis_orchestration_steps.py:299` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:379` | then | `the cached transcript and diarization are reused` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:385` | then | `fresh Segments and Proposals replace the previous ones` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:407` | then | `that Segment's boundaries are preserved` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/analysis_orchestration_steps.py:413` | then | `the new machine proposal is shown alongside it as a suggestion` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:418` | then | `Segments the reviewer never touched are replaced normally` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/analysis_orchestration_steps.py:437` | then | `that Segment and its artifact are left alone` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/analysis_orchestration_steps.py:442` | then | `only undispositioned Segments are replaced` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/analysis_orchestration_steps.py:464` | then | `other Recordings continue to be analysed` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:525` | then | `the stage is cancelled` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:538` | then | `the local FLAC is unchanged` | a Then with a path through it that asserts nothing; an assertion that compares a value with itself |
-| `tests/steps/analysis/analysis_orchestration_steps.py:548` | then | `every derived artifact is written to a separate location` | a Then with a path through it that asserts nothing |
+| `tests/steps/analysis/analysis_orchestration_steps.py:182` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:228` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/audio_probe_steps.py:263` | then | `it does not appear in the default list` | a Then that constructs and invokes a unit of the system |
@@ -284,25 +268,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:178` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:224` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:260` | then | `the stages already cached are not recomputed` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:276` | then | `the transcript is retrievable for the Recording` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:281` | then | `the speaker spans, Blocks and their classifications are retrievable` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:287` | then | `the waveform peak data is retrievable for the Recording` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:292` | then | `every Segment's boundaries and classification are stored` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/analysis_orchestration_steps.py:299` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:379` | then | `the cached transcript and diarization are reused` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:385` | then | `fresh Segments and Proposals replace the previous ones` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:407` | then | `that Segment's boundaries are preserved` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/analysis_orchestration_steps.py:413` | then | `the new machine proposal is shown alongside it as a suggestion` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:418` | then | `Segments the reviewer never touched are replaced normally` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/analysis_orchestration_steps.py:437` | then | `that Segment and its artifact are left alone` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/analysis_orchestration_steps.py:442` | then | `only undispositioned Segments are replaced` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/analysis_orchestration_steps.py:464` | then | `other Recordings continue to be analysed` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:525` | then | `the stage is cancelled` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/analysis_orchestration_steps.py:538` | then | `the local FLAC is unchanged` | a Then with a path through it that asserts nothing; an assertion that compares a value with itself |
-| `tests/steps/analysis/analysis_orchestration_steps.py:548` | then | `every derived artifact is written to a separate location` | a Then with a path through it that asserts nothing |
+| `tests/steps/analysis/analysis_orchestration_steps.py:182` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:228` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/audio_probe_steps.py:263` | then | `it does not appear in the default list` | a Then that constructs and invokes a unit of the system |
@@ -508,10 +476,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `analysis/analysis_confidence.feature` | 133 | One analysis is the v1 behaviour, not a degraded mode |
 | `analysis/analysis_confidence.feature` | 112 | What a reviewer is told, in order of usefulness |
 | `analysis/analysis_confidence.feature` | 151 | What the reviewer loses, stated where they can see it |
-| `analysis/analysis_orchestration.feature` | 123 | Analysis is re-run after a reviewer has edited a segment |
-| `analysis/analysis_orchestration.feature` | 132 | Analysis is re-run after a segment has been rendered |
-| `analysis/analysis_orchestration.feature` | 96 | Stage outputs are retained for the interface and for re-runs |
-| `analysis/analysis_orchestration.feature` | 177 | The FLAC is read-only to Analysis |
 | `analysis/audio_probe.feature` | 116 | Ignored recordings stay out of the way but remain visible |
 | `analysis/block_classification.feature` | 377 | A block that is genuinely two things |
 | `analysis/block_classification.feature` | 264 | A whole recording of rehearsal |

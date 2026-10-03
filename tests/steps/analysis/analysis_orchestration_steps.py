@@ -1,15 +1,19 @@
+import hashlib
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pytest_bdd import given, parsers, then, when
 from steps import _analysis
 from steps._asr import transcribes_for
 
+from sermon.adjusts_punch_point import AdjustsPunchPoint
+from sermon.analysis.io import reads_json
 from sermon.approves_segment import ApprovesSegment
 from sermon.config import ModelEndpointUnreachable, ReachesModelEndpoint
 from sermon.jobs.analyzes_recording import CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
 from sermon.sends_notification import SendsNotification
+from sermon.web import creates_app
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment
 
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
@@ -258,8 +262,10 @@ def _(store, recording):
 
 
 @then("the stages already cached are not recomputed")
-def _(store, recording):
-    assert store.lists(Artifact, recording_id=recording.recording_id)
+def _(store, recording, stage_log):
+    cached = store.lists(Artifact, recording_id=recording.recording_id, kind="transcript")
+    assert len(cached) == 1
+    assert "transcription" not in stage_log[stage_log.index("block_classification"):]
 
 
 @then("the failure names the endpoint, not a generic model error")
@@ -275,23 +281,32 @@ def _(store, recording, stage_log, sent, contents, clock):
 
 @then("the transcript is retrievable for the Recording")
 def _(store, recording):
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="transcript")
+    doc = reads_json(store, store.loads(Recording, recording.recording_id), "transcript")
+    assert doc is not None
+    assert doc["utterances"]
 
 
 @then("the speaker spans, Blocks and their classifications are retrievable")
 def _(store, recording):
-    assert store.lists(Block, recording_id=recording.recording_id)
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="diarization")
+    turns = reads_json(store, store.loads(Recording, recording.recording_id), "diarization")
+    assert turns is not None and turns["turns"]
+    blocks = store.lists(Block, recording_id=recording.recording_id)
+    assert blocks
+    assert all(block.type and block.classification_confidence for block in blocks)
 
 
 @then("the waveform peak data is retrievable for the Recording")
 def _(store, recording):
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="waveform_peaks")
+    answered = creates_app(store=store).test_client().get(f"/api/recordings/{recording.recording_id}/peaks")
+    assert answered.status_code == 200
+    assert answered.get_json()
 
 
 @then("every Segment's boundaries and classification are stored")
 def _(store, recording):
-    for segment in store.lists(Segment, recording_id=recording.recording_id):
+    segments = store.lists(Segment, recording_id=recording.recording_id)
+    assert segments
+    for segment in segments:
         assert segment.punch_in_seconds < segment.punch_out_seconds
         assert segment.classification
 
@@ -372,25 +387,43 @@ def _(store, recording, stage_log, sent, contents, clock):
             queued_at=clock(),
         )
     )
-    store._previous_proposals = store.lists(Proposal)
+    store._before_rerun = {
+        "proposals": tuple(store.lists(Proposal)),
+        "segments": tuple(store.lists(Segment, recording_id=recording.recording_id)),
+        "artifacts": tuple(store.lists(Artifact, recording_id=recording.recording_id)),
+    }
+    stage_log.clear()
     runs_analysis(store, recording, stage_log, sent, contents, clock)
 
 
 @then("the cached transcript and diarization are reused")
 def _(store, recording):
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="transcript")
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="diarization")
+    before = {(item.kind, item.checksum) for item in store._before_rerun["artifacts"]}
+    after = {(item.kind, item.checksum) for item in store.lists(Artifact, recording_id=recording.recording_id)}
+    for kind in ("transcript", "diarization"):
+        held = [checksum for named, checksum in before if named == kind]
+        assert len(held) == 1, f"{kind} was not cached before the re-run"
+        assert (kind, held[0]) in after
+    assert store._asr_engine.windows == []
 
 
 @then("fresh Segments and Proposals replace the previous ones")
 def _(store, recording):
-    assert store.lists(Segment, recording_id=recording.recording_id)
-    assert store.lists(Proposal)
+    previous = [item for item in store._before_rerun["segments"] if item.state == "proposed"]
+    live = [item for item in store.lists(Segment, recording_id=recording.recording_id) if item.state == "proposed"]
+    assert previous
+    assert len(live) == len(previous)
+    for item in live:
+        assert len(store.lists(Proposal, segment_id=item.segment_id)) == 1
 
 
 @then("the previous Proposals are kept in the Recording's history")
 def _(store):
-    assert getattr(store, "_previous_proposals", None) is not None
+    kept = {item.proposal_id: item for item in store.lists(Proposal)}
+    previous = store._before_rerun["proposals"]
+    assert previous
+    for item in previous:
+        assert kept.get(item.proposal_id) == item, f"Proposal {item.proposal_id} was overwritten"
 
 
 @given(parsers.parse('a reviewer adjusted a Segment\'s punch-in to "{timecode}"'))
@@ -398,31 +431,55 @@ def _(store, recording, stage_log, sent, contents, clock, timecode):
     from sermon.extends_segment_span import ReadsTimecode
 
     runs_analysis(store, recording, stage_log, sent, contents, clock)
-    segment = store.lists(Segment, recording_id=recording.recording_id)[0]
-    store.saves(replace(segment, punch_in_seconds=ReadsTimecode()(timecode), boundary_source="human"))
-    store._human_punch = ReadsTimecode()(timecode)
-    store._human_segment_id = segment.segment_id
+    moment = ReadsTimecode()(timecode)
+    holding = [
+        item
+        for item in store.lists(Segment, recording_id=recording.recording_id)
+        if item.span_start_seconds <= moment < item.punch_out_seconds
+    ]
+    AdjustsPunchPoint(store=store, clock=clock)(holding[0], punch_in_seconds=moment)
+
+
+def edited_by_hand(store, recording):
+    edits = [
+        entry
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.boundary_source == "human" and entry.segment_id is not None
+    ]
+    assert len(edits) == 1, f"{len(edits)} hand edits are logged"
+    return edits[0]
 
 
 @then("that Segment's boundaries are preserved")
-def _(store):
-    stored = store.loads(Segment, store._human_segment_id)
-    assert abs(stored.punch_in_seconds - store._human_punch) < 0.02
+def _(store, recording):
+    edit = edited_by_hand(store, recording)
+    stored = store.loads(Segment, edit.segment_id)
+    assert stored.boundary_source == "human"
+    assert stored.punch_in_seconds == edit.punch_in_seconds
+    assert stored.punch_out_seconds == edit.punch_out_seconds
 
 
 @then("the new machine proposal is shown alongside it as a suggestion")
-def _(store):
-    assert store.lists(Proposal, segment_id=store._human_segment_id)
+def _(store, recording):
+    edit = edited_by_hand(store, recording)
+    page = creates_app(store=store).test_client().get(
+        f"/recordings/{recording.recording_id}", query_string={"segment": edit.segment_id}
+    ).get_data(as_text=True)
+    assert "suggest" in page.lower()
 
 
 @then("Segments the reviewer never touched are replaced normally")
 def _(store, recording):
+    edit = edited_by_hand(store, recording)
     others = [
         item
         for item in store.lists(Segment, recording_id=recording.recording_id)
-        if item.segment_id != store._human_segment_id
+        if item.segment_id != edit.segment_id and item.state == "proposed"
     ]
     assert others
+    for item in others:
+        assert item.boundary_source in {"model", "refined"}
+        assert len(store.lists(Proposal, segment_id=item.segment_id)) == 1
 
 
 @given(parsers.parse('a Segment is "{state}"'))
@@ -431,18 +488,37 @@ def _(store, recording, stage_log, sent, contents, clock, state):
         runs_analysis(store, recording, stage_log, sent, contents, clock)
     segment = store.lists(Segment, recording_id=recording.recording_id)[0]
     store.saves(replace(segment, state=state))
-    store._complete_id = segment.segment_id
+    store.saves(
+        Artifact(
+            recording_id=recording.recording_id,
+            segment_id=segment.segment_id,
+            kind="rendered_mp3",
+            path=f"published/{recording.recording_id}.mp3",
+            size_bytes=1,
+            checksum="rendered",
+        )
+    )
 
 
 @then("that Segment and its artifact are left alone")
-def _(store):
-    assert store.loads(Segment, store._complete_id).state == "complete"
+def _(store, recording):
+    held = [item for item in store._before_rerun["segments"] if item.state == "complete"]
+    assert len(held) == 1
+    assert store.loads(Segment, held[0].segment_id) == held[0]
+    rendered = [item for item in store._before_rerun["artifacts"] if item.segment_id == held[0].segment_id]
+    assert rendered
+    for item in rendered:
+        assert store.loads(Artifact, item.artifact_id) == item
 
 
 @then("only undispositioned Segments are replaced")
 def _(store, recording):
-    complete = store.loads(Segment, store._complete_id)
-    assert complete.state == "complete"
+    untouched = {item.segment_id for item in store._before_rerun["segments"] if item.state == "complete"}
+    replaced = [item for item in store.lists(Segment, recording_id=recording.recording_id) if item.segment_id not in untouched]
+    assert replaced
+    for item in replaced:
+        assert item.state == "proposed"
+        assert item.boundary_source in {"model", "refined"}
 
 
 @given(parsers.parse('the "{stage}" stage fails on every attempt'))
@@ -462,8 +538,10 @@ def _(store, recording, stage):
 
 
 @then("other Recordings continue to be analysed")
-def _(store):
-    assert store.lists(Job, kind="analyze")
+def _(store, recording):
+    jobs = store.lists(Job, kind="analyze", recording_id=recording.recording_id)
+    assert [job.state for job in jobs] == ["failed"]
+    assert store.lists(Job, state="running") == []
 
 
 @then("a reviewer can still open the Recording and create Segments by hand")
@@ -497,6 +575,7 @@ def _(store):
 
 @given('the "transcription" stage has been running for 91 minutes')
 def _(store, recording, clock):
+    began = clock() - timedelta(minutes=91)
     store.saves(replace(recording, state="analyzing"))
     store.saves(
         Job(
@@ -505,27 +584,29 @@ def _(store, recording, clock):
             state="running",
             max_attempts=5,
             dedupe_key=f"analyze:{recording.recording_id}:timeout",
-            queued_at=clock(),
-            started_at=clock(),
+            queued_at=began,
+            started_at=began,
         )
     )
-    store.saves(replace(store.loads(Recording, recording.recording_id), state="analysis_failed"))
     store.saves(
         LogEntry(
             recording_id=recording.recording_id,
-            kind="state_change",
-            occurred_at=clock(),
+            kind="stage_started:transcription",
+            occurred_at=began,
             correlation_id=f"analyze:{recording.recording_id}",
-            entered_state="analysis_failed",
-            error="analysis timed out",
         )
     )
 
 
 @then("the stage is cancelled")
-def _(store):
-    jobs = store.lists(Job, kind="analyze")
-    assert jobs
+def _(store, recording):
+    jobs = store.lists(Job, kind="analyze", recording_id=recording.recording_id)
+    assert len(jobs) == 1
+    assert jobs[0].state != "running"
+    assert any(
+        entry.kind == "stage_cancelled:transcription"
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+    )
 
 
 @then(parsers.parse('the Recording enters "{state}" with reason "{reason}"'))
@@ -538,16 +619,18 @@ def _(store, recording, state, reason):
 @then("the local FLAC is unchanged")
 def _(store, recording):
     stored = store.loads(Recording, recording.recording_id)
-    if stored.local_path:
-        path = store.resolves(stored)
-        if path and path.exists():
-            original = path.read_bytes()
-            assert path.read_bytes() == original
+    assert stored.local_path, "the downloaded Recording names no local FLAC"
+    path = store.resolves(stored)
+    assert path is not None and path.is_file(), f"no local FLAC at {path}"
+    assert stored.checksum
+    assert hashlib.md5(path.read_bytes()).hexdigest() == stored.checksum
 
 
 @then("every derived artifact is written to a separate location")
 def _(store, recording):
     stored = store.loads(Recording, recording.recording_id)
-    for artifact in store.lists(Artifact, recording_id=recording.recording_id):
+    artifacts = store.lists(Artifact, recording_id=recording.recording_id)
+    assert artifacts
+    for artifact in artifacts:
         assert artifact.path != stored.local_path
         assert artifact.path != stored.object_key
