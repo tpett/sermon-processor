@@ -137,7 +137,7 @@
       </ol>
       <ol class="spans">
       {% for span in wave.segment_spans %}
-        <li data-row="segment-span" data-segment="{{ span.segment_id }}" data-classification="{{ span.classification }}"{% if span.selected %} data-selected="true"{% endif %} style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.classification }} {{ span.boundaries }}"><span data-field="span-boundaries">{{ span.boundaries }}</span></li>
+        <li data-row="segment-span" data-segment="{{ span.segment_id }}" data-classification="{{ span.classification }}"{% if span.selected %} data-selected="true"{% endif %} style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.classification }} {{ span.boundaries }}"><a href="/recordings/{{ view.recording_id }}?segment={{ span.segment_id }}" data-role="select-segment"><span data-field="span-boundaries">{{ span.boundaries }}</span></a></li>
       {% endfor %}
       </ol>
       <div class="shape">

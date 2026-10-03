@@ -9,13 +9,13 @@ from sermon.approves_segment import ApprovesSegment, ReviewSession
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.reopens_segment import ReopensSegment
 from sermon.settles_recording import SettlesRecording
-from sermon.shows_recording import NOTICES
+from sermon.shows_recording import NOTICES, formats_precise
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps import _audio, _forms, _web
-from steps._markup import reads_field, reads_rows
-from steps._peaks import writes_utterances
+from steps import _audio, _browser, _forms, _web
+from steps._markup import reads_field, reads_role, reads_rows
+from steps._peaks import writes_peaks, writes_utterances
 
 READS = ReadsTimecode()
 PREVIEW_SECONDS = 11520.0
@@ -49,8 +49,10 @@ def _(store, state, count, datatable):
             started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
             started_at_source="key",
             size_bytes=1,
+            duration_seconds=PREVIEW_SECONDS,
         )
     )
+    writes_peaks(store, stored)
     rows = datatable[1:]
     assert len(rows) == count
     for _, classification, boundaries, confidence in rows:
@@ -454,3 +456,52 @@ def _(detail_page):
     assert [row["utterance-text"] for row in reads_rows(detail_page, "recording-utterance")] == [
         text for _, _, text in SPOKEN_ACROSS_THE_MORNING
     ]
+
+
+@then("all Blocks are drawn on a single waveform of the whole Recording")
+def _(store, recording, detail_page):
+    assert detail_page.count('data-role="waveform"') == 1
+    drawn = reads_role(detail_page, "waveform")
+    assert float(drawn["duration-seconds"]) == recording.duration_seconds
+    stored = sorted(store.lists(Block, recording_id=recording.recording_id), key=lambda b: b.start_seconds)
+    assert [band["band-type"] for band in reads_rows(detail_page, "band")] == [
+        block.type for block in stored
+    ]
+
+
+@then("each is coloured by its type")
+def _(detail_page):
+    colours = {}
+    for band in reads_rows(detail_page, "band"):
+        colours.setdefault(band["band-type"], set()).add(band["band-colour"])
+    assert all(len(held) == 1 for held in colours.values())
+    assert len({next(iter(held)) for held in colours.values()}) == len(colours)
+
+
+@then("proposed Segments are drawn as spans above the Blocks they cover")
+def _(store, recording, detail_page):
+    proposed = sorted(
+        (item for item in store.lists(Segment, recording_id=recording.recording_id) if item.state == "proposed"),
+        key=lambda item: item.punch_in_seconds,
+    )
+    spans = reads_rows(detail_page, "segment-span")
+    assert [int(span["segment"]) for span in spans] == [item.segment_id for item in proposed]
+    for span, segment in zip(spans, proposed):
+        left = re.search(r"left:([0-9.]+)%", detail_page.split(f'data-row="segment-span" data-segment="{segment.segment_id}"')[1]).group(1)
+        assert abs(float(left) - 100.0 * segment.punch_in_seconds / recording.duration_seconds) < 0.01
+    assert detail_page.index('class="spans"') < detail_page.index('class="bands"')
+
+
+@then("clicking one selects it for review")
+def _(store, recording):
+    first = numbered_segment(store, recording, 1)
+    chosen = numbered_segment(store, recording, 2)
+    with _browser.opens_page(store) as page:
+        page.goto(f"/recordings/{recording.recording_id}?segment={first.segment_id}")
+        with page.expect_navigation(timeout=5000):
+            page.locator(f'[data-row="segment-span"][data-segment="{chosen.segment_id}"]').click()
+        selected = page.locator('[data-row="segment"][data-selected="true"]')
+        assert selected.get_attribute("data-segment") == str(chosen.segment_id)
+        assert page.locator('[data-field="punch-in"]').text_content() == formats_precise(
+            chosen.punch_in_seconds
+        )
