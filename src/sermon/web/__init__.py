@@ -5,7 +5,7 @@ from dataclasses import asdict, replace
 from datetime import date
 from pathlib import Path, PurePosixPath
 
-from flask import Flask, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, redirect, render_template, request, send_file, url_for
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.adjusts_punch_point import (
@@ -32,13 +32,19 @@ from sermon.extends_segment_span import (
 )
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.lists_recordings import ListsRecordings
+from sermon.object_store import UnsatisfiableRange
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import (
     FilenameCollision,
     RecordsPublicationDetails,
     places_publication_date,
 )
-from sermon.reconciles_bucket import MalformedObjectKey, ReconcilesBucket
+from sermon.reconciles_bucket import (
+    MalformedObjectKey,
+    ObjectStoreForbidden,
+    ObjectStoreUnreachable,
+    ReconcilesBucket,
+)
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.reruns_analysis import RerunsAnalysis
@@ -61,6 +67,9 @@ BOUNDARIES = ("punch-in", "punch-out")
 INLINE_KINDS = frozenset({"preview"})
 ARTIFACT_UNAVAILABLE = "the artifact is unavailable"
 REPROCESS_OFFER = "re-process the Segment"
+SOURCE_NO_LONGER_AVAILABLE = "source no longer available"
+OBJECT_STORE_UNAVAILABLE = "the object store cannot be reached"
+STREAMED_FALLBACK_TYPE = "application/octet-stream"
 NO_SUCH_RECORDING = ({"error": "no such recording"}, 404)
 NO_SUCH_SEGMENT = ({"error": "no such segment"}, 404)
 
@@ -77,8 +86,42 @@ def unavailable(path, entity):
     return body, 404
 
 
+def asks_for_one_range(asked):
+    """The one byte range worth forwarding; anything else is answered whole."""
+    wanted = asked.range
+    if wanted is None or wanted.units != "bytes" or len(wanted.ranges) != 1:
+        return None
+    if asked.if_range.date is not None:
+        return None
+    return wanted.to_header()
+
+
+def still_the_object(asked, streamed):
+    condition = asked.if_range.etag
+    return condition is None or condition == (streamed.entity_tag or "").strip('"')
+
+
+def answers_with(streamed, filename):
+    response = Response(
+        streamed.chunks,
+        status=206 if streamed.content_range else 200,
+        content_type=streamed.content_type or STREAMED_FALLBACK_TYPE,
+        direct_passthrough=True,
+    )
+    response.content_length = streamed.size_bytes
+    response.accept_ranges = "bytes"
+    if streamed.content_range:
+        response.headers["Content-Range"] = streamed.content_range
+    if streamed.entity_tag:
+        response.headers["ETag"] = streamed.entity_tag
+    if streamed.last_modified:
+        response.last_modified = streamed.last_modified
+    response.headers.set("Content-Disposition", "attachment", filename=filename)
+    return response
+
+
 def creates_app(
-    *, store, clock=now, lists_objects=None, fetches_object=None, webhook_token=None
+    *, store, clock=now, lists_objects=None, streams_object=None, webhook_token=None
 ):
     web_dir = Path(__file__).parent
     app = Flask(
@@ -323,16 +366,24 @@ def creates_app(
         ]
         return carrying[0] if len(carrying) == 1 else None
 
-    def restores_from_the_object_store(entity, path):
-        """Refetch a source whose local copy was cleaned up to save disk."""
-        if fetches_object is None or not isinstance(entity, Recording):
-            return None
-        held = layout.source_path(entity)
-        destination = store.resolves(replace(entity, local_path=held))
-        if fetches_object(entity.object_key, destination) is None:
-            return None
-        store.saves(replace(entity, local_path=held))
-        return destination if destination.is_file() else None
+    def streams_the_source(recording, path):
+        byte_range = asks_for_one_range(request)
+        try:
+            streamed = streams_object(recording.object_key, byte_range)
+            if streamed is not None and byte_range and not still_the_object(request, streamed):
+                streamed.chunks.close()
+                streamed = streams_object(recording.object_key)
+        except UnsatisfiableRange:
+            return "", 416, {"Content-Range": f"bytes */{recording.size_bytes}"}
+        except (ObjectStoreUnreachable, ObjectStoreForbidden):
+            return {"error": OBJECT_STORE_UNAVAILABLE, "path": path}, 502
+        if streamed is None:
+            return {
+                "error": SOURCE_NO_LONGER_AVAILABLE,
+                "path": path,
+                "recording_id": recording.recording_id,
+            }, 404
+        return answers_with(streamed, Path(path).name)
 
     @app.get("/api/artifacts/<path:path>")
     def artifact_download(path):
@@ -341,8 +392,8 @@ def creates_app(
             return unavailable(path, None)
         resolved = store.resolves(entity)
         if resolved is None or not resolved.is_file():
-            resolved = restores_from_the_object_store(entity, path)
-        if resolved is None or not resolved.is_file():
+            if isinstance(entity, Recording) and streams_object is not None:
+                return streams_the_source(entity, path)
             return unavailable(path, entity)
         inline = isinstance(entity, Artifact) and entity.kind in INLINE_KINDS
         return send_file(

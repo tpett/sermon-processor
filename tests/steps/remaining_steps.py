@@ -493,9 +493,7 @@ def _(store):
 
 
 def downloads(store, path):
-    return creates_app(
-        store=store, fetches_object=getattr(store, "_objects", None)
-    ).test_client().get(f"/api/artifacts/{path}")
+    return creates_app(store=store).test_client().get(f"/api/artifacts/{path}")
 
 
 @when("I download it")
