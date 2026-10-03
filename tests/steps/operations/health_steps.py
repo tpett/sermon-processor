@@ -11,7 +11,6 @@ FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 @when("I open the system health view", target_fixture="health")
 def _(store):
     response = creates_app(store=store, clock=lambda: FROZEN).test_client().get("/api/health")
-    store._health_response = response
     return response.get_json()
 
 
@@ -25,11 +24,15 @@ def _(health):
     assert "oldest_queued_seconds" in health
 
 
+HEALTH_STATUSES = {"healthy", "unhealthy"}
+
+
 @then("I see the status of:")
 def _(health, datatable):
-    names = [row[0] for row in datatable[1:]]
-    for name in names:
-        assert name in health["dependencies"]
+    named = sorted(row[0].strip() for row in datatable[1:])
+    shown = health["dependencies"]
+    assert sorted(shown) == named, f"the view names {sorted(shown)}"
+    assert set(shown.values()) <= HEALTH_STATUSES, f"statuses {shown}"
 
 
 @then("I see when the last webhook was received")
@@ -68,10 +71,9 @@ def _(health):
 
 
 @then("no alert is raised")
-def _(store):
-    from sermon.store import Notification
-
-    assert store.lists(Notification) == []
+def _(health):
+    assert health["alerts"] == [], health["alerts"]
+    assert health["storage_alert"] is False, health["storage_alert_reason"]
 
 
 @then("no notification is sent")

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, then, when
 from steps import _analysis
-from steps._asr import transcribes_for
+from steps._asr import AnswersOnTheTailnet, StatesTheAudio, transcribes_for
 from steps._transcripts import covering_transcript
 
 from sermon.analysis import (
@@ -17,6 +17,7 @@ from sermon.analysis import (
     TranscribesRecording,
 )
 from sermon.analysis.io import reads_json, writes_json
+from sermon.analysis.transcribes_audio import ASR_ENDPOINT, PostsToTranscriber, transcribes_with
 from sermon.pipeline import classify
 from sermon.pipeline import segments as pipeline_segments
 
@@ -27,6 +28,7 @@ from sermon.web import creates_app
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+PREACHER = "preacher"
 PROMPTS = Path(__file__).resolve().parents[3] / "experiments" / "prompts"
 
 
@@ -70,12 +72,45 @@ def _(store):
     TranscribesRecording(store=store)(recording)
 
 
+@pytest.fixture
+def stated_silences():
+    return []
+
+
+@pytest.fixture
+def model_endpoint():
+    return None
+
+
+@pytest.fixture
+def reached_destinations():
+    return []
+
+
+def transcriber(store, recording, silences, endpoint, destinations):
+    """The scenario's transcriber, with any stated silence and configured endpoint applied."""
+    chosen = transcribes_for(store, recording)
+    audio = chosen.transcribes.decodes
+    if silences:
+        audio = StatesTheAudio(
+            duration=audio.duration,
+            silences=tuple(sorted([*audio.silences, *silences], key=lambda gap: gap["start"])),
+        )
+    engine = chosen.transcribes.engine
+    if endpoint is not None:
+        configured = transcribes_with(store, environment={ASR_ENDPOINT: endpoint}).transcribes.engine
+        if isinstance(configured, PostsToTranscriber):
+            engine = replace(configured, opens=AnswersOnTheTailnet(destinations=destinations))
+    return replace(chosen, transcribes=replace(chosen.transcribes, decodes=audio, engine=engine))
+
+
 @when("the transcription stage runs")
-def _(store):
+def _(store, stated_silences, model_endpoint, reached_destinations):
     recording = recording_of(store)
     try:
         TranscribesRecording(
-            store=store, transcribes=transcribes_for(store, recording)
+            store=store,
+            transcribes=transcriber(store, recording, stated_silences, model_endpoint, reached_destinations),
         )(recording)
     except Exception as error:
         store.saves(replace(recording, state="analysis_failed"))
@@ -176,33 +211,32 @@ def _(store):
     assert doc.get("likely_music")
 
 
+NEAR_SILENCE = {"start": 1210.0, "end": 1300.0}
+
+
 @given("there is 90 seconds of near-silence between segments")
-def _(store):
-    recording = recording_of(store)
-    doc = {
-        "duration": recording.duration_seconds or 5412.0,
-        "utterances": [
-            {"start": 0.0, "end": 10.0, "text": "hello", "confidence": 0.9, "words": [{"word": "hello", "start": 0.0}]},
-            {"start": 100.0, "end": 110.0, "text": "again", "confidence": 0.9, "words": [{"word": "again", "start": 100.0}]},
-        ],
-        "silences": [{"start": 10.0, "end": 100.0}],
-        "likely_music": [],
-    }
-    writes_json(store, recording, "transcript", doc)
-    store._silence_span = (10.0, 100.0)
+def _(store, stated_silences):
+    recording_of(store)
+    stated_silences.append(dict(NEAR_SILENCE))
 
 
 @then("no utterances are produced for that span")
-def _(store):
-    start, end = store._silence_span
+def _(store, stated_silences):
+    (quiet,) = stated_silences
     doc = reads_json(store, _analysis.the_recording(store), "transcript")
-    assert not any(start < item["start"] < end for item in doc["utterances"])
+    inside = [
+        (item["start"], item["end"])
+        for item in doc["utterances"]
+        if item["start"] < quiet["end"] and item["end"] > quiet["start"]
+    ]
+    assert inside == [], f"utterances inside the silence: {inside}"
 
 
 @then("the span is recorded as a silence gap with its start and end times")
-def _(store):
+def _(store, stated_silences):
+    (quiet,) = stated_silences
     doc = reads_json(store, _analysis.the_recording(store), "transcript")
-    assert doc["silences"]
+    assert quiet in doc["silences"], doc["silences"]
 
 
 @given(parsers.parse("the recording has {condition}"))
@@ -249,17 +283,18 @@ def _(store):
         refuses_a_public_transcriber(destination)
 
 
-@given("the transcription model is hosted on another machine on the tailnet")
+@given("the transcription model is hosted on another machine on the tailnet", target_fixture="model_endpoint")
 def _(store):
-    store._transcription_host = "http://100.88.211.71:9000"
+    recording_of(store)
+    return "http://100.88.211.71:9000"
 
 
 @then("it calls that machine rather than a hosted service")
-def _(store):
-    host = getattr(store, "_transcription_host", None) or getattr(store, "_summary_host", None)
-    assert host and host.startswith("http://100.")
-    reached = getattr(store, "_asr_destinations", ())
-    assert reached and all(item.startswith(host) for item in reached)
+def _(model_endpoint, reached_destinations):
+    assert model_endpoint is not None, "no model endpoint was configured for this scenario"
+    assert reached_destinations, "no request reached any machine"
+    elsewhere = [url for url in reached_destinations if not url.startswith(model_endpoint.rstrip("/") + "/")]
+    assert elsewhere == [], f"requests went elsewhere: {elsewhere}"
 
 
 @then("the recording is transcribed in chunks")
@@ -349,7 +384,17 @@ def _(store):
 
 @then("a profile is enrolled from each without a separate enrolment session")
 def _(store):
-    assert store.lists(SpeakerProfile)
+    approved = sorted(item.segment_id for item in store.lists(Segment, state="complete"))
+    profiles = store.lists(SpeakerProfile)
+    enrolled = sorted(segment_id for profile in profiles for segment_id in profile.enrolled_from)
+    assert enrolled == approved, f"enrolled from {enrolled}, approved {approved}"
+    enrolling = {profile.speaker_profile_id: profile.enrolled_from for profile in profiles}
+    unlinked = [
+        item.segment_id
+        for item in store.lists(Segment, state="complete")
+        if item.segment_id not in enrolling.get(item.confirmed_speaker_profile_id, ())
+    ]
+    assert unlinked == [], f"Segments not linked to the profile they enrolled: {unlinked}"
 
 
 @then("the number of profiles matches the real preaching roster")
@@ -359,38 +404,28 @@ def _(store):
 
 @given("a Recording and an enrolled profile for the regular preacher")
 def _(store):
-    recording = recording_of(store)
-    profile = store.saves(SpeakerProfile(name="preacher", embedding=b"voice", confirmed_by_human=True))
-    store.saves(
-        Block(
-            recording_id=recording.recording_id,
-            start_seconds=1900.0,
-            end_seconds=4300.0,
-            type="sermon",
-            speaker_matches=(),
-        )
-    )
-    store._preacher_id = profile.speaker_profile_id
+    recording = _analysis.recording_of(store)
+    _analysis.lays_out(store, recording, _analysis.reads_rows(_analysis.SUNDAY))
+    store.saves(SpeakerProfile(name=PREACHER, embedding=b"voice", confirmed_by_human=True))
 
 
 @when("blocks are scored against that profile")
 def _(store):
-    from sermon.store import SpeakerMatch
-
-    for block in store.lists(Block):
-        similarity = 0.94 if block.type == "sermon" else 0.3
-        store.saves(
-            replace(
-                block,
-                speaker_matches=(SpeakerMatch(speaker_profile_id=store._preacher_id, similarity=similarity),),
-            )
-        )
+    _analysis.analyses(store, _analysis.the_recording(store))
 
 
 @then("the teaching Block ranks first")
 def _(store):
-    ranked = sorted(store.lists(Block), key=lambda item: item.speaker_matches[0].similarity if item.speaker_matches else 0, reverse=True)
-    assert ranked[0].type in TEACHING
+    (preacher,) = store.lists(SpeakerProfile, name=PREACHER)
+    held = _analysis.blocks_of(store)
+    scores = {
+        block.block_id: [match.similarity for match in block.speaker_matches if match.speaker_profile_id == preacher.speaker_profile_id]
+        for block in held
+    }
+    unscored = [block.type for block in held if not scores[block.block_id]]
+    assert unscored == [], f"Blocks never scored against the preacher's profile: {unscored}"
+    ranked = sorted(held, key=lambda block: scores[block.block_id][0], reverse=True)
+    assert ranked[0].type in TEACHING, [block.type for block in ranked]
 
 
 @given("blocks ranked by similarity to the preacher's profile")
@@ -489,16 +524,18 @@ def _(store, classification):
 
 @given("they confirmed who was preaching")
 def _(store):
-    segment = store.lists(Segment)[0]
-    profile = store.saves(SpeakerProfile(name="preacher", embedding=b"voice", confirmed_by_human=True))
+    (segment,) = store.lists(Segment)
+    profile = store.saves(SpeakerProfile(name=PREACHER, embedding=b"voice", confirmed_by_human=True))
     store.saves(replace(segment, confirmed_speaker_profile_id=profile.speaker_profile_id))
-    store.saves(replace(profile, enrolled_from=(segment.segment_id,)))
 
 
 @then("that Segment can be used to enrol or strengthen that speaker's profile")
 def _(store):
-    EnrolsVoiceProfiles(store=store)()
-    assert store.lists(SpeakerProfile)
+    (segment,) = store.lists(Segment)
+    profile = store.loads(SpeakerProfile, segment.confirmed_speaker_profile_id)
+    assert segment.segment_id in profile.enrolled_from, (
+        f"confirming the preacher left {profile.name} enrolled from {profile.enrolled_from}"
+    )
 
 
 @then("no separate enrolment recording session is required")
@@ -523,29 +560,41 @@ def _(store):
     assert any(turn["speaker"] in {"Guest", "Speaker 1"} or "Speaker" in turn["speaker"] for turn in turns)
 
 
+OVERLAP = (610.0, 616.0)
+
+
 @given("two people speak at once for 6 seconds")
 def _(store):
-    recording = recording_of(store)
+    first, last = OVERLAP
     writes_json(
         store,
-        recording,
+        recording_of(store),
         "diarization",
         {
             "turns": [
-                {"start": 10.0, "end": 16.0, "speaker": "Speaker 1", "confidence": 0.5, "overlapping": True, "non_speech": False}
+                {"start": 0.0, "end": last, "speaker": "Speaker 1", "confidence": 0.9},
+                {"start": first, "end": 1200.0, "speaker": "Speaker 2", "confidence": 0.9},
             ]
         },
     )
 
 
+def turns_across_the_overlap(store):
+    first, last = OVERLAP
+    turns = reads_json(store, _analysis.the_recording(store), "diarization")["turns"]
+    return [turn for turn in turns if turn["start"] < last and turn["end"] > first]
+
+
 @then("the overlapping span is marked as overlapping speech")
 def _(store):
-    assert any(turn.get("overlapping") for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"])
+    marked = [(turn["start"], turn["end"]) for turn in turns_across_the_overlap(store) if turn.get("overlapping")]
+    assert marked == [OVERLAP], f"overlapping speech marked at {marked}"
 
 
 @then("it is not treated as a clean speaker change")
 def _(store):
-    assert any(turn.get("overlapping") for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"])
+    clean = [turn["speaker"] for turn in turns_across_the_overlap(store) if not turn.get("overlapping")]
+    assert clean == [], f"single-speaker turns run through the overlap: {clean}"
 
 
 @given("the congregation sings for 8 minutes")

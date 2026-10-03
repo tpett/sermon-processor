@@ -4,7 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 from pytest_bdd import given, parsers, then, when
 
-from steps import _web
+from steps import _audio, _forms, _web
+from steps._markup import reads_field
 
 from sermon.adjusts_punch_point import AdjustsPunchPoint
 from sermon.approves_segment import ApprovesSegment
@@ -12,8 +13,9 @@ from sermon.classifies_segment import ClassifiesSegment
 from sermon.reopens_segment import ReopensSegment
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.skips_segment import SkipsSegment
-from sermon.discards_recording import DiscardsRecording, PublishedSegmentExists, RestoresRecording
+from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
 from steps._peaks import writes_peaks
@@ -23,6 +25,7 @@ from sermon.web import creates_app
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 SERVICE_SECONDS = 11520.0
+RENDERED_BYTES = b"ID3" + bytes(2045)
 
 
 def ensure_recording(store, **fields):
@@ -66,23 +69,10 @@ def _(store):
     store._object_missing = True
 
 
-@when("I open a proposed Segment", target_fixture="segment")
-def _(store):
-    segments = store.lists(Segment)
-    if segments:
-        return segments[0]
-    recording = ensure_recording(store)
-    return store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="proposed",
-            span_start_seconds=7220.0,
-            span_end_seconds=9812.0,
-            punch_in_seconds=7220.0,
-            punch_out_seconds=9812.0,
-        )
-    )
+@when("I open a proposed Segment", target_fixture="detail_page")
+def _(store, segment):
+    assert segment.state == "proposed", segment.state
+    return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
 
 
 @given(parsers.parse('a Segment whose punch-in is graded "{grade}"'), target_fixture="segment")
@@ -162,14 +152,20 @@ def _(store, block_type):
     )
 
 
-@given("a Recording containing one transient and otherwise near-silence")
+@given("a Recording containing one transient and otherwise near-silence", target_fixture="recording")
 def _(store):
-    ensure_recording(store, duration_seconds=240.0, state="ignored")
+    source = _audio.spoken_source(
+        "transient", 240.0, "if(between(t,120,120.05),0.8*sin(2*PI*1000*t),0.0003*sin(2*PI*50*t))"
+    )
+    return _audio.holds_source(store, ensure_recording(store, duration_seconds=None), source)
 
 
-@given("a Recording of 10 minutes containing a real 8 minute conversation")
+@given("a Recording of 10 minutes containing a real 8 minute conversation", target_fixture="recording")
 def _(store):
-    ensure_recording(store, duration_seconds=600.0)
+    source = _audio.spoken_source(
+        "conversation", 600.0, "if(between(t,60,540),0.2*sin(2*PI*220*t)*(0.6+0.4*sin(2*PI*3*t)),0)"
+    )
+    return _audio.holds_source(store, ensure_recording(store, duration_seconds=None), source)
 
 
 @given("the FLAC is 1.4 GB")
@@ -281,9 +277,9 @@ def _(store, state, label):
     )
 
 
-@when("I choose to re-cut the Segment", target_fixture="segment")
+@when("I choose to re-cut the Segment", target_fixture="detail_page")
 def _(store, segment):
-    return store.saves(replace(segment, state="proposed"))
+    return _web.posts(store, _web.segment_action(segment, "recut"))
 
 
 @given(parsers.parse('I re-cut and adjusted the punch-out to "{timecode}"'), target_fixture="segment")
@@ -380,11 +376,6 @@ def _(store, segment, timecode):
     assert abs(store.loads(Segment, segment.segment_id).punch_in_seconds - READS(timecode)) < 0.02
 
 
-@then(parsers.parse("100 ms is {pixels}"))
-def _(pixels):
-    assert "px" in pixels
-
-
 @given("I am looking for the right moment")
 def _():
     return None
@@ -401,14 +392,21 @@ def _(store, minutes):
 
 
 @then(parsers.parse('the failure names the step "{step}" and its error'))
-def _(store, step):
-    entries = store.lists(LogEntry)
-    assert any(entry.error and step in entry.error for entry in entries) or store.lists(Job)
+def _(store, segment, step):
+    failures = [
+        entry.error
+        for entry in store.lists(LogEntry, segment_id=segment.segment_id)
+        if entry.entered_state == "processing_failed"
+    ]
+    assert failures, "no processing_failed entry was logged"
+    assert failures[-1] == f"{step}: {step} failed", failures[-1]
 
 
 @then("processing completes normally")
-def _(store):
-    assert store.lists(Segment)
+def _(store, segment):
+    assert store.loads(Segment, segment.segment_id).state == "complete"
+    rendered = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
+    assert [store.resolves(item).is_file() for item in rendered] == [True]
 
 
 @then(parsers.parse('the failure reason is "{reason}"'))
@@ -421,14 +419,14 @@ def _(store, reason):
 
 
 @then("processing does not begin")
-def _(store):
-    segments = store.lists(Segment)
-    assert segments[0].state in {"approved", "processing_failed", "processing"}
+def _(store, segment):
+    entered = [entry.entered_state for entry in store.lists(LogEntry, segment_id=segment.segment_id)]
+    assert "processing" not in entered, entered
 
 
 @then('the Segment stays in "approved" pending space')
-def _(store):
-    assert store.lists(Segment)
+def _(store, segment):
+    assert store.loads(Segment, segment.segment_id).state == "approved"
 
 
 @then('the Segment is detected as stuck in "processing"')
@@ -447,8 +445,8 @@ def _(store, segment):
 
 
 @when("it is ingested")
-def _(store):
-    ensure_recording(store)
+def _(store, recording):
+    ProbesRecording(store=store, measures=MeasuresRecordingAudio(resolves=store.resolves))(recording)
 
 
 @when("I set the punch-in to the current playhead position", target_fixture="segment")
@@ -474,8 +472,11 @@ def _(store, segment):
 
 
 @then("it survives me reloading the page")
-def _(store, segment):
-    assert store.loads(Segment, segment.segment_id)
+def _(store, segment, detail_page):
+    adjusted = READS(reads_field(detail_page, "punch-in"))
+    reloaded = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert READS(reads_field(reloaded, "punch-in")) == adjusted
+    assert adjusted != segment.punch_in_seconds, "the adjustment never moved the punch-in"
 
 
 @then('the punch-in returns to "2:00:20.000"')
@@ -526,16 +527,17 @@ def _(store, clock):
         return {"segment": segment, "error": error}
 
 
-@when(parsers.parse('I correct the label to "{label}"'))
-def _(store, label):
-    for segment in store.lists(Segment):
-        store.saves(replace(segment, label=label))
+@when(parsers.parse('I correct the label to "{label}"'), target_fixture="publication_response")
+def _(store, segment, label):
+    return _web.opens_app(store).test_client().put(
+        f"/api/segments/{segment.segment_id}/publication",
+        json={"date": segment.publication_date.isoformat(), "label": label},
+    )
 
 
-@when("I re-cut this Segment")
-def _(store):
-    for segment in store.lists(Segment):
-        store.saves(replace(segment, state="proposed"))
+@when("I re-cut this Segment", target_fixture="detail_page")
+def _(store, segment):
+    return _web.posts(store, _web.segment_action(segment, "recut"))
 
 
 @then("the Segment records that the source was clipped")
@@ -619,42 +621,45 @@ def _(store, state):
         )
     )
     if state == "complete":
-        store.saves(
+        rendered = store.saves(
             Artifact(
                 recording_id=recording.recording_id,
                 segment_id=store.lists(Segment)[-1].segment_id,
                 kind="rendered_mp3",
                 path="2026-08-23 - Hebrews 12.4-11.mp3",
-                size_bytes=2048,
+                size_bytes=len(RENDERED_BYTES),
                 checksum="ok",
             )
         )
+        store.resolves(rendered).parent.mkdir(parents=True, exist_ok=True)
+        store.resolves(rendered).write_bytes(RENDERED_BYTES)
     return store.loads(Recording, recording.recording_id)
 
 
-@when("I attempt to discard it")
+@when("I attempt to discard it", target_fixture="detail_page")
 def _(store, recording, clock):
-    try:
-        DiscardsRecording(store=store, clock=clock)(recording)
-        store._discarded = True
-    except PublishedSegmentExists:
-        store._discard_needs_confirm = True
+    return _web.posts(store, _web.recording_action(recording, "discard"), clock=clock)
 
 
 @then("I am warned that it contains a published segment")
-def _(store):
-    assert getattr(store, "_discard_needs_confirm", False)
+def _(detail_page):
+    assert reads_field(detail_page, "action-notice") == "it contains a published segment; confirm to discard it"
 
 
 @then("the discard proceeds only if I confirm")
-def _(store, recording, clock):
-    DiscardsRecording(store=store, clock=clock)(recording, confirm=True)
+def _(store, recording, detail_page, clock):
+    assert store.loads(Recording, recording.recording_id).state != "discarded", "it was discarded unconfirmed"
+    confirmed = _forms.submits(store, detail_page, 'data-field="action-control">Discard')
+    assert reads_field(confirmed, "action-notice") == "the Recording is discarded and its source is untouched"
     assert store.loads(Recording, recording.recording_id).state == "discarded"
 
 
 @then("the rendered MP3 remains downloadable")
-def _(store):
-    assert store.lists(Artifact, kind="rendered_mp3")
+def _(store, recording):
+    (rendered,) = store.lists(Artifact, recording_id=recording.recording_id, kind="rendered_mp3")
+    fetched = _web.opens_app(store).test_client().get(f"/api/artifacts/{rendered.path}")
+    assert fetched.status_code == 200, fetched.status_code
+    assert fetched.data == store.resolves(rendered).read_bytes()
 
 
 @given(parsers.parse('a file named "{filename}" already exists'))

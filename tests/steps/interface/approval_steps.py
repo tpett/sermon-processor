@@ -5,6 +5,8 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.approves_segment import ApprovesSegment
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.jobs.renders_segment import PROCESS_STEPS, RunsRenderJob
+from sermon.sends_notification import SendsNotification
 from sermon.shows_recording import NOTICES
 from sermon.store import Job, LogEntry, Proposal, Recording, Segment, layout
 from steps import _web
@@ -132,24 +134,29 @@ def _(store, segment):
     assert reads_field(page, "processing-step") in {"queued for processing", "rendering the MP3"}
 
 
-@when("processing is running")
-def _(store, segment):
-    jobs = store.lists(Job, segment_id=segment.segment_id, kind="render")
-    if jobs:
-        store.saves(replace(jobs[0], state="running"))
-        store.saves(replace(segment, state="processing"))
+@when("processing is running", target_fixture="pages_mid_render")
+def _(store, segment, clock):
+    opened = {}
+
+    def steps(name):
+        opened[name] = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+
+    RunsRenderJob(store=store, steps=steps, notifies=SendsNotification(store=store), clock=clock)()
+    assert list(opened) == list(PROCESS_STEPS), f"the render ran {list(opened)}"
+    return opened
 
 
 @then("I see the current processing step")
-def _(store, segment):
-    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
-    assert reads_field(page, "processing-step") == "rendering the MP3"
+def _(pages_mid_render):
+    shown = {step: reads_field(page, "processing-step") for step, page in pages_mid_render.items()}
+    assert all(step in (seen or "") for step, seen in shown.items()), shown
 
 
 @then("I see an indication of progress")
-def _(store, segment):
-    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
-    assert reads_field(page, "processing-progress").startswith("attempt ")
+def _(pages_mid_render):
+    shown = [reads_field(page, "processing-progress") for page in pages_mid_render.values()]
+    assert all(shown), shown
+    assert len(set(shown)) == len(shown), f"progress did not move through the render: {shown}"
 
 
 @then("other Segments in the same Recording remain fully editable")

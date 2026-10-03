@@ -1,9 +1,12 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from pytest_bdd import given, parsers, then, when
 
 from sermon.config import Credential
-from sermon.store import Discovery, Job, Recording
+from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
+from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
+from sermon.store import Discovery, Job, LogEntry, Recording
 from sermon.web import creates_app
 
 WEBHOOK_WITHOUT_HOST_IDENTITY = {
@@ -20,6 +23,12 @@ WEBHOOK_WITHOUT_HOST_IDENTITY = {
 }
 
 
+FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+FLAC_BYTES = b"fLaC" + bytes(64)
+PROBED = ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1)
+READABLE_ON_ATTEMPT = 3
+WORKER_POLL_GAP = timedelta(seconds=30)
+MOST_WORKER_PASSES = 500
 SPEC_TOKEN = "the-token-only-the-spec-suite-issues"
 UNISSUED_TOKEN = "a-token-the-processor-was-never-given"
 WEBHOOK_TOKEN_VARIABLE = "SERMON_WEBHOOK_TOKEN"
@@ -159,7 +168,8 @@ def _(processor_client, webhook_endpoint, webhook_credentials):
 
 @then("no duplicate Recording is created")
 def _(store):
-    assert len(store.lists(Recording)) == 1
+    held = [(item.recording_id, item.object_key) for item in store.lists(Recording)]
+    assert held == [(Path(IDENTICAL["object_key"]).stem, IDENTICAL["object_key"])], held
 
 
 @then("no additional download is queued")
@@ -167,13 +177,11 @@ def _(store):
     assert len(store.lists(Job, kind="download")) == 1
 
 
-@given("the reconciliation scan has just created a Recording for an object key")
+@given("the reconciliation scan has just created a Recording for an object key", target_fixture="recording")
 def _(store):
-    from pathlib import Path
-
     object_key = IDENTICAL["object_key"]
     recording_id = Path(object_key).stem
-    store.saves(
+    return store.saves(
         Recording(
             recording_id=recording_id,
             object_key=object_key,
@@ -193,8 +201,8 @@ def _(processor_client, webhook_endpoint, webhook_credentials):
 
 
 @then("whichever arrived first owns the Recording")
-def _(store):
-    assert len(store.lists(Recording)) == 1
+def _(store, recording):
+    assert store.loads(Recording, recording.recording_id) == recording, "the later webhook rewrote the Recording"
 
 
 @when("two identical webhooks are handled concurrently", target_fixture="processor_response")
@@ -245,9 +253,36 @@ def _(store):
     assert discoveries[-1].event == "recording.started"
 
 
-@given("the object store has not yet made the object available")
-def _(object_store):
-    return object_store
+class AppearsOnAttempt(FetchesObject):
+    """An object the bucket lists but cannot serve until the given fetch."""
+
+    def __init__(self, key, attempt):
+        super().__init__()
+        self.key, self.attempt, self.asked = key, attempt, 0
+
+    def __call__(self, key, destination):
+        if key == self.key:
+            self.asked += 1
+            if self.asked == self.attempt:
+                self.stores(key, FLAC_BYTES)
+        return super().__call__(key, destination)
+
+
+class MovesOn:
+    def __init__(self, at):
+        self.at = at
+
+    def __call__(self):
+        return self.at
+
+
+def refuses_other_work():
+    raise AssertionError("ingestion ran a job that is not a download")
+
+
+@given("the object store has not yet made the object available", target_fixture="object_store")
+def _():
+    return AppearsOnAttempt(IDENTICAL["object_key"], READABLE_ON_ATTEMPT)
 
 
 @given("the object store is a Garage S3 instance reachable over the tailnet")
@@ -256,56 +291,47 @@ def _():
 
 
 @when("the Recorder sends a webhook for that object key", target_fixture="processor_response")
-def _(processor_client, webhook_endpoint, webhook_credentials):
-    return posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
-
-
-@then("the download is queued anyway")
-def _(store):
-    assert store.lists(Job, kind="download")
-
-
-@then("the download job retries until the object appears")
-def _(store, object_store, clock):
-    from sermon.jobs.downloads_recording import ProbesAudio, RunsDownloadJob
-
-    probes = ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1)
-    RunsDownloadJob(store=store, fetches=object_store, probes=probes, clock=clock)()
-    recording = store.lists(Recording)[0]
-    object_store.stores(recording.object_key, b"fLaC" + bytes(64))
-    RunsDownloadJob(store=store, fetches=object_store, probes=probes, clock=clock)()
-    assert store.loads(Recording, recording.recording_id).state == "downloaded"
+def _(store, processor_client, webhook_endpoint, webhook_credentials, object_store):
+    response = posts_webhook(processor_client, webhook_endpoint, IDENTICAL, webhook_credentials)
+    clock = MovesOn(FROZEN)
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(store=store, fetches=object_store, probes=PROBED, clock=clock),
+        analyzes=refuses_other_work,
+        renders=refuses_other_work,
+        clock=clock,
+    )
+    for _ in range(MOST_WORKER_PASSES):
+        if not store.lists(Job, kind="download", state="queued"):
+            break
+        if runs() is None:
+            clock.at += WORKER_POLL_GAP
+    return response
 
 
 @then("the download is retried until the object becomes readable")
-def _(store, object_store, clock):
-    from sermon.jobs.downloads_recording import ProbesAudio, RunsDownloadJob
-
-    probes = ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1)
-    RunsDownloadJob(store=store, fetches=object_store, probes=probes, clock=clock)()
-    recording = store.lists(Recording)[0]
-    assert recording.state != "ingest_failed"
-    object_store.stores(recording.object_key, b"fLaC" + bytes(64))
-    RunsDownloadJob(store=store, fetches=object_store, probes=probes, clock=clock)()
-    assert store.loads(Recording, recording.recording_id).state == "downloaded"
+def _(store):
+    (job,) = store.lists(Job, kind="download")
+    errors = [entry.error for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+    assert len(errors) >= 2 and errors[-1] is None, f"attempt errors {errors}"
+    assert all(errors[:-1]), f"attempt errors {errors}"
+    assert store.loads(Recording, job.recording_id).state == "downloaded"
 
 
 @then(parsers.parse('the Recording does not enter "{state}" before {attempts:d} attempts'))
 def _(store, state, attempts):
-    recording = store.lists(Recording)[0]
-    job = store.lists(Job, kind="download")[0]
-    assert recording.state != state
-    assert job.attempts < attempts
-
-
-@then("a Recording is created for it")
-def _(store):
-    assert store.lists(Recording)
+    (job,) = store.lists(Job, kind="download")
+    entered = [entry.entered_state for entry in store.lists(LogEntry, recording_id=job.recording_id)]
+    assert state not in entered, entered
+    tried = [entry for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+    assert len(tried) == attempts, f"{len(tried)} attempts were made"
 
 
 @then("it is queued for download")
-def _(store):
-    assert store.lists(Job, kind="download")
+def _(store, ingest_response):
+    forced = ingest_response.get_json()["recording_id"]
+    downloads = [(job.state, job.dedupe_key) for job in store.lists(Job, recording_id=forced, kind="download")]
+    assert downloads == [("queued", f"download:{forced}")], downloads
 
 
 @when(

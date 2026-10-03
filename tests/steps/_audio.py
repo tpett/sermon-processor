@@ -129,3 +129,28 @@ def registers_preview(store, recording, seconds=None):
             },
         )
     )
+
+
+def spoken_source(name, seconds, channel_one):
+    """A stereo FLAC whose channel 1 is `channel_one`, an ffmpeg expression in t."""
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path = CACHE / f"source-{name}-{seconds:g}s.flac"
+    if path.is_file() and path.stat().st_size:
+        return path
+    partial = path.with_name(path.name + ".partial.flac")
+    _runs([
+        "ffmpeg", "-v", "error",
+        "-f", "lavfi", "-i", f"aevalsrc='{channel_one}':s=44100:d={seconds}",
+        "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono:d={seconds}",
+        "-filter_complex", "[0:a][1:a]amerge=inputs=2[merged]",
+        "-map", "[merged]", "-t", f"{seconds}",
+        "-c:a", "flac", "-sample_fmt", "s32", "-y", str(partial),
+    ])
+    partial.replace(path)
+    return path
+
+
+def holds_source(store, recording, source):
+    stored = store.saves(replace(recording, local_path=recording.object_key, state="downloaded"))
+    places(source, store.resolves(stored))
+    return stored

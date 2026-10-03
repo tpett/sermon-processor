@@ -81,6 +81,25 @@ def _(store, datatable):
             )
         )
         seeds_segments(store, recording, segments)
+        gives_content(store, recording)
+
+
+def gives_content(store, recording):
+    """What analysis and the reviewer left on the two recordings the search scenario finds."""
+    if recording.recording_id == "recording_20260823_102900":
+        (sermon,) = store.lists(Segment, recording_id=recording.recording_id)
+        store.saves(replace(sermon, label="Hebrews 12.4-11"))
+        writes_utterances(store, recording, ((900.0, 904.0, SPOKEN_ON_THE_23RD),))
+    if recording.recording_id == "recording_20260816_090000":
+        store.saves(
+            Block(
+                recording_id=recording.recording_id,
+                start_seconds=60.0,
+                end_seconds=3300.0,
+                type="lesson",
+                summary="A class on Hebrews 12 and the race set before us",
+            )
+        )
 
 
 @when("I visit the recordings list", target_fixture="list_page")
@@ -270,17 +289,6 @@ def found(page):
 
 @when(parsers.parse('I search for "{query}"'), target_fixture="list_page")
 def _(store, query):
-    sermon = store.lists(Segment, recording_id="recording_20260823_102900")[0]
-    store.saves(replace(sermon, label="Hebrews 12.4-11"))
-    store.saves(
-        Block(
-            recording_id="recording_20260816_090000",
-            start_seconds=60.0,
-            end_seconds=3300.0,
-            type="lesson",
-            summary="A class on Hebrews 12 and the race set before us",
-        )
-    )
     return searches(store, query)
 
 
@@ -293,8 +301,6 @@ def _(list_page):
 def _(store):
     assert found(searches(store, "2026-08-16")) == {"2026-08-16 09:00 AM", "2026-08-16 08:15 AM"}
     assert found(searches(store, "lesson")) == {"2026-08-16 09:00 AM"}
-    recording = store.loads(Recording, "recording_20260823_102900")
-    writes_utterances(store, recording, ((900.0, 904.0, SPOKEN_ON_THE_23RD),))
     assert found(searches(store, "disciplines the one he loves")) == {"2026-08-23 10:29 AM"}, (
         "what was said is not searched"
     )
@@ -319,9 +325,17 @@ def _(list_page, meaning):
 
 
 @then(parsers.parse('I see only recordings containing a Segment classified "{classification}"'))
-def _(list_page, classification):
-    for row in reads_rows(list_page, "recording"):
-        assert classification in classifications(row)
+def _(store, list_page, classification):
+    holding = {
+        segment.recording_id
+        for segment in store.lists(Segment)
+        if segment.classification == classification
+        and store.loads(Recording, segment.recording_id).state != "discarded"
+    }
+    assert holding, f"no Recording holds a {classification} Segment"
+    rows = reads_rows(list_page, "recording")
+    assert {row["id"] for row in rows} == holding, [row["id"] for row in rows]
+    assert all(classification in classifications(row) for row in rows)
 
 
 @given(

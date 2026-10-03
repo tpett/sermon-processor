@@ -1,4 +1,6 @@
+import hashlib
 import json
+import stat
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -6,12 +8,14 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, then, when
 
+from sermon.analysis.transcribes_audio import RETRY_ATTEMPTS
 from sermon.jobs.downloads_recording import (
     FetchesObject,
     ProbesAudio,
     RunsDownloadJob,
 )
-from sermon.store import Job, LogEntry, Recording
+from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
+from sermon.store import Job, LogEntry, Recording, layout
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 OBJECT_LAST_MODIFIED = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
@@ -24,6 +28,9 @@ SIDECAR = {
 }
 DERIVED = ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+WORKER_POLL_GAP = timedelta(seconds=30)
+MOST_WORKER_PASSES = 500
+WRITABLE = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
 
 @pytest.fixture
@@ -94,9 +101,50 @@ def runs_download(store, object_store, clock):
     )()
 
 
+class MovesOn:
+    def __init__(self, at):
+        self.at = at
+
+    def __call__(self):
+        return self.at
+
+
+def refuses_other_work():
+    raise AssertionError("ingestion ran a job that is not a download")
+
+
+def drains_downloads(store, object_store):
+    """The worker as sermon-work runs it: every download attempt, each after its backoff."""
+    clock = MovesOn(FROZEN)
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(
+            store=store,
+            fetches=object_store,
+            probes=DERIVED,
+            clock=clock,
+            free_bytes=getattr(store, "_free_bytes", None),
+        ),
+        analyzes=refuses_other_work,
+        renders=refuses_other_work,
+        clock=clock,
+    )
+    for _ in range(MOST_WORKER_PASSES):
+        if not store.lists(Job, kind="download", state="queued"):
+            return
+        if runs() is None:
+            clock.at += WORKER_POLL_GAP
+
+
+def download_attempts(store):
+    (job,) = store.lists(Job, kind="download")
+    logged = [entry for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+    return job, logged
+
+
 @when("the download job runs")
-def _(store, object_store, clock):
-    runs_download(store, object_store, clock)
+def _(store, object_store):
+    drains_downloads(store, object_store)
 
 
 @when("the download job completes")
@@ -209,26 +257,31 @@ def _(object_store, recording):
 @then("the download is discarded")
 def _(store, recording):
     stored = store.loads(Recording, recording.recording_id)
-    if stored.local_path:
-        path = store.resolves(stored)
-        assert path is None or not path.exists()
+    assert stored.local_path is None, stored.local_path
+    fetched_to = store.resolves(replace(stored, local_path=layout.source_path(stored)))
+    assert not fetched_to.exists(), f"{fetched_to} was kept"
 
 
 @then("the download is retried")
-def _(store):
-    job = store.lists(Job, kind="download")[0]
-    assert job.state == "queued"
-    assert job.attempts >= 1
+def _(store, recording, object_store):
+    job, attempts = download_attempts(store)
+    fetched = hashlib.md5(object_store.holds(recording.object_key)).hexdigest()
+    assert len(attempts) >= 2, f"{len(attempts)} attempts"
+    assert [entry.error for entry in attempts] == [fetched] * len(attempts)
 
 
 @then(parsers.parse('after the retry budget is exhausted the Recording enters "{state}"'))
-def _(store, object_store, clock, state):
-    for _ in range(8):
-        queued = store.lists(Job, kind="download", state="queued")
-        if not queued:
-            break
-        runs_download(store, object_store, clock)
-    assert store.lists(Recording)[0].state == state
+def _(store, recording, state):
+    failing = [one for one in store.lists(Job, recording_id=recording.recording_id) if one.state != "succeeded"]
+    if failing:
+        (job,) = failing
+        attempts = [entry for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+        assert (job.state, job.failed_permanently) == ("failed", True)
+        assert len(attempts) == job.max_attempts, f"{len(attempts)} of {job.max_attempts} attempts"
+    else:
+        tried = store._asr_attempts
+        assert len(tried) == RETRY_ATTEMPTS, f"the transcriber was tried {len(tried)} times"
+    assert store.loads(Recording, recording.recording_id).state == state
 
 
 @given("the object contains 0 bytes")
@@ -265,27 +318,24 @@ def _(store, recording):
 
 @then("the download is retried with backoff")
 def _(store):
-    job = store.lists(Job, kind="download")[0]
-    assert job.state == "queued"
-    assert job.attempts >= 1
-    assert job.last_error
+    job, attempts = download_attempts(store)
+    assert len(attempts) >= 3, f"{len(attempts)} attempts"
+    began = [entry.occurred_at for entry in attempts]
+    gaps = [later - earlier for earlier, later in zip(began, began[1:])]
+    assert gaps == sorted(set(gaps)), f"gaps between attempts {gaps}"
 
 
 @then(parsers.parse('the Recording stays in "{state}" until the retry budget is exhausted'))
-def _(store, object_store, clock, state):
+def _(store, recording, state):
+    job, attempts = download_attempts(store)
     entered = [
         entry.entered_state
-        for entry in store.lists(LogEntry)
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
         if entry.entered_state is not None
     ]
-    assert state in entered
-    for _ in range(8):
-        queued = store.lists(Job, kind="download", state="queued")
-        if not queued:
-            break
-        runs_download(store, object_store, clock)
-    recording = store.lists(Recording)[0]
-    assert recording.state in {state, "ingest_failed"}
+    assert entered == [state] * len(attempts), entered
+    assert len(attempts) == job.max_attempts and job.failed_permanently
+    assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
 
 
 @given("local working storage has 200 MB free")
@@ -409,6 +459,5 @@ def _(store, recording, object_store):
 
 @then("no process rewrites the local FLAC at any later point")
 def _(store, recording):
-    stored = store.loads(Recording, recording.recording_id)
-    original = store.resolves(stored).read_bytes()
-    assert store.resolves(store.loads(Recording, recording.recording_id)).read_bytes() == original
+    held = store.resolves(store.loads(Recording, recording.recording_id))
+    assert held.stat().st_mode & WRITABLE == 0, f"{held} is writable: {oct(held.stat().st_mode)}"

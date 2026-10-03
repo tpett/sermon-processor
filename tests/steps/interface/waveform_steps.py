@@ -3,13 +3,12 @@ from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
 
-from sermon.draws_waveform import JudgesZoomPrecision
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.lists_recordings import formats_precise
 from sermon.places_punch_in import PlacesPunchIn
 from sermon.store import Block, Evidence, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps import _audio
+from steps import _audio, _forms, _web
 from steps._markup import reads_field, reads_role, reads_rows, strips_tags
 from steps._peaks import (
     reads_peaks,
@@ -563,19 +562,34 @@ def _(store, detail_page):
     assert all(float(band["band-width"]) > 0 for band in bands)
 
 
-@given(parsers.parse("the visible window is {window}"), target_fixture="window_seconds")
-def _(window):
-    return NAMED_WINDOWS[window]
+ZOOM_STEP_FOR_WINDOW = {
+    "whole recording": "whole recording",
+    "5 minutes": "a few minutes",
+    "30 seconds": "thirty seconds",
+    "3 seconds": "three seconds",
+}
+
+
+@given(parsers.parse("the visible window is {window}"), target_fixture="detail_page")
+def _(store, segment, window):
+    step = ZOOM_STEP_FOR_WINDOW[window]
+    return renders_detail(store, f"?segment={segment.segment_id}&zoom={step.replace(' ', '+')}")
+
+
+def selected_zoom_step(page):
+    chosen = [row for row in reads_rows(page, "zoom-step") if row.get("selected") == "true"]
+    assert len(chosen) == 1, f"{len(chosen)} zoom steps are selected"
+    return chosen[0]
 
 
 @then(parsers.parse("100 ms is {pixels}"))
-def _(window_seconds, pixels):
-    assert JudgesZoomPrecision()(window_seconds).pixels == pixels
+def _(detail_page, pixels):
+    assert selected_zoom_step(detail_page)["zoom-precision"] == pixels
 
 
 @then(parsers.parse("placing a boundary to 100 ms is {verdict}"))
-def _(window_seconds, verdict):
-    assert JudgesZoomPrecision()(window_seconds).verdict == verdict
+def _(detail_page, verdict):
+    assert selected_zoom_step(detail_page)["zoom-verdict"] == verdict
 
 
 @then("the transcript is what I read")
@@ -738,13 +752,21 @@ def _(detail_page, segment):
     assert flanking["after the punch-in"] > segment.punch_in_seconds
 
 
+def clicks_the_last(store, detail_page, role, at_field):
+    """Submit the form inside the last row of `role`, as a click on it would, and read where the boundary went."""
+    rows = re.findall(rf'<li data-row="{role}".*?</li>', detail_page, re.S)
+    assert rows, f"the page draws no {role} rows to click"
+    at = re.search(rf'data-{at_field}="([^"]*)"', rows[-1]).group(1)
+    action, inside = _forms.finds_form(rows[-1], 'name="do"')
+    boundary = re.search(r"/boundaries/(punch-in|punch-out)", action).group(1)
+    clicked = _web.posts(store, action, **_forms.fields_of(inside))
+    return at, boundary, clicked
+
+
 @then("clicking a word places the boundary at that word")
-def _(detail_page):
-    for row in re.findall(r'<li data-row="transcript-word".*?</li>', detail_page, re.S):
-        at = re.search(r'data-word-at="([^"]*)"', row).group(1)
-        assert 'name="do" value="set"' in row
-        assert f'name="timecode" value="{at}"' in row
-        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)[?"]', row)
+def _(store, detail_page):
+    at, boundary, clicked = clicks_the_last(store, detail_page, "transcript-word", "word-at")
+    assert abs(READS(reads_field(clicked, boundary)) - READS(at)) < 0.005, (boundary, at)
 
 
 @given("I am viewing the whole recording at overview resolution", target_fixture="detail_page")
@@ -785,12 +807,9 @@ def _(detail_page):
 
 
 @then("I can drop a boundary into one with a single click")
-def _(detail_page):
-    for row in re.findall(r'<li data-row="quiet-span".*?</li>', detail_page, re.S):
-        at = re.search(r'data-quiet-at="([^"]*)"', row).group(1)
-        assert 'name="do" value="set"' in row
-        assert f'name="timecode" value="{at}"' in row
-        assert re.search(r'action="[^"]*/boundaries/punch-(in|out)[?"]', row)
+def _(store, detail_page):
+    at, boundary, clicked = clicks_the_last(store, detail_page, "quiet-span", "quiet-at")
+    assert abs(READS(reads_field(clicked, boundary)) - READS(at)) < 0.005, (boundary, at)
 
 
 SCRUBBED = 7218.4
@@ -839,12 +858,11 @@ def _(detail_page):
 
 
 @then("neither boundary has moved")
-def _(detail_page, segment):
-    for field, seconds in (
-        ("punch-in", segment.punch_in_seconds),
-        ("punch-out", segment.punch_out_seconds),
-    ):
-        assert abs(READS(reads_field(detail_page, field)) - seconds) < 0.005
+def _(store, detail_page, segment):
+    assert abs(READS(reads_field(detail_page, "punch-in")) - segment.punch_in_seconds) < 0.005
+    assert abs(READS(reads_field(detail_page, "punch-out")) - segment.punch_out_seconds) < 0.005
+    held = store.loads(Segment, segment.segment_id)
+    assert (held.punch_in_seconds, held.punch_out_seconds) == (segment.punch_in_seconds, segment.punch_out_seconds)
 
 
 @then("the ruler says which instant each of its marks stands for")

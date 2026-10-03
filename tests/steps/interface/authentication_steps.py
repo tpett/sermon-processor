@@ -63,49 +63,31 @@ def _(store):
     assert app.config["BIND_HOST"] != "0.0.0.0"
 
 
-@when("a Recording is approved")
-def _(store, clock):
-    from datetime import UTC, datetime
+def approvals_of(store, segment):
+    from sermon.store import LogEntry
 
-    from sermon.approves_segment import ApprovesSegment
-    from sermon.store import Segment
+    return [
+        entry
+        for entry in store.lists(LogEntry, segment_id=segment.segment_id)
+        if entry.entered_state == "approved"
+    ]
 
-    recording = store.saves(
-        Recording(
-            recording_id="recording_20260823_102900",
-            object_key="recordings/recording_20260823_102900.flac",
-            state="awaiting_review",
-            started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
-            started_at_source="key",
-            size_bytes=1,
-        )
-    )
-    segment = store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="proposed",
-            span_start_seconds=60.0,
-            span_end_seconds=3300.0,
-            punch_in_seconds=60.0,
-            punch_out_seconds=3300.0,
-        )
-    )
-    ApprovesSegment(store=store, clock=clock)(segment)
-    store._approved_segment = segment
+
+@when("a Recording is approved", target_fixture="detail_page")
+def _(store, segment, clock):
+    from steps import _web
+
+    assert segment.state == "proposed", segment.state
+    return _web.posts(store, _web.segment_action(segment, "approve"), clock=clock)
 
 
 @then("the approval is recorded with its timestamp")
-def _(store, clock):
-    from sermon.store import LogEntry
-
-    entries = store.lists(LogEntry, segment_id=store._approved_segment.segment_id)
-    assert any(entry.occurred_at == clock() for entry in entries)
+def _(store, segment, clock):
+    approved = approvals_of(store, segment)
+    assert [entry.occurred_at for entry in approved] == [clock()], approved
 
 
 @then('the actor is recorded as "reviewer"')
-def _(store):
-    from sermon.store import LogEntry
-
-    entries = store.lists(LogEntry, segment_id=store._approved_segment.segment_id)
-    assert any(entry.actor == "reviewer" for entry in entries)
+def _(store, segment):
+    approved = approvals_of(store, segment)
+    assert [entry.actor for entry in approved] == ["reviewer"], approved
