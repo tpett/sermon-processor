@@ -43,7 +43,6 @@ class DiscardsRecording:
                 correlation_id=f"discard:{recording.recording_id}",
                 actor=actor,
                 entered_state="discarded",
-                error=recording.state,
             )
         )
         return discarded
@@ -56,9 +55,13 @@ class RestoresRecording:
 
     def __call__(self, recording):
         previous = "discovered"
+        before = None
         for entry in self.store.lists(LogEntry, recording_id=recording.recording_id):
-            if entry.entered_state == "discarded" and entry.error:
-                previous = entry.error
+            if entry.segment_id is not None or entry.entered_state is None:
+                continue
+            if entry.entered_state == "discarded":
+                previous = before or "discovered"
+            before = entry.entered_state
         restored = self.store.saves(replace(recording, state=previous, skip_reason=None))
         self.store.saves(
             LogEntry(
