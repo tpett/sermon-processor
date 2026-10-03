@@ -510,8 +510,7 @@ def analyses_for(store, asked, prints):
 def drains(runs, asked, prints, sleeps, scans=None, reminds=lambda: ()):
     """Run queued work until asked to stop.
 
-    --once runs a single job. The queue holds 93 downloads against a read-only
-    39 GiB bucket, so draining it is never what one keystroke does.
+    --once runs a single job and --limit N stops after N; neither scans.
     """
     done = 0
     while True:

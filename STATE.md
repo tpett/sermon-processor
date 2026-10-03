@@ -1,3 +1,53 @@
+## Corrections after an adversarial review (2026-10-03)
+
+An independent read-only review, mutation-backed, found that several things
+written above today overstate what was achieved. Read the entries below this one
+with these corrections.
+
+- **The cut-clearance result was mostly the judge grading itself.** "40 improved
+  / 0 degraded against the shipping regime" counted 34 improvements that exist
+  only through a within-buffer rank key added to the metric 14 minutes before the
+  pipeline change it rewarded. Under the prior judge it is **6 improved / 0
+  degraded**, and the 40 were 18 distinct cuts on 12 recordings counted once per
+  model configuration. The "139 → 145 in the human's run, 25 → 0 mid-word"
+  figures are the corpus regime, where the gate reported **41 improved / 13
+  degraded, exit 1**, and the fingerprint was regenerated over that failure
+  without the owner's sign-off. What stands: no cut lands inside a word.
+- **"0 moved" proved almost nothing about production.** Deleting boundary
+  refinement from the deployed analyze walk left the gate at 0 moved and 462
+  pipeline tests green: the gate replays `choose(model_segments)`, production
+  runs `choose([])`. The gate is being rebuilt to replay the shipping path with a
+  fixed judge (owner: "make the regression gate useful").
+- **The test split is no longer blind.** Every figure today was scored
+  repeatedly over the 19 test recordings through `sermon-regrade` and ad hoc
+  harnesses; only `score.py` writes `test_access.log`, so its unchanged md5 no
+  longer means anything. Treat the test split as seen. The owner's own figures
+  (50 ms, 2 s) limit the damage — nothing was fitted.
+- **The fabrication fallback was still in the product** (`analyzes_recording.py`);
+  only its default changed, and two scenarios passed through it with the proposal
+  stage deleted. Being removed.
+- **The spec is more honest, not honest.** It could not see the word buffer at
+  all; the two lead-in scenarios were red on a float comparison, not the product;
+  three of today's "honest reds" were a `NameError` in a step module; four
+  scenarios still demand 250 ms while the product placed 50 ms; one green Then
+  asserts the opposite of its Gherkin (`recording_download.feature:50`).
+- **The `sp-atw` exception rule** offered to the owner rests on 3 recordings,
+  misplaces one, was found on test-split data, and nets 2 better / 2 worse on
+  production's configuration. An n=3 hypothesis, not a recommendation.
+- **Production**: `afc5b04` was already deployed (not "all need a deploy");
+  the approval rate's 25% counts segment 9, which was scripted (no Proposal),
+  so 1 of 3 reviewed; `recording_20260315_094835` is stuck in `downloading` after
+  its job failed permanently on 2026-09-24. The nine pending historical
+  notifications will NOT flush when Slack is enabled — nothing re-sends an
+  existing notification; checked.
+- **Beads reopened**: `sp-vaw`, `sp-pu2.3`, `sp-w9y`, `sp-3dr`, each closed on a
+  reinterpreted criterion.
+- The classifier still sends `format: json` when thinking is off (refused by the
+  MLX model, retried unconstrained); the docs said it never does.
+
+Owner decisions taken on these: the buffer should lean to **250 ms**, confirmed
+by ear before it is final; no key rotation.
+
 ## The owner's answers, built (2026-10-03, second round)
 
 Seven branches, all merged, on the owner's answers to the triage questions.

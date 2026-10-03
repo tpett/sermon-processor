@@ -55,7 +55,7 @@ spec stops meaning anything.
 
 ## LS-001 — TDD, and why this project is already mid-cycle
 
-460 scenarios exist and nothing implements them. **That is the Red phase for the
+When this was written, 460 scenarios existed and nothing implemented them. **That is the Red phase for the
 whole build**, written before any code, which is the strongest form of the ADR
 rather than an exception to it.
 

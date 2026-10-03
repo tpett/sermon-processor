@@ -136,6 +136,25 @@ variable already set in the environment wins over the file.
     --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
 ```
 
+**Configuration.** Every variable is read from the environment or `.env`; only
+the first six are required.
+
+| Variable | What it sets |
+|---|---|
+| `SERMON_DATA_ROOT` | the store, sources, previews, renders |
+| `SERMON_OBJECT_STORE_ENDPOINT` / `_BUCKET` / `_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | the bucket, read-only |
+| `SERMON_MODEL_ENDPOINT` | mac-m1's ollama, text only |
+| `SERMON_WEBHOOK_TOKEN` | the bearer token the recorder presents; unset refuses every webhook |
+| `SERMON_NOTIFICATION_CHANNEL` | `in-app` (default) or `slack` |
+| `SERMON_SLACK_WEBHOOK_URL` | required for `slack`; it is itself a credential |
+| `SERMON_APP_URL` | where a Slack message's "Open the recording" link points |
+| `SERMON_SCAN_INTERVAL_SECONDS` | `sermon-work`'s scheduled scan; unset or 0 is off |
+| `SERMON_INGEST_CUTOFF` | discovery ignores objects recorded before this date |
+| `SERMON_ASR_ENDPOINT` | a transcriber on the tailnet instead of in-process; audio is posted to it, so it must resolve to a private address |
+| `SERMON_DIARIZATION_MODELS` | the sherpa-onnx models; unset means analysis runs without speaker evidence |
+| `SERMON_PROMPTS_ROOT` | the classifier's prompts |
+| `SERMON_BIND_HOST` / `SERMON_PORT` | where `sermon-serve` listens |
+
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
 the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
 
@@ -144,10 +163,13 @@ queue — not the server, not any other command — so without it a webhook's
 download, an approval's render and every analyze job sit in `queued` forever. It
 recovers first: a job left `running` by a crash or a restart returns to `queued`
 without a second job being enqueued and without refunding the attempt it spent.
-**`--once` runs a single job**, because the queue holds 93 downloads against a
-read-only 39 GiB bucket and draining it must never be one keystroke. It handles
-analyze jobs only when given `--corpus`, since analysis still reads its
-transcript from a corpus directory.
+**`--once` runs a single job** and `--limit N` stops after N, for a manual,
+bounded run; neither ever scans. Production runs it unflagged as its own
+container, transcribing locally and analysing without `--corpus`. A bucket scan
+queues nothing and the scheduled scan queues only recordings newer than any
+already taken up, so an unbounded run no longer pulls the back catalogue — but
+a local store that still holds old queued downloads would, so check the queue
+before draining one.
 
 `sermon-organize` is the only command that rewrites stored rows. It moves a data
 root laid out by whoever wrote to it first onto the layout `ARCHITECTURE.md`
@@ -518,8 +540,13 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
 - **Sweeping `experiments/` wholesale reads the spike's own venv.** Scan
   first-party source only; `experiments/.venv` holds a Python 2 file that
   `ast.parse` rejects, and `experiments/work/models/` holds downloaded scripts.
-- **Never send `format: json` to an MLX-backed ollama model.** 0.34.0 answers
-  HTTP 501 `structured output is unavailable`. Unconstrained also scores better.
+- **The classifier still sends `format: json` when thinking is off, and the
+  MLX model refuses it.** ollama 0.34.0 answers HTTP 501 `structured output is
+  unavailable`, `pipeline/classify.py` retries unconstrained, and that retry is
+  the answer every production classification actually uses — unconstrained also
+  scores better. So each classification costs one refused request. The pipeline
+  is frozen; dropping the constrained attempt is a behaviour change to measure,
+  not a tidy-up.
 - **`experiments/data/test_access.log` records every held-out scoring run.** One
   shot per configuration; honour it.
 - **Some published MP3s are machine cuts, not human edits.** `align.MACHINE_CUT_MP3S`
