@@ -191,7 +191,9 @@ def test_drift_prints_nothing_for_a_cut_that_did_not_move(tmp_path):
 
 def test_the_command_refuses_a_corpus_with_no_stored_proposals(tmp_path):
     collected = []
-    assert cli.regrades(arguments=["--corpus", str(tmp_path)], prints=prints_to(collected)) == 1
+    assert cli.regrades(
+        arguments=["--corpus", str(tmp_path), "--corpus-regime"], prints=prints_to(collected)
+    ) == 1
     assert "no stored proposals" in "\n".join(collected)
 
 
