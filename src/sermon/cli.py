@@ -1183,10 +1183,20 @@ def reports_regraded_proposal(proposal, prints):
 
 
 def reports_approval_record(rate, prints):
+    if rate.unplaced:
+        prints(
+            f"from the approval record, not this run: {rate.unplaced} published Segment"
+            + (
+                " carries no publication date and is not counted"
+                if rate.unplaced == 1
+                else "s carry no publication date and are not counted"
+            )
+        )
     if rate.proportion is None:
         prints(
-            "from the approval record, not this run: nothing has been published, "
-            "so there is no proportion approved with no boundary edit"
+            "from the approval record, not this run: nothing "
+            + ("else " if rate.unplaced else "")
+            + "has been published, so there is no proportion approved with no boundary edit"
         )
         return
     prints(

@@ -672,3 +672,16 @@ def test_the_frozen_file_carries_no_approval_record(tmp_path):
     stages_corpus(tmp_path)
     _, printed = runs(tmp_path, [(7.0, 26.0)])
     assert "approval record" not in printed
+
+
+def test_a_publication_with_no_date_is_counted_rather_than_vanishing_from_the_record(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    publishes(data_root, "model", published_on=None)
+    _, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert "nothing has been published" not in printed
+    assert (
+        "from the approval record, not this run: 1 published Segment carries no "
+        "publication date and is not counted"
+    ) in printed
