@@ -61,6 +61,7 @@ Feature: Background jobs and retries
     @edge-case
     Scenario: Concurrency is bounded
       Given 10 Recordings are ingested at once
+      When the worker works through the analysis queue
       Then no more than the configured number of analysis jobs run concurrently
       And the rest wait in the queue
 

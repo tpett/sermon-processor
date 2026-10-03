@@ -241,7 +241,7 @@ Feature: Reviewing the segments in a recording
       And I can create a Segment by hand
       And I can discard the Recording in one action
 
-  Rule: Mobile can check and approve; editing is a desktop job
+  Rule: A phone gets the full editor, reflowed to fit
 
     @happy-path @measured
     Scenario: The ordinary week works on a phone
@@ -256,14 +256,18 @@ Feature: Reviewing the segments in a recording
       And I can approve
       And the whole flow works without a waveform
 
-    @happy-path
-    Scenario: A segment needing real editing says so on mobile
+    @happy-path @stated
+    Scenario: A segment needing real editing can be edited on a phone
+      # "Mobile is good enough as is." -- the owner, 2026-10-03, of the page as
+      # shipped: a phone is offered the same editor as a desk, reflowed to its
+      # width. That replaces Q25's "complex edits... can be desktop only", which
+      # had been specified as a "better made at a desk" message and no editor.
       Given I am using a phone
       And a Segment whose punch-in is graded "hard"
       When I open it
-      Then I am told it needs an adjustment better made at a desk
+      Then the waveform and the nudge controls are offered
+      And the page fits the phone's width without scrolling sideways
       And I can still skip it, or approve it as-is if I choose to
-      And I am not offered a cramped editing surface
 
     @happy-path
     Scenario: Desktop carries the full editor

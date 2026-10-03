@@ -308,3 +308,44 @@ def test_publication_details_that_collide_answer_409_not_500(store, recording):
     assert refused.get_json()["path"] == "published/2026-09-13 - Hebrews 12.mp3"
     replaced = client.put(url, json={"date": "2026-09-13", "label": "Hebrews 12", "replace": True})
     assert replaced.status_code == 200
+
+
+def test_a_publication_date_is_kept_for_the_log_and_never_names_the_file(store, recording):
+    from datetime import date
+
+    from sermon.approves_segment import ApprovesSegment
+    from sermon.jobs.renders_segment import RendersSegment
+    from sermon.sends_notification import SendsNotification
+    from sermon.store import Artifact
+
+    segment = saves_segment(store, recording)
+    client = creates_app(store=store).test_client()
+    url = f"/api/segments/{segment.segment_id}/publication"
+    assert client.put(url, json={"date": "2026-09-20", "label": "Hebrews 12"}).status_code == 200
+    approved = ApprovesSegment(store=store)(store.loads(Segment, segment.segment_id))
+    RendersSegment(store=store, steps=lambda _name: None, notifies=SendsNotification(store=store))(
+        approved
+    )
+    assert store.loads(Segment, segment.segment_id).publication_date == date(2026, 9, 20)
+    artifact = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")[0]
+    assert artifact.path == "published/2026-09-13 - Hebrews 12.mp3"
+
+
+def test_a_collision_is_judged_on_the_recording_date_not_the_publication_date(store, recording):
+    from sermon.store import Artifact, layout
+
+    segment = saves_segment(store, recording)
+    store.saves(
+        Artifact(
+            recording_id=recording.recording_id,
+            kind="rendered_mp3",
+            path=layout.published_path("2026-09-13 - Hebrews 12.mp3"),
+            size_bytes=1,
+            checksum="existing",
+        )
+    )
+    client = creates_app(store=store).test_client()
+    url = f"/api/segments/{segment.segment_id}/publication"
+    refused = client.put(url, json={"date": "2026-09-20", "label": "Hebrews 12"})
+    assert refused.status_code == 409
+    assert refused.get_json()["path"] == "published/2026-09-13 - Hebrews 12.mp3"

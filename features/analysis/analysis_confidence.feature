@@ -61,6 +61,8 @@ Feature: Proposal confidence and evidence
       # Measured: models report 0.95 on essentially every segment, including one
       # whose punch-in was wrong by 659 seconds and a correct one in the same
       # run. It is a constant and carries no information.
+      Given a Recording divided into a lesson Block and a qa Block
+      When block classification runs once with the model reporting 0.95 and once reporting 0.10
       Then no reviewer-facing behaviour depends on a model's self-reported confidence
       And a self-reported confidence may be stored for diagnosis
       And it is never shown to a reviewer as a quality signal

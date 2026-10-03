@@ -138,6 +138,7 @@ Feature: Dividing a recording into blocks
     Scenario: Diarization was unavailable
       Given the diarization stage failed
       When blocking runs
+      And block classification runs
       Then Blocks are produced from transcript structure and silence alone
       And each Block is marked as having no speaker attribution
       And downstream confidence is reduced

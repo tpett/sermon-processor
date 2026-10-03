@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1366 step definitions read from `tests/steps`
-- 27 condemned
-- 25 of 464 non-deferred scenarios rest on at least one condemned step
-- 35 of 607 expanded scenario tests likewise
-- 6 scenarios whose every Then is condemned, so nothing they claim is checked
-- 6 scenarios whose every step outside the Background is condemned
+- 1384 step definitions read from `tests/steps`
+- 7 condemned
+- 9 of 464 non-deferred scenarios rest on at least one condemned step
+- 9 of 606 expanded scenario tests likewise
+- 1 scenarios whose every Then is condemned, so nothing they claim is checked
+- 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
-- 50 Gherkin steps matched more than one definition
-- 261 Gherkin steps matched no definition
+- 49 Gherkin steps matched more than one definition
+- 257 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -23,14 +23,14 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an interface Then that reads the view model rather than the rendered page | 0 |
 | an assertion that cannot fail | 0 |
 | a boolean operand of True, which neutralises what it joins | 0 |
-| a Then whose every assertion only checks that some row exists | 4 |
+| a Then whose every assertion only checks that some row exists | 0 |
 | an assertion that any existing row satisfies | 0 |
 | an assertion operand that some scenario's own arguments make true | 0 |
-| a Then with a path through it that asserts nothing | 3 |
+| a Then with a path through it that asserts nothing | 0 |
 | an assertion that compares a value with itself | 0 |
-| a Then that constructs and invokes a unit of the system | 10 |
-| a Then that writes to the store | 13 |
-| a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets | 3 |
+| a Then that constructs and invokes a unit of the system | 4 |
+| a Then that writes to the store | 3 |
+| a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets | 0 |
 | a Then that asserts word for word what another Then in its scenario asserts | 0 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
@@ -45,17 +45,17 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | module | definitions | condemned | verdict |
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 62 | 3 | partly condemned |
-| `tests/steps/analysis/approval_rate_steps.py` | 4 | 2 | partly condemned |
+| `tests/steps/analysis/approval_rate_steps.py` | 6 | 0 | sound |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
-| `tests/steps/analysis/block_classification_steps.py` | 23 | 1 | partly condemned |
+| `tests/steps/analysis/block_classification_steps.py` | 24 | 0 | sound |
 | `tests/steps/analysis/blocking_steps.py` | 35 | 0 | sound |
 | `tests/steps/analysis/confidence_steps.py` | 27 | 0 | sound |
 | `tests/steps/analysis/detection_accuracy_steps.py` | 29 | 0 | sound |
-| `tests/steps/analysis/domain_steps.py` | 84 | 1 | partly condemned |
-| `tests/steps/analysis/preview_audio_steps.py` | 31 | 2 | partly condemned |
+| `tests/steps/analysis/domain_steps.py` | 84 | 0 | sound |
+| `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/punch_in_steps.py` | 34 | 0 | sound |
 | `tests/steps/analysis/punch_out_steps.py` | 25 | 0 | sound |
-| `tests/steps/analysis/remaining_analysis_steps.py` | 95 | 8 | partly condemned |
+| `tests/steps/analysis/remaining_analysis_steps.py` | 97 | 4 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
 | `tests/steps/analysis/summarization_steps.py` | 22 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
@@ -64,18 +64,18 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
 | `tests/steps/ingestion/s3_reconciliation_steps.py` | 38 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 39 | 0 | sound |
-| `tests/steps/interface/approval_steps.py` | 48 | 3 | partly condemned |
+| `tests/steps/interface/approval_steps.py` | 50 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |
 | `tests/steps/interface/cut_light_steps.py` | 4 | 0 | sound |
 | `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
 | `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/proposal_display_steps.py` | 1 | 0 | sound |
-| `tests/steps/interface/publication_details_steps.py` | 11 | 2 | partly condemned |
+| `tests/steps/interface/publication_details_steps.py` | 14 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
-| `tests/steps/interface/punch_point_adjustment_steps.py` | 41 | 1 | partly condemned |
+| `tests/steps/interface/punch_point_adjustment_steps.py` | 43 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 39 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 55 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 58 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -87,37 +87,21 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
 | `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 16 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 85 | 4 | partly condemned |
+| `tests/steps/remaining_steps.py` (named) | 88 | 0 | sound |
 
 ## Condemned outside the six named files
 
-23 definitions.
+7 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py:219` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
 | `tests/steps/analysis/analysis_orchestration_steps.py:265` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/analysis_orchestration_steps.py:353` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:671` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/preview_audio_steps.py:76` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/preview_audio_steps.py:227` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:387` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:437` | then | `no reviewer-facing behaviour depends on a model's self-reported confidence` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:493` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:549` | then | `the punch-out falls back to the end of the seeding Block` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:554` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:672` | then | `a proposal exceeding it is flagged to the reviewer before approval` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:677` | then | `the Proposal confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:690` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/interface/approval_steps.py:227` | then | `the output is named from the recording date alone` | a Then that writes to the store |
-| `tests/steps/interface/approval_steps.py:265` | then | `no Segment is ever rendered without a human approving it` | a Then with a path through it that asserts nothing |
-| `tests/steps/interface/approval_steps.py:331` | then | `no Segment is ever published on classification alone` | a Then with a path through it that asserts nothing |
-| `tests/steps/interface/publication_details_steps.py:57` | then | `the details are saved with the Segment` | a Then that writes to the store |
-| `tests/steps/interface/publication_details_steps.py:74` | then | `I can change it` | a Then that writes to the store |
-| `tests/steps/interface/punch_point_adjustment_steps.py:186` | then | `the change is rejected if it would overlap the neighbouring Segment` | a Then that writes to the store |
+| `tests/steps/analysis/remaining_analysis_steps.py:403` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:537` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:608` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:747` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 
 ## Every condemned definition
 
@@ -126,64 +110,39 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/analysis_orchestration_steps.py:219` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
 | `tests/steps/analysis/analysis_orchestration_steps.py:265` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/analysis_orchestration_steps.py:353` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:671` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/preview_audio_steps.py:76` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/preview_audio_steps.py:227` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:387` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:437` | then | `no reviewer-facing behaviour depends on a model's self-reported confidence` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/remaining_analysis_steps.py:493` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:549` | then | `the punch-out falls back to the end of the seeding Block` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:554` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/analysis/remaining_analysis_steps.py:672` | then | `a proposal exceeding it is flagged to the reviewer before approval` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/remaining_analysis_steps.py:677` | then | `the Proposal confidence is reduced` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/remaining_analysis_steps.py:690` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/interface/approval_steps.py:227` | then | `the output is named from the recording date alone` | a Then that writes to the store |
-| `tests/steps/interface/approval_steps.py:265` | then | `no Segment is ever rendered without a human approving it` | a Then with a path through it that asserts nothing |
-| `tests/steps/interface/approval_steps.py:331` | then | `no Segment is ever published on classification alone` | a Then with a path through it that asserts nothing |
-| `tests/steps/interface/publication_details_steps.py:57` | then | `the details are saved with the Segment` | a Then that writes to the store |
-| `tests/steps/interface/publication_details_steps.py:74` | then | `I can change it` | a Then that writes to the store |
-| `tests/steps/interface/punch_point_adjustment_steps.py:186` | then | `the change is rejected if it would overlap the neighbouring Segment` | a Then that writes to the store |
-| `tests/steps/remaining_steps.py:743` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:762` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:776` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:814` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/analysis/remaining_analysis_steps.py:403` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:537` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:608` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/analysis/remaining_analysis_steps.py:747` | then | `the resulting Proposal has reduced confidence` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 
 ## Scenarios whose every Then is condemned
 
 | feature | line | scenario |
 | --- | --- | --- |
-| `analysis/analysis_confidence.feature` | 60 | A model's own confidence number is not used for anything |
-| `analysis/block_classification.feature` | 43 | Only teaching Blocks can seed a Segment |
-| `analysis/detection_accuracy.feature` | 130 | The target is a two-preview approval |
-| `analysis/punch_out_detection.feature` | 118 | The punch-out would land before the punch-in |
 | `analysis/speaker_diarization.feature` | 103 | The scripture reader and the preacher are the same person |
-| `interface/approval.feature` | 120 | Nothing renders without an explicit approval |
 
 ## Gherkin steps the guard could not match
 
-- `analysis/analysis_confidence.feature:138 then exactly one analysis informs the Proposal`
-- `analysis/analysis_confidence.feature:139 then confidence is computed from these inputs only:`
-- `analysis/analysis_confidence.feature:147 then no agreement badge is shown`
-- `analysis/analysis_confidence.feature:156 then cut difficulty remains the signal that asks for a listen`
-- `analysis/analysis_confidence.feature:183 then the affected confidence is reduced`
-- `analysis/analysis_confidence.feature:184 then the evidence list states that "block types" was unavailable`
-- `analysis/analysis_confidence.feature:184 then the evidence list states that "closing prayer" was unavailable`
-- `analysis/analysis_confidence.feature:184 then the evidence list states that "communion cue" was unavailable`
-- `analysis/analysis_confidence.feature:184 then the evidence list states that "recording start time" was unavailable`
-- `analysis/analysis_confidence.feature:184 then the evidence list states that "scripture reading" was unavailable`
-- `analysis/analysis_confidence.feature:184 then the evidence list states that "speaker spans" was unavailable`
-- `analysis/analysis_confidence.feature:219 then it is never treated as evidence that the output is correct`
-- `analysis/analysis_confidence.feature:220 then correctness is established by the accuracy suite instead`
-- `analysis/analysis_confidence.feature:65 then a self-reported confidence may be stored for diagnosis`
-- `analysis/analysis_confidence.feature:66 then it is never shown to a reviewer as a quality signal`
+- `analysis/analysis_confidence.feature:140 then exactly one analysis informs the Proposal`
+- `analysis/analysis_confidence.feature:141 then confidence is computed from these inputs only:`
+- `analysis/analysis_confidence.feature:149 then no agreement badge is shown`
+- `analysis/analysis_confidence.feature:158 then cut difficulty remains the signal that asks for a listen`
+- `analysis/analysis_confidence.feature:185 then the affected confidence is reduced`
+- `analysis/analysis_confidence.feature:186 then the evidence list states that "block types" was unavailable`
+- `analysis/analysis_confidence.feature:186 then the evidence list states that "closing prayer" was unavailable`
+- `analysis/analysis_confidence.feature:186 then the evidence list states that "communion cue" was unavailable`
+- `analysis/analysis_confidence.feature:186 then the evidence list states that "recording start time" was unavailable`
+- `analysis/analysis_confidence.feature:186 then the evidence list states that "scripture reading" was unavailable`
+- `analysis/analysis_confidence.feature:186 then the evidence list states that "speaker spans" was unavailable`
+- `analysis/analysis_confidence.feature:221 then it is never treated as evidence that the output is correct`
+- `analysis/analysis_confidence.feature:222 then correctness is established by the accuracy suite instead`
+- `analysis/analysis_confidence.feature:67 then a self-reported confidence may be stored for diagnosis`
+- `analysis/analysis_confidence.feature:68 then it is never shown to a reviewer as a quality signal`
 - `analysis/analysis_orchestration.feature:109 then they can be revisited and approved months later`
 - `analysis/audio_probe.feature:122 then a reviewer can restore it for analysis if the machine was wrong`
-- `analysis/block_classification.feature:154 then that shape counts as evidence for "qa"`
-- `analysis/block_classification.feature:173 then the confidence that the Block is teaching is increased`
-- `analysis/block_classification.feature:174 then the evidence names the matched speaker`
+- `analysis/block_classification.feature:156 then that shape counts as evidence for "qa"`
+- `analysis/block_classification.feature:175 then the confidence that the Block is teaching is increased`
+- `analysis/block_classification.feature:176 then the evidence names the matched speaker`
 - `analysis/block_classification.feature:21 then a Block may be typed "announcements" meaning "welcome, notices, housekeeping"`
 - `analysis/block_classification.feature:21 then a Block may be typed "communion" meaning "the invitation to and serving of communion"`
 - `analysis/block_classification.feature:21 then a Block may be typed "lesson" meaning "a class session: teaching, usually followed by questions"`
@@ -195,61 +154,60 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/block_classification.feature:21 then a Block may be typed "scripture_reading" meaning "a passage being read, usually announced by reference"`
 - `analysis/block_classification.feature:21 then a Block may be typed "seminar" meaning "a session of a multi-part course"`
 - `analysis/block_classification.feature:21 then a Block may be typed "sermon" meaning "the Sunday message"`
-- `analysis/block_classification.feature:227 then it is classified on its own evidence`
-- `analysis/block_classification.feature:237 then that following Block is strong evidence for "sermon"`
-- `analysis/block_classification.feature:238 then the punch-in falls at the start of it`
-- `analysis/block_classification.feature:248 then the silence does not create a Block boundary`
-- `analysis/block_classification.feature:280 then that counts as evidence for "rehearsal"`
-- `analysis/block_classification.feature:303 then its teaching Blocks are typed "other"`
-- `analysis/block_classification.feature:303 then its teaching Blocks are typed "rehearsal"`
-- `analysis/block_classification.feature:303 then its teaching Blocks are typed "seminar"`
-- `analysis/block_classification.feature:303 then its teaching Blocks are typed "sermon"`
-- `analysis/block_classification.feature:304 then the Recording is summarised as "a Good Friday service" rather than as "other"`
-- `analysis/block_classification.feature:304 then the Recording is summarised as "a Saturday worship and prayer gathering" rather than as "other"`
-- `analysis/block_classification.feature:304 then the Recording is summarised as "a members' meeting" rather than as "other"`
-- `analysis/block_classification.feature:304 then the Recording is summarised as "a seminar day with several sessions" rather than as "other"`
-- `analysis/block_classification.feature:304 then the Recording is summarised as "an ordinary Sunday" rather than as "other"`
-- `analysis/block_classification.feature:304 then the Recording is summarised as "band practice, start to finish" rather than as "other"`
-- `analysis/block_classification.feature:318 then a Segment is proposed for each sustained teaching Block`
-- `analysis/block_classification.feature:319 then the reviewer decides what to publish, as with any other Recording`
-- `analysis/block_classification.feature:330 then each is reviewed on its own`
-- `analysis/block_classification.feature:331 then the interface shows them grouped by day`
-- `analysis/block_classification.feature:332 then the reviewer is told they may be parts of one event`
-- `analysis/block_classification.feature:341 then Segment proposal runs again for the affected Blocks`
-- `analysis/block_classification.feature:342 then any boundary the reviewer set by hand is preserved`
-- `analysis/block_classification.feature:363 then it is flagged as needing the reviewer to look at it`
-- `analysis/block_classification.feature:364 then the evidence states which corroboration was missing`
-- `analysis/block_classification.feature:373 then a Segment is still seeded on it`
-- `analysis/block_classification.feature:380 then the Block is flagged as possibly containing more than one type`
+- `analysis/block_classification.feature:229 then it is classified on its own evidence`
+- `analysis/block_classification.feature:239 then that following Block is strong evidence for "sermon"`
+- `analysis/block_classification.feature:240 then the punch-in falls at the start of it`
+- `analysis/block_classification.feature:250 then the silence does not create a Block boundary`
+- `analysis/block_classification.feature:282 then that counts as evidence for "rehearsal"`
+- `analysis/block_classification.feature:305 then its teaching Blocks are typed "other"`
+- `analysis/block_classification.feature:305 then its teaching Blocks are typed "rehearsal"`
+- `analysis/block_classification.feature:305 then its teaching Blocks are typed "seminar"`
+- `analysis/block_classification.feature:305 then its teaching Blocks are typed "sermon"`
+- `analysis/block_classification.feature:306 then the Recording is summarised as "a Good Friday service" rather than as "other"`
+- `analysis/block_classification.feature:306 then the Recording is summarised as "a Saturday worship and prayer gathering" rather than as "other"`
+- `analysis/block_classification.feature:306 then the Recording is summarised as "a members' meeting" rather than as "other"`
+- `analysis/block_classification.feature:306 then the Recording is summarised as "a seminar day with several sessions" rather than as "other"`
+- `analysis/block_classification.feature:306 then the Recording is summarised as "an ordinary Sunday" rather than as "other"`
+- `analysis/block_classification.feature:306 then the Recording is summarised as "band practice, start to finish" rather than as "other"`
+- `analysis/block_classification.feature:320 then a Segment is proposed for each sustained teaching Block`
+- `analysis/block_classification.feature:321 then the reviewer decides what to publish, as with any other Recording`
+- `analysis/block_classification.feature:332 then each is reviewed on its own`
+- `analysis/block_classification.feature:333 then the interface shows them grouped by day`
+- `analysis/block_classification.feature:334 then the reviewer is told they may be parts of one event`
+- `analysis/block_classification.feature:343 then Segment proposal runs again for the affected Blocks`
+- `analysis/block_classification.feature:344 then any boundary the reviewer set by hand is preserved`
+- `analysis/block_classification.feature:365 then it is flagged as needing the reviewer to look at it`
+- `analysis/block_classification.feature:366 then the evidence states which corroboration was missing`
+- `analysis/block_classification.feature:375 then a Segment is still seeded on it`
+- `analysis/block_classification.feature:382 then the Block is flagged as possibly containing more than one type`
 - `analysis/detection_accuracy.feature:109 then for each pair it reports:`
 - `analysis/detection_accuracy.feature:117 then the proportion approved with no edit is reported from the approval record, not from this run`
 - `analysis/detection_accuracy.feature:118 then it reports the median and worst-case error, split by difficulty`
 - `analysis/detection_accuracy.feature:122 then the corpus includes sermons and class sessions`
 - `analysis/detection_accuracy.feature:123 then accuracy is reported separately for each classification`
-- `analysis/detection_accuracy.feature:156 then the suite is a regression instrument, not an acceptance test`
-- `analysis/detection_accuracy.feature:157 then a change that worsens the error distribution is reported as a regression`
-- `analysis/detection_accuracy.feature:158 then no configuration is rejected for missing a fixed tolerance`
-- `analysis/detection_accuracy.feature:159 then the reviewer's correction, not the tolerance, is what guarantees the cut`
-- `analysis/detection_accuracy.feature:183 then punch-in error is reported with its sign, never as an absolute value`
-- `analysis/detection_accuracy.feature:184 then late punch-ins are reported separately from early ones`
-- `analysis/detection_accuracy.feature:192 then the punch-in error is weighted more heavily in the headline score`
-- `analysis/detection_accuracy.feature:193 then both are still reported separately`
-- `analysis/detection_accuracy.feature:201 then each pair is graded against the difficulty of its own transition`
-- `analysis/detection_accuracy.feature:202 then results are reported separately for easy and hard cuts`
-- `analysis/detection_accuracy.feature:203 then a poor result on a hard cut is not treated the same as one on an easy cut`
-- `analysis/detection_accuracy.feature:223 then each boundary's difficulty comes from the audio around the human cut`
-- `analysis/detection_accuracy.feature:224 then a configuration cannot change the difficulty of anything it is scored on`
-- `analysis/detection_accuracy.feature:229 then the suite does not require the machine to match the human exactly`
-- `analysis/detection_accuracy.feature:230 then it requires that the Segment was flagged as needing attention`
-- `analysis/detection_accuracy.feature:239 then the result is graded as needing correction`
-- `analysis/detection_accuracy.feature:240 then it does not count toward the no-edit proportion`
-- `analysis/detection_accuracy.feature:248 then the change in median and worst-case error is reported`
-- `analysis/detection_accuracy.feature:249 then a change that improves the median but worsens the worst case is visible as such`
-- `analysis/detection_accuracy.feature:272 then it reports that it was skipped`
-- `analysis/detection_accuracy.feature:273 then it does not report a pass`
-- `analysis/punch_in_detection.feature:45 then the resulting transition sounds natural rather than abrupt`
-- `analysis/punch_in_detection.feature:60 then the reviewer can move it in steps as small as 100 ms`
-- `analysis/punch_out_detection.feature:121 then the refinement is rejected`
+- `analysis/detection_accuracy.feature:158 then the suite is a regression instrument, not an acceptance test`
+- `analysis/detection_accuracy.feature:159 then a change that worsens the error distribution is reported as a regression`
+- `analysis/detection_accuracy.feature:160 then no configuration is rejected for missing a fixed tolerance`
+- `analysis/detection_accuracy.feature:161 then the reviewer's correction, not the tolerance, is what guarantees the cut`
+- `analysis/detection_accuracy.feature:188 then punch-in error is reported with its sign, never as an absolute value`
+- `analysis/detection_accuracy.feature:189 then late punch-ins are reported separately from early ones`
+- `analysis/detection_accuracy.feature:197 then the punch-in error is weighted more heavily in the headline score`
+- `analysis/detection_accuracy.feature:198 then both are still reported separately`
+- `analysis/detection_accuracy.feature:206 then each pair is graded against the difficulty of its own transition`
+- `analysis/detection_accuracy.feature:207 then results are reported separately for easy and hard cuts`
+- `analysis/detection_accuracy.feature:208 then a poor result on a hard cut is not treated the same as one on an easy cut`
+- `analysis/detection_accuracy.feature:228 then each boundary's difficulty comes from the audio around the human cut`
+- `analysis/detection_accuracy.feature:229 then a configuration cannot change the difficulty of anything it is scored on`
+- `analysis/detection_accuracy.feature:234 then the suite does not require the machine to match the human exactly`
+- `analysis/detection_accuracy.feature:235 then it requires that the Segment was flagged as needing attention`
+- `analysis/detection_accuracy.feature:244 then the result is graded as needing correction`
+- `analysis/detection_accuracy.feature:245 then it does not count toward the no-edit proportion`
+- `analysis/detection_accuracy.feature:253 then the change in median and worst-case error is reported`
+- `analysis/detection_accuracy.feature:254 then a change that improves the median but worsens the worst case is visible as such`
+- `analysis/detection_accuracy.feature:277 then it reports that it was skipped`
+- `analysis/detection_accuracy.feature:278 then it does not report a pass`
+- `analysis/punch_in_detection.feature:53 then the resulting transition sounds natural rather than abrupt`
+- `analysis/punch_in_detection.feature:68 then the reviewer can move it in steps as small as 100 ms`
 - `analysis/punch_out_detection.feature:79 then the resulting ending sounds natural rather than clipped`
 - `analysis/punch_out_detection.feature:98 then a hard punch-out is flagged for review`
 - `analysis/punch_out_detection.feature:99 then a hard punch-out is treated as less urgent than a hard punch-in`
@@ -280,18 +238,18 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`
 - `interface/discarding_recordings.feature:116 then it never appears as work`
 - `interface/discarding_recordings.feature:117 then I can still find and restore it if the machine was wrong`
-- `interface/publication_details.feature:107 then the stored details are updated`
-- `interface/publication_details.feature:108 then the downloadable file is renamed`
-- `interface/publication_details.feature:109 then the audio is not re-encoded`
-- `interface/publication_details.feature:52 given its transcript contains "turn with me to Hebrews chapter 12"`
-- `interface/publication_details.feature:54 then the label is suggested as "Hebrews 12"`
-- `interface/publication_details.feature:55 then I can correct it before approving`
-- `interface/publication_details.feature:61 then the label is suggested as "TEC"`
-- `interface/publication_details.feature:62 then I can correct it before approving`
-- `interface/publication_details.feature:68 then each carries its own label`
-- `interface/publication_details.feature:69 then the two output files do not collide`
-- `interface/publication_details.feature:77 then the output file is named from the recording date`
-- `interface/publication_details.feature:78 then I am not prompted for anything else`
+- `interface/publication_details.feature:116 then the stored details are updated`
+- `interface/publication_details.feature:117 then the downloadable file is renamed`
+- `interface/publication_details.feature:118 then the audio is not re-encoded`
+- `interface/publication_details.feature:61 given its transcript contains "turn with me to Hebrews chapter 12"`
+- `interface/publication_details.feature:63 then the label is suggested as "Hebrews 12"`
+- `interface/publication_details.feature:64 then I can correct it before approving`
+- `interface/publication_details.feature:70 then the label is suggested as "TEC"`
+- `interface/publication_details.feature:71 then I can correct it before approving`
+- `interface/publication_details.feature:77 then each carries its own label`
+- `interface/publication_details.feature:78 then the two output files do not collide`
+- `interface/publication_details.feature:86 then the output file is named from the recording date`
+- `interface/publication_details.feature:87 then I am not prompted for anything else`
 - `interface/punch_point_adjustment.feature:129 then the punch-in moves to the nearest silence gap boundary`
 - `interface/punch_point_adjustment.feature:130 then the amount it moved is shown`
 - `interface/punch_point_adjustment.feature:146 then I am warned that the cut is too close to the audio`
@@ -327,12 +285,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:255 then I can preview the punch-in and the punch-out`
 - `interface/segment_review.feature:256 then I can approve`
 - `interface/segment_review.feature:257 then the whole flow works without a waveform`
-- `interface/segment_review.feature:264 then I am told it needs an adjustment better made at a desk`
-- `interface/segment_review.feature:265 then I can still skip it, or approve it as-is if I choose to`
-- `interface/segment_review.feature:266 then I am not offered a cramped editing surface`
-- `interface/segment_review.feature:271 then the waveform, zooming, word alignment and nudge controls are all available`
-- `interface/segment_review.feature:276 when a Segment is complete`
-- `interface/segment_review.feature:277 then I can download the MP3`
+- `interface/segment_review.feature:275 then the waveform, zooming, word alignment and nudge controls are all available`
+- `interface/segment_review.feature:280 when a Segment is complete`
+- `interface/segment_review.feature:281 then I can download the MP3`
 - `interface/segment_review.feature:94 given Segment 1 was skipped on "2026-08-16"`
 - `interface/segment_review.feature:95 when I open the Recording on "2026-11-04" and approve Segment 1`
 - `interface/segment_review.feature:96 then it is processed using its stored boundaries`
@@ -365,8 +320,8 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `operations/storage_and_retention.feature:59 given a Recording is downloading, analyzing, or has a Segment processing`
 - `operations/storage_and_retention.feature:60 when scratch is reclaimed`
 - `operations/storage_and_retention.feature:61 then its working files are retained`
-- `operations/storage_and_retention.feature:83 when any cleanup runs`
-- `operations/storage_and_retention.feature:84 then no source object is deleted`
+- `operations/storage_and_retention.feature:84 when any cleanup runs`
+- `operations/storage_and_retention.feature:85 then no source object is deleted`
 - `operations/system_health.feature:58 given a Recording is in state "analysis_failed"`
 - `operations/system_health.feature:59 when I open its processing log`
 - `operations/system_health.feature:60 then I see every job attempt with its timestamp, duration and error`

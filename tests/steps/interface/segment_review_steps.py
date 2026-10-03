@@ -577,3 +577,37 @@ def _(audition):
     assert abs(audition["began"] - audition["block"].start_seconds) < 0.5
     assert audition["block"].start_seconds != audition["block"].cue_start_seconds
     assert audition["still_playing"]
+
+
+@then("the waveform and the nudge controls are offered")
+def _(store, segment, device):
+    with _browser.opens_page(store, device) as page:
+        page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        assert page.locator('[data-role="detail"]').is_visible(), "no waveform on this device"
+        summary = page.locator("details.nudges > summary").first
+        assert summary.is_visible(), "the nudge controls cannot be opened on this device"
+        summary.evaluate("summary => summary.parentElement.open = true")
+        nudges = page.locator('[data-field="nudge-control"]')
+        assert nudges.count() > 0, "no nudge control on this device"
+        assert nudges.first.is_visible(), "the nudge controls are hidden on this device"
+
+
+@then("the page fits the phone's width without scrolling sideways")
+def _(store, segment, device):
+    with _browser.opens_page(store, device) as page:
+        page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        wide = page.evaluate("() => document.documentElement.scrollWidth")
+        assert wide <= device["viewport"]["width"], f"{wide}px of page on a {device['viewport']['width']}px screen"
+
+
+@then("I can still skip it, or approve it as-is if I choose to")
+def _(store, segment, device):
+    with _browser.opens_page(store, device) as page:
+        page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        for action in ("Skip", "Approve"):
+            control = page.locator(
+                f'[data-row="segment-action"][data-action="{action}"] [data-field="action-control"]'
+            )
+            assert control.is_visible(), f"{action} is not offered on this device"
+            box = control.bounding_box()
+            assert box["x"] >= 0 and box["x"] + box["width"] <= device["viewport"]["width"], box

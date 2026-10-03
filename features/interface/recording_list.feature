@@ -84,8 +84,11 @@ Feature: The recordings list
         | Skipped segments    | has a Segment left for later                |
         | Ignored             | set aside as having no substantive content  |
 
-    @happy-path @measured
+    @happy-path @measured @deferred
     Scenario: Finding a recording by what it was
+      # **Not in v1** (2026-10-03). The owner: "Search is less important for
+      # now." Specified so the reason it was put off is not lost.
+      #
       # Q63 promises a Segment passed over in August can be extracted in
       # November. At the measured arrival rate — 3.5 recordings a week — that is
       # roughly 900 by year five. Stored and findable are different promises and

@@ -75,7 +75,6 @@ def _(store, recording):
 
 @then("the preview is never offered as a download")
 def _(store, recording):
-    GeneratesPreview(store=store)(_audio.local_source(store, recording))
     artifact = only_preview(store, recording.recording_id)[0]
     served = creates_app(store=store).test_client().get(f"/api/artifacts/{artifact.path}")
     assert served.status_code == 200
@@ -226,7 +225,6 @@ def _(store):
 
 @then("the preview is a constant-bitrate file")
 def _(store, recording):
-    GeneratesPreview(store=store)(_audio.local_source(store, recording))
     artifact = only_preview(store, recording.recording_id)[0]
     settled = artifact.render_settings or {}
     assert artifact.path.endswith(rendition.SUFFIX)

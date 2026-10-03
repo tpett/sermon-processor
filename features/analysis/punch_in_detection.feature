@@ -13,16 +13,24 @@ Feature: Refining a segment's punch-in
     Given a Segment classified "sermon" seeded on a Block beginning at "0:31:40"
     And the previous Block ends at "0:31:40"
 
-  Rule: The punch-in sits just before the first word
+  Rule: The punch-in sits in the silence before the first word
 
-    @happy-path @measured
+    @happy-path @stated
     Scenario: A short lead-in is included
-      # Confirmed: "One second is perfect. If it is too much more than that,
-      # people might wonder if the playback is working."
+      # "Lead-in silence is not necessary, but if it's too long it's a problem.
+      # 1-2s is probably about as long as you want to go or someone who's
+      # started the recording playback thinks nothing is happening." On any
+      # cut: "there is some buffer needed due to room echo and other pre "word"
+      # sounds. 50ms is probably a good buffer but it might need to be a bit
+      # longer... Almost always though moving more into the silence produces a
+      # better cut." (the owner, 2026-10-03). These govern an earlier answer,
+      # "One second is perfect", which had been specified as an exact lead-in.
+      # Two cuts in the same silence are the same cut, so no instant is asserted.
       Given the first word of the Block begins at "0:31:41.500"
       When punch-in refinement runs
-      Then the punch-in is placed at "0:31:40.500"
-      And the lead-in never exceeds 1.0 second
+      Then the punch-in is in the silence before the first word
+      And it is at least 50 ms clear of the words either side
+      And the lead-in never exceeds 2.0 seconds
 
     @happy-path
     Scenario: The lead-in is shortened rather than crossing into the previous block
@@ -30,7 +38,7 @@ Feature: Refining a segment's punch-in
       And the previous Block has audible speech up to "0:31:40.000"
       When punch-in refinement runs
       Then the punch-in is placed after "0:31:40.000"
-      And the lead-in is shorter than 1.0 second
+      And it is at least 50 ms clear of the words either side
       And no audio from the previous Block is included
 
   Rule: The cut is kept clear of noise

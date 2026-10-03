@@ -1,11 +1,13 @@
-from datetime import UTC, datetime, date
+import re
+from dataclasses import replace
+from datetime import UTC, date, datetime
 
 from pytest_bdd import given, parsers, then, when
 
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.shows_recording import NOTICES
 from sermon.store import Recording, Segment
-from steps import _forms
+from steps import _forms, _web
 from steps._markup import reads_field
 
 
@@ -48,46 +50,73 @@ def _(store, segment):
     return RecordsPublicationDetails(store=store).opens(segment, recording)
 
 
-@then("I can enter:")
-def _(publication_form, datatable):
-    fields = {row[0] for row in datatable[1:]}
-    assert fields <= set(publication_form.fields())
+APPROVING = 'data-field="action-control">Approve'
+DATE_FIELD = re.compile(r'<input\b[^>]*(?:type="date"|name="[^"]*date[^"]*")', re.I)
 
 
-@then("the details are saved with the Segment")
+def offers_no_date(page):
+    assert not DATE_FIELD.search(page), "the page asks for a date"
+
+
+def opens_segment(store, segment):
+    return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+
+
+@then("I can enter a publication label")
 def _(store, segment):
-    saved = RecordsPublicationDetails(store=store).saves(
-        segment,
-        publication_date=date(2026, 8, 23),
-        label="Hebrews 12.4-11",
-    )
-    stored = store.loads(Segment, saved.segment_id)
-    assert stored.publication_date == date(2026, 8, 23)
-    assert stored.label == "Hebrews 12.4-11"
+    _, approving = _forms.finds_form(opens_segment(store, segment), APPROVING)
+    assert _forms.offers_field(approving, "label"), "the approval form takes no label"
 
 
-@then(parsers.parse('the date is prefilled with "{value}"'))
-def _(publication_form, value):
-    assert publication_form.fields()["Date"] == value
-
-
-@then("I can change it")
+@then("I am not asked for a date")
 def _(store, segment):
-    saved = RecordsPublicationDetails(store=store).saves(
-        segment,
-        publication_date=date(2026, 8, 24),
-        label="Hebrews 12.4-11",
-    )
-    assert store.loads(Segment, saved.segment_id).publication_date == date(2026, 8, 24)
+    offers_no_date(opens_segment(store, segment))
 
 
-@given(parsers.parse('the date is "{value}" and the label is "{label}"'), target_fixture="segment")
+@when(parsers.parse('I approve the Segment with the label "{label}"'), target_fixture="detail_page")
+def _(store, segment, label):
+    return _forms.submits(store, opens_segment(store, segment), APPROVING, intent="publish", label=label)
+
+
+@then(parsers.parse('the label "{label}" is saved with the Segment'))
+def _(store, segment, detail_page, label):
+    assert reads_field(detail_page, "action-notice") == NOTICES["approved"]
+    assert reads_field(detail_page, "label") == label
+    assert store.loads(Segment, segment.segment_id).label == label
+
+
+@then(parsers.parse('the publication date "{value}" is recorded with the Segment'))
+def _(store, segment, value):
+    assert store.loads(Segment, segment.segment_id).publication_date == date.fromisoformat(value)
+
+
+@then("the page does not offer to change it")
+def _(detail_page):
+    offers_no_date(detail_page)
+
+
+@when(
+    parsers.parse('the publication details "{value}" and "{label}" are recorded for it'),
+    target_fixture="segment",
+)
 def _(store, segment, value, label):
-    return RecordsPublicationDetails(store=store).saves(
-        segment,
-        publication_date=date.fromisoformat(value),
-        label=label,
+    answered = _web.opens_app(store).test_client().put(
+        f"/api/segments/{segment.segment_id}/publication",
+        json={"date": value, "label": label},
     )
+    assert answered.status_code == 200, answered.get_data(as_text=True)
+    return store.loads(Segment, segment.segment_id)
+
+
+@given(
+    parsers.parse('the Recording was made on "{value}" and the label is "{label}"'),
+    target_fixture="segment",
+)
+def _(store, segment, value, label):
+    recording = store.loads(Recording, segment.recording_id)
+    made = datetime.combine(date.fromisoformat(value), recording.started_at.timetz())
+    store.saves(replace(recording, started_at=made))
+    return store.saves(replace(segment, label=label))
 
 
 @when("the Segment is processed", target_fixture="processed_segment")

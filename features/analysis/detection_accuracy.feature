@@ -132,6 +132,8 @@ Feature: Measuring detection accuracy against real recordings
       # "if we can get this to work 80% of the time, then it is just: hit play
       # to preview the punch-in, hit play to preview the punch-out, approve,
       # and we are done."
+      Given a period in which one Segment was published untouched and one after a boundary edit
+      When the approval rate is reported for that period
       Then the headline measure is the proportion of a period's published Segments approved with no boundary edit
       And it is reported alongside the raw error figures, not replaced by them
 
@@ -165,14 +167,17 @@ Feature: Measuring detection accuracy against real recordings
       # The one failure the reviewer cannot shrug off, because it reads as a
       # broken file rather than a loose cut: "too much audio silence at the
       # beginning of the recording is not good. People wonder if it's even
-      # playing." Q18 put the ceiling at one second.
+      # playing." Q18 put the ceiling at one second; the owner has since set it
+      # at two: "1-2s is probably about as long as you want to go or someone
+      # who's started the recording playback thinks nothing is happening."
+      # (2026-10-03). That refinement stays under it is punch_in_detection's
+      # to assert; this is the check on a proposal that did not.
       #
       # This is checkable without ground truth, on any proposal, which is what
       # makes it useful where the error figures are not.
-      Given a proposed Segment
-      When the leading silence is measured from the punch-in to the first speech
-      Then it is at most 1.0 seconds
-      And a proposal exceeding it is flagged to the reviewer before approval
+      Given a proposed Segment whose punch-in sits 3.0 seconds before the first speech
+      When the Segment is offered for review
+      Then it is flagged as having more than 2.0 seconds of silence before the first word
 
     @edge-case @measured
     Scenario: Clipping the first word is worse than starting early

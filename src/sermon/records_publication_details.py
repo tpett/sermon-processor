@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date
 
-from sermon.store import Artifact, Store, layout
+from sermon.store import Artifact, Recording, Store, layout
 
 
 def places_publication_date(segment, recording):
     return segment.publication_date or recording.started_at.date()
+
+
+def names_output(recording, label=None):
+    return names_rendered_mp3(recording.started_at.date(), label)
 
 
 def names_rendered_mp3(published_on, label=None):
@@ -24,11 +27,10 @@ class FilenameCollision(ValueError):
 
 @dataclass(frozen=True)
 class PublicationForm:
-    date: date
     label: str
 
     def fields(self):
-        return {"Date": self.date.isoformat(), "Label": self.label}
+        return {"Label": self.label}
 
 
 @dataclass(frozen=True)
@@ -36,13 +38,11 @@ class RecordsPublicationDetails:
     store: Store
 
     def opens(self, segment, recording):
-        return PublicationForm(
-            date=places_publication_date(segment, recording),
-            label=segment.label or "",
-        )
+        return PublicationForm(label=segment.label or "")
 
     def saves(self, segment, *, publication_date, label, replace_existing=False):
-        path = layout.published_path(names_rendered_mp3(publication_date, label))
+        recording = self.store.loads(Recording, segment.recording_id)
+        path = layout.published_path(names_output(recording, label))
         existing = [
             item
             for item in self.store.lists(Artifact, kind="rendered_mp3")

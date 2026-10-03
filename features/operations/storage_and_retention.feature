@@ -65,6 +65,7 @@ Feature: Storage and retention
     @edge-case
     Scenario: Scratch fills up
       Given scratch space is exhausted
+      When the worker reaches a queued download and a queued render
       Then new downloads and renders pause
       And an alert is raised on the system health view
       And no Recording or Segment state is lost
@@ -86,6 +87,7 @@ Feature: Storage and retention
     @edge-case
     Scenario: A source is unexpectedly missing
       Given the object store no longer holds a Recording's source
+      When the Processor next fetches that source
       Then the Recording is flagged "source no longer available"
       And its skipped Segments are marked as no longer extractable
       And an operator is alerted

@@ -1,6 +1,6 @@
 import inspect
-from dataclasses import replace
-from datetime import UTC, datetime
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
 
 from pytest_bdd import given, parsers, then, when
 
@@ -16,7 +16,10 @@ from sermon.reruns_analysis import RerunsAnalysis
 from sermon.skips_segment import SkipsSegment
 from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.extends_segment_span import ReadsTimecode
+from sermon.jobs.downloads_recording import RunsDownloadJob
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
+from sermon.jobs.renders_segment import RunsRenderJob
+from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
 from steps._peaks import writes_peaks
 from sermon.store import Artifact, Block, Job, LogEntry, Proposal, Recording, Segment, layout
@@ -716,7 +719,6 @@ def _(publication_form):
 
 @given("10 Recordings are ingested at once")
 def _(store):
-    store._analysis_concurrency = 2
     for index in range(10):
         recording = store.saves(
             Recording(
@@ -740,31 +742,97 @@ def _(store):
         )
 
 
-@then("no more than the configured number of analysis jobs run concurrently")
+@when("the worker works through the analysis queue", target_fixture="analyses_seen")
 def _(store):
-    limit = getattr(store, "_analysis_concurrency", 2)
-    running = [job for job in store.lists(Job, kind="analyze") if job.state == "running"]
-    assert len(running) <= limit
+    seen = []
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=refuses_other_work,
+        analyzes=WatchesAnalyses(store=store, seen=seen),
+        renders=refuses_other_work,
+        clock=lambda: FROZEN,
+    )
+    for _ in range(MOST_WORKER_PASSES):
+        if runs() is None:
+            return seen
+    raise AssertionError("analysis jobs were still queued after the worker gave up")
+
+
+@then("no more than the configured number of analysis jobs run concurrently")
+def _(analyses_seen):
+    assert len(analyses_seen) == 10, f"{len(analyses_seen)} of 10 analyses ran"
+    assert max(moment["running"] for moment in analyses_seen) <= ONE_JOB_AT_A_TIME
 
 
 @then("the rest wait in the queue")
-def _(store):
-    queued = [job for job in store.lists(Job, kind="analyze") if job.state == "queued"]
-    assert queued
+def _(analyses_seen):
+    assert [moment["queued"] for moment in analyses_seen] == list(range(9, -1, -1))
 
 
-@given("scratch space is exhausted")
-def _(store):
-    store._scratch_exhausted = True
-    ensure_recording(store)
+@given("scratch space is exhausted", target_fixture="before_scratch_ran_out")
+def _(store, clock):
+    recording = ensure_recording(store, state="discovered", size_bytes=1024)
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="download",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"download:{recording.recording_id}",
+            queued_at=FROZEN,
+        )
+    )
+    rendered_from = ensure_recording(
+        store, force_new=True, recording_id="recording_20260816_102900",
+        object_key="recordings/recording_20260816_102900.flac", state="awaiting_review",
+        started_at=datetime(2026, 8, 16, 10, 29, tzinfo=UTC),
+    )
+    segment = store.saves(
+        Segment(
+            recording_id=rendered_from.recording_id,
+            classification="sermon",
+            state="proposed",
+            intent="archive",
+            span_start_seconds=60.0,
+            span_end_seconds=3300.0,
+            punch_in_seconds=60.0,
+            punch_out_seconds=3300.0,
+        )
+    )
+    ApprovesSegment(store=store, clock=clock)(segment)
+    return {
+        "free_bytes": lambda: 0,
+        "recordings": {item.recording_id: item.state for item in store.lists(Recording)},
+        "segments": {item.segment_id: item.state for item in store.lists(Segment)},
+    }
+
+
+@when("the worker reaches a queued download and a queued render")
+def _(store, clock, before_scratch_ran_out):
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(
+            store=store, fetches=refuses_other_work, probes=refuses_other_work,
+            clock=lambda: FROZEN, free_bytes=before_scratch_ran_out["free_bytes"],
+        ),
+        analyzes=refuses_other_work,
+        renders=RunsRenderJob(
+            store=store, steps=lambda _name: None, notifies=SendsNotification(store=store), clock=clock
+        ),
+        clock=lambda: FROZEN,
+    )
+    for _ in range(4):
+        runs()
 
 
 @then("new downloads and renders pause")
 def _(store):
-    from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
-
-    RunsQueuedJobs(store=store, downloads=lambda: None, analyzes=lambda: None, renders=lambda: None)()
-    assert getattr(store, "_paused_for_scratch", False)
+    downloads = store.lists(Job, kind="download")
+    renders = store.lists(Job, kind="render")
+    assert [job.state for job in downloads] == ["queued"], downloads
+    assert store.lists(Recording, recording_id=downloads[0].recording_id)[0].state == "discovered"
+    assert [job.state for job in renders] == ["queued"], f"a render ran with no scratch: {renders}"
+    assert store.lists(Artifact, kind="rendered_mp3") == []
 
 
 @then("an alert is raised on the system health view")
@@ -774,8 +842,12 @@ def _(store):
 
 
 @then("no Recording or Segment state is lost")
-def _(store):
-    assert store.lists(Recording)
+def _(store, before_scratch_ran_out):
+    after = {item.recording_id: item.state for item in store.lists(Recording)}
+    assert after == before_scratch_ran_out["recordings"]
+    segments = {item.segment_id: item.state for item in store.lists(Segment)}
+    assert set(segments) == set(before_scratch_ran_out["segments"])
+    assert not [state for state in segments.values() if state.endswith("failed")], segments
 
 
 @given("long-lived storage reaches 90% of the array")
@@ -792,12 +864,44 @@ def _(store):
 
 @given("the object store no longer holds a Recording's source")
 def _(store):
-    recording = ensure_recording(store, state="downloaded")
-    warnings = list(recording.warnings)
-    if "source no longer available" not in warnings:
-        warnings.append("source no longer available")
-    store.saves(replace(recording, warnings=tuple(warnings)))
-    store._no_longer_extractable = True
+    recording = ensure_recording(store, state="awaiting_review")
+    for start, end in ((60.0, 3300.0), (3400.0, 6600.0)):
+        store.saves(
+            Segment(
+                recording_id=recording.recording_id,
+                classification="lesson",
+                state="skipped",
+                span_start_seconds=start,
+                span_end_seconds=end,
+                punch_in_seconds=start,
+                punch_out_seconds=end,
+            )
+        )
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="download",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"download:{recording.recording_id}",
+            queued_at=FROZEN,
+        )
+    )
+
+
+def holds_nothing(_key, _destination):
+    return None
+
+
+@when("the Processor next fetches that source")
+def _(store):
+    RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(store=store, fetches=holds_nothing, probes=refuses_other_work, clock=lambda: FROZEN),
+        analyzes=refuses_other_work,
+        renders=refuses_other_work,
+        clock=lambda: FROZEN,
+    )()
 
 
 @then('the Recording is flagged "source no longer available"')
@@ -808,9 +912,15 @@ def _(store):
 @then("an operator is alerted")
 def _(store):
     body = creates_app(store=store).test_client().get("/api/health").get_json()
-    assert body.get("storage_alert") or body.get("alerts") or "source no longer available" in store.lists(Recording)[0].warnings
+    assert "source no longer available" in body["alerts"], body["alerts"]
 
 
 @then("its skipped Segments are marked as no longer extractable")
 def _(store):
-    assert getattr(store, "_no_longer_extractable", False)
+    skipped = store.lists(Segment, state="skipped")
+    assert len(skipped) == 2
+    for segment in skipped:
+        page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+        assert "no longer extractable" in page, f"Segment {segment.segment_id} is not marked"
+
+

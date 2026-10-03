@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from pytest_bdd import then
+from pytest_bdd import given, then, when
 
 from sermon.adjusts_punch_point import AdjustsPunchPoint
 from sermon.approves_segment import ApprovesSegment
@@ -66,12 +66,6 @@ def publishes_one_untouched_and_one_edited(store):
     approves(store, moved)
 
 
-def surfaced_period(store, tmp_path):
-    if not store.lists(Segment, intent="publish"):
-        publishes_one_untouched_and_one_edited(store)
-    return surfaces(tmp_path, "--since", SINCE.isoformat(), "--until", UNTIL.isoformat())
-
-
 def dispositioned(store):
     return [segment for segment in store.lists(Segment) if segment.state == "approved"]
 
@@ -101,19 +95,27 @@ def _(store):
     assert not set(approved) & set(labelled)
 
 
+@given("a period in which one Segment was published untouched and one after a boundary edit")
+def _(store):
+    publishes_one_untouched_and_one_edited(store)
+
+
+@when("the approval rate is reported for that period", target_fixture="printed")
+def _(tmp_path):
+    return surfaces(tmp_path, "--since", SINCE.isoformat(), "--until", UNTIL.isoformat())
+
+
 @then(
     "the headline measure is the proportion of a period's published Segments "
     "approved with no boundary edit"
 )
-def _(store, tmp_path):
-    printed = surfaced_period(store, tmp_path)
+def _(printed):
     assert f"{SINCE.isoformat()} to {UNTIL.isoformat()}" in printed
     assert "2 Segments published, 1 approved with no boundary edit: 50%" in printed
 
 
 @then("it is reported alongside the raw error figures, not replaced by them")
-def _(store, tmp_path):
-    printed = surfaced_period(store, tmp_path)
+def _(printed):
     assert "2 Segments published, 1 approved with no boundary edit: 50%" in printed
     assert "punch-in   error   +5.000 s" in printed
     assert "punch-out  error   -2.800 s" in printed

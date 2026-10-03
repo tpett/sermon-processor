@@ -19,12 +19,21 @@ def serves(store):
         worker.join()
 
 
+DESKTOP = {"viewport": {"width": 1400, "height": 1000}}
+PHONE = {
+    "viewport": {"width": 390, "height": 844},
+    "device_scale_factor": 3,
+    "is_mobile": True,
+    "has_touch": True,
+}
+
+
 @contextmanager
-def opens_page(store):
+def opens_page(store, device=DESKTOP):
     with serves(store) as base, sync_playwright() as driver:
         browser = driver.chromium.launch()
         try:
-            page = browser.new_page(base_url=base, viewport={"width": 1400, "height": 1000})
+            page = browser.new_page(base_url=base, **device)
             yield page
         finally:
             browser.close()

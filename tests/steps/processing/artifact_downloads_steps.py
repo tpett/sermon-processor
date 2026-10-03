@@ -7,6 +7,7 @@ from pytest_bdd import given, parsers, then, when
 from sermon.object_store import CHUNK_BYTES
 from sermon.store import Artifact, Recording, Segment, layout
 from sermon.web import ARTIFACT_UNAVAILABLE, REPROCESS_OFFER, creates_app
+from steps import _browser
 from steps._bucket import BUCKET, HoldsBucket, serves_as_deployed
 from steps._markup import reads_field, reads_field_link, reads_links, reads_rows
 
@@ -219,9 +220,9 @@ def _(store, segment):
     assert len(names) >= 1
 
 
-@given("I am using a phone")
+@given("I am using a phone", target_fixture="device")
 def _():
-    return None
+    return _browser.PHONE
 
 
 @when("I download the MP3")

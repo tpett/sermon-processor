@@ -83,6 +83,7 @@ Feature: Approving a segment
     Scenario: An archival segment needs no label
       Given the Segment's intent is "archive"
       When I approve the Segment
+      And the worker drains the queue
       Then no label is required
       And the output is named from the recording date alone
 
@@ -118,6 +119,9 @@ Feature: Approving a segment
 
     @happy-path
     Scenario: Nothing renders without an explicit approval
+      Given the Segment's intent is "publish"
+      When its publication label "Hebrews 12.4-11" is entered without approving it
+      And the worker drains the queue
       Then no Segment is ever rendered without a human approving it
       And no Segment is ever published on classification alone
 

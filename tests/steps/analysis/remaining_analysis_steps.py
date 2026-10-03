@@ -77,6 +77,12 @@ def ensure_block(store, **fields):
     )
 
 
+def only_segment(store):
+    segments = store.lists(Segment)
+    assert len(segments) == 1, f"{len(segments)} Segments"
+    return segments[0]
+
+
 def ensure_segment(store, **fields):
     recording = rec(store)
     existing = store.lists(Segment, recording_id=recording.recording_id)
@@ -336,10 +342,20 @@ def _(store):
     store._small_model = True
 
 
-@given("refinement would produce a punch-out earlier than the punch-in")
+@given("refinement would produce a punch-out no later than the punch-in", target_fixture="refines_out_with")
 def _(store):
-    store._last_word = 10.0
-    ensure_segment(store, punch_in_seconds=100.0, punch_out_seconds=200.0)
+    def answers_the_punch_in(_blocks, _doc):
+        return [
+            {
+                "punch_in": segment.punch_in_seconds,
+                "punch_out": segment.punch_in_seconds,
+                "classification": segment.classification,
+                "boundary_source": "refined",
+            }
+            for segment in store.lists(Segment)
+        ]
+
+    return answers_the_punch_in
 
 
 @given("several Recordings on the same day within a few hours of each other")
@@ -434,10 +450,38 @@ def _(reached_destinations):
     assert elsewhere == [], f"the transcript went to {elsewhere}"
 
 
-@then("no reviewer-facing behaviour depends on a model's self-reported confidence")
+CLASS_SPANS = ((0.0, 3300.0, "lesson"), (3300.0, 4500.0, "qa"), (4500.0, 5412.0, "music"))
+
+
+@given("a Recording divided into a lesson Block and a qa Block", target_fixture="class_spans")
 def _(store):
-    proposals = store.lists(Proposal)
-    assert not proposals or proposals[0].classification_confidence in {"high", "medium", "low"}
+    _analysis.recording_of(store)
+    return CLASS_SPANS
+
+
+@when(
+    "block classification runs once with the model reporting 0.95 and once reporting 0.10",
+    target_fixture="as_reported",
+)
+def _(store, class_spans):
+    recording = _analysis.recording_of(store)
+    seen = {}
+    for reported in (0.95, 0.10):
+        _analysis.lays_out(store, recording, class_spans, typed=False)
+        _analysis.divides(store, recording, class_spans, confidence=reported)
+        ClassifiesBlocks(store=store)(recording)
+        seen[reported] = {
+            "levels": [(block.type, block.classification_confidence) for block in _analysis.blocks_of(store)],
+            "page": _web.opens_detail(store, recording.recording_id),
+        }
+    return seen
+
+
+@then("no reviewer-facing behaviour depends on a model's self-reported confidence")
+def _(as_reported):
+    confident, unsure = as_reported[0.95], as_reported[0.10]
+    assert confident["levels"] == unsure["levels"], f"0.95 gives {confident['levels']}, 0.10 gives {unsure['levels']}"
+    assert confident["page"] == unsure["page"], "the review page differs with the confidence the model reported"
 
 
 @when(parsers.parse('the reviewer retypes it as "{block_type}"'), target_fixture="retyped")
@@ -546,9 +590,19 @@ def _(store):
     assert types == {"rehearsal"}, types
 
 
+@then("the refinement is rejected")
+def _(store):
+    segment = only_segment(store)
+    assert segment.punch_out_seconds > segment.punch_in_seconds, segment
+
+
 @then("the punch-out falls back to the end of the seeding Block")
 def _(store):
-    assert store.lists(Segment)
+    segment = only_segment(store)
+    seed = store.loads(Block, segment.seed_block_id)
+    assert segment.punch_out_seconds == pytest.approx(seed.end_seconds, abs=0.01), (
+        f"the punch-out is {segment.punch_out_seconds}, the seeding Block ends at {seed.end_seconds}"
+    )
 
 
 @when("the accuracy suite runs before and after")
@@ -658,33 +712,36 @@ def _(store):
     assert any(item.provenance == "machine" for item in store.lists(CorpusPair))
 
 
-@when("the leading silence is measured from the punch-in to the first speech")
+FIRST_SPEECH = 1900.0
+
+
+@given("a proposed Segment whose punch-in sits 3.0 seconds before the first speech")
 def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
+    recording = rec(store)
+    spoken = [(1570.0, FIRST_SPEECH - 8.0, "scripture_reading"), (FIRST_SPEECH, 4300.0, "sermon")]
+    _analysis.lays_out(store, recording, spoken)
+    first = min(
+        word["start"]
+        for utterance in _analysis.transcript_of(store, recording)["utterances"]
+        for word in utterance["words"]
+        if word["start"] >= FIRST_SPEECH - 1.0
+    )
+    ensure_segment(store, punch_in_seconds=first - 3.0, span_start_seconds=first - 3.0)
 
 
-@then("it is at most 1.0 seconds")
-def _(store):
-    silence = store.lists(Segment)[0].leading_silence_seconds
-    assert silence is None or silence <= 1.0 + 1e-6
-
-
-@then("a proposal exceeding it is flagged to the reviewer before approval")
-def _(store):
-    assert store.lists(Segment)
+@then("it is flagged as having more than 2.0 seconds of silence before the first word")
+def _(store, review_page):
+    segment = store.lists(Segment)[0]
+    flags = [warning for warning in segment.warnings if "silence" in warning or "lead-in" in warning]
+    assert flags, f"the Segment carries no flag for its leading silence: {segment.warnings}"
+    for flag in flags:
+        assert flag in review_page, f"{flag!r} is not shown to the reviewer"
 
 
 @then("the Proposal confidence is reduced")
 def _(store):
-    proposals = store.lists(Proposal)
-    if not proposals:
-        ScoresProposals(store=store)(rec(store))
-        proposals = store.lists(Proposal)
-    assert proposals
-    assert proposals[0].classification_confidence in {"medium", "low"} or proposals[0].boundary_confidence in {
-        "medium",
-        "low",
-    }
+    proposal = _analysis.proposal_of(store, only_segment(store))
+    assert proposal.boundary_confidence in {"medium", "low"}, proposal
 
 
 @then("the resulting Proposal has reduced confidence")

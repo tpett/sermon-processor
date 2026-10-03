@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 468 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 469 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -657,8 +657,98 @@ the bucket`, so that Rule survives and the deletion moved no Rule count. A
 comment in its place cites where the behaviour is now specified, so the
 requirement is not silently absent.
 
-Pins are now **34 files / 468 scenarios / 144 rules / 614 collected**, and
-`SPEC_STEPS` is 1939.
+On 2026-10-03 the owner settled a contradiction about diarization. They want it
+built and treated as useful when it is there — "It might be useful in certain
+cases, we should build it unless there's a major lift" — and
+`features/analysis/speaker_diarization.feature`'s `Diarization fails` already
+said analysis carries on with transcript evidence alone. The Outline `A stage
+fails permanently` in `features/analysis/analysis_orchestration.feature`
+disagreed, listing `diarization` among the stages whose failure sends the
+Recording to `analysis_failed`. Evidence that is only useful when available
+cannot also be fatal when absent, so the `diarization` Examples row was removed.
+One expanded test went; no scenario, Rule or step count moved.
+
+The same day, asked about the list's transcript search: "Search is less
+important for now." `Finding a recording by what it was` in
+`features/interface/recording_list.feature` asserts a search the list does not
+have. Its text is unchanged; it is tagged `@deferred` with the owner's words, so
+it is a decision on the record rather than a gap. No pin moved; `DEFERRED_TESTS`
+went from 7 to 8.
+
+On mobile they said "Mobile is good enough as is." The Rule in
+`features/interface/segment_review.feature` still read `Mobile can check and
+approve; editing is a desktop job`, and `A segment needing real editing says so
+on mobile` asserted a "better made at a desk" message and no editor at all on a
+phone — the opposite of what shipped, which offers the phone the full editor
+and reflows it to fit. The Rule is now `A phone gets the full editor, reflowed
+to fit`, and that scenario became `A segment needing real editing can be edited
+on a phone`, asserting in a phone-sized Chromium that the waveform and the nudge
+controls are offered, the page is no wider than the screen, and skip and approve
+are still there. Same step count; no pin moved.
+
+On publication dates: "Naming is always based on recording date. Publication
+date is irrelevant other than for logging." `features/interface/publication_details.feature`
+made Date a required, prefilled, changeable reviewer entry and built the file
+name from it, and the product agreed: the render named the MP3 from
+`Segment.publication_date` whenever one was set, so a date written through
+`PUT /api/segments/<id>/publication` renamed the output. The Rule is now `A
+published segment needs a label, and is dated by its recording`. `Entering
+publication details` asserts on the rendered page that a label is asked for and
+a date is not; `The date defaults from the recording` became `The publication
+date is the recording's, kept for the log`, approving through the page and
+reading back the label and the placed date; `A publication date never names the
+file` was added, recording a different date through the real request and then
+processing; and the filename Outline's Given now sets the Recording's date
+rather than a publication date. The render and the collision check both name
+the file from the Recording's start, and `publication_date` is still stored.
+One scenario and five steps were added and one expanded test with them.
+
+On the lead-in: "Lead-in silence is not necessary, but if it's too long it's a
+problem. 1-2s is probably about as long as you want to go or someone who's
+started the recording playback thinks nothing is happening." And on any cut:
+"there is some buffer needed due to room echo and other pre "word" sounds. 50ms
+is probably a good buffer but it might need to be a bit longer... Almost always
+though moving more into the silence produces a better cut."
+`features/analysis/punch_in_detection.feature`'s `A short lead-in is included`
+had turned an older remark, "One second is perfect", into an exact punch-in at
+`0:31:40.500` and a 1.0 s ceiling — an instant, where the owner's own measure is
+that two cuts in one silence are the same cut. It now asserts the punch-in is
+in the silence before the first word, at least 50 ms clear of the words either
+side, and never more than 2.0 s ahead of the first word; the Rule became `The
+punch-in sits in the silence before the first word`. `The lead-in is shortened
+rather than crossing into the previous block` traded its 1.0 s figure for the
+same 50 ms buffer. That scenario had been green with the cut landing exactly on
+the first word; it is now red until the buffer is placed, which is the honest
+state. The punch-out's 1.5 s tail was left alone: the owner chose it by ear
+from three real cuts and it is nowhere near a word. One step was added.
+
+Also on 2026-10-03 the owner approved, with a plain "Yes", the When and Given
+lines a run of scenarios could not be honest without, the rewording of `The
+punch-out would land before the punch-in` to "no later than", and the two
+`When the Recording is analysed` rewordings already made in
+`block_classification.feature`. These scenarios had a Then and nothing for it to
+observe, so their step definitions either acted inside the Then or asserted that
+some row existed. Each now has its action: the worker draining the queue
+(`Concurrency is bounded`, `Scratch fills up`, `Nothing renders without an
+explicit approval`, `An archival segment needs no label`), the Processor
+fetching a missing source, the preview stage, block classification after
+blocking without diarization, segment proposal (four `segment_proposal.feature`
+scenarios and the seeding Outline in `block_classification.feature`), the
+approval rate reported over a period, a neighbouring Segment and a second
+extension that would overlap it, and classification run twice with the model
+reporting 0.95 and 0.10. `Silence before the first word is bounded` became a
+check on a proposal that exceeds the cap, at the owner's new 2.0 s, and the
+segment-proposal invariant moved to 2.0 s with it. The punch-out scenario now
+says what refinement can actually return — the punch-in itself — and is fed
+that answer at the stage's own seam. Several went red, every one a claim the
+product does not meet: a render runs with no scratch, skipped Segments are not
+marked when their source vanishes, Block confidence does not drop without
+diarization and does follow the model's self-reported number, no leading-silence
+flag exists, and the punch-out falls back to the end of the span rather than of
+the seeding Block. Twenty-two steps were added; no scenario or Rule.
+
+Pins are now **34 files / 469 scenarios / 144 rules / 614 collected**, and
+`SPEC_STEPS` is 1967.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
