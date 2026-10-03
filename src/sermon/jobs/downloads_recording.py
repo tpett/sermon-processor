@@ -304,7 +304,7 @@ class RunsDownloadJob:
                         state="failed",
                         last_error=str(error),
                         attempts=attempts,
-                        failed_permanently=attempts >= running.max_attempts,
+                        failed_permanently=True,
                     )
                 )
                 return

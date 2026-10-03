@@ -307,6 +307,18 @@ def test_a_render_that_exhausts_its_budget_fails_permanently(store, clock):
     assert store.loads(Segment, job.segment_id).state == "processing_failed"
 
 
+def test_a_download_that_stops_retrying_is_marked_permanent(store, clock):
+    job = a_download(store)
+    fetches = FetchesObject()
+    for attempt in range(1, 4):
+        worker(store, clock, fetches)()
+        clock.passes(retry_delay(attempt))
+
+    stopped = store.loads(Job, job.job_id)
+    assert (stopped.state, stopped.attempts, stopped.failed_permanently) == ("failed", 3, True)
+    assert store.loads(Recording, job.recording_id).state == "ingest_failed"
+
+
 def test_a_job_with_no_logged_attempt_runs_at_once(store, clock):
     job = store.saves(replace(a_download(store), attempts=2))
     fetches = FetchesObject()
