@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 from steps._asr import transcribes_for
 
+from sermon.analysis.diarizes_audio import DiarizationUnavailable
+from sermon.analysis.io import reads_json
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
 from sermon.jobs.probes_recording import ProbeResult
@@ -318,3 +320,28 @@ def test_the_envelope_stage_records_no_artifact_it_did_not_write(store, roots):
     walks(store, [])()
     for artifact in store.lists(Artifact, recording_id=recording.recording_id):
         assert store.resolves(artifact).is_file(), artifact.kind
+
+
+def test_the_walk_stores_what_the_diarizer_heard(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    turns = [{"start": 0.0, "end": 5000.0, "speaker": "S0"}, {"start": 5000.0, "end": 11520.0, "speaker": "S1"}]
+    walks(store, [], diarizes=lambda _recording: [dict(turn) for turn in turns])()
+    assert reads_json(store, recording, "diarization") == {"turns": turns}
+    assert [error for error in optional_failures(store, recording) if error.startswith("diarization")] == []
+
+
+def test_a_diarizer_that_is_unavailable_leaves_the_walk_carrying_on(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def unavailable(_recording):
+        raise DiarizationUnavailable("no diarization models are configured")
+
+    walks(store, [], diarizes=unavailable)()
+    assert store.lists(Job, recording_id=recording.recording_id)[0].state == "succeeded"
+    assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
+    assert reads_json(store, recording, "diarization") is None
+    assert [error for error in optional_failures(store, recording) if error.startswith("diarization")] == [
+        "diarization: no diarization models are configured"
+    ]

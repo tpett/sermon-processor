@@ -37,6 +37,7 @@ from sermon.analysis.measures_boundary_error import (
     ReadsLabelledFromStore,
 )
 from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals, RegradesStoredCuts
+from sermon.analysis.diarizes_audio import diarizes_with
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
@@ -549,6 +550,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
                 notifies=SendsNotification(store=store),
                 analyses=analyses,
                 transcribes=transcribes_with(store=store),
+                diarizes=diarizes_with(store=store),
             ),
             renders=RunsRenderJob(
                 store=store,
