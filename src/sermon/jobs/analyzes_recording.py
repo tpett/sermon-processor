@@ -212,19 +212,6 @@ class AnalyzesRecording:
                 error=reason,
             )
         )
-        if not final:
-            return
-        notification = self.store.saves(
-            Notification(
-                recording_id=recording.recording_id,
-                kind="analysis_failed",
-                recipient="reviewer",
-                summary=f"analysis failed: {reason}",
-                created_at=self.clock(),
-                state="pending",
-            )
-        )
-        self.notifies(notification)
 
     def __call__(self, recording, *, final_attempt=True):
         correlation_id = f"analyze:{recording.recording_id}"

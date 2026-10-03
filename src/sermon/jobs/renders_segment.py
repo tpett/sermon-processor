@@ -57,20 +57,6 @@ class RendersSegment:
                 error=reason,
             )
         )
-        if not final:
-            return
-        notification = self.store.saves(
-            Notification(
-                recording_id=segment.recording_id,
-                segment_id=segment.segment_id,
-                kind="processing_failed",
-                recipient="reviewer",
-                summary=f"processing failed: {reason}",
-                created_at=self.clock(),
-                state="pending",
-            )
-        )
-        self.notifies(notification)
 
     def __call__(self, segment, *, final_attempt=True):
         refuses_unsettled_stereo(self.store.loads(Recording, segment.recording_id))

@@ -408,6 +408,7 @@ def test_a_failed_analysis_returns_the_recording_to_downloaded_and_is_retried(st
         ("analyzing", None),
         ("downloaded", "transcription: the transcriber did not answer"),
     ]
+    assert store.lists(Notification) == []
 
     clock.passes(retry_delay(1) - SECOND)
     assert analysis_worker(store, clock, analyses)() is None
@@ -438,23 +439,6 @@ def test_an_analysis_that_exhausts_its_budget_fails_the_recording_once(store, cl
     assert store.loads(Recording, job.recording_id).state == "analysis_failed"
     failed = [error for state, error in entered(store, job.recording_id) if state == "analysis_failed"]
     assert failed == ["transcription: the transcriber did not answer"]
-
-
-def test_an_analysis_that_exhausts_its_budget_tells_the_reviewer_why(store, clock):
-    job = an_analysis(store)
-    sent = []
-    analyses = FailsAnalysis(times=10)
-    for attempt in range(1, 4):
-        analysis_worker(store, clock, analyses, sent)()
-        clock.passes(retry_delay(attempt))
-
-    told = store.lists(Notification, recording_id=job.recording_id)
-    assert [(item.kind, item.recipient, item.state) for item in told] == [
-        ("analysis_failed", "reviewer", "pending")
-    ]
-    assert "transcription" in told[0].summary
-    assert "the transcriber did not answer" in told[0].summary
-    assert sent == told
 
 
 def test_an_unreachable_model_host_is_retried_like_any_other_failure(store, clock):
@@ -510,26 +494,6 @@ def test_a_render_that_fails_within_its_budget_is_not_shown_as_failed(store, clo
     assert store.lists(Notification) == []
 
 
-def test_a_render_that_exhausts_its_budget_tells_the_reviewer_why(store, clock):
-    job = a_render(store)
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    sent = []
-    renders = RunsRenderJob(
-        store=store,
-        steps=encodes_after(10),
-        notifies=SendsNotification(store=store, sends=sent.append),
-        clock=clock,
-    )
-    for attempt in range(1, 4):
-        worker(store, clock, FetchesObject(), renders=renders)()
-        clock.passes(retry_delay(attempt))
-
-    told = store.lists(Notification, segment_id=job.segment_id)
-    assert [(item.kind, item.recipient) for item in told] == [("processing_failed", "reviewer")]
-    assert "encode" in told[0].summary and "encoder crashed" in told[0].summary
-    assert sent == told
-
-
 def test_an_analysis_run_on_its_own_leaves_its_job_queued_for_the_worker(store, clock):
     job = an_analysis(store)
     analyzes_with(store, clock, FailsAnalysis(times=1), [])()
@@ -565,7 +529,6 @@ def test_a_render_chain_that_keeps_failing_fails_the_segment(store, clock, tmp_p
 
     assert store.loads(Job, job.job_id).failed_permanently
     assert store.loads(Segment, job.segment_id).state == "processing_failed"
-    assert [item.kind for item in store.lists(Notification)] == ["processing_failed"]
 
 
 def an_exhausted_download(store):
