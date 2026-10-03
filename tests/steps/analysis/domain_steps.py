@@ -670,7 +670,10 @@ def _(store):
 
 @then("downstream confidence is reduced")
 def _(store):
-    assert store.lists(Block)
+    classified = store.lists(Block)
+    assert classified, "blocking produced no Block"
+    confident = [block for block in classified if block.classification_confidence == "high"]
+    assert confident == [], f"{len(confident)} of {len(classified)} Blocks are classified with high confidence"
 
 
 @given("the Recording is entirely music")

@@ -722,8 +722,33 @@ the first word; it is now red until the buffer is placed, which is the honest
 state. The punch-out's 1.5 s tail was left alone: the owner chose it by ear
 from three real cuts and it is nowhere near a word. One step was added.
 
+Also on 2026-10-03 the owner approved, with a plain "Yes", the When and Given
+lines a run of scenarios could not be honest without, the rewording of `The
+punch-out would land before the punch-in` to "no later than", and the two
+`When the Recording is analysed` rewordings already made in
+`block_classification.feature`. These scenarios had a Then and nothing for it to
+observe, so their step definitions either acted inside the Then or asserted that
+some row existed. Each now has its action: the worker draining the queue
+(`Concurrency is bounded`, `Scratch fills up`, `Nothing renders without an
+explicit approval`, `An archival segment needs no label`), the Processor
+fetching a missing source, the preview stage, block classification after
+blocking without diarization, segment proposal (four `segment_proposal.feature`
+scenarios and the seeding Outline in `block_classification.feature`), the
+approval rate reported over a period, a neighbouring Segment and a second
+extension that would overlap it, and classification run twice with the model
+reporting 0.95 and 0.10. `Silence before the first word is bounded` became a
+check on a proposal that exceeds the cap, at the owner's new 2.0 s, and the
+segment-proposal invariant moved to 2.0 s with it. The punch-out scenario now
+says what refinement can actually return — the punch-in itself — and is fed
+that answer at the stage's own seam. Several went red, every one a claim the
+product does not meet: a render runs with no scratch, skipped Segments are not
+marked when their source vanishes, Block confidence does not drop without
+diarization and does follow the model's self-reported number, no leading-silence
+flag exists, and the punch-out falls back to the end of the span rather than of
+the seeding Block. Twenty-two steps were added; no scenario or Rule.
+
 Pins are now **34 files / 469 scenarios / 144 rules / 614 collected**, and
-`SPEC_STEPS` is 1945.
+`SPEC_STEPS` is 1967.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

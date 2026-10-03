@@ -6,9 +6,10 @@ from pytest_bdd import given, parsers, then, when
 from sermon.approves_segment import ApprovesSegment
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.renders_segment import PROCESS_STEPS, RunsRenderJob
+from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.shows_recording import NOTICES
-from sermon.store import Job, LogEntry, Proposal, Recording, Segment, layout
+from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, Recording, Segment, layout
 from steps import _web
 from steps._markup import reads_field, reads_rows
 
@@ -17,6 +18,7 @@ APPROVED = NOTICES["approved"]
 NOT_READY = NOTICES["not-ready"]
 ALREADY_APPROVED = NOTICES["already-approved"]
 LABEL_REQUIRED = NOTICES["label-required"]
+MOST_WORKER_PASSES = 20
 
 
 @given(
@@ -224,23 +226,44 @@ def _(detail_page):
     assert reads_field(detail_page, "action-notice") == APPROVED
 
 
+def refuses_other_work():
+    raise AssertionError("the worker ran a job that is not a render")
+
+
+@when("the worker drains the queue")
+def _(store, clock):
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=refuses_other_work,
+        analyzes=refuses_other_work,
+        renders=RunsRenderJob(
+            store=store, steps=lambda _name: None, notifies=SendsNotification(store=store), clock=clock
+        ),
+        clock=clock,
+    )
+    for _ in range(MOST_WORKER_PASSES):
+        if runs() is None:
+            return
+    raise AssertionError("jobs were still queued after the worker gave up")
+
+
+@when(parsers.parse('its publication label "{label}" is entered without approving it'))
+def _(store, segment, label):
+    recording = store.loads(Recording, segment.recording_id)
+    answered = _web.opens_app(store).test_client().put(
+        f"/api/segments/{segment.segment_id}/publication",
+        json={"date": recording.started_at.date().isoformat(), "label": label},
+    )
+    assert answered.status_code == 200, answered.get_data(as_text=True)
+
+
 @then("the output is named from the recording date alone")
 def _(store, segment):
-    from sermon.jobs.renders_segment import RendersSegment
-    from sermon.sends_notification import SendsNotification
-    from sermon.store import Artifact, Reviewer
-
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    RendersSegment(
-        store=store,
-        steps=lambda _name: None,
-        notifies=SendsNotification(store=store),
-    )(store.loads(Segment, segment.segment_id))
-    artifact = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")[0]
     recording = store.loads(Recording, segment.recording_id)
-    assert artifact.path == layout.published_path(
-        f"{recording.started_at.date().isoformat()}.mp3"
-    )
+    artifacts = store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3")
+    assert [item.path for item in artifacts] == [
+        layout.published_path(f"{recording.started_at.date().isoformat()}.mp3")
+    ]
 
 
 @given(parsers.parse('the Segment is classified "{classification}"'), target_fixture="segment")
@@ -264,9 +287,12 @@ def _(store, segment):
 
 @then("no Segment is ever rendered without a human approving it")
 def _(store):
-    for job in store.lists(Job, kind="render"):
-        segment = store.loads(Segment, job.segment_id)
-        assert segment.state in {"approved", "processing", "complete"}
+    unapproved = [segment for segment in store.lists(Segment) if segment.disposition_at is None]
+    assert unapproved, "every Segment was approved, so nothing shows what an unapproved one does"
+    for segment in unapproved:
+        assert store.lists(Job, segment_id=segment.segment_id, kind="render") == [], segment
+        assert store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3") == [], segment
+        assert segment.state == "proposed", segment
 
 
 @given("another reviewer approved the Segment a moment ago", target_fixture="segment")
@@ -330,10 +356,17 @@ def _(detail_page):
 
 @then("no Segment is ever published on classification alone")
 def _(store):
-    for job in store.lists(Job, kind="render"):
-        segment = store.loads(Segment, job.segment_id)
-        assert segment.intent is not None
-        assert segment.disposition_at is not None
+    unapproved = [segment for segment in store.lists(Segment) if segment.disposition_at is None]
+    assert [segment.classification for segment in unapproved] == ["sermon"]
+    for segment in unapproved:
+        page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+        assert 'data-field="mp3-download"' not in page, segment
+        assert store.lists(Artifact, segment_id=segment.segment_id, kind="rendered_mp3") == [], segment
+        assert not [
+            notification
+            for notification in store.lists(Notification, segment_id=segment.segment_id)
+            if notification.kind == "render_complete"
+        ], segment
 
 
 @then('I can change it to "archive" before approving')

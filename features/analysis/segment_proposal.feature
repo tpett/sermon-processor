@@ -120,6 +120,7 @@ Feature: Proposing publishable segments
       # punch-in while its length sat comfortably inside the 30-75 minute band.
       # Length is the weakest of the available checks.
       Given a proposed Segment where <condition>
+      When segment proposal runs
       Then the proposal is treated as implausible
 
       Examples:
@@ -139,6 +140,7 @@ Feature: Proposing publishable segments
       # it five seconds away. The rules were written to help and were overwriting
       # a better answer.
       Given a proposed Segment that is not implausible by any of those tests
+      When segment proposal runs
       Then its boundaries are used as proposed
       And the refinement rules do not run
       And the boundary invariants below are still enforced
@@ -157,15 +159,20 @@ Feature: Proposing publishable segments
       # These were written inside the refinement files, so skipping refinement
       # skipped them — which would ship cuts that clip a word. They are
       # properties of an acceptable boundary, not of the refiner.
-      Given any Segment whose boundaries have been accepted
+      # The lead-in ceiling is the owner's: "1-2s is probably about as long as
+      # you want to go" (2026-10-03).
+      Given a Recording laid out as an ordinary Sunday
+      When segment proposal runs
       Then the punch-in does not fall inside a word
       And the punch-out does not fall inside a word
       And neither boundary sits within 250 ms of audible sound where quiet exists
-      And the lead-in before the first word does not exceed 1.0 second
+      And the lead-in before the first word does not exceed 2.0 seconds
       And a boundary that cannot satisfy these is flagged rather than moved silently
 
     @happy-path
     Scenario: Where a boundary came from is always recorded
+      Given a Recording laid out as an ordinary Sunday
+      When segment proposal runs
       Then every Segment records whether its boundaries were proposed or refined
       And that is visible in the processing log
       # Without it, a regression in either path is invisible.

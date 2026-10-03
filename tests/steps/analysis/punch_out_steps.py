@@ -137,11 +137,16 @@ def _(store, tail, timecode):
     lays_out(store, tail)
 
 
+@pytest.fixture
+def refines_out_with():
+    return None
+
+
 @when("punch-out refinement runs")
-def _(store):
+def _(store, refines_out_with):
     recording = _analysis.recording_of(store)
     ProposesSegments(store=store)(recording)
-    RefinesPunchOut(store=store)(recording)
+    RefinesPunchOut(store=store, chooses=refines_out_with)(recording)
     ScoresProposals(store=store)(recording)
 
 

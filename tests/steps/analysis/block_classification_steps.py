@@ -50,22 +50,27 @@ def _(store):
     _analysis.analyses(store, _analysis.recording_of(store))
 
 
-@then(parsers.parse('a Block typed "{block_type}" {seeds} a Segment'))
-def _(store, block_type, seeds):
-    recording = _analysis.recording_of(store)
-    spans = [(0.0, 1570.0, "music"), (1570.0, 1900.0, "scripture_reading"), (1900.0, 4360.0, block_type),
+SEEDED_AT = 1900.0
+
+
+@given(parsers.parse('a Block typed "{block_type}" between a scripture reading and communion'))
+def _(store, block_type):
+    spans = [(0.0, 1570.0, "music"), (1570.0, SEEDED_AT, "scripture_reading"), (SEEDED_AT, 4360.0, block_type),
              (4360.0, 4800.0, "communion"), (4800.0, 5412.0, "music")]
-    _analysis.lays_out(store, recording, spans)
-    proposed = _analysis.analyses(store, recording)
-    typed = [block for block in _analysis.blocks_of(store) if block.start_seconds == 1900.0]
-    assert [block.type for block in typed] == [block_type]
+    _analysis.lays_out(store, _analysis.recording_of(store), spans)
+
+
+@then(parsers.parse("that Block {seeds} a Segment"))
+def _(store, seeds):
+    typed = [block for block in _analysis.blocks_of(store) if block.start_seconds == SEEDED_AT]
+    assert len(typed) == 1, f"{len(typed)} Blocks start at {SEEDED_AT}"
     covering = [
         segment
-        for segment in proposed
+        for segment in _analysis.proposed(store)
         if segment.punch_in_seconds < typed[0].end_seconds and segment.punch_out_seconds > typed[0].start_seconds
     ]
-    if "never" in seeds:
-        assert covering == []
+    if seeds == "never seeds":
+        assert covering == [], f"a {typed[0].type} Block seeded {covering}"
     else:
         assert [segment.seed_block_id for segment in covering] == [typed[0].block_id]
 

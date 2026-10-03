@@ -23,6 +23,7 @@ Feature: Preview audio for review
 
     @happy-path
     Scenario: The preview is not the product
+      When the preview stage runs
       Then the preview is never offered as a download
       And the published MP3 is always rendered from the source FLAC, never from the preview
       # The preview exists to be scrubbed. Quality decisions belong to the render.
@@ -62,6 +63,7 @@ Feature: Preview audio for review
       # Seeking to 10, 30, 60, 90 and 100 minutes landed within 0.04 s every
       # time, fetching 0.16% of the file, verified against the source audio.
       # One file, no manifest, no packaging step.
+      When the preview stage runs
       Then the preview is a constant-bitrate file
       And it is served with HTTP range request support
       And no seek index has to be parsed before the first seek

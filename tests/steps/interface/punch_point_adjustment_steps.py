@@ -183,30 +183,30 @@ def _(store, segment, detail_page):
         assert abs(READS(reads_field(page, "punch-in")) - at) < 0.005
 
 
-@then("the change is rejected if it would overlap the neighbouring Segment")
-def _(store, recording, segment, detail_page):
-    grown_start, _ = reads_span(detail_page)
+@given(parsers.parse('a neighbouring Segment ends at "{timecode}"'))
+def _(store, recording, timecode):
     store.saves(
         Segment(
             recording_id=recording.recording_id,
             classification="lesson",
             state="proposed",
             span_start_seconds=READS("1:00:00"),
-            span_end_seconds=grown_start,
+            span_end_seconds=READS(timecode),
             punch_in_seconds=READS("1:00:00"),
-            punch_out_seconds=grown_start,
+            punch_out_seconds=READS(timecode),
         )
     )
-    refused = _web.posts(
-        store,
-        _web.span_action(segment, "start"),
-        do="set",
-        timecode=formats_precise(grown_start - 60),
-    )
-    assert (
-        reads_field(refused, "action-notice") == "it would overlap the neighbouring Segment"
-    )
-    assert reads_span(refused)[0] == grown_start
+
+
+@when(parsers.parse('I then try to extend it to "{timecode}"'), target_fixture="refused_page")
+def _(store, segment, timecode):
+    return _web.posts(store, _web.span_action(segment, "start"), do="set", timecode=timecode)
+
+
+@then("the further extension is rejected because it would overlap the neighbouring Segment")
+def _(detail_page, refused_page):
+    assert reads_field(refused_page, "action-notice") == "it would overlap the neighbouring Segment"
+    assert reads_span(refused_page)[0] == reads_span(detail_page)[0]
 
 
 @pytest.fixture

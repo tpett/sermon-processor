@@ -11,7 +11,7 @@ READS = _analysis.READS
 CLASS_AND_SERVICE_S = 3 * 3600 + 12 * 60
 QUIET_MARGIN_S = 0.25
 QUIET_RUN_S = 0.5
-LEAD_IN_LIMIT_S = 1.0
+LEAD_IN_LIMIT_S = 2.0
 UNCLEAN = {
     "punch_in_seconds": "no clean cut point found at punch-in",
     "punch_out_seconds": "no clean cut point found at punch-out",
@@ -25,11 +25,6 @@ def recording_of(store):
 def lays_out(store, spans):
     recording = recording_of(store)
     return _analysis.lays_out(store, recording, [(float(start), float(end), kind) for start, end, kind in spans])
-
-
-def proposes_after(store, spans):
-    lays_out(store, spans)
-    return _analysis.analyses(store, recording_of(store))
 
 
 def seeded_on(store, segment):
@@ -273,7 +268,7 @@ def _(store):
 
 @given("a proposed Segment where the length falls outside the expected range")
 def _(store):
-    proposes_after(
+    lays_out(
         store,
         [(0.0, 1570.0, "music"), (1570.0, 1900.0, "scripture_reading"), (1900.0, 2500.0, "sermon"),
          (2500.0, 2620.0, "prayer"), (2620.0, 2900.0, "communion"), (2900.0, 5412.0, "music")],
@@ -282,7 +277,7 @@ def _(store):
 
 @given("a proposed Segment where a boundary falls outside the Recording")
 def _(store):
-    proposes_after(
+    lays_out(
         store,
         [(0.0, 1570.0, "music"), (1570.0, 1900.0, "scripture_reading"), (1900.0, 4360.0, "music"),
          (4360.0, 5600.0, "sermon")],
@@ -313,7 +308,7 @@ def _(store):
 
 @given("a proposed Segment that is not implausible by any of those tests")
 def _(store):
-    proposes_after(
+    lays_out(
         store,
         [(0.0, 1570.0, "music"), (1570.0, 1900.0, "scripture_reading"), (1900.0, 4360.0, "sermon"),
          (4360.0, 4492.0, "prayer"), (4492.0, 4800.0, "communion"), (4800.0, 5412.0, "music")],
@@ -365,9 +360,9 @@ def _(store):
     assert only_segment(store).boundary_source == "refined"
 
 
-@given("any Segment whose boundaries have been accepted")
+@given("a Recording laid out as an ordinary Sunday")
 def _(store):
-    proposes_after(store, _analysis.reads_rows(_analysis.SUNDAY))
+    lays_out(store, _analysis.reads_rows(_analysis.SUNDAY))
 
 
 @then("the punch-in does not fall inside a word")
@@ -391,7 +386,7 @@ def _(store):
         assert nearest_sound(store, moment) >= QUIET_MARGIN_S, f"{boundary} {moment} sits on sound"
 
 
-@then("the lead-in before the first word does not exceed 1.0 second")
+@then("the lead-in before the first word does not exceed 2.0 seconds")
 def _(store):
     segment = only_segment(store)
     spoken = first_word_after(store, segment.punch_in_seconds)
@@ -409,14 +404,14 @@ def _(store):
 @then("every Segment records whether its boundaries were proposed or refined")
 def _(store):
     segments = _analysis.proposed(store)
-    assert segments, "no Segment exists to record anything: the scenario runs no analysis"
+    assert segments, "analysis proposed no Segment"
     assert all(item.boundary_source in {"model", "refined"} for item in segments)
 
 
 @then("that is visible in the processing log")
 def _(store):
     segments = _analysis.proposed(store)
-    assert segments, "no Segment exists to record anything: the scenario runs no analysis"
+    assert segments, "analysis proposed no Segment"
     page = _web.opens_detail(store, _analysis.the_recording(store).recording_id)
     for item in segments:
         assert item.boundary_source in page

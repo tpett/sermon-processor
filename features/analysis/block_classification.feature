@@ -43,7 +43,9 @@ Feature: Classifying each block
     Scenario Outline: Only teaching Blocks can seed a Segment
       # The three vocabularies are distinct and this is where they meet. A Block
       # type is not a Segment classification; only these three cross over.
-      Then a Block typed "<type>" <seeds> a Segment
+      Given a Block typed "<type>" between a scripture reading and communion
+      When Segment proposal runs
+      Then that Block <seeds> a Segment
 
       Examples:
         | type              | seeds     |

@@ -210,10 +210,12 @@ Feature: Adjusting a segment's punch points
 
     @happy-path
     Scenario: Extending a Segment beyond its detected span
+      Given a neighbouring Segment ends at "1:24:00"
       When I extend the Segment's own start to "1:26:00"
+      And I then try to extend it to "1:23:00"
       Then the Segment's span grows
       And the punch-in may now be placed anywhere within the new span
-      And the change is rejected if it would overlap the neighbouring Segment
+      And the further extension is rejected because it would overlap the neighbouring Segment
 
     @edge-case
     Scenario: A zero-length or near-zero-length selection

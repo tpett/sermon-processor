@@ -115,8 +115,10 @@ Feature: Refining a segment's punch-out
       And the Segment is flagged "recording may have stopped early"
 
     @edge-case
-    Scenario: The punch-out would land before the punch-in
-      Given refinement would produce a punch-out earlier than the punch-in
+    Scenario: The punch-out would land no later than the punch-in
+      # Refinement searches for the punch-out from the punch-in onward, so it
+      # cannot land earlier; what it can return is the punch-in itself.
+      Given refinement would produce a punch-out no later than the punch-in
       When punch-out refinement runs
       Then the refinement is rejected
       And the punch-out falls back to the end of the seeding Block
