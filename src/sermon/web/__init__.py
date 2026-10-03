@@ -497,9 +497,9 @@ def creates_app(
         if action == "archive-whole-recording":
             archives(recording)
             return "archived"
-        if action == INGEST_ACTION:
+        if action in {INGEST_ACTION, "retry-ingestion"}:
             return f"ingest-{forces(recording).outcome}"
-        if action in {"re-run-analysis", "retry-analysis", "retry-ingestion"}:
+        if action in {"re-run-analysis", "retry-analysis"}:
             reruns(recording)
             return "reanalysis-queued"
         if action == "create-segment":
