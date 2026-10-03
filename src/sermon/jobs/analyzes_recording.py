@@ -21,7 +21,7 @@ from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.pipeline.preview import PreviewUnavailable
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
-from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Segment, Store, layout
+from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, Recording, Segment, Store, layout
 
 
 def now():
@@ -195,8 +195,6 @@ class AnalyzesRecording:
                     checksum="0.0" if artifact_kind == "waveform_peaks" else name,
                 )
             )
-        if name == "blocking" and not self.store.lists(Block, recording_id=recording.recording_id):
-            DividesIntoBlocks(store=self.store)(recording)
 
     def __call__(self, recording):
         correlation_id = f"analyze:{recording.recording_id}"
