@@ -36,6 +36,22 @@ def store(tmp_path):
     opened.close()
 
 
+@pytest.fixture
+def roots(tmp_path):
+    held = (classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
+    layout.diarization_root(tmp_path).mkdir(parents=True, exist_ok=True)
+    BindsCorpusRoots(
+        corpus_root=layout.corpus_root(tmp_path),
+        prompts_root=Path(__file__).resolve().parents[1] / "experiments/prompts",
+    )()
+    yield
+    classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
+
+
+def divides_into_nothing_publishable(doc):
+    return [{"start": 0.0, "end": doc["duration"], "type": "music", "confidence": 0.9}]
+
+
 def downloaded_recording():
     return Recording(
         recording_id="recording_20260913_090014",
@@ -70,10 +86,11 @@ def analyzes(store, stages, sent):
         contents=CLASS_AND_SERVICE,
         clock=lambda: FROZEN,
         transcribes=transcribes_for(store, downloaded_recording()),
+        divides=divides_into_nothing_publishable,
     )
 
 
-def test_runs_analyze_job_picks_the_queued_job(store):
+def test_runs_analyze_job_picks_the_queued_job(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     stages = []
@@ -84,13 +101,14 @@ def test_runs_analyze_job_picks_the_queued_job(store):
         notifies=SendsNotification(store=store, sends=sent.append),
         clock=lambda: FROZEN,
         transcribes=transcribes_for(store, recording),
+        divides=divides_into_nothing_publishable,
     )()
     job = store.lists(Job, recording_id=recording.recording_id, kind="analyze")[0]
     assert job.state == "succeeded"
     assert job.started_at == FROZEN
 
 
-def test_state_log_is_downloaded_analyzing_awaiting_review(store):
+def test_state_log_is_downloaded_analyzing_awaiting_review(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
@@ -104,7 +122,7 @@ def test_state_log_is_downloaded_analyzing_awaiting_review(store):
     assert entered == ["analyzing", "awaiting_review"]
 
 
-def test_two_segments_have_distinct_punch_points_and_classifications(store):
+def test_two_segments_have_distinct_punch_points_and_classifications(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
@@ -115,7 +133,7 @@ def test_two_segments_have_distinct_punch_points_and_classifications(store):
     }
 
 
-def test_each_segment_has_a_proposal_with_confidence(store):
+def test_each_segment_has_a_proposal_with_confidence(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
@@ -125,7 +143,7 @@ def test_each_segment_has_a_proposal_with_confidence(store):
         assert proposal.boundary_confidence == "medium"
 
 
-def test_a_notification_is_sent_when_segments_are_proposed(store):
+def test_a_notification_is_sent_when_segments_are_proposed(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     sent = []
@@ -137,7 +155,7 @@ def test_a_notification_is_sent_when_segments_are_proposed(store):
     assert notifications[0].recipient == "reviewer"
 
 
-def test_stages_run_in_gherkin_order_and_blocking_iterates(store):
+def test_stages_run_in_gherkin_order_and_blocking_iterates(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     stages = []
@@ -160,29 +178,13 @@ def test_stages_run_in_gherkin_order_and_blocking_iterates(store):
     ]
 
 
-def test_approving_one_segment_does_not_mutate_the_other(store):
+def test_approving_one_segment_does_not_mutate_the_other(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
     lesson, sermon = store.lists(Segment, recording_id=recording.recording_id)
     store.saves(replace(lesson, state="approved"))
     assert store.loads(Segment, sermon.segment_id).state == "proposed"
-
-
-@pytest.fixture
-def roots(tmp_path):
-    held = (classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
-    layout.diarization_root(tmp_path).mkdir(parents=True, exist_ok=True)
-    BindsCorpusRoots(
-        corpus_root=layout.corpus_root(tmp_path),
-        prompts_root=Path(__file__).resolve().parents[1] / "experiments/prompts",
-    )()
-    yield
-    classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
-
-
-def divides_into_nothing_publishable(doc):
-    return [{"start": 0.0, "end": doc["duration"], "type": "music", "confidence": 0.9}]
 
 
 def measures_loudness(recording):
