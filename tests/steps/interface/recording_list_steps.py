@@ -185,10 +185,39 @@ def _(store):
         raise AssertionError("rehearsal must not have been seeded with a Segment")
 
 
+def nothing_proposed(store):
+    return {
+        recording.recording_id
+        for recording in store.lists(Recording)
+        if not any(
+            segment.state == "proposed"
+            for segment in store.lists(Segment, recording_id=recording.recording_id)
+        )
+    }
+
+
 @then("it is not counted as needing attention")
-def _(list_page):
-    rehearsal = finds_row(reads_rows(list_page, "recording"), "2026-08-16 08:15 AM")
-    assert rehearsal["attention"] == "false"
+def _(store, list_page):
+    subjects = [row for row in reads_rows(list_page, "recording") if row["id"] in nothing_proposed(store)]
+    assert subjects, "the recording with nothing proposed is not in the list"
+    assert all(row["attention"] == "false" for row in subjects)
+
+
+@then("I do not have to discard it for the queue to stay clean")
+def _(store):
+    needing = renders_list(store, "?filter=Needs attention")
+    assert not {row["id"] for row in reads_rows(needing, "recording")} & nothing_proposed(store)
+    assert reads_field(renders_list(store), "awaiting") == "0"
+
+
+@then("it remains available if I ever want it")
+def _(store, list_page):
+    subjects = nothing_proposed(store)
+    assert subjects <= {row["id"] for row in reads_rows(list_page, "recording")}
+    for recording_id in subjects:
+        detail = creates_app(store=store).test_client().get(f"/recordings/{recording_id}")
+        assert detail.status_code == 200
+        assert reads_rows(detail.get_data(as_text=True), "block")
 
 
 @then("it is still visible in the list")
