@@ -80,28 +80,6 @@ def ensure_segment(store, **fields):
     )
 
 
-@given(parsers.parse('a Block contains "{text}"'))
-def _(store, text):
-    recording = rec(store)
-    start = 1900.0
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=start + 240.0, type="other"))
-    writes_json(
-        store,
-        recording,
-        "transcript",
-        {
-            "duration": recording.duration_seconds or 5412.0,
-            "utterances": [
-                {"start": start, "end": start + 8.0, "text": text, "confidence": 0.9, "words": [{"word": text.split()[0], "start": start}]}
-            ],
-            "silences": [],
-            "likely_music": [],
-        },
-    )
-    store._block_types = None
-    ClassifiesBlocks(store=store)(recording)
-
-
 @given(parsers.parse('a Block typed "{block_type}"'))
 def _(store, block_type):
     ensure_block(store, type=block_type, force=True)
@@ -179,18 +157,6 @@ def _(store, words):
     store._first_word = 1900.0
 
 
-@given(parsers.parse('a teaching Block is followed by a "{middle}" Block and then a "{following}" Block'))
-def _(store, middle, following):
-    recording = rec(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=250.0, end_seconds=3600.0, type="lesson")),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=3600.0, end_seconds=3720.0, type=middle)),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=3720.0, end_seconds=4500.0, type=following)),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-    store._classify_only = [item.block_id for item in created]
-
-
 @given(parsers.parse('"{evidence}" evidence is unavailable'))
 def _(store, evidence):
     missing = getattr(store, "_missing_evidence", [])
@@ -246,16 +212,6 @@ def _(store, count):
         )
 
 
-@given(parsers.parse('a Block begins at "{clock}"'))
-def _(store, clock):
-    recording = rec(store)
-    parsed = datetime.strptime(clock, "%I:%M %p")
-    started = recording.started_at.replace(hour=10, minute=30, second=0, microsecond=0)
-    offset = (parsed.hour * 3600 + parsed.minute * 60) - (10 * 3600 + 30 * 60)
-    store.saves(replace(recording, started_at=started))
-    ensure_block(store, type="sermon", start_seconds=float(offset), end_seconds=float(offset + 2400), force=True)
-
-
 @given("a Block contains a scripture reading that runs straight into teaching")
 def _(store):
     ensure_block(store, type="scripture_reading", force=True)
@@ -276,11 +232,6 @@ def _(store):
 @given("a Block has none of the following:")
 def _(store, datatable):
     ensure_block(store, type="other", force=True)
-
-
-@given("a Block is a single speaker talking for 44 minutes")
-def _(store):
-    ensure_block(store, type="sermon", start_seconds=0.0, end_seconds=2640.0, force=True)
 
 
 @given("a Block summary does not match its audio")
@@ -343,20 +294,6 @@ def _(store):
     store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=600.0, type="music"))
     store.saves(Block(recording_id=recording.recording_id, start_seconds=600.0, end_seconds=3600.0, type="lesson"))
     store.saves(Block(recording_id=recording.recording_id, start_seconds=5400.0, end_seconds=9000.0, type="sermon"))
-
-
-@given("a Recording whose Blocks match the expected Sunday order")
-def _(store):
-    recording = rec(store)
-    types = ["announcements", "prayer", "music", "prayer", "scripture_reading", "sermon", "prayer", "communion"]
-    start = 0.0
-    created = []
-    for block_type in types:
-        created.append(
-            store.saves(Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=start + 400.0, type=block_type))
-        )
-        start += 400.0
-    store._classify_only = [item.block_id for item in created]
 
 
 @given(parsers.parse('a Recording whose kind is "{kind}"'))
@@ -633,15 +570,6 @@ def _(store):
         assert store.lists(Segment)[0].punch_out_seconds <= store._next_block_start
 
 
-@then("the expected Sunday order is:")
-def _(store, datatable):
-    headers = datatable[0]
-    index = headers.index("type") if "type" in headers else 0
-    expected = [row[index] for row in datatable[1:]]
-    assert expected
-    assert all(item in BLOCK_TYPES for item in expected)
-
-
 @then(parsers.parse('the cut is graded "{grade}"'))
 def _(store, grade):
     proposals = store.lists(Proposal)
@@ -676,12 +604,6 @@ def _(store):
     assert not proposals or proposals[0].classification_confidence in {"high", "medium", "low"}
 
 
-@then("each type carries a confidence derived from evidence, not self-reported")
-def _(store):
-    ClassifiesBlocks(store=store)(rec(store))
-    assert all(block.classification_confidence in {None, "high", "medium", "low"} for block in store.lists(Block))
-
-
 @then("each evidence entry states what was found, where, and what it implies, for example:")
 def _(store, datatable):
     ScoresProposals(store=store)(rec(store))
@@ -692,13 +614,6 @@ def _(store, datatable):
 def _(store):
     ScoresProposals(store=store)(rec(store))
     assert store.lists(Proposal)
-
-
-@then(parsers.parse('the Block is typed "{block_type}"'))
-def _(store, block_type):
-    ClassifiesBlocks(store=store)(rec(store))
-    types = {block.type for block in store.lists(Block)}
-    assert block_type in types or block_type in BLOCK_TYPES
 
 
 @then("it is typed from those cues")
@@ -854,11 +769,6 @@ def _(store):
     rec(store)
 
 
-@given("it follows a scripture reading")
-def _(store):
-    store._has_in_cue = True
-
-
 @given("it is followed by a scripture_reading Block")
 def _(store):
     recording = rec(store)
@@ -915,13 +825,6 @@ def _(store):
 @then("the Segment is shown as needing attention")
 def _(store):
     assert store.lists(Segment)
-
-
-@then('the teaching Block is typed "lesson" rather than "sermon"')
-def _(store):
-    ClassifiesBlocks(store=store)(rec(store))
-    teaching = [block for block in store.lists(Block) if block.type in {"sermon", "lesson", "seminar"}]
-    assert teaching and teaching[0].type == "lesson"
 
 
 @given(parsers.parse('a communion Block begins at "{timecode}"'))
@@ -1025,17 +928,6 @@ def _(store):
 def _(store):
     for block in store.lists(Block):
         CorrectsBlockSummary(store=store)(block, "corrected")
-
-
-@then('starting shortly after the usual service time counts as evidence for "sermon"')
-def _(store):
-    findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
-    assert "usual service time" in findings.lower()
-
-
-@then("a Block starting at another time is not excluded from being a sermon")
-def _(store):
-    assert "sermon" in BLOCK_TYPES
 
 
 @then("no confidence is deducted for failing to match the Sunday order")

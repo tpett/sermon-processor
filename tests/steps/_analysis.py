@@ -200,20 +200,20 @@ def transcript_of(store, recording):
     return reads_json(store, recording, "transcript")
 
 
-def divides_as(spans):
+def divides_as(spans, confidence=0.9):
     """The reasoning stage's answer, given rather than asked for."""
 
     def divides(doc):
         return [
-            {"start": float(start), "end": float(end), "type": kind, "confidence": 0.9, "evidence": "speaker change"}
+            {"start": float(start), "end": float(end), "type": kind, "confidence": confidence, "evidence": "speaker change"}
             for start, end, kind, *_ in spans
         ]
 
     return divides
 
 
-def divides(store, recording, spans):
-    return DividesIntoBlocks(store=store, divides=divides_as(spans))(recording)
+def divides(store, recording, spans, confidence=0.9):
+    return DividesIntoBlocks(store=store, divides=divides_as(spans, confidence))(recording)
 
 
 def classifies(store, recording):

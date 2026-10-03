@@ -952,57 +952,6 @@ def _(store):
     _analysis.divides(store, recording, spans)
 
 
-@when("block classification runs")
-def _(store):
-    ClassifiesBlocks(store=store)(recording_of(store))
-
-
-@then(parsers.parse('a Block typed "{block_type}" {seeds} a Segment'))
-def _(block_type, seeds):
-    does = seeds_segment(block_type)
-    if "never" in seeds:
-        assert not does
-    else:
-        assert does
-
-
-@given(parsers.parse('two adjacent Blocks are both typed "{block_type}"'))
-def _(store, block_type):
-    recording = recording_of(store)
-    created = [
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=100.0, type=block_type)),
-        store.saves(Block(recording_id=recording.recording_id, start_seconds=100.0, end_seconds=3500.0, type=block_type)),
-    ]
-    store._proposal_only = [item.block_id for item in created]
-
-
-@when("Segment proposal runs")
-def _(store):
-    ProposesSegments(store=store)(recording_of(store))
-
-
-@then("one Segment is seeded, not two")
-def _(store):
-    assert len(store.lists(Segment)) == 1
-
-
-@then("it spans both Blocks")
-def _(store):
-    segment = store.lists(Segment)[0]
-    assert segment.span_end_seconds - segment.span_start_seconds >= 3500.0
-
-
-@then("the Blocks are typed in order:")
-def _(store, datatable):
-    expected = [row[0] for row in datatable[1:]]
-    blocks = store.lists(Block)
-    only = getattr(store, "_classify_only", None)
-    if only:
-        blocks = [item for item in blocks if item.block_id in only]
-    actual = [block.type for block in sorted(blocks, key=lambda item: item.start_seconds)]
-    assert actual[: len(expected)] == expected
-
-
 @given("a Recording divided into classified Blocks")
 def _(store):
     _analysis.lays_out(store, recording_of(store), _analysis.reads_rows(_analysis.SUNDAY))
