@@ -8,6 +8,8 @@ are actually testing: whether a technology can identify the anatomy of a service
 
 from __future__ import annotations
 
+import bisect
+
 from . import cues as C
 from .roots import requires_directory_under_root
 
@@ -369,6 +371,54 @@ def derive(blocks: list[dict], doc: dict, refine: bool = True,
     return segs
 
 
+WORD_BUFFER_S = 0.050
+LEAD_IN_MAX_S = 2.0
+
+
+def spoken_intervals(doc: dict) -> list[tuple[float, float]]:
+    """Every timed word, with overlapping words merged into one stretch of speech."""
+    merged: list[list[float]] = []
+    timed = sorted(
+        (float(w["start"]), float(w["end"]))
+        for u in doc["utterances"] for w in (u.get("words") or ())
+        if w.get("start") is not None and w.get("end") is not None
+    )
+    for starts, ends in timed:
+        if merged and starts <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], ends)
+        else:
+            merged.append([starts, ends])
+    return [(starts, ends) for starts, ends in merged]
+
+
+def clear_in(t: float, spoken: list[tuple[float, float]]) -> float:
+    """Keep a punch-in the buffer clear of speech on both sides, before the first word it keeps."""
+    i = bisect.bisect_right([ends for _, ends in spoken], t)
+    if i == len(spoken):
+        return t
+    first = spoken[i][0]
+    floor = spoken[i - 1][1] + WORD_BUFFER_S if i else 0.0
+    lo, hi = max(floor, first - LEAD_IN_MAX_S), first - WORD_BUFFER_S
+    if lo <= hi:
+        return round(min(max(t, lo), hi), 3)
+    return round((spoken[i - 1][1] + first) / 2, 3) if i else 0.0
+
+
+def clear_out(t: float, spoken: list[tuple[float, float]], duration: float) -> float:
+    """Keep a punch-out the buffer clear of speech, past the decay of the last word it keeps."""
+    j = bisect.bisect_left([starts for starts, _ in spoken], t) - 1
+    if j < 0:
+        return t
+    last = spoken[j][1]
+    ceiling = spoken[j + 1][0] - WORD_BUFFER_S if j + 1 < len(spoken) else duration
+    lo, hi = last + WORD_BUFFER_S, ceiling
+    if lo > hi:
+        return round((last + spoken[j + 1][0]) / 2, 3) if j + 1 < len(spoken) else duration
+    if t < lo:
+        return round(min(last + TAIL_S, hi), 3)
+    return round(min(t, hi), 3)
+
+
 # Sanity band from ../features/analysis/segment_proposal.feature: published
 # segments in the corpus run 40-68 minutes, and the spec warns outside 30-75.
 # Used only to decide whether a model's own answer is plausible enough to keep.
@@ -459,6 +509,7 @@ def choose(model_segments, derived, doc):
         used.add(best)
         return model_segments[best]
 
+    spoken = spoken_intervals(doc)
     out = []
     for d in derived:
         pick, source = d, "refined"
@@ -483,5 +534,11 @@ def choose(model_segments, derived, doc):
             seated = after_the_congregation_is_seated(pick["punch_in"], doc)
             if seated is not None and pick["punch_in"] < seated < pick["punch_out"]:
                 pick = dict(pick, punch_in=seated)
+        cleared_in = clear_in(pick["punch_in"], spoken)
+        if out:
+            cleared_in = max(cleared_in, out[-1]["punch_out"])
+        cleared_out = clear_out(pick["punch_out"], spoken, doc["duration"])
+        if cleared_in < cleared_out:
+            pick = dict(pick, punch_in=cleared_in, punch_out=cleared_out)
         out.append(dict(pick, boundary_source=source))
     return out

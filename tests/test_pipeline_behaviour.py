@@ -1723,3 +1723,145 @@ def test_coercing_leaves_an_edge_that_falls_inside_a_word_where_the_model_put_it
     assert [block["start"] for block in coerced] == [0.0, 11.0]
     assert [block["end"] for block in coerced] == [11.0, 30.0]
     assert classify.edges_inside_speech(coerced, doc)
+
+
+def timed(*spoken, duration=100.0):
+    return {"duration": duration, "utterances": [
+        {"start": start, "end": end, "text": word,
+         "words": [{"w": word, "start": start, "end": end}]}
+        for word, start, end in spoken
+    ]}
+
+
+def test_the_word_buffer_and_the_lead_in_ceiling_are_the_named_constants():
+    segments = imports_moved("segments")
+    assert segments.WORD_BUFFER_S == 0.050
+    assert segments.LEAD_IN_MAX_S == 2.0
+
+
+OPENING = timed(("before", 10.0, 11.0), ("well", 20.0, 20.5), ("good", 20.5, 21.0))
+
+
+@pytest.mark.parametrize(
+    ("proposed", "cleared"),
+    [
+        (20.2, 19.95),
+        (20.0, 19.95),
+        (19.97, 19.95),
+        (19.0, 19.0),
+        (19.95, 19.95),
+        (15.0, 18.0),
+    ],
+)
+def test_a_punch_in_sits_the_buffer_before_the_first_word_and_no_more_than_the_ceiling(
+    proposed, cleared
+):
+    segments = imports_moved("segments")
+    assert segments.clear_in(proposed, segments.spoken_intervals(OPENING)) == cleared
+
+
+def test_a_punch_in_keeps_the_buffer_after_the_word_before_it_too():
+    segments = imports_moved("segments")
+    close = segments.spoken_intervals(timed(("before", 18.0, 19.5), ("well", 20.0, 20.5)))
+    assert segments.clear_in(19.51, close) == 19.55
+
+
+def test_a_punch_in_between_words_too_close_for_both_buffers_takes_the_middle_of_the_gap():
+    segments = imports_moved("segments")
+    tight = segments.spoken_intervals(timed(("before", 18.0, 19.95), ("well", 20.0, 20.5)))
+    assert segments.clear_in(20.2, tight) == 19.975
+
+
+def test_a_punch_in_before_any_word_near_the_start_of_the_recording_stays_at_the_start():
+    segments = imports_moved("segments")
+    assert segments.clear_in(0.0, segments.spoken_intervals(timed(("well", 0.02, 0.5)))) == 0.0
+    assert segments.clear_in(0.0, segments.spoken_intervals(timed(("well", 0.5, 0.9)))) == 0.0
+
+
+CLOSING = timed(("in", 29.0, 30.0), ("amen", 30.0, 30.5), ("next", 40.0, 41.0))
+
+
+@pytest.mark.parametrize(
+    ("proposed", "cleared"),
+    [
+        (30.3, 32.0),
+        (30.5, 32.0),
+        (30.52, 32.0),
+        (31.0, 31.0),
+        (39.98, 39.95),
+    ],
+)
+def test_a_punch_out_inside_or_against_the_last_word_moves_past_its_decay(proposed, cleared):
+    segments = imports_moved("segments")
+    assert segments.clear_out(proposed, segments.spoken_intervals(CLOSING), 100.0) == cleared
+
+
+def test_the_decay_after_a_punch_out_stops_the_buffer_short_of_the_next_word():
+    segments = imports_moved("segments")
+    close = segments.spoken_intervals(timed(("amen", 30.0, 30.5), ("next", 31.0, 32.0)))
+    assert segments.clear_out(30.3, close, 100.0) == 30.95
+
+
+def test_a_punch_out_after_the_last_word_of_the_recording_may_run_to_its_end():
+    segments = imports_moved("segments")
+    last = segments.spoken_intervals(timed(("amen", 99.0, 99.98)))
+    assert segments.clear_out(99.5, last, 100.0) == 100.0
+
+
+def test_a_transcript_without_word_timings_leaves_both_cuts_alone():
+    segments = imports_moved("segments")
+    untimed = {"duration": 100.0, "utterances": [
+        {"start": 20.0, "end": 21.0, "text": "well"},
+        {"start": 21.0, "end": 22.0, "text": "then", "words": [{"w": "then"}]},
+    ]}
+    spoken = segments.spoken_intervals(untimed)
+    assert segments.clear_in(20.2, spoken) == 20.2
+    assert segments.clear_out(20.2, spoken, 100.0) == 20.2
+
+
+def test_overlapping_words_are_one_stretch_of_speech():
+    segments = imports_moved("segments")
+    spoken = segments.spoken_intervals(timed(("a", 20.0, 20.6), ("b", 20.5, 21.0)))
+    assert spoken == [(20.0, 21.0)]
+
+
+def test_choosing_moves_the_models_punch_in_out_of_the_word_it_landed_in():
+    segments = imports_moved("segments")
+    doc = timed(("before", 10.0, 11.0), ("well", 20.0, 20.5), ("amen", 1900.0, 1900.5),
+                duration=10_000.0)
+    derived = [{"punch_in": 20.0, "punch_out": 1902.0,
+                "classification": "sermon", "confidence": 0.9}]
+    chosen = segments.choose([{"punch_in": 20.2, "punch_out": 1900.3}], derived, doc)
+    assert (chosen[0]["punch_in"], chosen[0]["punch_out"]) == (19.95, 1902.0)
+    assert chosen[0]["boundary_source"] == "model-in/refined-out"
+
+
+def test_choosing_moves_a_punch_out_out_of_the_last_word():
+    segments = imports_moved("segments")
+    doc = timed(("well", 20.0, 20.5), ("amen", 1900.0, 1900.5), duration=10_000.0)
+    derived = [{"punch_in": 19.0, "punch_out": 1900.3,
+                "classification": "sermon", "confidence": 0.9}]
+    chosen = segments.choose([], derived, doc)
+    assert (chosen[0]["punch_in"], chosen[0]["punch_out"]) == (19.0, 1902.0)
+
+
+def test_choosing_without_the_models_answer_clears_the_refined_punch_in_too():
+    segments = imports_moved("segments")
+    doc = timed(("before", 10.0, 11.0), ("well", 20.0, 20.5), duration=10_000.0)
+    derived = [{"punch_in": 20.0, "punch_out": 1902.0,
+                "classification": "sermon", "confidence": 0.9}]
+    chosen = segments.choose([], derived, doc)
+    assert chosen[0]["punch_in"] == 19.95
+    assert chosen[0]["boundary_source"] == "refined"
+
+
+def test_clearing_never_pulls_a_punch_in_back_over_the_segment_before_it():
+    segments = imports_moved("segments")
+    doc = timed(("one", 10.0, 11.0), ("two", 30.0, 31.0), ("three", 60.0, 61.0),
+                duration=10_000.0)
+    derived = [
+        {"punch_in": 10.0, "punch_out": 30.5, "classification": "lesson", "confidence": 0.9},
+        {"punch_in": 30.5, "punch_out": 61.0, "classification": "lesson", "confidence": 0.9},
+    ]
+    chosen = segments.choose([], derived, doc)
+    assert chosen[0]["punch_out"] <= chosen[1]["punch_in"]
