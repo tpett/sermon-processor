@@ -5,10 +5,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1348 step definitions read from `tests/steps`
-- 228 condemned
-- 147 of 464 non-deferred scenarios rest on at least one condemned step
-- 196 of 607 expanded scenario tests likewise
-- 59 scenarios whose every Then is condemned, so nothing they claim is checked
+- 212 condemned
+- 139 of 464 non-deferred scenarios rest on at least one condemned step
+- 188 of 607 expanded scenario tests likewise
+- 54 scenarios whose every Then is condemned, so nothing they claim is checked
 - 14 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
@@ -23,15 +23,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an interface Then that reads the view model rather than the rendered page | 0 |
 | an assertion that cannot fail | 1 |
 | a boolean operand of True, which neutralises what it joins | 0 |
-| a Then whose every assertion only checks that some row exists | 82 |
-| an assertion that any existing row satisfies | 13 |
+| a Then whose every assertion only checks that some row exists | 69 |
+| an assertion that any existing row satisfies | 9 |
 | an assertion operand that some scenario's own arguments make true | 5 |
-| a Then with a path through it that asserts nothing | 29 |
+| a Then with a path through it that asserts nothing | 27 |
 | an assertion that compares a value with itself | 2 |
-| a Then that constructs and invokes a unit of the system | 37 |
-| a Then that writes to the store | 71 |
+| a Then that constructs and invokes a unit of the system | 36 |
+| a Then that writes to the store | 68 |
 | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 26 |
-| a Then that asserts word for word what another Then in its scenario asserts | 22 |
+| a Then that asserts word for word what another Then in its scenario asserts | 16 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
 | a When that writes the outcome itself instead of invoking the system | 18 |
@@ -48,8 +48,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/approval_rate_steps.py` | 4 | 2 | partly condemned |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 3 | partly condemned |
 | `tests/steps/analysis/block_classification_steps.py` | 23 | 1 | partly condemned |
+| `tests/steps/analysis/blocking_steps.py` | 35 | 0 | sound |
 | `tests/steps/analysis/detection_accuracy_steps.py` | 29 | 0 | sound |
-| `tests/steps/analysis/domain_steps.py` | 157 | 63 | partly condemned |
+| `tests/steps/analysis/domain_steps.py` | 122 | 47 | partly condemned |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 5 | partly condemned |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 154 | 66 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
@@ -85,7 +86,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## Condemned outside the six named files
 
-205 definitions.
+189 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
@@ -151,32 +152,16 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/domain_steps.py:563` | then | `it is not treated as a clean speaker change` | a Then that writes to the store; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/domain_steps.py:579` | then | `the singing is not emitted as a speaker change` | a Then that writes to the store |
 | `tests/steps/analysis/domain_steps.py:585` | then | `the span is labelled as non-speech` | a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:662` | then | `it reports a number of speakers in the same order as reality` | a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:668` | then | `a single speaker is not split across labels within one block` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:697` | then | `only into the larger neighbour when neither shares it` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:702` | then | `absorbing them never moves a boundary across a change of voice` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:727` | then | `a Block is produced for each contiguous speaker span` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:732` | then | `every Block has a start time, an end time and a speaker label` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/domain_steps.py:739` | then | `the Blocks cover the whole Recording with no gaps and no overlaps` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/domain_steps.py:793` | then | `Blocks are produced across the whole Recording` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:803` | then | `the boundary between them falls out of the ordinary speaker changes` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:833` | then | `the silence is recorded as a pause within the Block` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:838` | then | `every silence gap longer than 2 seconds is recorded with its start and end` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:845` | then | `those gaps are available for snapping a boundary later` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:873` | then | `it becomes a Block of its own` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:898` | then | `the Block records that it contains multiple speakers` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:909` | then | `Blocks are produced from transcript structure and silence alone` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:914` | then | `each Block is marked as having no speaker attribution` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:919` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1062` | then | `the lead-in never exceeds 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1074` | then | `the lead-in is shorter than 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1081` | then | `no audio from the previous Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1092` | then | `the punch-in is placed at the quietest available point` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:1104` | then | `the reviewer is prompted to place it by hand` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:1148` | then | `the punch-out is placed 1.5 seconds after the last word` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1158` | then | `the whole of the last word is audible, decay included` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1163` | then | `the tail stops before any sound belonging to what follows` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1169` | then | `no audio from the following Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/domain_steps.py:639` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/domain_steps.py:782` | then | `the lead-in never exceeds 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:794` | then | `the lead-in is shorter than 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:801` | then | `no audio from the previous Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:812` | then | `the punch-in is placed at the quietest available point` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/domain_steps.py:824` | then | `the reviewer is prompted to place it by hand` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
+| `tests/steps/analysis/domain_steps.py:868` | then | `the punch-out is placed 1.5 seconds after the last word` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:878` | then | `the whole of the last word is audible, decay included` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:883` | then | `the tail stops before any sound belonging to what follows` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/domain_steps.py:889` | then | `no audio from the following Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/preview_audio_steps.py:75` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:226` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:298` | then | `the transcript, summaries and waveform are still usable` | a Then whose every assertion only checks that some row exists |
@@ -361,32 +346,16 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/domain_steps.py:563` | then | `it is not treated as a clean speaker change` | a Then that writes to the store; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/domain_steps.py:579` | then | `the singing is not emitted as a speaker change` | a Then that writes to the store |
 | `tests/steps/analysis/domain_steps.py:585` | then | `the span is labelled as non-speech` | a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:662` | then | `it reports a number of speakers in the same order as reality` | a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:668` | then | `a single speaker is not split across labels within one block` | a Then whose every assertion only checks that some row exists; a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:697` | then | `only into the larger neighbour when neither shares it` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:702` | then | `absorbing them never moves a boundary across a change of voice` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:727` | then | `a Block is produced for each contiguous speaker span` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:732` | then | `every Block has a start time, an end time and a speaker label` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/domain_steps.py:739` | then | `the Blocks cover the whole Recording with no gaps and no overlaps` | a Then with a path through it that asserts nothing |
-| `tests/steps/analysis/domain_steps.py:793` | then | `Blocks are produced across the whole Recording` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:803` | then | `the boundary between them falls out of the ordinary speaker changes` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:833` | then | `the silence is recorded as a pause within the Block` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:838` | then | `every silence gap longer than 2 seconds is recorded with its start and end` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:845` | then | `those gaps are available for snapping a boundary later` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:873` | then | `it becomes a Block of its own` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:898` | then | `the Block records that it contains multiple speakers` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:909` | then | `Blocks are produced from transcript structure and silence alone` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:914` | then | `each Block is marked as having no speaker attribution` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:919` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1062` | then | `the lead-in never exceeds 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1074` | then | `the lead-in is shorter than 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1081` | then | `no audio from the previous Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1092` | then | `the punch-in is placed at the quietest available point` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/analysis/domain_steps.py:1104` | then | `the reviewer is prompted to place it by hand` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/analysis/domain_steps.py:1148` | then | `the punch-out is placed 1.5 seconds after the last word` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1158` | then | `the whole of the last word is audible, decay included` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1163` | then | `the tail stops before any sound belonging to what follows` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1169` | then | `no audio from the following Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/domain_steps.py:639` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/domain_steps.py:782` | then | `the lead-in never exceeds 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:794` | then | `the lead-in is shorter than 1.0 second` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:801` | then | `no audio from the previous Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:812` | then | `the punch-in is placed at the quietest available point` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/domain_steps.py:824` | then | `the reviewer is prompted to place it by hand` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
+| `tests/steps/analysis/domain_steps.py:868` | then | `the punch-out is placed 1.5 seconds after the last word` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:878` | then | `the whole of the last word is audible, decay included` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/analysis/domain_steps.py:883` | then | `the tail stops before any sound belonging to what follows` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
+| `tests/steps/analysis/domain_steps.py:889` | then | `no audio from the following Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/preview_audio_steps.py:75` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:226` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:298` | then | `the transcript, summaries and waveform are still usable` | a Then whose every assertion only checks that some row exists |
@@ -551,11 +520,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `analysis/block_classification.feature` | 43 | Only teaching Blocks can seed a Segment |
 | `analysis/block_classification.feature` | 337 | Retyping a block |
 | `analysis/block_classification.feature` | 292 | Services with a different shape |
-| `analysis/blocking.feature` | 59 | A normal Sunday |
-| `analysis/blocking.feature` | 138 | Diarization was unavailable |
-| `analysis/blocking.feature` | 106 | Silence is still recorded as evidence |
-| `analysis/blocking.feature` | 37 | The clusterer must be constrained or it invents speakers |
-| `analysis/blocking.feature` | 114 | Very short spans do not become blocks |
 | `analysis/detection_accuracy.feature` | 130 | The target is a two-preview approval |
 | `analysis/punch_in_detection.feature` | 137 | A candidate falling mid-word is moved |
 | `analysis/punch_in_detection.feature` | 65 | Cut difficulty is assessed and recorded |

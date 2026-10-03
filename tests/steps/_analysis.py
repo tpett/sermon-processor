@@ -114,10 +114,13 @@ def the_recording(store):
     return recordings[0]
 
 
-def words_over(start, end, text):
+def words_over(start, end, text, fill=False):
     words = []
     at = start
-    for word in text.split():
+    spoken = text.split()
+    while fill and len(spoken) * WORD_S < end - start:
+        spoken += text.split()
+    for word in spoken:
         if at + WORD_S - 0.05 > end:
             break
         words.append({"w": word, "word": word, "start": round(at, 3), "end": round(at + WORD_S - 0.05, 3)})
@@ -125,12 +128,12 @@ def words_over(start, end, text):
     return words
 
 
-def utterances_over(start, end, text):
+def utterances_over(start, end, text, period=UTTERANCE_PERIOD_S, fill=False):
     spoken = []
     at = start
     while text and at < end - 0.5:
         stops = min(at + UTTERANCE_S, end - 0.5)
-        words = words_over(at, stops, text)
+        words = words_over(at, stops, text, fill)
         if words:
             stops = words[-1]["end"]
         spoken.append(
@@ -143,17 +146,17 @@ def utterances_over(start, end, text):
                 "words": words,
             }
         )
-        at += UTTERANCE_PERIOD_S
+        at += period
     return spoken
 
 
-def transcript_over(recording, spans, duration=None):
+def transcript_over(recording, spans, duration=None, period=UTTERANCE_PERIOD_S, fill=False):
     """A transcript whose speech starts exactly at every span's start, in the span's own words."""
     length = duration or recording.duration_seconds or DURATION_S
     utterances = []
     for start, end, kind, *spoken in spans:
         text = spoken[0] if spoken else SPOKEN.get(kind, SPOKEN["other"])
-        utterances += utterances_over(float(start), float(end), text)
+        utterances += utterances_over(float(start), float(end), text, period, fill)
     utterances.sort(key=lambda item: item["start"])
     silences = [
         {"start": before["end"], "end": after["start"]}

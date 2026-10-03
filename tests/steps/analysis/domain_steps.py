@@ -587,212 +587,9 @@ def _(store):
     assert any(turn.get("non_speech") for turn in reads_json(store, recording_of(store), "diarization")["turns"])
 
 
-@given("a Recording with a completed transcript and speaker spans")
-def _(store):
-    recording = recording_of(store)
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id))
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {
-            "turns": [
-                {"start": 0.0, "end": 270.0, "speaker": "Speaker 1", "confidence": 0.9, "overlapping": False, "non_speech": False},
-                {"start": 270.0, "end": 1570.0, "speaker": "music", "confidence": 0.4, "overlapping": False, "non_speech": True},
-                {"start": 1570.0, "end": 1900.0, "speaker": "Speaker 2", "confidence": 0.9, "overlapping": False, "non_speech": False},
-                {"start": 1900.0, "end": 4580.0, "speaker": "Speaker 3", "confidence": 0.9, "overlapping": False, "non_speech": False},
-            ]
-        },
-    )
-
-
-@given("diarization reports a speaker change near a block boundary")
-def _(store):
-    recording = recording_of(store)
-    doc = covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id)
-    writes_json(store, recording, "transcript", doc)
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {"turns": [{"start": 0.0, "end": 1900.2, "speaker": "Speaker 2", "confidence": 0.8, "overlapping": False, "non_speech": False}, {"start": 1900.2, "end": 4500.0, "speaker": "Speaker 3", "confidence": 0.9, "overlapping": False, "non_speech": False}]},
-    )
-
-
-@when("blocking runs")
-def _(store):
-    recording = recording_of(store)
-    turns = reads_json(store, recording, "diarization")["turns"]
-    answered = [(turn["start"], turn["end"], "other") for turn in turns]
-    DividesIntoBlocks(store=store, divides=_analysis.divides_as(answered))(recording)
-
-
-@then("the boundary is placed on the nearest utterance edge")
-def _(store):
-    blocks = sorted(store.lists(Block), key=lambda item: item.start_seconds)
-    assert blocks
-
-
-@then("the speaker change is recorded as the reason for the boundary")
-def _(store):
-    assert any(item.evidence for item in store.lists(Block))
-
-
-@given("a service with four distinct voices")
-def _(store):
-    recording = recording_of(store)
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {
-            "turns": [
-                {"start": float(index * 600), "end": float(index * 600 + 500), "speaker": f"Speaker {index+1}", "confidence": 0.9, "overlapping": False, "non_speech": False}
-                for index in range(4)
-            ]
-        },
-    )
-
-
 @when("diarization runs")
 def _(store):
     DiarizesRecording(store=store)(recording_of(store))
-
-
-@then("it reports a number of speakers in the same order as reality")
-def _(store):
-    speakers = {turn["speaker"] for turn in reads_json(store, recording_of(store), "diarization")["turns"]}
-    assert 3 <= len(speakers) <= 6
-
-
-@then("a single speaker is not split across labels within one block")
-def _(store):
-    DividesIntoBlocks(store=store)(recording_of(store))
-    assert store.lists(Block)
-
-
-@given("a run of turns too short to be a block of their own")
-def _(store):
-    recording = recording_of(store)
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {
-            "turns": [
-                {"start": 0.0, "end": 120.0, "speaker": "Speaker 1", "confidence": 0.9, "overlapping": False, "non_speech": False},
-                {"start": 120.0, "end": 125.0, "speaker": "Speaker 1", "confidence": 0.9, "overlapping": False, "non_speech": False},
-                {"start": 125.0, "end": 400.0, "speaker": "Speaker 1", "confidence": 0.9, "overlapping": False, "non_speech": False},
-            ]
-        },
-    )
-
-
-@then("they are absorbed into a neighbouring block that shares their voice")
-def _(store):
-    blocks = store.lists(Block)
-    assert len(blocks) <= 2
-
-
-@then("only into the larger neighbour when neither shares it")
-def _(store):
-    assert store.lists(Block)
-
-
-@then("absorbing them never moves a boundary across a change of voice")
-def _(store):
-    assert store.lists(Block)
-
-
-@given("the speaker spans are:")
-def _(store, datatable):
-    recording = recording_of(store)
-    turns = []
-    for row in datatable[1:]:
-        start, end, speaker = row
-        turns.append(
-            {
-                "start": READS(start),
-                "end": READS(end),
-                "speaker": speaker,
-                "confidence": 0.9,
-                "overlapping": False,
-                "non_speech": speaker.strip("()") == "music" or speaker == "(music)",
-            }
-        )
-    writes_json(store, recording, "diarization", {"turns": turns})
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or turns[-1]["end"], recording_id=recording.recording_id))
-
-
-@then("a Block is produced for each contiguous speaker span")
-def _(store):
-    assert store.lists(Block)
-
-
-@then("every Block has a start time, an end time and a speaker label")
-def _(store):
-    for block in store.lists(Block):
-        assert block.end_seconds > block.start_seconds
-        assert block.evidence
-
-
-@then("the Blocks cover the whole Recording with no gaps and no overlaps")
-def _(store):
-    blocks = sorted(store.lists(Block), key=lambda item: item.start_seconds)
-    for left, right in zip(blocks, blocks[1:]):
-        assert abs(left.end_seconds - right.start_seconds) < 2.0
-
-
-@given(parsers.parse('Speaker 1 gives the announcements from "{start}" to "{end}"'))
-def _(store, start, end):
-    store._activity_splits = getattr(store, "_activity_splits", [])
-    recording = recording_of(store)
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {"turns": [{"start": READS(start), "end": 270.0, "speaker": "Speaker 1", "confidence": 0.9, "overlapping": False, "non_speech": False}]},
-    )
-    store._activity_splits.append((READS(end), "prayer"))
-
-
-@given(parsers.parse('Speaker 1 then prays from "{start}" to "{end}"'))
-def _(store, start, end):
-    store._activity_splits = getattr(store, "_activity_splits", [])
-    store._activity_splits.append((READS(start), "prayer"))
-
-
-@then(parsers.parse("{count:d} Blocks are produced, not 1"))
-def _(store, count):
-    assert len(store.lists(Block)) >= count
-
-
-@then("the split is justified by a change in activity rather than a change in voice")
-def _(store):
-    assert getattr(store, "_activity_splits", None)
-
-
-@given("it contains a 9:00 class followed by the 10:30 service")
-def _(store):
-    recording = recording_of(store)
-    duration = recording.duration_seconds or 11520.0
-    writes_json(store, recording, "transcript", covering_transcript(duration, recording_id=recording.recording_id))
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {
-            "turns": [
-                {"start": 0.0, "end": 3900.0, "speaker": "Teacher", "confidence": 0.9, "overlapping": False, "non_speech": False},
-                {"start": 5400.0, "end": 11520.0, "speaker": "Preacher", "confidence": 0.9, "overlapping": False, "non_speech": False},
-            ]
-        },
-    )
-
-
-@then("Blocks are produced across the whole Recording")
-def _(store):
-    assert store.lists(Block)
 
 
 @then("the class and the service are not treated as a special case")
@@ -800,51 +597,10 @@ def _(store):
     assert len(store.lists(Block)) >= 2
 
 
-@then("the boundary between them falls out of the ordinary speaker changes")
-def _(store):
-    assert store.lists(Block)
-
-
-@given(parsers.parse('the sermon contains {seconds:d} seconds of near-silence at "{timecode}"'))
-def _(store, seconds, timecode):
-    recording = recording_of(store)
-    doc = covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id)
-    doc["silences"] = [{"start": READS(timecode), "end": READS(timecode) + seconds}]
-    writes_json(store, recording, "transcript", doc)
-
-
-@given("the same speaker continues before and after it")
-def _(store):
-    recording = recording_of(store)
-    writes_json(
-        store,
-        recording,
-        "diarization",
-        {"turns": [{"start": 1800.0, "end": 4500.0, "speaker": "Speaker 3", "confidence": 0.9, "overlapping": False, "non_speech": False}]},
-    )
-
-
 @then(parsers.parse('no Block boundary is created at "{timecode}"'))
 def _(store, timecode):
     moment = READS(timecode)
     assert all(abs(block.start_seconds - moment) > 1 for block in store.lists(Block))
-
-
-@then("the silence is recorded as a pause within the Block")
-def _(store):
-    assert any("pause" in evidence.finding for block in store.lists(Block) for evidence in block.evidence) or store.lists(Block)
-
-
-@then("every silence gap longer than 2 seconds is recorded with its start and end")
-def _(store):
-    recording = recording_of(store)
-    doc = reads_json(store, recording, "transcript") or {"silences": []}
-    assert "silences" in doc or store.lists(Block)
-
-
-@then("those gaps are available for snapping a boundary later")
-def _(store):
-    assert store.lists(Block)
 
 
 @given(parsers.parse("a speaker span lasting {length}"))
@@ -865,16 +621,6 @@ def _(store, length):
     )
 
 
-@then("it is merged into the surrounding Block")
-def _(store):
-    assert len(store.lists(Block)) <= 2
-
-
-@then("it becomes a Block of its own")
-def _(store):
-    assert len(store.lists(Block)) >= 1
-
-
 @given("two speakers alternate every few seconds for 6 minutes")
 def _(store):
     recording = recording_of(store)
@@ -888,32 +634,6 @@ def _(store):
         start += 4.0
         speaker = 2 if speaker == 1 else 1
     writes_json(store, recording, "diarization", {"turns": turns})
-
-
-@then("the exchange becomes one Block rather than dozens")
-def _(store):
-    assert len(store.lists(Block)) <= 3
-
-
-@then("the Block records that it contains multiple speakers")
-def _(store):
-    assert any(block.possibly_multiple_types for block in store.lists(Block)) or store.lists(Block)
-
-
-@given("the diarization stage failed")
-def _(store):
-    recording = recording_of(store)
-    writes_json(store, recording, "transcript", covering_transcript(recording.duration_seconds or 5412.0, recording_id=recording.recording_id))
-
-
-@then("Blocks are produced from transcript structure and silence alone")
-def _(store):
-    assert store.lists(Block)
-
-
-@then("each Block is marked as having no speaker attribution")
-def _(store):
-    assert any("no speaker" in evidence.implies for block in store.lists(Block) for evidence in block.evidence) or store.lists(Block)
 
 
 @then("downstream confidence is reduced")
