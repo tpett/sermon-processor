@@ -1,3 +1,36 @@
+## Production cleaned up after the deploy (2026-10-03)
+
+With the owner's go, after deploying the triage round. Backup first:
+`/data/sermon-processor/sermon.sqlite3.pre-cleanup-20261003` on the nas (md5
+`0e74fdc36e574ff954851ed3db24e453`).
+
+- **Publication dates backfilled** through `PUT /api/segments/<id>/publication`
+  for segments 5, 6, 9, 12 — four 200s, MP3 paths and files untouched.
+  `sermon-approvals` in the container now reads **4 published, 1 approved with no
+  boundary edit: 25%**, where it reported no rate before.
+- **Fabricated rows deleted** in one all-or-nothing transaction run inside the
+  container (the database file is root-owned): 8 Segments, their 8 Proposals,
+  the 4 "publishable Segments were found" notifications, and the 8 one-byte
+  `envelope` artifact rows (no envelope file existed for any). Nothing else
+  referenced them. The four recordings stay `awaiting_review` with no Segments,
+  which is what the fixed walk produces when it proposes nothing. Integrity ok.
+- **Measurements restored** by re-running `MeasuresRecordingAudio` on all eight
+  local sources and writing only the measurement fields — loudness, true peak,
+  LRA, channel levels — **not** state, warnings or mono source, because
+  `ProbesRecording` would also re-decide those on reviewed recordings.
+
+What the measurements show, unacted on:
+
+- **Every Sunday-service source peaks above 0 dBTP** (+0.2 to +0.9), so the
+  probe would flag each "source clipping detected". Inter-sample peaks on the
+  board feed, worth a listen before it becomes a warning on every recording.
+- **The four short recordings are near-silent** (−32 to −42 LUFS, channels at
+  −55 to −72 dB, 605–978 s) and are almost certainly not services. The probe
+  never marks them `ignored` because `dynamic_range_db` and `active_fraction`
+  are never measured (always NULL), so the emptiness test cannot fire. Two would
+  be flagged "unexpected stereo content" purely because both noise floors sit
+  above `SILENT_RMS_DB`.
+
 ## The spec notices the product now, and the worker stops inventing cuts (2026-10-02, triage round)
 
 Triage took the tracker from 58 open to the set below, then six parallel
