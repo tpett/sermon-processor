@@ -1,24 +1,41 @@
+import ipaddress
+import re
 from dataclasses import replace
+from urllib.parse import urlsplit
 from datetime import UTC, datetime
 
 import pytest
 from pytest_bdd import given, parsers, then, when
-from steps import _analysis, _remaining_analysis as _remaining, _web
-from steps._markup import reads_rows
+from steps import _analysis, _audio, _remaining_analysis as _remaining, _web
+from steps._markup import reads_field, reads_rows, strips_tags
 
 from sermon.analysis import ClassifiesBlocks, DerivesGroundTruth, ProposesSegments, RefinesPunchIn, ScoresProposals
 from sermon.analysis.io import writes_json
-from sermon.analysis.stages import CorrectsBlockSummary
+from sermon.analysis.stages import CorrectsBlockSummary, SummarizesBlocks
+from sermon.jobs.analyzes_recording import OPTIONAL_STAGE_FAILED
 from sermon.approves_segment import ApprovesSegment
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
-from sermon.store import Block, CorpusPair, Proposal, Recording, Segment
+from sermon.store import Block, CorpusPair, Job, LogEntry, Proposal, Recording, Segment
 
 READS = ReadsTimecode()
 UNSURE_SELF_REPORT = 0.3
 SEVENTY_MINUTES = 4200.0
 SETTLING_IN = 120.0
 HOST, PREACHER = "Speaker 1", "Speaker 2"
+TAILNET_MODEL_HOST = "http://100.88.211.71:11434"
+TAILNET = ipaddress.ip_network("100.64.0.0/10")
+
+
+def on_the_local_network(url):
+    host = urlsplit(url).hostname or ""
+    if host == "localhost":
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return address.is_private or address.is_loopback or address in TAILNET
 CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
 
 
@@ -128,13 +145,11 @@ def _(store, event):
 
 @given(parsers.parse('"{evidence}" evidence is unavailable'))
 def _(store, evidence):
-    missing = getattr(store, "_missing_evidence", [])
-    missing.append(evidence)
-    store._missing_evidence = missing
-    if "closing" in evidence or "communion" in evidence:
-        store._has_out_cue = False
-    if "scripture" in evidence or "speaker" in evidence:
-        store._has_in_cue = False
+    recording = _analysis.recording_of(store)
+    if evidence == "recording start time":
+        recording = store.saves(replace(recording, started_at_source="last_modified"))
+    _analysis.lays_out(store, recording, _remaining.service_without(evidence))
+    _analysis.analyses(store, recording)
 
 
 @given(parsers.parse("{count:d} Segments were proposed"))
@@ -173,9 +188,12 @@ def _(store):
 
 
 @given("a Block has a cue excerpt")
-def _(store):
-    block = ensure_block(store)
-    store.saves(replace(block, cue_start_seconds=block.start_seconds, cue_end_seconds=block.start_seconds + 6))
+def _(store, laid_out):
+    recording = _analysis.recording_of(store)
+    _analysis.lays_out(store, recording, _remaining.SERMON_SERVICE)
+    SummarizesBlocks(store=store, summarizes=_remaining.summarizes_with_a_cue)(recording)
+    _audio.registers_preview(store, recording)
+    laid_out["subject"] = 1900.0
 
 
 @given("a Block has none of the following:")
@@ -355,9 +373,10 @@ def _(store):
     store._no_corpus = True
 
 
-@given("the summarization model is hosted on another machine on the tailnet")
+@given("the summarization model is hosted on another machine on the tailnet", target_fixture="model_endpoint")
 def _(store):
-    store._summary_host = "http://100.88.211.71:11434"
+    _analysis.recording_of(store)
+    return TAILNET_MODEL_HOST
 
 
 @given("the summarization stage fails on every attempt")
@@ -409,8 +428,10 @@ def _(store):
 
 
 @then("no transcript leaves the local network")
-def _(store):
-    assert rec(store)
+def _(reached_destinations):
+    assert reached_destinations, "the stage reached no machine, so nothing shows where the transcript went"
+    elsewhere = [url for url in reached_destinations if not on_the_local_network(url)]
+    assert elsewhere == [], f"the transcript went to {elsewhere}"
 
 
 @then("no reviewer-facing behaviour depends on a model's self-reported confidence")
@@ -476,8 +497,10 @@ def _(store):
 
 @then("a Proposal is still produced for every Segment")
 def _(store):
-    ScoresProposals(store=store)(rec(store))
-    assert store.lists(Proposal) or store.lists(Segment)
+    segments = _analysis.proposed(store)
+    assert segments, "no Segment was proposed"
+    proposed_for = sorted(proposal.segment_id for proposal in store.lists(Proposal))
+    assert proposed_for == sorted(segment.segment_id for segment in segments), proposed_for
 
 
 @then("the Block keeps the type the classifier gave it")
@@ -539,11 +562,15 @@ def _(store, start, end):
     return READS(start), READS(end)
 
 
-@when("the reviewer presses Preview on that Block")
-def _(store):
-    block = store.lists(Block)[0]
-    store._playhead = block.cue_start_seconds if block.cue_start_seconds is not None else block.start_seconds
-    store._play_end = block.cue_end_seconds if block.cue_end_seconds is not None else min(block.start_seconds + 8.0, block.end_seconds)
+@when("the reviewer presses Preview on that Block", target_fixture="pressed")
+def _(store, laid_out):
+    block = _remaining.block_at(store, laid_out["subject"])
+    page = _web.opens_detail(store, block.recording_id)
+    row = _remaining.block_row_markup(page, block.type)
+    buttons = _remaining.CUE_BUTTON.findall(row)
+    assert len(buttons) == 1, f"the {block.type} Block offers {len(buttons)} Preview controls"
+    start, end = buttons[0]
+    return {"start": float(start), "end": float(end), "row": row}
 
 
 @when("the reviewer corrects or clears the summary")
@@ -669,40 +696,52 @@ def _(store):
 
 
 @then("its confidence is reduced")
-def _(store):
-    ScoresProposals(store=store)(rec(store))
-    proposal = store.lists(Proposal)[0]
-    assert proposal.classification_confidence in {"medium", "low"} or "no speaker evidence" in proposal.missing_evidence
+def _(store, recording):
+    segments = store.lists(Segment, recording_id=recording.recording_id)
+    assert segments, "no Segment was proposed"
+    for segment in segments:
+        proposal = _analysis.proposal_of(store, segment)
+        assert "no speaker evidence" in proposal.missing_evidence, proposal.missing_evidence
+        assert proposal.boundary_confidence != "high", proposal.boundary_confidence
 
 
 @then("playback starts at the excerpt")
-def _(store):
-    block = store.lists(Block)[0]
-    assert store._playhead == (block.cue_start_seconds if block.cue_start_seconds is not None else block.start_seconds)
+def _(store, laid_out, pressed):
+    assert pressed["start"] == _remaining.block_at(store, laid_out["subject"]).cue_start_seconds
 
 
 @then("stops at the end of the excerpt")
-def _(store):
-    block = store.lists(Block)[0]
-    expected = block.cue_end_seconds if block.cue_end_seconds is not None else min(block.start_seconds + 8.0, block.end_seconds)
-    assert store._play_end == expected
+def _(store, laid_out, pressed):
+    assert pressed["end"] == _remaining.block_at(store, laid_out["subject"]).cue_end_seconds
 
 
 @then("the reviewer can tell what the Block is without further scrubbing")
-def _(store):
-    assert store.lists(Block)
+def _(store, laid_out, pressed):
+    block = _remaining.block_at(store, laid_out["subject"])
+    shown = reads_field(pressed["row"], "block-summary")
+    assert block.summary and shown == block.summary, (shown, block.summary)
 
 
 @then("the machine it used is recorded with the summary")
-def _(store):
-    host = store._summary_host
-    findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
-    assert host in findings
+def _(store, model_endpoint):
+    summarised = [block for block in _analysis.blocks_of(store) if block.summary]
+    assert summarised, "no Block was summarised"
+    for block in summarised:
+        recorded = " ".join(evidence.finding for evidence in block.evidence)
+        assert model_endpoint in recorded, f"the {block.type} summary records {recorded!r}"
 
 
 @then("Analysis completes without summaries")
-def _(store):
-    assert getattr(store, "_summaries_unavailable", False)
+def _(store, recording):
+    (job,) = store.lists(Job, recording_id=recording.recording_id, kind="analyze")
+    assert job.state == "succeeded", job.last_error
+    assert [block.summary for block in _analysis.blocks_of(store, recording) if block.summary] == []
+    skipped = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.kind == OPTIONAL_STAGE_FAILED
+    ]
+    assert "summarization" in [error.split(":")[0] for error in skipped], skipped
 
 
 @then("cue excerpts fall back to the first few seconds of each Block")
@@ -714,8 +753,9 @@ def _(store):
 
 
 @then("the reviewer is told summaries were unavailable")
-def _(store):
-    assert getattr(store, "_summaries_unavailable", False)
+def _(store, recording):
+    shown = strips_tags(_web.opens_detail(store, recording.recording_id)).lower()
+    assert re.search(r"summar\w*[^.]{0,60}unavailable", shown), "the page does not say summaries were unavailable"
 
 
 @then("the correction is stored")

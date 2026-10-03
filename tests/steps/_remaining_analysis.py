@@ -74,3 +74,45 @@ def listed_row(store, recording):
     row = re.search(LIST_ROW.format(id=recording.recording_id), listed)
     assert row, f"{recording.recording_id} is not on the recordings list"
     return row.group(0)
+
+
+SERMON_SERVICE = (
+    (0.0, 1570.0, "music"),
+    (1570.0, 1900.0, "scripture_reading"),
+    (1900.0, 4360.0, "sermon"),
+    (4360.0, 4500.0, "prayer"),
+    (4500.0, 4800.0, "communion"),
+    (4800.0, 5412.0, "music"),
+)
+WITHOUT = {
+    "scripture reading": {"scripture_reading": "music"},
+    "communion cue": {"communion": "music"},
+    "closing prayer": {"prayer": "music"},
+    "block types": {kind: "other" for _, _, kind in SERMON_SERVICE},
+}
+
+
+def service_without(missing):
+    """The ordinary sermon service, with the named evidence taken out of it."""
+    replaced = WITHOUT.get(missing, {})
+    return tuple((start, end, replaced.get(kind, kind)) for start, end, kind in SERMON_SERVICE)
+
+
+CUE_INTO_BLOCK_S = 30.0
+CUE_LENGTH_S = 6.0
+SUMMARY = "the preacher opens Romans eight on condemnation"
+
+
+def summarizes_with_a_cue(block, doc):
+    """The summariser's answer: a summary, and an excerpt it chose from inside the block."""
+    return SUMMARY, (block.start_seconds + CUE_INTO_BLOCK_S, block.start_seconds + CUE_INTO_BLOCK_S + CUE_LENGTH_S)
+
+
+CUE_BUTTON = re.compile(r'data-role="preview-cue-excerpt" data-kind="cue" data-start="([^"]+)" data-end="([^"]+)"')
+BLOCK_ROW = re.compile(r'<li data-row="block"(.*?)</li>', re.S)
+
+
+def block_row_markup(page, block_type):
+    rows = [row for row in BLOCK_ROW.findall(page) if f' data-block-type="{block_type}"' in row.split(">", 1)[0]]
+    assert len(rows) == 1, f"{len(rows)} {block_type} Block rows are listed"
+    return rows[0]
