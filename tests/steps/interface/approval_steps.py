@@ -12,6 +12,7 @@ from sermon.shows_recording import NOTICES
 from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, Recording, Segment, layout
 from steps import _web
 from steps._markup import reads_field, reads_rows
+from steps._worker import refuses_other_work
 
 READS = ReadsTimecode()
 APPROVED = NOTICES["approved"]
@@ -224,10 +225,6 @@ def _(store, segment):
 @then("no label is required")
 def _(detail_page):
     assert reads_field(detail_page, "action-notice") == APPROVED
-
-
-def refuses_other_work():
-    raise AssertionError("the worker ran a job that is not a render")
 
 
 @when("the worker drains the queue")

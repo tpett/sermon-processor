@@ -16,6 +16,7 @@ from sermon.jobs.downloads_recording import (
 )
 from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.store import Job, LogEntry, Recording, layout
+from steps._worker import refuses_other_work
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 OBJECT_LAST_MODIFIED = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
@@ -107,10 +108,6 @@ class MovesOn:
 
     def __call__(self):
         return self.at
-
-
-def refuses_other_work():
-    raise AssertionError("ingestion ran a job that is not a download")
 
 
 def drains_downloads(store, object_store):

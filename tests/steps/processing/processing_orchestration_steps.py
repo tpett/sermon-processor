@@ -8,6 +8,7 @@ from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
 from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Reviewer, Segment
+from steps._worker import refuses_other_work
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -96,10 +97,6 @@ class MovesOn:
 
     def __call__(self):
         return self.at
-
-
-def refuses_other_work():
-    raise AssertionError("processing ran a job that is not a render")
 
 
 @when("processing runs")

@@ -16,6 +16,7 @@ from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.web import creates_app
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment
+from steps._worker import refuses_other_work
 
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
 WORKER_POLL_GAP = timedelta(hours=1)
@@ -108,10 +109,6 @@ class MovesOn:
 
     def __call__(self):
         return self.at
-
-
-def refuses_other_work():
-    raise AssertionError("Analysis ran a job that is not an analyze job")
 
 
 def drains_analysis(store, recording, stage_log, sent, contents):
