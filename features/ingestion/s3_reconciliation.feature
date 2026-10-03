@@ -23,7 +23,7 @@ Feature: S3 reconciliation
       And the Processor has never seen "recordings/recording_20260816_102958.flac"
       When the reconciliation scan runs
       Then a Recording is created for "recordings/recording_20260816_102958.flac"
-      And it is queued for download
+      And it is not queued for download until someone asks for it
       And no duplicate is created for "recordings/recording_20260823_103015.flac"
 
     @edge-case
@@ -106,10 +106,10 @@ Feature: S3 reconciliation
 
     @happy-path
     Scenario: Scanning the bucket on demand
-      # The scheduled scan and the webhook are both still to come, so until then
-      # a recording that has just landed is invisible and cannot be ingested at
-      # all. Listing a bucket is quick and answers in the request; what it finds
-      # is queued, which is the slow part and belongs to the worker.
+      # The scheduled scan is still to come, so a recording whose webhook never
+      # arrived is invisible until someone asks. Listing a bucket is quick and
+      # answers in the request; what it finds waits for someone to ingest it,
+      # because downloading is the slow part and belongs to the worker.
       Given I am on the tailnet
       And the bucket contains a recording the Processor has never seen
       When I ask for a scan

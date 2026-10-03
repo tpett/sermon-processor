@@ -34,7 +34,7 @@ def skip_reason(object_key, *, ingest_cutoff):
     return None
 
 
-def creates_recording(store, object_key, *, size_bytes, clock):
+def creates_recording(store, object_key, *, size_bytes, clock, queues=True):
     recording_id = Path(object_key).stem
     started_at = datetime.strptime(recording_id, "recording_%Y%m%d_%H%M%S").replace(
         tzinfo=UTC
@@ -49,6 +49,8 @@ def creates_recording(store, object_key, *, size_bytes, clock):
             size_bytes=int(size_bytes or 0),
         )
     )
+    if not queues:
+        return recording
     EnqueuesJob(store)(
         Job(
             recording_id=recording.recording_id,
@@ -124,7 +126,11 @@ class ReconcilesBucket:
             if self.store.lists(Recording, object_key=object_key):
                 continue
             creates_recording(
-                self.store, object_key, size_bytes=size_bytes, clock=self.clock
+                self.store,
+                object_key,
+                size_bytes=size_bytes,
+                clock=self.clock,
+                queues=False,
             )
             discovered += 1
         self.store.saves(

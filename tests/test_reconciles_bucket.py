@@ -57,9 +57,7 @@ def test_scan_creates_a_recording_for_an_unseen_object(store):
     assert unseen.object_key == UNSEEN
     assert unseen.state == "discovered"
     assert unseen.size_bytes == 701244416
-    jobs = store.lists(Job, recording_id=unseen.recording_id, kind="download")
-    assert len(jobs) == 1
-    assert jobs[0].state == "queued"
+    assert store.lists(Job, recording_id=unseen.recording_id) == []
     assert [item.object_key for item in store.lists(Recording, object_key=SEEN)] == [SEEN]
 
 
@@ -122,3 +120,11 @@ def test_manual_ingest_ignores_the_cutoff(store):
     )
     assert recording.state == "discovered"
     assert store.lists(Job, kind="download")
+
+
+def test_manual_ingest_queues_the_download_the_scan_does_not(store):
+    recording = reconciles(store, FetchesObject()).ingests(UNSEEN)
+    jobs = store.lists(Job, recording_id=recording.recording_id, kind="download")
+    assert [(job.state, job.dedupe_key) for job in jobs] == [
+        ("queued", f"download:{recording.recording_id}")
+    ]
