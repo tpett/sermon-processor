@@ -1459,7 +1459,7 @@ def gates_shipping_cuts(asked, prints, replays=None):
         prints(
             f"against {baseline_path}, accepted {last['at']} at {last['commit']}: {last['reason']}"
         )
-    if asked.split != "dev":
+    if asked.split != "dev" and asked.unseal:
         prints(
             f"WARNING: the {asked.split} split is held out; reading it spends it, and the read "
             f"is recorded in {asked.access_log}"
