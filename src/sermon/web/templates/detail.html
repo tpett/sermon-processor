@@ -137,7 +137,7 @@
       </ol>
       <ol class="spans">
       {% for span in wave.segment_spans %}
-        <li data-row="segment-span" data-segment="{{ span.segment_id }}" data-classification="{{ span.classification }}"{% if span.selected %} data-selected="true"{% endif %} style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.classification }} {{ span.boundaries }}"><span data-field="span-boundaries">{{ span.boundaries }}</span></li>
+        <li data-row="segment-span" data-segment="{{ span.segment_id }}" data-classification="{{ span.classification }}"{% if span.selected %} data-selected="true"{% endif %} style="left:{{ span.left }}%;width:{{ span.width }}%" title="{{ span.classification }} {{ span.boundaries }}"><a href="/recordings/{{ view.recording_id }}?segment={{ span.segment_id }}" data-role="select-segment"><span data-field="span-boundaries">{{ span.boundaries }}</span></a></li>
       {% endfor %}
       </ol>
       <div class="shape">
@@ -218,7 +218,8 @@
     <p class="notice" data-field="action-notice">{{ view.notice }}</p>
     {% endif %}
     {% if view.boundary_controls == "editable" %}
-    <ol class="punch">
+    {% set reach = view.span_edges | map(attribute="seconds") | list %}
+    <ol class="punch" data-role="punch"{% if reach %} data-span-start-seconds="{{ reach[0] }}" data-span-end-seconds="{{ reach[1] }}"{% endif %} data-unavailable-reason="{{ playhead_outside_span }}">
     {% for boundary in view.boundaries %}
       <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}">
         <form method="post" action="{{ boundary.url }}{{ window }}">
@@ -228,9 +229,7 @@
       </li>
     {% endfor %}
     </ol>
-    {% if view.punch_unavailable %}
-    <p class="warn" data-field="punch-unavailable">{{ view.punch_unavailable }}</p>
-    {% endif %}
+    <p class="warn" data-field="punch-unavailable"{% if not view.punch_unavailable %} hidden{% endif %}>{{ view.punch_unavailable or "" }}</p>
     {% if view.span_edges %}
     <div class="reach">
       <p class="quiet">A punch point can only sit inside the Segment's own span. Move the span to reach past it.</p>
@@ -341,6 +340,7 @@
   <p class="quiet">Playhead <span data-field="playhead">{{ view.playhead_seconds|precise }}</span></p>
   {% endif %}
   </div>
+  <script src="{{ url_for('static', filename='timecode.js') }}" defer></script>
   <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
   <script src="{{ url_for('static', filename='cutlight.js') }}" defer></script>
   {% if wave.available %}<script type="module" src="{{ url_for('static', filename='review.js') }}"></script>{% endif %}
@@ -434,6 +434,7 @@
           </select>
         </label>
         <label>Publication label <input type="text" name="label" value="{{ view.label or '' }}"></label>
+        {% if view.notice == notices["label-collides"] %}<label><input type="checkbox" name="replace" value="yes" data-field="replace-control"> replace the file already published under this name</label>{% endif %}
         <button type="submit" class="primary" data-field="action-control">Approve</button>
       </form>
       {% else %}
@@ -559,6 +560,19 @@
   </ol>
   {% else %}
   <p data-field="transcript-state">No transcript has been produced for this Recording</p>
+  {% endif %}
+  {% if view.selected_segment_id is not none and view.transcript %}
+  <details data-role="full-transcript">
+    <summary>The whole Recording's transcript</summary>
+    <ol>
+    {% for utterance in view.transcript %}
+      <li data-row="recording-utterance" data-utterance-at-seconds="{{ utterance[0] }}">
+        <span data-field="utterance-at">{{ utterance[0]|precise }}</span>
+        <span data-field="utterance-text">{{ utterance[2] }}</span>
+      </li>
+    {% endfor %}
+    </ol>
+  </details>
   {% endif %}
 </section>
 

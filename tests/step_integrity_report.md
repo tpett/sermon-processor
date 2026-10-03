@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1326 step definitions read from `tests/steps`
+- 1349 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 464 non-deferred scenarios rest on at least one condemned step
 - 0 of 607 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 0 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
-- 330 Gherkin steps matched no definition
+- 307 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -51,12 +51,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/cut_light_steps.py` | 4 | 0 | sound |
 | `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
 | `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
-| `tests/steps/interface/publication_details_steps.py` | 10 | 0 | sound |
+| `tests/steps/interface/proposal_display_steps.py` | 1 | 0 | sound |
+| `tests/steps/interface/publication_details_steps.py` | 11 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 41 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
-| `tests/steps/interface/recording_list_steps.py` | 36 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 37 | 0 | sound |
+| `tests/steps/interface/recording_list_steps.py` | 39 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 55 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -185,7 +186,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/punch_in_detection.feature:44 then the punch-in is placed at least 250 ms away from the nearest audible sound`
 - `analysis/punch_in_detection.feature:45 then the resulting transition sounds natural rather than abrupt`
 - `analysis/punch_in_detection.feature:60 then the reviewer can move it in steps as small as 100 ms`
-- `analysis/punch_in_detection.feature:73 then the grade is shown to the reviewer`
 - `analysis/punch_in_detection.feature:95 then no flag is raised`
 - `analysis/punch_in_detection.feature:96 then the reviewer is expected to confirm it with a single preview`
 - `analysis/punch_out_detection.feature:107 then the punch-out is moved to after the word ends`
@@ -240,8 +240,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `ingestion/s3_reconciliation.feature:64 then the next scheduled scan runs normally`
 - `ingestion/webhook_notification.feature:79 then a Recording is uniquely identified by its bucket and object key`
 - `ingestion/webhook_notification.feature:80 then the same key always refers to the same audio`
-- `interface/discarding_recordings.feature:106 then I do not have to discard it for the queue to stay clean`
-- `interface/discarding_recordings.feature:107 then it remains available if I ever want it`
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`
 - `interface/discarding_recordings.feature:116 then it never appears as work`
 - `interface/discarding_recordings.feature:117 then I can still find and restore it if the machine was wrong`
@@ -257,7 +255,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/publication_details.feature:69 then the two output files do not collide`
 - `interface/publication_details.feature:77 then the output file is named from the recording date`
 - `interface/publication_details.feature:78 then I am not prompted for anything else`
-- `interface/publication_details.feature:87 then I can change the label or confirm that this replaces the previous file`
 - `interface/punch_point_adjustment.feature:129 then the punch-in moves to the nearest silence gap boundary`
 - `interface/punch_point_adjustment.feature:130 then the amount it moved is shown`
 - `interface/punch_point_adjustment.feature:146 then I am warned that the cut is too close to the audio`
@@ -269,28 +266,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
 - `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
 - `interface/recording_detail.feature:65 then I see who performed each human action, against which Segment`
-- `interface/recording_list.feature:96 then I can search by date, by classification, and by what was said`
-- `interface/segment_review.feature:125 then approving is available without any further step`
-- `interface/segment_review.feature:126 then boundary editing is available but not required`
-- `interface/segment_review.feature:148 when I press Preview on a Block`
-- `interface/segment_review.feature:149 then playback starts at that Block's cue excerpt`
-- `interface/segment_review.feature:150 then it stops at the end of the excerpt`
-- `interface/segment_review.feature:151 then a few seconds is enough for me to recognise what the Block is`
 - `interface/segment_review.feature:155 when I press Preview on a Segment`
 - `interface/segment_review.feature:156 then playback starts at the cue excerpt of its seeding Block`
 - `interface/segment_review.feature:157 then I can tell whether this is the message I meant to publish`
-- `interface/segment_review.feature:161 when I choose to start playback at a specific Block`
-- `interface/segment_review.feature:162 then playback seeks there rather than to the cue excerpt`
-- `interface/segment_review.feature:167 then all Blocks are drawn on a single waveform of the whole Recording`
-- `interface/segment_review.feature:168 then each is coloured by its type`
-- `interface/segment_review.feature:169 then proposed Segments are drawn as spans above the Blocks they cover`
-- `interface/segment_review.feature:170 then clicking one selects it for review`
 - `interface/segment_review.feature:175 then the Segment most likely to be the sermon is expanded by default`
 - `interface/segment_review.feature:176 then the others are collapsed but visible`
-- `interface/segment_review.feature:180 given I have selected a Segment`
-- `interface/segment_review.feature:181 when I read the transcript`
-- `interface/segment_review.feature:182 then I see the transcript for that Segment`
-- `interface/segment_review.feature:183 then I can expand to the full Recording transcript if I want it`
 - `interface/segment_review.feature:197 then I am told which enrolled voice is teaching, and how confidently`
 - `interface/segment_review.feature:198 then an unrecognised voice is shown as "not a known voice"`
 - `interface/segment_review.feature:202 given a Segment whose teaching voice matches no enrolled profile`
@@ -300,8 +280,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:215 when I confirm or correct who was preaching`
 - `interface/segment_review.feature:216 then that Segment strengthens or creates that speaker's profile`
 - `interface/segment_review.feature:217 then no separate enrolment session is ever required`
-- `interface/segment_review.feature:233 then it still appears as needing attention`
-- `interface/segment_review.feature:234 then I am not forced to disposition everything in one sitting`
 - `interface/segment_review.feature:238 given a Recording in "awaiting_review" containing 0 Segments`
 - `interface/segment_review.feature:240 then I am told nothing was detected`
 - `interface/segment_review.feature:241 then I can create a Segment by hand`

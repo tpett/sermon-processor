@@ -19,14 +19,6 @@
     return Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : declaredLength;
   }
 
-  function precise(seconds) {
-    const whole = Math.max(0, seconds);
-    const hours = Math.floor(whole / 3600);
-    const minutes = Math.floor((whole % 3600) / 60);
-    const rest = (whole % 60).toFixed(2).padStart(5, "0");
-    return `${hours}:${String(minutes).padStart(2, "0")}:${rest}`;
-  }
-
   function showPosition(seconds) {
     if (marker) {
       const span = length();
@@ -34,7 +26,7 @@
       marker.style.left = span ? `${(100 * seconds) / span}%` : "0%";
     }
     if (readout) {
-      readout.textContent = precise(seconds);
+      readout.textContent = formatsTimecode(seconds);
     }
     document.dispatchEvent(new CustomEvent("audio:timeupdate", { detail: { seconds } }));
   }

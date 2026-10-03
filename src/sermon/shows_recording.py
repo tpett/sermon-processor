@@ -101,6 +101,10 @@ NOTICES = {
     "not-ready": "the Segment is not ready for approval",
     "already-approved": "it has already been approved",
     "label-required": "a publication label is required before publishing",
+    "label-collides": (
+        "a published file already has this date and label; "
+        "change the label or confirm it replaces that file"
+    ),
     "skipped": "the Segment is skipped and stays available",
     "reopened": "the Segment has returned to proposed",
     "adjusted": "the adjustment is saved without approving",

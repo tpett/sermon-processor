@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -10,7 +11,7 @@ from sermon.forces_ingestion import (
     WAITING,
     reads_standing,
 )
-from sermon.store import Job, Proposal, Recording, Segment, Store
+from sermon.store import Block, Job, Proposal, Recording, Segment, Store
 
 
 def now():
@@ -37,9 +38,9 @@ def formats_clock(seconds):
 
 
 def formats_precise(seconds):
-    hours, rest = divmod(float(seconds), 3600)
-    minutes, secs = divmod(rest, 60)
-    return f"{int(hours)}:{int(minutes):02d}:{secs:05.2f}"
+    hours, rest = divmod(math.floor(float(seconds) * 100 + 0.5), 360000)
+    minutes, centis = divmod(rest, 6000)
+    return f"{hours}:{minutes:02d}:{centis // 100:02d}.{centis % 100:02d}"
 
 
 def formats_recorded_at(moment):
@@ -90,6 +91,7 @@ class RecordingRow:
     awaiting_disposition: int
     labels: tuple
     ingest: IngestView | None = None
+    summaries: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -180,6 +182,7 @@ class ListsRecordings:
                 for row in rows
                 if needle in row.recorded_at.lower()
                 or any(needle in label.lower() for label in row.labels)
+                or any(needle in summary.lower() for summary in row.summaries)
                 or any(needle in item[0].lower() for item in row.segments)
             )
         return builds_page(rows, page)
@@ -215,4 +218,9 @@ class ListsRecordings:
             awaiting_disposition=awaiting,
             labels=labels,
             ingest=reads_ingest(self.store, recording, queued=queued),
+            summaries=tuple(
+                block.summary
+                for block in self.store.lists(Block, recording_id=recording.recording_id)
+                if block.summary
+            ),
         )

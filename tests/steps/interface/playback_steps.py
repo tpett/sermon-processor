@@ -97,8 +97,9 @@ def _(detail_page):
 
 @then("the waveform and the transcript remain usable")
 def _(detail_page):
-    assert 'id="overview"' in detail_page
-    assert reads_rows(detail_page, "utterance") or reads_field(detail_page, "transcript-state")
+    assert 'data-role="overview-canvas"' in detail_page
+    assert reads_field(detail_page, "waveform-state") is None
+    assert reads_rows(detail_page, "utterance")
 
 
 @then("the boundaries can still be adjusted and approved")

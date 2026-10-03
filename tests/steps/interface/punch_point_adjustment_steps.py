@@ -10,7 +10,7 @@ from sermon.shows_recording import NOTICES, formats_precise
 from sermon.store import Block, Proposal, Recording, Segment, opens_store
 from steps._markup import reads_field, reads_rows
 from steps._peaks import writes_peaks, writes_utterances
-from steps import _web
+from steps import _browser, _web
 
 READS = ReadsTimecode()
 SPOKEN_AROUND_THE_CUT = (
@@ -413,14 +413,29 @@ def _(detail_page):
 
 
 @when("I punch the punch-in in from beside the waveform", target_fixture="detail_page")
-def _(store, segment):
-    client = _web.opens_app(store).test_client()
-    client.post(
-        f"/api/recordings/{segment.recording_id}/seek",
-        json={"seconds": getattr(store, "_playhead", 0.0)},
-    )
-    posted = client.post(_web.boundary_action(segment, "punch-in"), data={"do": "playhead"})
-    return client.get(posted.headers["Location"]).get_data(as_text=True)
+def _(store, recording, segment):
+    played_to = store._playhead
+    writes_peaks(store, recording)
+    with _browser.opens_page(store) as page:
+        page.request.post(
+            f"/api/recordings/{segment.recording_id}/seek",
+            data={"seconds": segment.span_start_seconds - 600.0},
+        )
+        page.goto(
+            f"/recordings/{segment.recording_id}?segment={segment.segment_id}"
+            f"&zoom=three+seconds&centre={played_to}"
+        )
+        control = page.locator('[data-row="punch-point"][data-boundary="punch-in"] button')
+        assert control.is_disabled(), "the page did not open with the playhead outside the span"
+        _browser.clicks_at_seconds(page, '[data-role="detail"]', played_to)
+        assert control.is_enabled(), (
+            "back inside the span, the punch-in control is still disabled: "
+            f"{control.get_attribute('title')}"
+        )
+        assert not page.locator('[data-field="punch-unavailable"]').is_visible()
+        with page.expect_navigation():
+            control.click()
+        return page.content()
 
 
 @then("a punch control for each boundary sits beside the waveform rather than in a lower card")

@@ -1,3 +1,4 @@
+import re
 from dataclasses import replace
 from datetime import UTC, datetime
 
@@ -8,14 +9,19 @@ from sermon.approves_segment import ApprovesSegment, ReviewSession
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.reopens_segment import ReopensSegment
 from sermon.settles_recording import SettlesRecording
+from sermon.shows_recording import NOTICES, formats_precise
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
-from steps import _audio, _web
-from steps._markup import reads_field, reads_rows
+from steps import _audio, _browser, _forms, _web
+from steps._markup import reads_field, reads_role, reads_rows
+from steps._peaks import writes_peaks, writes_utterances
 
 READS = ReadsTimecode()
 PREVIEW_SECONDS = 11520.0
+CUE_LEAD_SECONDS = 20.0
+CUE_SECONDS = 3.0
+A_FEW_SECONDS = 15.0
 
 
 def renders_detail(store, recording):
@@ -46,8 +52,10 @@ def _(store, state, count, datatable):
             started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
             started_at_source="key",
             size_bytes=1,
+            duration_seconds=PREVIEW_SECONDS,
         )
     )
+    writes_peaks(store, stored)
     rows = datatable[1:]
     assert len(rows) == count
     for _, classification, boundaries, confidence in rows:
@@ -87,6 +95,8 @@ def _(store, recording):
                 end_seconds=start + 60.0,
                 type=block_type,
                 summary=f"the {block_type}",
+                cue_start_seconds=start + CUE_LEAD_SECONDS,
+                cue_end_seconds=start + CUE_LEAD_SECONDS + CUE_SECONDS,
             )
         )
         start += 60.0
@@ -377,3 +387,193 @@ def _(store, classification):
             punch_out_seconds=900.0,
         )
     )
+
+
+@then("it still appears as needing attention")
+def _(store, recording):
+    client = creates_app(store=store).test_client()
+    for query in ("", "?filter=Needs attention"):
+        rows = reads_rows(client.get(f"/{query}").get_data(as_text=True), "recording")
+        listed = [row for row in rows if row["id"] == recording.recording_id]
+        assert listed and listed[0]["attention"] == "true", query
+
+
+@then("I am not forced to disposition everything in one sitting")
+def _(store, recording):
+    untouched = numbered_segment(store, recording, 1)
+    page = _web.opens_detail(store, recording.recording_id, segment=untouched.segment_id)
+    offered = [row["action"] for row in reads_rows(page, "segment-action")]
+    assert {"Approve", "Skip"} <= set(offered)
+    states = {row["segment"]: row["state"] for row in reads_rows(page, "segment")}
+    assert states[str(untouched.segment_id)] == "proposed"
+
+
+@then("approving is available without any further step")
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    approving = 'data-field="action-control">Approve'
+    assert page.index(approving) < page.index("<h3>Boundaries</h3>")
+    approved = _forms.submits(store, page, approving)
+    assert reads_field(approved, "action-notice") == NOTICES["approved"]
+    reopened = _forms.submits(store, approved, 'data-field="action-control">Cancel processing')
+    assert reads_field(reopened, "action-notice") == NOTICES["reopened"]
+
+
+@then("boundary editing is available but not required")
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    assert reads_field(page, "boundary-controls") in {"editable", "collapsed"}
+    assert [row["boundary"] for row in reads_rows(page, "boundary")] == ["punch-in", "punch-out"]
+
+
+SPOKEN_ACROSS_THE_MORNING = (
+    (600.0, 606.0, "turn with me to the second chapter of Ruth"),
+    (5400.0, 5406.0, "let us stand and sing together"),
+    (7200.0, 7206.0, "good morning, open your bibles to Hebrews twelve"),
+    (9600.0, 9606.0, "let us pray as we close"),
+)
+
+
+@given("I have selected a Segment", target_fixture="segment")
+def _(store, recording):
+    writes_utterances(store, recording, SPOKEN_ACROSS_THE_MORNING)
+    return numbered_segment(store, recording, 2)
+
+
+@when("I read the transcript", target_fixture="detail_page")
+def _(store, segment):
+    return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+
+
+@then("I see the transcript for that Segment")
+def _(detail_page):
+    assert [row["utterance-text"] for row in reads_rows(detail_page, "utterance")] == [
+        "good morning, open your bibles to Hebrews twelve",
+        "let us pray as we close",
+    ]
+
+
+@then("I can expand to the full Recording transcript if I want it")
+def _(detail_page):
+    expander = re.search(r'<details\b([^>]*)data-role="full-transcript"([^>]*)>', detail_page)
+    assert expander, "no expander offers the whole Recording's transcript"
+    assert " open" not in "".join(expander.groups()), "the whole transcript is forced open"
+    assert [row["utterance-text"] for row in reads_rows(detail_page, "recording-utterance")] == [
+        text for _, _, text in SPOKEN_ACROSS_THE_MORNING
+    ]
+
+
+@then("all Blocks are drawn on a single waveform of the whole Recording")
+def _(store, recording, detail_page):
+    assert detail_page.count('data-role="waveform"') == 1
+    drawn = reads_role(detail_page, "waveform")
+    assert float(drawn["duration-seconds"]) == recording.duration_seconds
+    stored = sorted(store.lists(Block, recording_id=recording.recording_id), key=lambda b: b.start_seconds)
+    assert [band["band-type"] for band in reads_rows(detail_page, "band")] == [
+        block.type for block in stored
+    ]
+
+
+@then("each is coloured by its type")
+def _(detail_page):
+    colours = {}
+    for band in reads_rows(detail_page, "band"):
+        colours.setdefault(band["band-type"], set()).add(band["band-colour"])
+    assert all(len(held) == 1 for held in colours.values())
+    assert len({next(iter(held)) for held in colours.values()}) == len(colours)
+
+
+@then("proposed Segments are drawn as spans above the Blocks they cover")
+def _(store, recording, detail_page):
+    proposed = sorted(
+        (item for item in store.lists(Segment, recording_id=recording.recording_id) if item.state == "proposed"),
+        key=lambda item: item.punch_in_seconds,
+    )
+    spans = reads_rows(detail_page, "segment-span")
+    assert [int(span["segment"]) for span in spans] == [item.segment_id for item in proposed]
+    for span, segment in zip(spans, proposed):
+        left = re.search(r"left:([0-9.]+)%", detail_page.split(f'data-row="segment-span" data-segment="{segment.segment_id}"')[1]).group(1)
+        assert abs(float(left) - 100.0 * segment.punch_in_seconds / recording.duration_seconds) < 0.01
+    assert detail_page.index('class="spans"') < detail_page.index('class="bands"')
+
+
+@then("clicking one selects it for review")
+def _(store, recording):
+    first = numbered_segment(store, recording, 1)
+    chosen = numbered_segment(store, recording, 2)
+    with _browser.opens_page(store) as page:
+        page.goto(f"/recordings/{recording.recording_id}?segment={first.segment_id}")
+        with page.expect_navigation(timeout=5000):
+            page.locator(f'[data-row="segment-span"][data-segment="{chosen.segment_id}"]').click()
+        selected = page.locator('[data-row="segment"][data-selected="true"]')
+        assert selected.get_attribute("data-segment") == str(chosen.segment_id)
+        assert page.locator('[data-field="punch-in"]').text_content() == formats_precise(
+            chosen.punch_in_seconds
+        )
+
+
+def auditions(store, recording, control):
+    """Press a control beside a Block in Chromium and watch the audio element answer."""
+    prayer = [
+        block for block in store.lists(Block, recording_id=recording.recording_id) if block.type == "prayer"
+    ][0]
+    with _browser.opens_page(store) as page:
+        page.goto(f"/recordings/{recording.recording_id}")
+        row = page.locator('[data-row="block"][data-block-type="prayer"]')
+        page.locator("audio").evaluate("audio => audio.muted = true")
+        row.locator(f'[data-role="{control}"]').click()
+        page.wait_for_function("() => !document.querySelector('audio').paused", timeout=5000)
+        began = page.evaluate("() => document.querySelector('audio').currentTime")
+        if control == "preview-cue-excerpt":
+            page.wait_for_function(
+                "() => document.querySelector('audio').paused", timeout=(CUE_SECONDS + 4) * 1000
+            )
+        else:
+            page.wait_for_timeout(1000)
+        held = page.evaluate(
+            "() => ({at: document.querySelector('audio').currentTime,"
+            " paused: document.querySelector('audio').paused})"
+        )
+        excerpt = row.locator('[data-role="preview-cue-excerpt"]')
+        return {
+            "block": prayer,
+            "began": began,
+            "ended": held["at"],
+            "still_playing": not held["paused"],
+            "excerpt": (float(excerpt.get_attribute("data-start")), float(excerpt.get_attribute("data-end"))),
+        }
+
+
+@when("I press Preview on a Block", target_fixture="audition")
+def _(store, recording):
+    return auditions(store, recording, "preview-cue-excerpt")
+
+
+@then("playback starts at that Block's cue excerpt")
+def _(audition):
+    assert audition["excerpt"][0] == audition["block"].cue_start_seconds
+    assert abs(audition["began"] - audition["block"].cue_start_seconds) < 0.5
+
+
+@then("it stops at the end of the excerpt")
+def _(audition):
+    assert not audition["still_playing"]
+    assert audition["block"].cue_end_seconds <= audition["ended"] < audition["block"].cue_end_seconds + 0.5
+
+
+@then("a few seconds is enough for me to recognise what the Block is")
+def _(audition):
+    start, end = audition["excerpt"]
+    assert 0 < end - start <= A_FEW_SECONDS
+
+
+@when("I choose to start playback at a specific Block", target_fixture="audition")
+def _(store, recording):
+    return auditions(store, recording, "start-at-block")
+
+
+@then("playback seeks there rather than to the cue excerpt")
+def _(audition):
+    assert abs(audition["began"] - audition["block"].start_seconds) < 0.5
+    assert audition["block"].start_seconds != audition["block"].cue_start_seconds
+    assert audition["still_playing"]
