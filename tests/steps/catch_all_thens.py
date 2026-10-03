@@ -2,10 +2,12 @@ from pytest_bdd import given, then, when
 
 
 @then('the Segment stays in "proposed"')
-def _(store):
+def _(store, segment, detail_page):
     from sermon.store import Segment
+    from steps._markup import reads_field
 
-    assert store.lists(Segment)
+    assert store.loads(Segment, segment.segment_id).state == "proposed"
+    assert reads_field(detail_page, "segment-state") == "proposed"
 
 
 @when("I approve Segment 2 and leave Segment 1 alone")
