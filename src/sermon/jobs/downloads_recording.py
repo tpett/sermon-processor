@@ -10,7 +10,8 @@ from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.object_store import FetchedObject
 from sermon.reconciles_bucket import ObjectStoreForbidden, ObjectStoreUnreachable
 from sermon.jobs.probes_recording import AudioNotMeasurable
-from sermon.store import Job, LogEntry, Recording, Store, layout
+from sermon.sends_notification import SendsNotification
+from sermon.store import Job, LogEntry, Notification, Recording, Store, layout
 
 
 def now():
@@ -255,6 +256,20 @@ class RunsDownloadJob:
     clock: object = now
     free_bytes: object = None
     job_id: int | None = None
+    notifies: object = None
+
+    def _tells(self, recording_id, reason):
+        notification = self.store.saves(
+            Notification(
+                recording_id=recording_id,
+                kind="ingest_failed",
+                recipient="reviewer",
+                summary=f"ingest failed: {reason}",
+                created_at=self.clock(),
+                state="pending",
+            )
+        )
+        (self.notifies or SendsNotification(store=self.store))(notification)
 
     def __call__(self):
         job = [
@@ -291,6 +306,7 @@ class RunsDownloadJob:
                     failed_permanently=True,
                 )
             )
+            self._tells(running.recording_id, f"download: {error}")
             return
         except RETRYABLE as error:
             attempts = (running.attempts or 0) + 1
@@ -298,6 +314,17 @@ class RunsDownloadJob:
             recording = self.store.loads(Recording, running.recording_id)
             if attempts >= limit:
                 self.store.saves(replace(recording, state="ingest_failed"))
+                self.store.saves(
+                    LogEntry(
+                        recording_id=recording.recording_id,
+                        kind="state_change",
+                        occurred_at=self.clock(),
+                        correlation_id=f"download:{recording.recording_id}",
+                        entered_state="ingest_failed",
+                        error=f"download: {error}",
+                    )
+                )
+                self._tells(recording.recording_id, f"download: {error}")
                 self.store.saves(
                     replace(
                         running,

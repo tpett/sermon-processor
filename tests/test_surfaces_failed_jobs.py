@@ -3,10 +3,11 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob, StageFailed
+from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
 from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
-from sermon.store import Job, Recording, Reviewer, Segment, opens_store
+from sermon.store import Job, Notification, Recording, Reviewer, Segment, opens_store
 from sermon.web import creates_app
 from steps._markup import reads_field, reads_rows
 
@@ -183,3 +184,72 @@ def test_the_failed_filter_finds_a_recording_whose_segment_failed_to_render(stor
 
     assert [row["id"] for row in rows] == [RECORDING_ID]
 
+
+def download_keeps_failing(store):
+    a_recording(store, "discovered")
+    store.saves(
+        Job(
+            recording_id=RECORDING_ID,
+            kind="download",
+            state="queued",
+            max_attempts=3,
+            dedupe_key=f"download:{RECORDING_ID}",
+            queued_at=STARTED,
+        )
+    )
+    clock = Clock()
+    fetches = FetchesObject()
+    fetches.error = "connection refused"
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(
+            store=store,
+            fetches=fetches,
+            probes=ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1),
+            clock=clock,
+        ),
+        analyzes=lambda: None,
+        renders=lambda: None,
+        clock=clock,
+    )
+    while store.lists(Job, state="queued"):
+        runs()
+        clock.at += EVERY_DELAY
+
+
+def test_a_download_that_exhausts_its_budget_says_why_and_tells_the_reviewer(store):
+    download_keeps_failing(store)
+    page = client(store).get(f"/recordings/{RECORDING_ID}").get_data(as_text=True)
+
+    assert reads_field(page, "state") == "ingest_failed"
+    assert reads_field(page, "reason") == "download: connection refused"
+    told = store.lists(Notification, recording_id=RECORDING_ID)
+    assert [(item.kind, item.recipient) for item in told] == [("ingest_failed", "reviewer")]
+    assert "connection refused" in told[0].summary
+
+
+def test_an_undecodable_download_tells_the_reviewer_at_once(store):
+    a_recording(store, "discovered")
+    store.saves(
+        Job(
+            recording_id=RECORDING_ID,
+            kind="download",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"download:{RECORDING_ID}",
+            queued_at=STARTED,
+        )
+    )
+    fetches = FetchesObject()
+    fetches.stores(f"recordings/{RECORDING_ID}.flac", b"")
+    RunsDownloadJob(
+        store=store,
+        fetches=fetches,
+        probes=ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1),
+        clock=Clock(),
+    )()
+
+    assert store.loads(Recording, RECORDING_ID).state == "ingest_failed"
+    told = store.lists(Notification, recording_id=RECORDING_ID)
+    assert [item.kind for item in told] == ["ingest_failed"]
+    assert "not decodable" in told[0].summary
