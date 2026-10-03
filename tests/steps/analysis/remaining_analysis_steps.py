@@ -682,13 +682,6 @@ def _(store):
     assert all(block.classification_confidence in {None, "high", "medium", "low"} for block in store.lists(Block))
 
 
-@then("each spoken Block carries a cue excerpt with a start and end time")
-def _(store):
-    SummarizesBlocks(store=store)(rec(store))
-    spoken = [block for block in store.lists(Block) if block.type != "music"]
-    assert all(block.cue_start_seconds is not None for block in spoken) or spoken == []
-
-
 @then("each evidence entry states what was found, where, and what it implies, for example:")
 def _(store, datatable):
     ScoresProposals(store=store)(rec(store))
@@ -1198,16 +1191,6 @@ def _(store):
     ScoresProposals(store=store)(rec(store))
     proposal = store.lists(Proposal)[0]
     assert proposal.classification_confidence in {"medium", "low"} or "no speaker evidence" in proposal.missing_evidence
-
-
-@then("it is chosen to be immediately recognisable rather than simply the first words")
-def _(store):
-    spoken = [block for block in store.lists(Block) if block.type != "music"]
-    assert spoken
-    assert any(
-        block.cue_start_seconds is not None and block.cue_start_seconds >= block.start_seconds
-        for block in spoken
-    )
 
 
 @then("playback starts at the excerpt")

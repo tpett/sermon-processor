@@ -30,17 +30,17 @@ UTTERANCE_S = 8.0
 UTTERANCE_PERIOD_S = 12.0
 WORD_S = 0.3
 SPOKEN = {
-    "announcements": "good morning and welcome there is coffee after the service",
+    "announcements": "good morning and welcome to all of you there is coffee after the service and a baptism next sunday",
     "prayer": "let us pray father we thank you for this day in jesus name amen",
     "music": "",
-    "scripture_reading": "please stand for the reading of gods word from romans chapter eight",
+    "scripture_reading": "please stand for the reading of gods word from romans chapter eight verses one to eleven",
     "sermon": "this morning we will look at what the apostle means by grace and what it asks of us",
-    "lesson": "in this class we are working through the doctrine of the church",
-    "seminar": "welcome to the second session of the seminar on church history",
+    "lesson": "in this class we are working through the doctrine of the church and what it means to belong",
+    "seminar": "welcome to the second session of the seminar on church history and the early councils",
     "communion": "come to the table all who trust in christ this is my body given for you",
-    "qa": "does anyone have a question yes go ahead that is a good question",
-    "rehearsal": "one two three four from the top again",
-    "other": "we will get going in just a minute",
+    "qa": "does anyone have a question yes go ahead that is a good question about the reading",
+    "rehearsal": "one two three four from the top again and this time hold the last chord longer",
+    "other": "we will get going in just a minute if everyone could find a seat near the front",
 }
 SUNDAY = (
     ("0:00:00", "0:04:00", "announcements"),
@@ -64,8 +64,31 @@ def refuses_a_model_call(*_, **__):
     raise ModelCallRefused("the specification never calls a model; inject a double at the stage's seam")
 
 
-def answers_a_summary_prompt(model, prompt, think=False):
-    return {"summary": "a block of the service", "cue_quote": ""}, 0
+TRANSCRIPT_MARK = "Transcript:"
+QUOTE_FROM, QUOTE_TO = 2, 14
+LONG_SUMMARY = " ".join(["a long and rambling account of everything said in this block"] * 6)
+
+
+class AnswersLikeAModel:
+    """Returns words copied from the block it was shown, and never a timestamp."""
+
+    def __init__(self, quotes=True, summary=LONG_SUMMARY):
+        self.prompts = []
+        self.quotes = quotes
+        self.summary = summary
+
+    def __call__(self, model, prompt, think=False):
+        self.prompts.append(prompt)
+        spoken = prompt.split(TRANSCRIPT_MARK, 1)[-1].split()
+        if self.quotes is True:
+            quote = " ".join(spoken[QUOTE_FROM:QUOTE_TO])
+        else:
+            quote = self.quotes
+        return {"summary": self.summary, "cue_quote": quote}, 0
+
+
+def quoted_by(prompt):
+    return " ".join(prompt.split(TRANSCRIPT_MARK, 1)[-1].split()[QUOTE_FROM:QUOTE_TO])
 
 
 def recording_of(store, duration=DURATION_S):

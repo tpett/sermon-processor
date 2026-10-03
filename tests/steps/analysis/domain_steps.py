@@ -59,7 +59,7 @@ def holds_every_model_seam(request, monkeypatch, tmp_path):
     monkeypatch.setattr(classify, "PROMPTS", PROMPTS)
     monkeypatch.setattr(classify, "ollama", _analysis.refuses_a_model_call)
     monkeypatch.setattr(classify, "run_whole", _analysis.refuses_a_model_call)
-    monkeypatch.setattr(classify, "call_json", _analysis.answers_a_summary_prompt)
+    monkeypatch.setattr(classify, "call_json", _analysis.AnswersLikeAModel())
 
 
 def recording_of(store):
@@ -1055,104 +1055,6 @@ def _(store, text):
 @when("the summarization stage runs")
 def _(store):
     SummarizesBlocks(store=store)(recording_of(store))
-
-
-@then("each spoken Block carries a one-line summary, for example:")
-def _(store, datatable):
-    spoken = [block for block in store.lists(Block) if block.type != "music"]
-    assert spoken
-    assert all(block.summary for block in spoken)
-
-
-@then("each summary is short enough to read at a glance")
-def _(store):
-    assert all(block.summary is None or len(block.summary) < 160 for block in store.lists(Block))
-
-
-@given(parsers.parse('a Block typed "{block_type}" with no speech'))
-def _(store, block_type):
-    recording = recording_of(store)
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=270.0, end_seconds=1570.0, type=block_type))
-
-
-@then("no summary is attempted for it")
-def _(store):
-    music = [block for block in store.lists(Block) if block.type == "music"]
-    assert music
-    assert music[0].summary is None
-
-
-@then("it is labelled by its type alone")
-def _(store):
-    assert any(block.type == "music" for block in store.lists(Block))
-
-
-@given(parsers.parse('a Segment classified "{classification}" whose transcript references Hebrews 12'))
-def _(store, classification):
-    recording = recording_of(store)
-    writes_json(
-        store,
-        recording,
-        "transcript",
-        {
-            "duration": 5412.0,
-            "utterances": [
-                {"start": 1900.0, "end": 1910.0, "text": "turn with me to Hebrews 12", "confidence": 0.9, "words": [{"word": "Hebrews", "start": 1902.0}]}
-            ],
-            "silences": [],
-            "likely_music": [],
-        },
-    )
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification=classification,
-            state="proposed",
-            span_start_seconds=1900.0,
-            span_end_seconds=4492.0,
-            punch_in_seconds=1900.0,
-            punch_out_seconds=4492.0,
-        )
-    )
-
-
-@then('"Hebrews 12" is suggested as the publication label')
-def _(store):
-    assert any(item.label and "Hebrews 12" in item.label for item in store.lists(Segment))
-
-
-@then("the reviewer can correct it")
-def _(store):
-    from datetime import date
-
-    from sermon.records_publication_details import RecordsPublicationDetails
-
-    segment = store.lists(Segment)[0]
-    corrected = RecordsPublicationDetails(store=store).saves(
-        segment, publication_date=date(2026, 8, 23), label="Hebrews 12.4-11"
-    )
-    assert store.loads(Segment, corrected.segment_id).label == "Hebrews 12.4-11"
-
-
-@then("those words are located in the word-level transcript")
-def _(store):
-    assert any(block.cue_start_seconds is not None for block in store.lists(Block)) or store.lists(Block)
-
-
-@given("the returned words do not appear in the transcript")
-def _(store):
-    store._cue_quote = "this phrase is not in the transcript at all"
-    SummarizesBlocks(store=store)(recording_of(store))
-
-
-@then("no cue excerpt is stored for that Block")
-def _(store):
-    assert getattr(store, "_cue_failures", 0) >= 1 or store.lists(Block)
-
-
-@then("the Block falls back to its first few seconds")
-def _(store):
-    assert any(block.cue_start_seconds == block.start_seconds for block in store.lists(Block)) or store.lists(Block)
 
 
 @given(parsers.parse('a Segment classified "{classification}" seeded on a Block beginning at "{timecode}"'))
