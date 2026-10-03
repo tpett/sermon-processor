@@ -101,7 +101,7 @@ class AnalyzesRecording:
         records = RecordsStageProgress(store=self.store, clock=self.clock)
         records.started(recording, name)
         began = self.clock()
-        outcome = self._performs_stage(recording, name)
+        outcome = self._performs_stage(self.store.loads(Recording, recording.recording_id), name)
         records.completed(recording, name, _elapsed(began, self.clock()))
         return outcome
 
@@ -235,7 +235,9 @@ class AnalyzesRecording:
             raise
         except Exception as error:
             stage = getattr(error, "stage", name)
-            self.store.saves(replace(analyzing, state="analysis_failed"))
+            self.store.saves(
+                replace(self.store.loads(Recording, recording.recording_id), state="analysis_failed")
+            )
             self.store.saves(
                 LogEntry(
                     recording_id=recording.recording_id,
@@ -247,6 +249,7 @@ class AnalyzesRecording:
                 )
             )
             raise StageFailed(stage, str(error)) from error
+        analyzed = self.store.loads(Recording, recording.recording_id)
         if not self.store.lists(Segment, recording_id=recording.recording_id):
             for classification, punch_in, punch_out in self.contents.segments:
                 segment = self.store.saves(
@@ -260,7 +263,7 @@ class AnalyzesRecording:
                             punch_in_seconds=punch_in,
                             punch_out_seconds=punch_out,
                         ),
-                        recording.duration_seconds,
+                        analyzed.duration_seconds,
                     )
                 )
                 self.store.saves(
@@ -272,7 +275,7 @@ class AnalyzesRecording:
                         punch_out_grade="easy",
                     )
                 )
-        reviewed = self.store.saves(replace(analyzing, state="awaiting_review"))
+        reviewed = self.store.saves(replace(analyzed, state="awaiting_review"))
         self.store.saves(
             LogEntry(
                 recording_id=recording.recording_id,

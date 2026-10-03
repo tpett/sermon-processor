@@ -1,3 +1,4 @@
+import json
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -6,11 +7,12 @@ import pytest
 from steps._asr import transcribes_for
 
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
-from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob
+from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
 from sermon.jobs.probes_recording import ProbeResult
 from sermon.pipeline import classify, segments
 from sermon.sends_notification import SendsNotification
 from sermon.store import (
+    Artifact,
     ChannelLevel,
     Job,
     LogEntry,
@@ -216,3 +218,40 @@ def test_a_walk_that_proposes_nothing_fabricates_no_segment(store, roots):
     assert store.lists(Notification, recording_id=recording.recording_id) == []
     assert sent == []
 
+
+def test_what_the_probe_measured_survives_the_end_of_the_walk(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    walks(store, [], measures=measures_loudness)()
+    stored = store.loads(Recording, recording.recording_id)
+    assert stored.state == "awaiting_review"
+    assert stored.integrated_loudness_lufs == -20.4
+    assert stored.true_peak_dbtp == -1.2
+    assert stored.channel_levels == (ChannelLevel(channel=1, rms_db=-30.0),)
+
+
+def test_what_the_probe_measured_survives_a_failed_walk(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def fails_at_scoring(name):
+        if name == "scoring":
+            raise StageFailed(name, "scoring failed")
+
+    walks(store, [], measures=measures_loudness, stages=fails_at_scoring)()
+    stored = store.loads(Recording, recording.recording_id)
+    assert stored.state == "analysis_failed"
+    assert stored.integrated_loudness_lufs == -20.4
+    assert stored.channel_levels == (ChannelLevel(channel=1, rms_db=-30.0),)
+
+
+def test_a_later_stage_reads_what_the_probe_measured(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def measures_a_shorter_file(item):
+        return replace(measures_loudness(item), duration_seconds=10990.0)
+
+    walks(store, [], measures=measures_a_shorter_file)()
+    peaks = store.lists(Artifact, recording_id=recording.recording_id, kind="waveform_peaks")[0]
+    assert json.loads(store.resolves(peaks).read_text())["duration_seconds"] == 10990.0
