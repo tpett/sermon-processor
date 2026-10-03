@@ -19,6 +19,9 @@ from steps._peaks import writes_peaks, writes_utterances
 
 READS = ReadsTimecode()
 PREVIEW_SECONDS = 11520.0
+CUE_LEAD_SECONDS = 20.0
+CUE_SECONDS = 3.0
+A_FEW_SECONDS = 15.0
 
 
 def renders_detail(store, recording):
@@ -92,6 +95,8 @@ def _(store, recording):
                 end_seconds=start + 60.0,
                 type=block_type,
                 summary=f"the {block_type}",
+                cue_start_seconds=start + CUE_LEAD_SECONDS,
+                cue_end_seconds=start + CUE_LEAD_SECONDS + CUE_SECONDS,
             )
         )
         start += 60.0
@@ -505,3 +510,70 @@ def _(store, recording):
         assert page.locator('[data-field="punch-in"]').text_content() == formats_precise(
             chosen.punch_in_seconds
         )
+
+
+def auditions(store, recording, control):
+    """Press a control beside a Block in Chromium and watch the audio element answer."""
+    prayer = [
+        block for block in store.lists(Block, recording_id=recording.recording_id) if block.type == "prayer"
+    ][0]
+    with _browser.opens_page(store) as page:
+        page.goto(f"/recordings/{recording.recording_id}")
+        row = page.locator('[data-row="block"][data-block-type="prayer"]')
+        page.locator("audio").evaluate("audio => audio.muted = true")
+        row.locator(f'[data-role="{control}"]').click()
+        page.wait_for_function("() => !document.querySelector('audio').paused", timeout=5000)
+        began = page.evaluate("() => document.querySelector('audio').currentTime")
+        if control == "preview-cue-excerpt":
+            page.wait_for_function(
+                "() => document.querySelector('audio').paused", timeout=(CUE_SECONDS + 4) * 1000
+            )
+        else:
+            page.wait_for_timeout(1000)
+        held = page.evaluate(
+            "() => ({at: document.querySelector('audio').currentTime,"
+            " paused: document.querySelector('audio').paused})"
+        )
+        excerpt = row.locator('[data-role="preview-cue-excerpt"]')
+        return {
+            "block": prayer,
+            "began": began,
+            "ended": held["at"],
+            "still_playing": not held["paused"],
+            "excerpt": (float(excerpt.get_attribute("data-start")), float(excerpt.get_attribute("data-end"))),
+        }
+
+
+@when("I press Preview on a Block", target_fixture="audition")
+def _(store, recording):
+    return auditions(store, recording, "preview-cue-excerpt")
+
+
+@then("playback starts at that Block's cue excerpt")
+def _(audition):
+    assert audition["excerpt"][0] == audition["block"].cue_start_seconds
+    assert abs(audition["began"] - audition["block"].cue_start_seconds) < 0.5
+
+
+@then("it stops at the end of the excerpt")
+def _(audition):
+    assert not audition["still_playing"]
+    assert audition["block"].cue_end_seconds <= audition["ended"] < audition["block"].cue_end_seconds + 0.5
+
+
+@then("a few seconds is enough for me to recognise what the Block is")
+def _(audition):
+    start, end = audition["excerpt"]
+    assert 0 < end - start <= A_FEW_SECONDS
+
+
+@when("I choose to start playback at a specific Block", target_fixture="audition")
+def _(store, recording):
+    return auditions(store, recording, "start-at-block")
+
+
+@then("playback seeks there rather than to the cue excerpt")
+def _(audition):
+    assert abs(audition["began"] - audition["block"].start_seconds) < 0.5
+    assert audition["block"].start_seconds != audition["block"].cue_start_seconds
+    assert audition["still_playing"]
