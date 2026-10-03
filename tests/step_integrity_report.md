@@ -5,10 +5,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1336 step definitions read from `tests/steps`
-- 159 condemned
-- 121 of 464 non-deferred scenarios rest on at least one condemned step
-- 159 of 607 expanded scenario tests likewise
-- 46 scenarios whose every Then is condemned, so nothing they claim is checked
+- 157 condemned
+- 120 of 464 non-deferred scenarios rest on at least one condemned step
+- 158 of 607 expanded scenario tests likewise
+- 45 scenarios whose every Then is condemned, so nothing they claim is checked
 - 14 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
@@ -29,9 +29,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | a Then with a path through it that asserts nothing | 18 |
 | an assertion that compares a value with itself | 1 |
 | a Then that constructs and invokes a unit of the system | 32 |
-| a Then that writes to the store | 58 |
-| a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 16 |
-| a Then that asserts word for word what another Then in its scenario asserts | 12 |
+| a Then that writes to the store | 57 |
+| a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 14 |
+| a Then that asserts word for word what another Then in its scenario asserts | 10 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
 | a When that writes the outcome itself instead of invoking the system | 16 |
@@ -84,7 +84,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/processing/artifact_downloads_steps.py` | 25 | 1 | partly condemned |
 | `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 2 | partly condemned |
-| `tests/steps/remaining_steps.py` (named) | 115 | 21 | partly condemned |
+| `tests/steps/remaining_steps.py` (named) | 115 | 19 | partly condemned |
 
 ## Condemned outside the six named files
 
@@ -372,27 +372,25 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/processing/artifact_downloads_steps.py:288` | then | `the download continues from where it stopped` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
 | `tests/steps/processing/processing_orchestration_steps.py:169` | then | `each produces its own MP3` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/processing/processing_orchestration_steps.py:205` | then | `the reviewer is notified` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:63` | when | `I open a proposed Segment` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:186` | when | `a reviewer disables notifications` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:278` | when | `I choose to re-cut the Segment` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:377` | then | `100 ms is {pixels}` | an assertion operand that some scenario's own arguments make true |
-| `tests/steps/remaining_steps.py:397` | then | `the failure names the step "{step}" and its error` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/remaining_steps.py:403` | then | `processing completes normally` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:423` | then | `the Segment stays in "approved" pending space` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:443` | when | `it is ingested` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:470` | then | `it survives me reloading the page` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:523` | when | `I correct the label to "{label}"` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:529` | when | `I re-cut this Segment` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:551` | then | `adding real accounts changes who that actor is` | a Then that writes to the store; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/remaining_steps.py:557` | then | `it does not change what is recorded against it` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/remaining_steps.py:599` | then | `I am warned that it contains a published segment` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/remaining_steps.py:604` | then | `the discard proceeds only if I confirm` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/remaining_steps.py:610` | then | `the rendered MP3 remains downloadable` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:845` | then | `delivery is retried` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/remaining_steps.py:986` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/remaining_steps.py:1005` | then | `new downloads and renders pause` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/remaining_steps.py:1019` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:1057` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/remaining_steps.py:69` | when | `I open a proposed Segment` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:192` | when | `a reviewer disables notifications` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:284` | when | `I choose to re-cut the Segment` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:383` | then | `100 ms is {pixels}` | an assertion operand that some scenario's own arguments make true |
+| `tests/steps/remaining_steps.py:403` | then | `the failure names the step "{step}" and its error` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
+| `tests/steps/remaining_steps.py:409` | then | `processing completes normally` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:429` | then | `the Segment stays in "approved" pending space` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:449` | when | `it is ingested` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:476` | then | `it survives me reloading the page` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:529` | when | `I correct the label to "{label}"` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:535` | when | `I re-cut this Segment` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:644` | then | `I am warned that it contains a published segment` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/remaining_steps.py:649` | then | `the discard proceeds only if I confirm` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/remaining_steps.py:655` | then | `the rendered MP3 remains downloadable` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:890` | then | `delivery is retried` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/remaining_steps.py:1031` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/remaining_steps.py:1050` | then | `new downloads and renders pause` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
+| `tests/steps/remaining_steps.py:1064` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:1102` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
 
 ## Scenarios whose every Then is condemned
 
@@ -433,7 +431,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `analysis/transcription.feature` | 18 | Transcribing a full service |
 | `ingestion/webhook_notification.feature` | 68 | The webhook races the reconciliation scan |
 | `interface/approval.feature` | 120 | Nothing renders without an explicit approval |
-| `interface/authentication.feature` | 58 | The reviewer identity is a seam, not a constant |
 | `interface/discarding_recordings.feature` | 60 | Discarding a recording with a published segment |
 | `interface/recording_detail.feature` | 18 | Viewing technical and source metadata |
 | `interface/recording_list.feature` | 99 | Filtering by what is inside |
