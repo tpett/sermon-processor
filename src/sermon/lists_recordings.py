@@ -27,7 +27,6 @@ FAILED_STATES = frozenset({"ingest_failed", "analysis_failed", "processing_faile
 
 
 def reads_failure(store, recording_id, segment_id=None):
-    """The error the item entered its failed state with, from the processing log."""
     entered = [
         entry.error
         for entry in store.lists(LogEntry, recording_id=recording_id)

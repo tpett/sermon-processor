@@ -114,7 +114,6 @@ def refuses_other_work():
 
 
 def drains_analysis(store, recording, stage_log, sent, contents):
-    """The worker's loop, an hour between polls, until no analyze job is left queued."""
     clock = MovesOn(FROZEN)
     runs = RunsQueuedJobs(
         store=store,
