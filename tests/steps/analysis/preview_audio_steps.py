@@ -2,6 +2,7 @@ import time
 
 from pytest_bdd import given, parsers, then, when
 
+from sermon.analysis.io import reads_json
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.generates_preview import GeneratesPreview
 from sermon.pipeline import preview as rendition
@@ -9,8 +10,8 @@ from sermon.pipeline.render import probe_format
 from sermon.shows_recording import PREVIEW_LEAD_SECONDS
 from sermon.store import Artifact, Block, Recording, Segment, layout
 from sermon.web import creates_app
-from steps import _audio
-from steps._markup import reads_role
+from steps import _audio, _forms, _web
+from steps._markup import reads_field, reads_role, reads_rows
 
 READS = ReadsTimecode()
 LONG_SECONDS = 3 * 3600.0
@@ -281,7 +282,8 @@ def _(store, recording):
 
 
 @given("the preview stage fails on every attempt")
-def _(store):
+def _(store, recording):
+    _audio.local_source(store, recording, recording.duration_seconds)
     store._failing_stage = "preview"
 
 
@@ -295,17 +297,35 @@ def _(store, recording):
     assert "has not been rendered" in page
 
 
+def reviewed_page(store, recording):
+    proposed = store.lists(Segment, recording_id=recording.recording_id, state="proposed")
+    assert proposed, "analysis proposed no Segment to review"
+    return proposed[0], _web.opens_detail(store, recording.recording_id, segment=proposed[0].segment_id)
+
+
 @then("the transcript, summaries and waveform are still usable")
 def _(store, recording):
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="transcript")
-    assert store.lists(Artifact, recording_id=recording.recording_id, kind="waveform_peaks")
+    _, page = reviewed_page(store, recording)
+    spoken = reads_json(store, recording, "transcript")["utterances"]
+    shown = [float(row["utterance-at-seconds"]) for row in reads_rows(page, "recording-utterance")]
+    assert shown == [item["start"] for item in spoken], f"{len(shown)} of {len(spoken)} utterances shown"
+    summarised = [block.summary or "" for block in sorted(store.lists(Block, recording_id=recording.recording_id), key=lambda one: one.start_seconds)]
+    assert any(summarised), "analysis summarised no Block"
+    shown = [row["block-summary"] for row in reads_rows(page, "block")]
+    assert [" ".join(one.split()) for one in summarised] == shown, shown
+    assert reads_field(page, "waveform-state") is None, reads_field(page, "waveform-state")
+    assert 'data-role="waveform"' in page
 
 
 @then("boundaries can still be adjusted and approved")
 def _(store, recording):
-    from sermon.store import Segment
-
-    assert store.lists(Segment, recording_id=recording.recording_id)
+    segment, page = reviewed_page(store, recording)
+    assert [row["boundary"] for row in reads_rows(page, "boundary")] == ["punch-in", "punch-out"]
+    later = _forms.submits(store, page, 'data-nudge="later ')
+    moved = store.loads(Segment, segment.segment_id).punch_in_seconds
+    assert moved > segment.punch_in_seconds, f"the punch-in stayed at {moved}"
+    approved = _forms.submits(store, later, 'data-field="action-control">Approve')
+    assert reads_field(approved, "action-notice") == "the Segment is approved and queued for processing"
 
 
 @given("the source was re-downloaded")
@@ -326,9 +346,13 @@ def _(store, recording):
 
 
 @then("no reviewer ever hears audio from a different Recording")
-def _(store, recording):
-    for artifact in only_preview(store, recording.recording_id):
-        assert artifact.recording_id == recording.recording_id
-        assert artifact.path.startswith(
-            f"{layout.recording_directory(recording.recording_id)}/"
-        )
+def _(store, recording, tmp_path):
+    page = _web.opens_detail(store, recording.recording_id)
+    played = reads_field(page, "audio-source")
+    assert played and played.startswith(f"/api/artifacts/{layout.recording_directory(recording.recording_id)}/"), played
+    served = creates_app(store=store).test_client().get(played)
+    assert served.status_code == 200, served.status_code
+    heard = tmp_path / f"heard{rendition.SUFFIX}"
+    heard.write_bytes(served.data)
+    source = probe_format(store.resolves(store.loads(Recording, recording.recording_id)))["duration"]
+    assert abs(probe_format(heard)["duration"] - source) < 0.2, "the preview played is not this source's audio"
