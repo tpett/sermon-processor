@@ -593,7 +593,7 @@ def parses_analyze_command(arguments, prints):
         return None
 
 
-def queues_analysis(store, recording):
+def queues_analysis(store, recording, clock=lambda: datetime.now(UTC)):
     return EnqueuesJob(store=store)(
         Job(
             recording_id=recording.recording_id,
@@ -601,7 +601,7 @@ def queues_analysis(store, recording):
             state="queued",
             max_attempts=JOB_ATTEMPTS,
             dedupe_key=f"analyze:{recording.recording_id}",
-            queued_at=datetime.now(UTC),
+            queued_at=clock(),
         )
     )
 

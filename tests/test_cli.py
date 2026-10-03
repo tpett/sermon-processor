@@ -796,3 +796,24 @@ def test_a_tag_names_the_configuration_the_corpus_entry_came_from(tmp_path, inje
     assert (
         tmp_path / "data" / "corpus" / "blocks" / f"{EDITED}.t3-qwen3.6.whole.v2.json"
     ).is_file()
+
+
+def test_queueing_an_analysis_takes_its_time_from_the_injected_clock(tmp_path):
+    from sermon.cli import queues_analysis
+
+    store = opens_store(str(tmp_path))
+    try:
+        recording = store.saves(
+            Recording(
+                recording_id="recording_20260913_090014",
+                object_key="recording_20260913_090014.flac",
+                state="downloaded",
+                started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
+                started_at_source="key",
+                size_bytes=1,
+            )
+        )
+        stamped = datetime(2026, 9, 13, 12, 0, tzinfo=UTC)
+        assert queues_analysis(store, recording, clock=lambda: stamped).queued_at == stamped
+    finally:
+        store.close()
