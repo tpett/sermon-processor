@@ -76,8 +76,12 @@ class GradesCutAccuracy:
 
 def ranks(cut):
     if cut.score is None:
-        return (1, float("inf"))
-    return (0 if cut.score.same_run else 1, cut.score.speech_seconds)
+        return (1, float("inf"), 0)
+    return (
+        0 if cut.score.same_run else 1,
+        cut.score.speech_seconds,
+        1 if cut.score.same_run and cut.score.within_buffer else 0,
+    )
 
 
 def compares(before, after):

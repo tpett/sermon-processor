@@ -6,6 +6,7 @@ from functools import cached_property
 SILENCE_RUN_SECONDS = 1.0
 EDGE_RUN_SECONDS = 1.0
 LONG_RUN_SECONDS = 30.0
+WORD_BUFFER_SECONDS = 0.050
 
 EQUAL = "equal"
 SAME_CUT = "same cut"
@@ -44,6 +45,8 @@ class CutScore:
     speech_seconds: float
     in_speech: bool
     truth_in_speech: bool
+    within_buffer: bool
+    truth_within_buffer: bool
     long_run: bool
     overlaps_audio_silence: bool
     verdict: str
@@ -91,6 +94,7 @@ class ScoresCut:
     transcript: dict
     finds_runs: FindsSilenceRuns = FindsSilenceRuns()
     long_run_seconds: float = LONG_RUN_SECONDS
+    buffer_seconds: float = WORD_BUFFER_SECONDS
 
     @cached_property
     def runs(self):
@@ -115,6 +119,14 @@ class ScoresCut:
     def speaks_at(self, at):
         return any(starts < at < ends for starts, ends in self.speech)
 
+    def crowds_a_word(self, at):
+        if self.speaks_at(at):
+            return False
+        return any(
+            round(min(abs(at - starts), abs(at - ends)), 3) < self.buffer_seconds
+            for starts, ends in self.speech
+        )
+
     def speech_between(self, one, other):
         since, until = min(one, other), max(one, other)
         return round(
@@ -124,6 +136,7 @@ class ScoresCut:
     def __call__(self, proposed, truth):
         proposed_run, truth_run = self.run_of(proposed), self.run_of(truth)
         in_speech, truth_in_speech = self.speaks_at(proposed), self.speaks_at(truth)
+        crowded, truth_crowded = self.crowds_a_word(proposed), self.crowds_a_word(truth)
         speech_seconds = self.speech_between(proposed, truth)
         same_run = proposed_run is not None and proposed_run == truth_run
         landed = (proposed_run, truth_run)
@@ -137,6 +150,8 @@ class ScoresCut:
             speech_seconds=speech_seconds,
             in_speech=in_speech,
             truth_in_speech=truth_in_speech,
+            within_buffer=crowded,
+            truth_within_buffer=truth_crowded,
             long_run=any(run.seconds > self.long_run_seconds for run in landed if run),
             overlaps_audio_silence=any(run.overlaps_audio_silence for run in landed if run),
             verdict=_decides(
@@ -147,6 +162,8 @@ class ScoresCut:
                 within=self.finds_runs.gap_seconds,
                 proposed_placing=_places(proposed_run, in_speech),
                 truth_placing=_places(truth_run, truth_in_speech),
+                proposed_clear=not crowded,
+                truth_clear=not truth_crowded,
             ),
         )
 
@@ -166,7 +183,17 @@ def _places(run, in_speech):
     return INSIDE_A_WORD if in_speech else BETWEEN_WORDS
 
 
-def _decides(proposed, truth, same_run, speech_seconds, within, proposed_placing, truth_placing):
+def _decides(
+    proposed,
+    truth,
+    same_run,
+    speech_seconds,
+    within,
+    proposed_placing,
+    truth_placing,
+    proposed_clear,
+    truth_clear,
+):
     if proposed == truth:
         return EQUAL
     shares_a_gap = (
@@ -175,7 +202,9 @@ def _decides(proposed, truth, same_run, speech_seconds, within, proposed_placing
         and abs(proposed - truth) < within
     )
     if same_run or shares_a_gap:
-        return SAME_CUT
+        if proposed_clear == truth_clear:
+            return SAME_CUT
+        return IMPROVED if proposed_clear else DEGRADED
     if proposed_placing == truth_placing:
         return DIFFERENT_CUT
     return IMPROVED if proposed_placing > truth_placing else DEGRADED

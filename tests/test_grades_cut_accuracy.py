@@ -207,6 +207,28 @@ def test_a_cut_that_moved_closer_between_gaps_placed_alike_improved(tmp_path):
     assert ScoresCut(transcript=packed)(6.7, 5.2).verdict == DIFFERENT_CUT
 
 
+def test_inside_the_human_run_a_cut_clear_of_a_word_beats_one_within_the_buffer(tmp_path):
+    before = scores(tmp_path, (6.02, 26.0))
+    after = scores(tmp_path, (7.0, 26.0))
+    assert before[0].score.same_run and after[0].score.same_run
+    assert before[0].score.within_buffer is True
+    assert compares(before[0], after[0]) == IMPROVED
+    assert compares(after[0], before[0]) == DEGRADED
+
+
+def test_within_the_buffer_in_the_human_run_still_beats_clear_in_another_run(tmp_path):
+    before = scores(tmp_path, (14.0, 26.0))
+    after = scores(tmp_path, (10.98, 26.0))
+    assert after[0].score.within_buffer is True
+    assert compares(before[0], after[0]) == IMPROVED
+
+
+def test_two_cuts_within_the_buffer_of_the_human_run_are_the_same_cut(tmp_path):
+    before = scores(tmp_path, (6.02, 26.0))
+    after = scores(tmp_path, (10.98, 26.0))
+    assert compares(before[0], after[0]) == SAME_CUT
+
+
 def test_a_proposal_that_stops_being_found_degraded(tmp_path):
     before = scores(tmp_path, (7.0, 26.0))
     after = scores(tmp_path, (0.0, 0.5))
@@ -343,6 +365,14 @@ def test_the_command_grades_each_cut_point_against_the_human_by_default(tmp_path
     assert "same run" in printed
     assert "1 proposal graded, 2 cut points: 2 in the human's run" in printed
     assert "0 mid-word, 0 not found" in printed
+
+
+def test_the_command_counts_the_cuts_within_the_buffer_of_a_word(tmp_path):
+    stages_corpus(tmp_path)
+    code, printed = runs(tmp_path, [(6.02, 26.0)])
+    assert code == 0
+    assert "0 not found, 1 within 50 ms of a word" in printed
+    assert "speech   0.000 s within the buffer" in printed
 
 
 def test_the_command_reports_the_speech_between_a_proposal_and_the_human(tmp_path):
