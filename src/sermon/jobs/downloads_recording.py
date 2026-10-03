@@ -248,6 +248,34 @@ class DownloadsRecording:
 RETRYABLE = (ObjectNotReadable, ObjectStoreUnreachable, ChecksumMismatch)
 
 
+def fails_ingest(store, recording_id, reason, *, clock=now, notifies=None):
+    recording = store.loads(Recording, recording_id)
+    if recording is None or recording.state == "ingest_failed":
+        return
+    store.saves(replace(recording, state="ingest_failed"))
+    store.saves(
+        LogEntry(
+            recording_id=recording_id,
+            kind="state_change",
+            occurred_at=clock(),
+            correlation_id=f"download:{recording_id}",
+            entered_state="ingest_failed",
+            error=reason,
+        )
+    )
+    notification = store.saves(
+        Notification(
+            recording_id=recording_id,
+            kind="ingest_failed",
+            recipient="reviewer",
+            summary=f"ingest failed: {reason}",
+            created_at=clock(),
+            state="pending",
+        )
+    )
+    (notifies or SendsNotification(store=store))(notification)
+
+
 @dataclass(frozen=True)
 class RunsDownloadJob:
     store: Store
@@ -258,18 +286,8 @@ class RunsDownloadJob:
     job_id: int | None = None
     notifies: object = None
 
-    def _tells(self, recording_id, reason):
-        notification = self.store.saves(
-            Notification(
-                recording_id=recording_id,
-                kind="ingest_failed",
-                recipient="reviewer",
-                summary=f"ingest failed: {reason}",
-                created_at=self.clock(),
-                state="pending",
-            )
-        )
-        (self.notifies or SendsNotification(store=self.store))(notification)
+    def _fails_ingest(self, recording_id, reason):
+        fails_ingest(self.store, recording_id, reason, clock=self.clock, notifies=self.notifies)
 
     def __call__(self):
         job = [
@@ -306,25 +324,14 @@ class RunsDownloadJob:
                     failed_permanently=True,
                 )
             )
-            self._tells(running.recording_id, f"download: {error}")
+            self._fails_ingest(running.recording_id, f"download: {error}")
             return
         except RETRYABLE as error:
             attempts = (running.attempts or 0) + 1
             limit = 3 if isinstance(error, ObjectNotReadable) else running.max_attempts
             recording = self.store.loads(Recording, running.recording_id)
             if attempts >= limit:
-                self.store.saves(replace(recording, state="ingest_failed"))
-                self.store.saves(
-                    LogEntry(
-                        recording_id=recording.recording_id,
-                        kind="state_change",
-                        occurred_at=self.clock(),
-                        correlation_id=f"download:{recording.recording_id}",
-                        entered_state="ingest_failed",
-                        error=f"download: {error}",
-                    )
-                )
-                self._tells(recording.recording_id, f"download: {error}")
+                self._fails_ingest(recording.recording_id, f"download: {error}")
                 self.store.saves(
                     replace(
                         running,
@@ -344,4 +351,7 @@ class RunsDownloadJob:
                 )
             )
             return
+        except Exception as error:
+            self._fails_ingest(running.recording_id, f"download: {error}")
+            raise
         self.store.saves(replace(running, state="succeeded"))

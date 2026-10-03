@@ -1,5 +1,6 @@
 import hashlib
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,7 +13,9 @@ from sermon.jobs.downloads_recording import (
     ProbesAudio,
     RunsDownloadJob,
 )
-from sermon.store import Job, Recording, opens_store
+from sermon.jobs.probes_recording import AudioNotMeasurable
+from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
+from sermon.store import Job, LogEntry, Recording, opens_store
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -217,3 +220,87 @@ def test_the_digest_the_fetch_computed_is_recorded_on_the_recording(store):
     downloads(store, object_store())(recording)
     stored = store.loads(Recording, recording.recording_id)
     assert stored.checksum == hashlib.md5(FLAC_BYTES).hexdigest()
+
+
+def queued_download(store, attempts=0, max_attempts=5):
+    recording = store.saves(discovered_recording())
+    store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="download",
+            state="queued",
+            attempts=attempts,
+            max_attempts=max_attempts,
+            dedupe_key=f"download:{recording.recording_id}",
+            queued_at=FROZEN,
+        )
+    )
+    return recording
+
+
+def cannot_measure(path):
+    raise AudioNotMeasurable(str(path))
+
+
+def ingest_failures(store, recording):
+    return [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.entered_state == "ingest_failed"
+    ]
+
+
+def test_audio_the_probe_cannot_measure_fails_ingest_rather_than_leaving_it_downloading(store):
+    recording = queued_download(store)
+    RunsDownloadJob(
+        store=store, fetches=object_store(sidecar=False), probes=cannot_measure, clock=lambda: FROZEN
+    )()
+    job = store.lists(Job, kind="download")[0]
+    assert (job.state, job.failed_permanently) == ("failed", True)
+    assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
+    assert ingest_failures(store, recording) == ["download: source file is not decodable audio"]
+
+
+def test_an_empty_object_fails_ingest_once(store):
+    recording = queued_download(store)
+    fetches = FetchesObject()
+    fetches.stores(OBJECT_KEY, b"")
+    RunsDownloadJob(store=store, fetches=fetches, probes=PROBE, clock=lambda: FROZEN)()
+    assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
+    assert len(ingest_failures(store, recording)) == 1
+
+
+def test_an_unexpected_download_failure_fails_ingest_and_still_reaches_the_worker(store):
+    recording = queued_download(store)
+    fetches = object_store()
+    fetches.error = "403 Forbidden"
+    worker = RunsQueuedJobs(
+        store=store,
+        downloads=RunsDownloadJob(store=store, fetches=fetches, probes=PROBE, clock=lambda: FROZEN),
+        analyzes=None,
+        renders=None,
+        clock=lambda: FROZEN,
+    )
+    worker()
+    job = store.lists(Job, kind="download")[0]
+    assert job.state == "failed"
+    assert "ObjectStoreForbidden" in job.last_error
+    assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
+    assert ingest_failures(store, recording) == ["download: 403 Forbidden"]
+
+
+def test_a_download_whose_budget_is_already_spent_fails_ingest(store):
+    recording = queued_download(store, attempts=5, max_attempts=5)
+    store.saves(replace(store.loads(Recording, recording.recording_id), state="downloading"))
+    worker = RunsQueuedJobs(
+        store=store,
+        downloads=lambda: pytest.fail("a spent download ran again"),
+        analyzes=None,
+        renders=None,
+        clock=lambda: FROZEN,
+    )
+    worker()
+    job = store.lists(Job, kind="download")[0]
+    assert (job.state, job.failed_permanently) == ("failed", True)
+    assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
+    assert ingest_failures(store, recording) == ["download: retry budget exhausted"]
