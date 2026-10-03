@@ -23,7 +23,6 @@ REGENERATION = ".venv/bin/python tests/step_integrity.py"
 PERMITTED_EMPTY_GIVENS = {
     "I am on the tailnet": "the deployment runs NoAuth, so there is no session to establish",
     "I am using a desktop browser": "one layout is served; no client capability is negotiated",
-    "I am using a phone": "one layout is served; no client capability is negotiated",
     "the Recorder reaches it over the tailnet": "reachability is the ambient condition of every test",
     'it contains a bucket "{name}"': (
         "the fake object store is the bucket; it models no second one"
