@@ -141,7 +141,12 @@ class DiarizesRecording:
         if stored is not None:
             turns = list(stored.get("turns", ()))
         elif self.diarizes is not None:
-            turns = list(self.diarizes(recording))
+            from sermon.analysis.diarizes_audio import DiarizationUnavailable
+
+            try:
+                turns = list(self.diarizes(recording))
+            except DiarizationUnavailable as unavailable:
+                raise stage_failed("diarization", str(unavailable)) from unavailable
         else:
             raise stage_failed("diarization", "no diarization is stored for this Recording")
         profiles = self.store.lists(SpeakerProfile)
