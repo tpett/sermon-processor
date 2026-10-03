@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
 
-from sermon.draws_waveform import JudgesZoomPrecision
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.lists_recordings import formats_precise
 from sermon.places_punch_in import PlacesPunchIn
@@ -563,19 +562,34 @@ def _(store, detail_page):
     assert all(float(band["band-width"]) > 0 for band in bands)
 
 
-@given(parsers.parse("the visible window is {window}"), target_fixture="window_seconds")
-def _(window):
-    return NAMED_WINDOWS[window]
+ZOOM_STEP_FOR_WINDOW = {
+    "whole recording": "whole recording",
+    "5 minutes": "a few minutes",
+    "30 seconds": "thirty seconds",
+    "3 seconds": "three seconds",
+}
+
+
+@given(parsers.parse("the visible window is {window}"), target_fixture="detail_page")
+def _(store, segment, window):
+    step = ZOOM_STEP_FOR_WINDOW[window]
+    return renders_detail(store, f"?segment={segment.segment_id}&zoom={step.replace(' ', '+')}")
+
+
+def selected_zoom_step(page):
+    chosen = [row for row in reads_rows(page, "zoom-step") if row.get("selected") == "true"]
+    assert len(chosen) == 1, f"{len(chosen)} zoom steps are selected"
+    return chosen[0]
 
 
 @then(parsers.parse("100 ms is {pixels}"))
-def _(window_seconds, pixels):
-    assert JudgesZoomPrecision()(window_seconds).pixels == pixels
+def _(detail_page, pixels):
+    assert selected_zoom_step(detail_page)["zoom-precision"] == pixels
 
 
 @then(parsers.parse("placing a boundary to 100 ms is {verdict}"))
-def _(window_seconds, verdict):
-    assert JudgesZoomPrecision()(window_seconds).verdict == verdict
+def _(detail_page, verdict):
+    assert selected_zoom_step(detail_page)["zoom-verdict"] == verdict
 
 
 @then("the transcript is what I read")
