@@ -28,8 +28,12 @@ def test_an_utterance_no_turn_covers_has_no_speaker():
     assert AttributesSpeakers()([utterance(31.0, 39.0)], TURNS) == (None,)
 
 
-def test_a_speaker_the_transcript_already_names_is_kept():
-    assert AttributesSpeakers()([utterance(1.0, 8.0, speaker="Pastor")], TURNS) == ("Pastor",)
+def test_the_turns_outrank_a_speaker_the_transcript_names():
+    assert AttributesSpeakers()([utterance(1.0, 8.0, speaker="Speaker 1")], TURNS) == ("S0",)
+
+
+def test_a_speaker_the_transcript_names_is_kept_where_no_turn_covers_it():
+    assert AttributesSpeakers()([utterance(31.0, 39.0, speaker="Speaker 1")], TURNS) == ("Speaker 1",)
 
 
 def test_without_turns_nothing_is_attributed():

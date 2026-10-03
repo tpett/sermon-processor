@@ -8,14 +8,14 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class AttributesSpeakers:
-    """The turn overlapping an utterance most names its speaker; none overlapping names nobody."""
+    """The turn overlapping an utterance most names its speaker, else the transcript's own label."""
 
     def __call__(self, utterances, turns):
         ordered = sorted(turns, key=lambda turn: turn["start"])
         starts = [turn["start"] for turn in ordered]
         longest = max((turn["end"] - turn["start"] for turn in ordered), default=0.0)
         return tuple(
-            utterance.get("speaker") or self._speaker(utterance, ordered, starts, longest)
+            self._speaker(utterance, ordered, starts, longest) or utterance.get("speaker")
             for utterance in utterances
         )
 
