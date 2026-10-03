@@ -603,10 +603,10 @@ def _(store):
     rec(store)
 
 
-@when(parsers.parse('the reviewer draws a Segment from "{start}" to "{end}"'))
+@when(parsers.parse('the reviewer draws a Segment from "{start}" to "{end}"'), target_fixture="drawn")
 def _(store, start, end):
-    store._drawn = (READS(start), READS(end))
     CreatesSegment(store=store)(rec(store), from_seconds=READS(start), to_seconds=READS(end))
+    return READS(start), READS(end)
 
 
 @when("the reviewer presses Preview on that Block")

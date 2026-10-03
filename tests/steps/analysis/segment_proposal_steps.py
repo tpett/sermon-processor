@@ -477,16 +477,16 @@ def _(store):
 
 
 @then("a Segment exists with those boundaries")
-def _(store):
-    start, end = store._drawn
+def _(store, drawn):
+    start, end = drawn
     drawn = [item for item in store.lists(Segment) if abs(item.punch_in_seconds - start) < 0.05]
     assert len(drawn) == 1
     assert abs(drawn[0].punch_out_seconds - end) < 0.05
 
 
 @then("it can be classified and approved like any other")
-def _(store):
-    drawn = [item for item in store.lists(Segment) if abs(item.punch_in_seconds - store._drawn[0]) < 0.05]
+def _(store, drawn):
+    drawn = [item for item in store.lists(Segment) if abs(item.punch_in_seconds - drawn[0]) < 0.05]
     assert len(drawn) == 1
     page = _web.opens_detail(store, _analysis.the_recording(store).recording_id, segment=drawn[0].segment_id)
     base = f"/recordings/{drawn[0].recording_id}/segments/{drawn[0].segment_id}"

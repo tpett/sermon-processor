@@ -95,7 +95,7 @@ def _(store):
 
 @then("a transcript is produced covering the full duration")
 def _(store):
-    recording = recording_of(store)
+    recording = _analysis.the_recording(store)
     doc = reads_json(store, recording, "transcript")
     assert doc["utterances"]
     assert doc["utterances"][-1]["end"] >= (recording.duration_seconds or 0) - 12
@@ -103,25 +103,25 @@ def _(store):
 
 @then("every utterance has a start time and an end time")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert all("start" in item and "end" in item for item in doc["utterances"])
 
 
 @then("every word has a start time")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert all(word.get("start") is not None for item in doc["utterances"] for word in item.get("words", []))
 
 
 @then("each utterance carries a recognition confidence")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert all("confidence" in item for item in doc["utterances"])
 
 
 @then("the transcript is stored as an artifact of the Recording")
 def _(store):
-    assert store.lists(Artifact, recording_id=recording_of(store).recording_id, kind="transcript")
+    assert store.lists(Artifact, recording_id=_analysis.the_recording(store).recording_id, kind="transcript")
 
 
 @when("a reviewer opens the Recording detail view")
@@ -138,7 +138,7 @@ def _(store):
 @then("clicking an utterance seeks the player to that timecode")
 def _(store):
     start = store._detail["transcript"][0][0]
-    recording = recording_of(store)
+    recording = _analysis.the_recording(store)
     response = creates_app(store=store).test_client().post(
         f"/api/recordings/{recording.recording_id}/seek", json={"seconds": start}
     )
@@ -164,7 +164,7 @@ def _(store):
 
 @then("the singing produces low-confidence or empty utterances")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     early = [item for item in doc["utterances"] if item["start"] < 1320]
     assert early
     assert all(item["confidence"] < 0.5 or not item["text"] for item in early)
@@ -172,7 +172,7 @@ def _(store):
 
 @then('those regions are marked as "likely music" rather than treated as speech')
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert doc.get("likely_music")
 
 
@@ -195,13 +195,13 @@ def _(store):
 @then("no utterances are produced for that span")
 def _(store):
     start, end = store._silence_span
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert not any(start < item["start"] < end for item in doc["utterances"])
 
 
 @then("the span is recorded as a silence gap with its start and end times")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert doc["silences"]
 
 
@@ -212,19 +212,19 @@ def _(store, condition):
 
 @then("the transcript is still produced")
 def _(store):
-    assert reads_json(store, recording_of(store), "transcript")["utterances"]
+    assert reads_json(store, _analysis.the_recording(store), "transcript")["utterances"]
 
 
 @then("the average confidence for the affected region is recorded")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert all("confidence" in item for item in doc["utterances"])
 
 
 @then(parsers.parse('the Recording is flagged "{flag}" when the transcript is measurably poor'))
 def _(store, flag):
-    assert flag in recording_of(store).warnings or flag in store.loads(
-        Recording, recording_of(store).recording_id
+    assert flag in _analysis.the_recording(store).warnings or flag in store.loads(
+        Recording, _analysis.the_recording(store).recording_id
     ).warnings
 
 
@@ -235,7 +235,7 @@ def _(store):
 
 @then("Analysis continues with low confidence")
 def _(store):
-    recording = recording_of(store)
+    recording = _analysis.the_recording(store)
     assert store.loads(Recording, recording.recording_id).state != "analysis_failed"
     assert reads_json(store, recording, "transcript")["utterances"]
 
@@ -244,7 +244,7 @@ def _(store):
 def _(store):
     from sermon.analysis.transcribes_audio import refuses_a_public_transcriber
 
-    assert reads_json(store, recording_of(store), "transcript") is not None
+    assert reads_json(store, _analysis.the_recording(store), "transcript") is not None
     for destination in getattr(store, "_asr_destinations", ()):
         refuses_a_public_transcriber(destination)
 
@@ -264,7 +264,7 @@ def _(store):
 
 @then("the recording is transcribed in chunks")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert len(doc["chunks"]) > 1
     assert doc["chunks"][0]["start"] == 0.0
     assert doc["chunks"][-1]["end"] == doc["duration"]
@@ -272,7 +272,7 @@ def _(store):
 
 @then("chunk boundaries do not lose or duplicate words")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     starts = [item["start"] for item in doc["utterances"]]
     assert starts == sorted(starts)
     assert len(starts) == len(set(starts))
@@ -286,7 +286,7 @@ def _(store):
 
 @then("timestamps remain absolute against the source file")
 def _(store):
-    doc = reads_json(store, recording_of(store), "transcript")
+    doc = reads_json(store, _analysis.the_recording(store), "transcript")
     assert doc["utterances"][0]["start"] >= 0
 
 
@@ -321,7 +321,7 @@ def _(store):
 def _(store):
     from sermon.shows_recording import ShowsRecording
 
-    view = ShowsRecording(store=store)(recording_of(store).recording_id)
+    view = ShowsRecording(store=store)(_analysis.the_recording(store).recording_id)
     assert "Create segment" in view.actions or view.recording_id
 
 
@@ -417,31 +417,31 @@ def _(store):
 
 @then("the recording is divided into contiguous speaker segments")
 def _(store):
-    doc = reads_json(store, recording_of(store), "diarization")
+    doc = reads_json(store, _analysis.the_recording(store), "diarization")
     assert doc["turns"]
 
 
 @then("each segment has a start time, an end time and a speaker label")
 def _(store):
-    for turn in reads_json(store, recording_of(store), "diarization")["turns"]:
+    for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"]:
         assert turn["end"] > turn["start"]
         assert turn["speaker"]
 
 
 @then("the labels are stable within the recording")
 def _(store):
-    speakers = {turn["speaker"] for turn in reads_json(store, recording_of(store), "diarization")["turns"]}
+    speakers = {turn["speaker"] for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"]}
     assert speakers
 
 
 @then("each segment carries a confidence")
 def _(store):
-    assert all("confidence" in turn for turn in reads_json(store, recording_of(store), "diarization")["turns"])
+    assert all("confidence" in turn for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"])
 
 
 @then("every transcript utterance is attributed to a speaker segment")
 def _(store):
-    recording = recording_of(store)
+    recording = _analysis.the_recording(store)
     transcript = reads_json(store, recording, "transcript") or covering_transcript(recording.duration_seconds or 0, recording_id=recording.recording_id)
     turns = reads_json(store, recording, "diarization")["turns"]
     for utterance in transcript["utterances"]:
@@ -450,7 +450,7 @@ def _(store):
 
 @then("the reviewer can see who is speaking beside each utterance in the transcript view")
 def _(store):
-    detail = creates_app(store=store).test_client().get(f"/api/recordings/{recording_of(store).recording_id}").get_json()
+    detail = creates_app(store=store).test_client().get(f"/api/recordings/{_analysis.the_recording(store).recording_id}").get_json()
     assert detail["transcript"]
 
 
@@ -461,13 +461,13 @@ def _(store):
 
 @then("spans matching that profile are labelled with that preacher")
 def _(store):
-    turns = reads_json(store, recording_of(store), "diarization")["turns"]
+    turns = reads_json(store, _analysis.the_recording(store), "diarization")["turns"]
     assert any(turn["speaker"] == "Speaker 1" for turn in turns)
 
 
 @then("spans that match no known profile keep generic labels")
 def _(store):
-    turns = reads_json(store, recording_of(store), "diarization")["turns"]
+    turns = reads_json(store, _analysis.the_recording(store), "diarization")["turns"]
     assert turns
 
 
@@ -519,7 +519,7 @@ def _(store):
 
 @then("the span keeps a generic label")
 def _(store):
-    turns = reads_json(store, recording_of(store), "diarization")["turns"]
+    turns = reads_json(store, _analysis.the_recording(store), "diarization")["turns"]
     assert any(turn["speaker"] in {"Guest", "Speaker 1"} or "Speaker" in turn["speaker"] for turn in turns)
 
 
@@ -540,12 +540,12 @@ def _(store):
 
 @then("the overlapping span is marked as overlapping speech")
 def _(store):
-    assert any(turn.get("overlapping") for turn in reads_json(store, recording_of(store), "diarization")["turns"])
+    assert any(turn.get("overlapping") for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"])
 
 
 @then("it is not treated as a clean speaker change")
 def _(store):
-    assert any(turn.get("overlapping") for turn in reads_json(store, recording_of(store), "diarization")["turns"])
+    assert any(turn.get("overlapping") for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"])
 
 
 @given("the congregation sings for 8 minutes")
@@ -561,13 +561,13 @@ def _(store):
 
 @then("the singing is not emitted as a speaker change")
 def _(store):
-    turns = reads_json(store, recording_of(store), "diarization")["turns"]
+    turns = reads_json(store, _analysis.the_recording(store), "diarization")["turns"]
     assert all(turn.get("non_speech") or turn["speaker"] == "music" for turn in turns if turn["end"] <= 480)
 
 
 @then("the span is labelled as non-speech")
 def _(store):
-    assert any(turn.get("non_speech") for turn in reads_json(store, recording_of(store), "diarization")["turns"])
+    assert any(turn.get("non_speech") for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"])
 
 
 @when("diarization runs")

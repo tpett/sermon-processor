@@ -68,7 +68,7 @@ UNASSERTED_PATH = "a Then with a path through it that asserts nothing"
 SELF_COMPARISON = "an assertion that compares a value with itself"
 INVOKING_THEN = "a Then that constructs and invokes a unit of the system"
 WRITING_THEN = "a Then that writes to the store"
-STAGED_FLAG = "a Then that asserts on a flag a Given or Then put on the store, or one nothing sets"
+STAGED_FLAG = "a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets"
 STAGING_WHEN = "a When that writes the outcome itself instead of invoking the system"
 DUPLICATE_THEN = "a Then that asserts word for word what another Then in its scenario asserts"
 
@@ -1094,14 +1094,26 @@ def records_into_flags(reached) -> frozenset[str]:
     return frozenset(recorded)
 
 
-def holds_only_the_gherkin(value: ast.expr, gherkin: frozenset[str]) -> bool:
-    if isinstance(value, ast.Name):
-        return value.id in gherkin
-    try:
-        ast.literal_eval(value)
-    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+def holds_data(value: ast.expr, gherkin: frozenset[str], bound: dict, depth: int = 0) -> bool:
+    """A value made only of literals and the step's own Gherkin arguments, not an object the system fills."""
+    if depth > 4:
         return False
-    return True
+    if isinstance(value, ast.Constant):
+        return True
+    if isinstance(value, ast.Name):
+        if value.id in gherkin:
+            return True
+        return value.id in bound and holds_data(bound[value.id], gherkin, bound, depth + 1)
+    if isinstance(value, ast.Call):
+        arguments = [*value.args, *(keyword.value for keyword in value.keywords)]
+        return bool(arguments) and all(holds_data(one, gherkin, bound, depth + 1) for one in arguments)
+    if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+        return all(holds_data(one, gherkin, bound, depth + 1) for one in value.elts)
+    if isinstance(value, ast.BinOp):
+        return holds_data(value.left, gherkin, bound, depth + 1) and holds_data(value.right, gherkin, bound, depth + 1)
+    if isinstance(value, ast.UnaryOp):
+        return holds_data(value.operand, gherkin, bound, depth + 1)
+    return False
 
 
 def finds_staged_flags(definitions: list[Definition]):
@@ -1112,10 +1124,9 @@ def finds_staged_flags(definitions: list[Definition]):
         recorded |= records_into_flags(reached)
         written |= set(flags)
         gherkin = binds_gherkin_names(one.parser) if one.parser is not None else frozenset()
+        bound = binds_locals(one.node)
         for flag, values in flags.items():
-            if one.kind in ("given", "then", GENERIC_DECORATOR):
-                staged.add(flag)
-            elif any(holds_only_the_gherkin(value, gherkin) for value in values):
+            if any(holds_data(value, gherkin, bound) for value in values):
                 staged.add(flag)
     return frozenset(staged - recorded), frozenset(written | recorded)
 
