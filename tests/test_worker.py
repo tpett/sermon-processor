@@ -88,6 +88,28 @@ def test_running_forever_sleeps_when_there_is_nothing_to_do():
     assert naps == [2.5, 2.5, 2.5]
 
 
+def test_an_idle_poll_reminds_the_reviewer_before_it_sleeps():
+    order = []
+
+    def runs():
+        if len(order) >= 4:
+            raise KeyboardInterrupt
+        return None
+
+    with pytest.raises(KeyboardInterrupt):
+        drains(
+            runs, asked(poll=2.5), lambda _: None, lambda _: order.append("sleeps"),
+            reminds=lambda: order.append("reminds"),
+        )
+    assert order == ["reminds", "sleeps", "reminds", "sleeps"]
+
+
+def test_a_bounded_run_sends_no_reminder():
+    reminded = []
+    drains(queue(0), asked(once=True), lambda _: None, lambda _: None, reminds=lambda: reminded.append(1))
+    assert reminded == []
+
+
 def test_each_job_run_is_reported():
     said = []
     drains(queue(2), asked(limit=2), said.append, lambda _: None)

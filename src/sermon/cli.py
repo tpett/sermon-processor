@@ -62,6 +62,7 @@ from sermon.reconciles_bucket import (
 )
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, LONG_RUN_SECONDS, SAME_CUT
+from sermon.reminds_reviewer import RemindsReviewer
 from sermon.sends_notification import SendsNotification, opens_channel
 from sermon.store import (
     Artifact,
@@ -483,7 +484,7 @@ def analyses_for(store, asked, prints):
     )
 
 
-def drains(runs, asked, prints, sleeps):
+def drains(runs, asked, prints, sleeps, reminds=lambda: ()):
     """Run queued work until asked to stop.
 
     --once runs a single job. The queue holds 93 downloads against a read-only
@@ -501,6 +502,7 @@ def drains(runs, asked, prints, sleeps):
         if asked.once or asked.limit:
             prints("nothing queued")
             return 0
+        reminds()
         sleeps(asked.poll)
 
 
@@ -557,7 +559,11 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
                 renders=RendersMp3(),
             ),
         )
-        return drains(runs, asked, prints, sleeps)
+        reminds = RemindsReviewer(
+            store=store,
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+        )
+        return drains(runs, asked, prints, sleeps, reminds)
     finally:
         store.close()
 
