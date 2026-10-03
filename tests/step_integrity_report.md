@@ -5,10 +5,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1336 step definitions read from `tests/steps`
-- 243 condemned
-- 161 of 464 non-deferred scenarios rest on at least one condemned step
-- 217 of 607 expanded scenario tests likewise
-- 68 scenarios whose every Then is condemned, so nothing they claim is checked
+- 237 condemned
+- 158 of 464 non-deferred scenarios rest on at least one condemned step
+- 214 of 607 expanded scenario tests likewise
+- 67 scenarios whose every Then is condemned, so nothing they claim is checked
 - 13 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
@@ -28,10 +28,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an assertion operand that some scenario's own arguments make true | 6 |
 | a Then with a path through it that asserts nothing | 29 |
 | an assertion that compares a value with itself | 2 |
-| a Then that constructs and invokes a unit of the system | 41 |
-| a Then that writes to the store | 77 |
-| a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 31 |
-| a Then that asserts word for word what another Then in its scenario asserts | 24 |
+| a Then that constructs and invokes a unit of the system | 40 |
+| a Then that writes to the store | 76 |
+| a Then that asserts on a flag a Given or Then put on the store, or one nothing sets | 28 |
+| a Then that asserts word for word what another Then in its scenario asserts | 22 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
 | a When that writes the outcome itself instead of invoking the system | 18 |
@@ -47,7 +47,8 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 19 | partly condemned |
 | `tests/steps/analysis/approval_rate_steps.py` | 4 | 2 | partly condemned |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 3 | partly condemned |
-| `tests/steps/analysis/domain_steps.py` | 203 | 74 | partly condemned |
+| `tests/steps/analysis/detection_accuracy_steps.py` | 27 | 0 | sound |
+| `tests/steps/analysis/domain_steps.py` | 176 | 68 | partly condemned |
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 5 | partly condemned |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 170 | 71 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
@@ -82,7 +83,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## Condemned outside the six named files
 
-220 definitions.
+214 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
@@ -178,12 +179,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/domain_steps.py:1307` | then | `the whole of the last word is audible, decay included` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
 | `tests/steps/analysis/domain_steps.py:1312` | then | `the tail stops before any sound belonging to what follows` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/domain_steps.py:1318` | then | `no audio from the following Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1477` | then | `the punch-in is that offset` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1482` | then | `the punch-out is that offset plus the MP3 duration` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1545` | then | `the punch-in is the intercept of the fit, not the middle of it` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1607` | then | `it is flagged rather than silently accepted` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1612` | then | `it is excluded from boundary statistics` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1621` | then | `a legitimate untrimmed archive is flagged the same way` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:75` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:226` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:298` | then | `the transcript, summaries and waveform are still usable` | a Then whose every assertion only checks that some row exists |
@@ -403,12 +398,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/domain_steps.py:1307` | then | `the whole of the last word is audible, decay included` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
 | `tests/steps/analysis/domain_steps.py:1312` | then | `the tail stops before any sound belonging to what follows` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
 | `tests/steps/analysis/domain_steps.py:1318` | then | `no audio from the following Block is included` | a Then with a path through it that asserts nothing; a Then that asserts on a flag a Given or Then put on the store, or one nothing sets; a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1477` | then | `the punch-in is that offset` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1482` | then | `the punch-out is that offset plus the MP3 duration` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1545` | then | `the punch-in is the intercept of the fit, not the middle of it` | a Then that asserts on a flag a Given or Then put on the store, or one nothing sets |
-| `tests/steps/analysis/domain_steps.py:1607` | then | `it is flagged rather than silently accepted` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1612` | then | `it is excluded from boundary statistics` | a Then that asserts word for word what another Then in its scenario asserts |
-| `tests/steps/analysis/domain_steps.py:1621` | then | `a legitimate untrimmed archive is flagged the same way` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:75` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:226` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:298` | then | `the transcript, summaries and waveform are still usable` | a Then whose every assertion only checks that some row exists |
@@ -588,7 +577,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `analysis/blocking.feature` | 106 | Silence is still recorded as evidence |
 | `analysis/blocking.feature` | 37 | The clusterer must be constrained or it invents speakers |
 | `analysis/blocking.feature` | 114 | Very short spans do not become blocks |
-| `analysis/detection_accuracy.feature` | 73 | A lossless copy of just the message |
 | `analysis/detection_accuracy.feature` | 130 | The target is a two-preview approval |
 | `analysis/detection_accuracy.feature` | 206 | What makes a cut easy or hard |
 | `analysis/punch_in_detection.feature` | 137 | A candidate falling mid-word is moved |
