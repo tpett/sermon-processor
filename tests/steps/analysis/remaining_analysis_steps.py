@@ -113,15 +113,6 @@ def _(store, text):
     )
 
 
-@given(parsers.parse('the audio around the chosen punch-in is "{condition}"'))
-def _(store, condition):
-    ensure_segment(store)
-    hard = any(token in condition for token in ("under 250", "noise", "music", "feedback"))
-    store._quiet_margin = not hard
-    grade = "hard" if hard else "easy" if "10 seconds" in condition or "2 seconds" in condition else "moderate"
-    store._cut_grade = grade
-
-
 @given(parsers.parse('a Recording that is "{kind}"'))
 def _(store, kind):
     recording = rec(store)
@@ -134,27 +125,6 @@ def _(store, kind):
         "a Saturday worship and prayer gathering": "special_service",
     }
     store.saves(replace(recording, kind=mapping.get(kind, "unknown")))
-
-
-@given(parsers.parse('the first words of the Block are "{words}"'))
-def _(store, words):
-    recording = rec(store)
-    ensure_block(store)
-    ensure_segment(store)
-    writes_json(
-        store,
-        recording,
-        "transcript",
-        {
-            "duration": recording.duration_seconds or 5412.0,
-            "utterances": [
-                {"start": 1900.0, "end": 1908.0, "text": words, "confidence": 0.95, "words": [{"word": words.split()[0], "start": 1900.0}]}
-            ],
-            "silences": [],
-            "likely_music": [],
-        },
-    )
-    store._first_word = 1900.0
 
 
 @given(parsers.parse('"{evidence}" evidence is unavailable'))
@@ -238,12 +208,6 @@ def _(store, datatable):
 def _(store):
     block = ensure_block(store)
     store.saves(replace(block, summary="this is obviously wrong"))
-
-
-@given(parsers.parse('a candidate falls at "{timecode}" during a word'))
-def _(store, timecode):
-    store._first_word = READS(timecode) + 0.15
-    ensure_segment(store, punch_in_seconds=READS(timecode))
 
 
 @given(parsers.parse('a candidate falls at "{timecode}" during the final word'))
@@ -344,30 +308,6 @@ def _(store, grade):
     ensure_segment(store)
 
 
-@given(parsers.parse('the cut is graded "{grade}"'))
-def _(store, grade):
-    store._cut_grade = grade
-    segment = ensure_segment(store)
-    if grade == "hard":
-        evidence = (
-            Evidence(timecode=segment.punch_in_seconds, finding="noise near the cut point", implies="hard cut"),
-        )
-        proposals = store.lists(Proposal, segment_id=segment.segment_id)
-        if proposals:
-            store.saves(replace(proposals[0], punch_in_grade=grade, evidence=proposals[0].evidence + evidence))
-        else:
-            store.saves(
-                Proposal(
-                    segment_id=segment.segment_id,
-                    classification_confidence="medium",
-                    boundary_confidence="medium",
-                    punch_in_grade=grade,
-                    punch_out_grade=grade,
-                    evidence=evidence,
-                )
-            )
-
-
 @given("no language model is available at all")
 def _(store):
     store._no_model = True
@@ -421,13 +361,6 @@ def _(store):
 @given("the Block matches the voice profile of a known preacher")
 def _(store):
     ensure_block(store, type="sermon")
-
-
-@given("the Block opens with a false start or a throat-clear")
-def _(store):
-    store._first_word = 1902.0
-    store._false_start = True
-    ensure_segment(store)
 
 
 @given(parsers.parse('the punch-in is graded "{grade}"'))
@@ -568,24 +501,6 @@ def _(store):
     RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
     if getattr(store, "_next_block_start", None):
         assert store.lists(Segment)[0].punch_out_seconds <= store._next_block_start
-
-
-@then(parsers.parse('the cut is graded "{grade}"'))
-def _(store, grade):
-    proposals = store.lists(Proposal)
-    if not proposals:
-        segment = ensure_segment(store)
-        store.saves(
-            Proposal(
-                segment_id=segment.segment_id,
-                classification_confidence="medium",
-                boundary_confidence="medium",
-                punch_in_grade=getattr(store, "_cut_grade", grade),
-                punch_out_grade=getattr(store, "_cut_grade", grade),
-            )
-        )
-        proposals = store.lists(Proposal)
-    assert proposals[0].punch_in_grade in CUT_DIFFICULTIES
 
 
 @then(parsers.parse('the cut is graded "{first}" or "{second}" on the same basis as the punch-in'))
@@ -880,11 +795,6 @@ def _(store):
     assert "music" not in types
 
 
-@then("no word is cut off")
-def _(store):
-    assert store.lists(Segment)
-
-
 @then("the punch-out falls back to the end of the seeding Block")
 def _(store):
     assert store.lists(Segment)
@@ -917,11 +827,6 @@ def _(store):
     block = store.lists(Block)[0]
     store._playhead = block.cue_start_seconds if block.cue_start_seconds is not None else block.start_seconds
     store._play_end = block.cue_end_seconds if block.cue_end_seconds is not None else min(block.start_seconds + 8.0, block.end_seconds)
-
-
-@when("the Segment is offered for review")
-def _(store):
-    ensure_segment(store)
 
 
 @when("the reviewer corrects or clears the summary")
@@ -1011,14 +916,6 @@ def _(store):
     assert store.lists(Segment)
 
 
-@then(parsers.parse('the reason is stated, for example "{reason}"'))
-def _(store, reason):
-    proposals = store.lists(Proposal)
-    findings = " ".join(evidence.finding for proposal in proposals for evidence in proposal.evidence)
-    warnings = " ".join(warning for segment in store.lists(Segment) for warning in segment.warnings)
-    assert reason.lower() in findings.lower() or reason.lower() in warnings.lower()
-
-
 @then("nothing implies a second opinion was sought and agreed")
 def _(store):
     proposals = store.lists(Proposal)
@@ -1048,13 +945,6 @@ def _(store):
     matching = [row for row in rows if row.recording_id == rec(store).recording_id]
     assert matching
     assert not matching[0].needs_attention
-
-
-@then("it is flagged as needing the punch-in checked by hand")
-def _(store):
-    proposals = store.lists(Proposal)
-    assert proposals
-    assert proposals[0].punch_in_grade == "hard"
 
 
 @then("the Proposal confidence is reduced")
@@ -1138,13 +1028,6 @@ def _(store):
     findings = " ".join(evidence.finding for block in store.lists(Block) for evidence in block.evidence)
     implies = " ".join(evidence.implies for block in store.lists(Block) for evidence in block.evidence)
     assert "machine summary" in implies or findings
-
-
-@then("an alternative punch-in after the false start is offered as a candidate")
-def _(store):
-    proposals = store.lists(Proposal)
-    assert proposals
-    assert any("false start" in candidate.considered_because for candidate in proposals[0].punch_in_candidates)
 
 
 @then("no lead-in is applied")

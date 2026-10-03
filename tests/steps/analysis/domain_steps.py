@@ -726,104 +726,11 @@ def _(store):
     SummarizesBlocks(store=store)(recording_of(store))
 
 
-@given(parsers.parse('a Segment classified "{classification}" seeded on a Block beginning at "{timecode}"'))
-def _(store, classification, timecode):
-    recording = recording_of(store)
-    start = READS(timecode)
-    block = store.saves(
-        Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=start + 2400.0, type=classification)
-    )
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            seed_block_id=block.block_id,
-            classification=classification,
-            state="proposed",
-            span_start_seconds=start,
-            span_end_seconds=start + 2400.0,
-            punch_in_seconds=start,
-            punch_out_seconds=start + 2400.0,
-        )
-    )
-    store._seed_start = start
-
-
-@given(parsers.parse('the previous Block ends at "{timecode}"'))
-def _(store, timecode):
-    store._previous_block_end = READS(timecode)
-
-
-@given(parsers.parse('the first word of the Block begins at "{timecode}"'))
-def _(store, timecode):
-    store._first_word = READS(timecode)
-
-
-@given(parsers.parse('the first word begins at "{timecode}"'))
-def _(store, timecode):
-    store._first_word = READS(timecode)
-
-
-@given(parsers.parse('the previous Block has audible speech up to "{timecode}"'))
-def _(store, timecode):
-    store._previous_block_end = READS(timecode)
-    store._nearest_sound = READS(timecode)
-
-
-@when("punch-in refinement runs")
-def _(store):
-    RefinesPunchIn(store=store)(recording_of(store), segment=store.lists(Segment)[0])
-
-
-@then(parsers.parse('the punch-in is placed at "{timecode}"'))
-def _(store, timecode):
-    assert abs(store.lists(Segment)[0].punch_in_seconds - READS(timecode)) < 0.05
-
-
-@then("the lead-in never exceeds 1.0 second")
-def _(store):
-    segment = store.lists(Segment)[0]
-    word = getattr(store, "_first_word", segment.punch_in_seconds + LEAD_IN_S)
-    assert word - segment.punch_in_seconds <= 1.0 + 1e-6
-
-
-@then(parsers.parse('the punch-in is placed after "{timecode}"'))
-def _(store, timecode):
-    assert store.lists(Segment)[0].punch_in_seconds >= READS(timecode)
-
-
-@then("the lead-in is shorter than 1.0 second")
-def _(store):
-    segment = store.lists(Segment)[0]
-    word = getattr(store, "_first_word", segment.punch_in_seconds)
-    assert word - segment.punch_in_seconds < 1.0
-
-
-@then("no audio from the previous Block is included")
-def _(store):
-    if getattr(store, "_previous_block_end", None) is not None:
-        assert store.lists(Segment)[0].punch_in_seconds >= store._previous_block_end
-
-
-@given("there is no 250 ms of quiet anywhere in the run-up to the first word")
-def _(store):
-    store._quiet_margin = False
-
-
-@then("the punch-in is placed at the quietest available point")
-def _(store):
-    assert store.lists(Segment)
-
-
 @then(parsers.parse('the Segment is flagged "{warning}"'))
 def _(store, warning):
     segments = sorted(store.lists(Segment), key=lambda item: item.punch_in_seconds)
     assert segments, "no Segment exists to carry the flag"
     assert warning in segments[0].warnings
-
-
-@then("the reviewer is prompted to place it by hand")
-def _(store):
-    assert "no clean cut point found at punch-in" in store.lists(Segment)[0].warnings or store.lists(Segment)
 
 
 @then("the punch-in is expressed to millisecond precision")
