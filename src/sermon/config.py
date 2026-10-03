@@ -15,8 +15,12 @@ OBJECT_STORE_SECRET_ACCESS_KEY = "SERMON_OBJECT_STORE_SECRET_ACCESS_KEY"
 MODEL_ENDPOINT = "SERMON_MODEL_ENDPOINT"
 WEBHOOK_TOKEN = "SERMON_WEBHOOK_TOKEN"
 NOTIFICATION_CHANNEL = "SERMON_NOTIFICATION_CHANNEL"
+SLACK_WEBHOOK_URL = "SERMON_SLACK_WEBHOOK_URL"
+APP_URL = "SERMON_APP_URL"
 IN_APP = "in-app"
-NOTIFICATION_CHANNELS = (IN_APP,)
+SLACK = "slack"
+NOTIFICATION_CHANNELS = (IN_APP, SLACK)
+SLACK_HOOK_HOST = "hooks.slack.com"
 
 VARIABLES = (
     DATA_ROOT,
@@ -71,6 +75,19 @@ def refuses_a_non_http_endpoint(name, endpoint):
         raise UnusableConfiguration(f"{name} is {endpoint!r}, which is not an HTTP endpoint")
 
 
+def refuses_a_foreign_slack_webhook(webhook):
+    if webhook is None:
+        raise UnusableConfiguration(
+            f"{NOTIFICATION_CHANNEL} is {SLACK!r} but nothing sets {SLACK_WEBHOOK_URL}"
+        )
+    refuses_a_bare_credential(SLACK_WEBHOOK_URL, webhook)
+    reached = urlparse(webhook.reveals())
+    if reached.scheme != "https" or reached.netloc != SLACK_HOOK_HOST:
+        raise UnusableConfiguration(
+            f"{SLACK_WEBHOOK_URL} is not an https://{SLACK_HOOK_HOST}/ webhook"
+        )
+
+
 def refuses_a_bare_credential(name, credential):
     if not isinstance(credential, Credential):
         raise UnusableConfiguration(f"{name} is a {type(credential).__name__}, not a Credential")
@@ -96,6 +113,8 @@ class Configuration:
     model_endpoint: str
     webhook_token: Credential | None = None
     notification_channel: str = IN_APP
+    slack_webhook: Credential | None = None
+    app_url: str | None = None
 
     def __post_init__(self):
         if not isinstance(self.data_root, Path):
@@ -111,9 +130,11 @@ class Configuration:
             refuses_a_bare_credential(WEBHOOK_TOKEN, self.webhook_token)
         if self.notification_channel not in NOTIFICATION_CHANNELS:
             raise UnusableConfiguration(
-                f"{NOTIFICATION_CHANNEL} is {self.notification_channel!r}; no such channel is built, "
-                f"and {IN_APP!r} is the only one"
+                f"{NOTIFICATION_CHANNEL} is {self.notification_channel!r}; no such channel is built; "
+                f"the channels are {', '.join(repr(name) for name in NOTIFICATION_CHANNELS)}"
             )
+        if self.notification_channel == SLACK:
+            refuses_a_foreign_slack_webhook(self.slack_webhook)
 
 
 @dataclass(frozen=True)
@@ -136,6 +157,8 @@ class ReadsConfiguration:
             model_endpoint=self.environment[MODEL_ENDPOINT],
             webhook_token=Credential(offered) if offered else None,
             notification_channel=self.environment.get(NOTIFICATION_CHANNEL) or IN_APP,
+            slack_webhook=Credential(hook) if (hook := self.environment.get(SLACK_WEBHOOK_URL)) else None,
+            app_url=self.environment.get(APP_URL) or None,
         )
 
 

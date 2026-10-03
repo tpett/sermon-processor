@@ -374,7 +374,7 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
         RunsRenderJob(
             store=store,
             steps=lambda _name: None,
-            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel, configuration.slack_webhook, configuration.app_url)),
             renders=keeps_what_it_rendered(RendersMp3(), produced),
             job_id=queued[0].job_id,
         )()
@@ -580,7 +580,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
             analyzes=RunsAnalyzeJob(
                 store=store,
                 stages=lambda _name: None,
-                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel, configuration.slack_webhook, configuration.app_url)),
                 analyses=analyses,
                 transcribes=transcribes_with(store=store),
                 diarizes=diarizes_with(store=store),
@@ -588,7 +588,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
             renders=RunsRenderJob(
                 store=store,
                 steps=lambda _name: None,
-                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel, configuration.slack_webhook, configuration.app_url)),
                 renders=RendersMp3(),
             ),
         )
@@ -606,7 +606,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
             )
         reminds = RemindsReviewer(
             store=store,
-            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel, configuration.slack_webhook, configuration.app_url)),
         )
         return drains(runs, asked, prints, sleeps, scans=scans, reminds=reminds)
     finally:
@@ -694,7 +694,7 @@ def analyzes(settings=None, arguments=None, reasons=None, prints=print):
         RunsAnalyzeJob(
             store=store,
             stages=lambda _name: None,
-            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel, configuration.slack_webhook, configuration.app_url)),
             contents=NOTHING_FABRICATED,
             recording_id=recording.recording_id,
             analyses=ProposesFromStoredTranscript(

@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
-from sermon.config import IN_APP
+from sermon.config import IN_APP, SLACK
+from sermon.posts_to_slack import PostsToSlack
 from sermon.store import LogEntry, Notification, Reviewer, Store
 
 DELIVERY_ATTEMPTS = 3
@@ -22,13 +23,16 @@ def does_not_send(notification):
     return None
 
 
-def opens_channel(name):
-    """The sender a configured channel name stands for; in-app is the only one built."""
-    if name != IN_APP:
-        raise UnknownChannel(
-            f"no {name!r} notification channel exists; the only channel is {IN_APP!r}"
-        )
-    return does_not_send
+def opens_channel(name, slack_webhook=None, links_to=None):
+    """The sender a configured channel name stands for."""
+    if name == IN_APP:
+        return does_not_send
+    if name == SLACK and slack_webhook is not None:
+        return PostsToSlack(slack_webhook, links_to=links_to)
+    raise UnknownChannel(
+        f"no {name!r} notification channel can be opened; the channels are {IN_APP!r} "
+        f"and {SLACK!r}, which needs a webhook"
+    )
 
 
 @dataclass(frozen=True)
