@@ -19,8 +19,12 @@ green under the deletion assert the *absence* of a proposal.
 the Gherkin can only pass a member), assertions behind guards, `x == x`, a Then
 that invokes a `sermon.*` unit or writes the store, a Then asserting a flag a
 step wrote, duplicate Thens, staging Whens. Fed four deliberately dishonest
-definitions it went from 0/4 to 4/4. It reports 113 still condemned and its own
-9 refusal tests are red: that is the honest record, not a regression. An honest
+definitions it went from 0/4 to 4/4. A second pass took condemned definitions
+from 113 to **36**; every one left is awaiting the owner (notifications, the
+publication date field, the accuracy-suite definitions), needs a When or Given
+line added to its scenario (a pin move), or cannot be built as its Given reads.
+The guard's 6 remaining red refusal tests are that honest record, not a
+regression. An honest
 analysis harness (`tests/steps/_analysis.py`) runs `RunsAnalyzeJob` as
 `sermon-work` builds it with deterministic doubles; no model call is possible
 from a spec item. **39 scenarios went green→red, every one a dishonest green
