@@ -223,7 +223,7 @@ Feature: Classifying each block
       # those, it is just all spoken, so the punch-in and out points are usually
       # simpler because there is not a lot of other stuff going on."
       Given a Recording that is one speaker talking for 70 minutes with nothing else
-      When block classification runs
+      When the Recording is analysed
       Then it is classified on its own evidence
       And no confidence is deducted for failing to match the Sunday order
       And the simpler structure makes the boundaries easier, not harder
@@ -268,7 +268,7 @@ Feature: Classifying each block
       # produce a false positive, and it is materially different from "there is
       # singing in this service".
       Given a Recording of a band running songs, stopping, and restarting them
-      When block classification runs
+      When the Recording is analysed
       Then its Blocks are typed "rehearsal", not "music"
       And no Segment is proposed
       And the Recording is shown as needing no attention
