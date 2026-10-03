@@ -12,11 +12,10 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from sermon.analysis.provisions_diarization_models import EMBEDDING, SEGMENTATION
 from sermon.analysis.transcribes_audio import DecodesChannelOne, TranscriptionUnavailable
 
 MODELS_SETTING = "SERMON_DIARIZATION_MODELS"
-SEGMENTATION = Path("sherpa-onnx-pyannote-segmentation-3-0") / "model.onnx"
-EMBEDDING = Path("nemo_en_titanet_small.onnx")
 MERGE_THRESHOLD = 0.9
 MIN_TURN_S = 1.0
 MIN_GAP_S = 0.5
