@@ -27,6 +27,12 @@ class DiarizationUnavailable(RuntimeError):
 
 
 def builds_sherpa_diarizer(models, threshold=MERGE_THRESHOLD, threads=THREADS):
+    if models is None:
+        raise DiarizationUnavailable(f"no diarization models are configured ({MODELS_SETTING})")
+    models = Path(models)
+    for name in (SEGMENTATION, EMBEDDING):
+        if not (models / name).is_file():
+            raise DiarizationUnavailable(f"diarization model {name} is not in {models}")
     import sherpa_onnx
 
     config = sherpa_onnx.OfflineSpeakerDiarizationConfig(
@@ -62,18 +68,11 @@ class RunsSherpaDiarizer:
         return f"sherpa-onnx pyannote-segmentation-3.0 + titanet-small at {self.models}"
 
     def _engine(self):
-        if self.models is None:
-            raise DiarizationUnavailable(f"no diarization models are configured ({MODELS_SETTING})")
-        for name in (SEGMENTATION, EMBEDDING):
-            if not (Path(self.models) / name).is_file():
-                raise DiarizationUnavailable(f"diarization model {name} is not in {self.models}")
         if not self._built:
             if self.builds is not None:
-                self._built.append(self.builds(Path(self.models)))
+                self._built.append(self.builds(self.models))
             else:
-                self._built.append(
-                    builds_sherpa_diarizer(Path(self.models), self.threshold, self.threads)
-                )
+                self._built.append(builds_sherpa_diarizer(self.models, self.threshold, self.threads))
         return self._built[0]
 
     def __call__(self, samples):
