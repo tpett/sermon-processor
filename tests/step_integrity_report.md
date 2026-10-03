@@ -95,9 +95,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:182` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:228` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:183` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:229` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:315` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
@@ -123,9 +123,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:182` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:228` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:183` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:229` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:315` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
