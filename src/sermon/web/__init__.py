@@ -34,7 +34,7 @@ from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.lists_recordings import ListsRecordings
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import RecordsPublicationDetails
-from sermon.reconciles_bucket import ReconcilesBucket
+from sermon.reconciles_bucket import MalformedObjectKey, ReconcilesBucket
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import ShowsRecording, formats_precise, formats_seconds
@@ -260,7 +260,7 @@ def creates_app(
             return {"error": named}, refusal
         status, detail = accepts(request.get_json(silent=True) or {})
         if status == 422:
-            return {"missing": detail}, 422
+            return detail, 422
         return ("", status)
 
     @app.get("/api/recordings")
@@ -403,7 +403,14 @@ def creates_app(
     @app.post("/api/ingest")
     def ingest():
         body = request.get_json(silent=True) or {}
-        recording = reconciles.ingests(body["object_key"])
+        if not isinstance(body, dict):
+            return {"malformed": "body"}, 422
+        if not body.get("object_key"):
+            return {"missing": "object_key"}, 422
+        try:
+            recording = reconciles.ingests(body["object_key"])
+        except MalformedObjectKey:
+            return {"malformed": "object_key"}, 422
         return {"recording_id": recording.recording_id, "state": recording.state}, 202
 
     @app.get("/api/recordings/<recording_id>")
@@ -490,9 +497,9 @@ def creates_app(
         if action == "archive-whole-recording":
             archives(recording)
             return "archived"
-        if action == INGEST_ACTION:
+        if action in {INGEST_ACTION, "retry-ingestion"}:
             return f"ingest-{forces(recording).outcome}"
-        if action in {"re-run-analysis", "retry-analysis", "retry-ingestion"}:
+        if action in {"re-run-analysis", "retry-analysis"}:
             reruns(recording)
             return "reanalysis-queued"
         if action == "create-segment":

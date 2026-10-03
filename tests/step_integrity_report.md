@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1325 step definitions read from `tests/steps`
+- 1326 step definitions read from `tests/steps`
 - 0 condemned
 - 0 of 464 non-deferred scenarios rest on at least one condemned step
 - 0 of 607 expanded scenario tests likewise
@@ -44,7 +44,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/catch_all_thens.py` (named) | 3 | 0 | sound |
 | `tests/steps/discovery_steps.py` | 2 | 0 | sound |
 | `tests/steps/ingestion/recording_download_steps.py` | 42 | 0 | sound |
-| `tests/steps/ingestion/s3_reconciliation_steps.py` | 37 | 0 | sound |
+| `tests/steps/ingestion/s3_reconciliation_steps.py` | 38 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 42 | 0 | sound |
 | `tests/steps/interface/approval_steps.py` | 48 | 0 | sound |
 | `tests/steps/interface/authentication_steps.py` | 8 | 0 | sound |

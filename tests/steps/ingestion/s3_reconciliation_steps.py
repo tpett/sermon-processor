@@ -67,6 +67,12 @@ def _(store, object_key):
     assert recordings[0].state == "discovered"
 
 
+@then("it is not queued for download until someone asks for it")
+def _(store):
+    assert store.lists(Recording)
+    assert store.lists(Job, kind="download") == []
+
+
 @then(parsers.parse('no duplicate is created for "{object_key}"'))
 def _(store, object_key):
     assert len(store.lists(Recording, object_key=object_key)) == 1

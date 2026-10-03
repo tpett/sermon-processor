@@ -78,3 +78,52 @@ def test_a_webhook_without_the_token_reaches_no_entity_at_all(store):
     assert store.lists(Recording) == []
     assert store.lists(Discovery) == []
     assert store.lists(Job) == []
+
+
+def posts(store, payload):
+    client = creates_app(
+        store=store, clock=lambda: FROZEN, webhook_token=Credential(WEBHOOK_TOKEN_VALUE)
+    ).test_client()
+    return client.post(
+        "/api/webhooks/recordings",
+        headers={"Authorization": f"Bearer {WEBHOOK_TOKEN_VALUE}"},
+        json=payload,
+    )
+
+
+def leaves_no_trace(store):
+    assert store.lists(Recording) == []
+    assert store.lists(Discovery) == []
+    assert store.lists(Job) == []
+
+
+@pytest.mark.parametrize(
+    "object_key",
+    [
+        "recordings/not-a-recording.flac",
+        "notes/readme.txt",
+        "recordings/recording_20261399_250000.flac",
+        "recordings/recording_20260823_102952.flac.meta.json",
+        ["recordings/recording_20260823_102952.flac"],
+    ],
+)
+def test_an_object_key_that_names_no_recording_is_rejected_without_side_effects(
+    store, object_key
+):
+    response = posts(store, {**PAYLOAD, "object_key": object_key})
+    assert response.status_code == 422
+    assert response.get_json() == {"malformed": "object_key"}
+    leaves_no_trace(store)
+
+
+def test_a_size_that_is_not_a_number_is_rejected_without_side_effects(store):
+    response = posts(store, {**PAYLOAD, "size_bytes": "lots"})
+    assert response.status_code == 422
+    assert response.get_json() == {"malformed": "size_bytes"}
+    leaves_no_trace(store)
+
+
+def test_a_body_that_is_not_an_object_is_rejected_without_side_effects(store):
+    response = posts(store, [PAYLOAD])
+    assert response.status_code == 422
+    leaves_no_trace(store)

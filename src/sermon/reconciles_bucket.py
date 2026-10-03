@@ -18,15 +18,28 @@ SETTLE_SECONDS = 30.0
 DEFAULT_CUTOFF = date(2026, 1, 1)
 
 
-def skip_reason(object_key, *, ingest_cutoff):
-    match = KEY.search(object_key)
+class MalformedObjectKey(ValueError):
+    pass
+
+
+def recorded_at(object_key):
+    match = KEY.search(object_key) if isinstance(object_key, str) else None
     if match is None:
+        return None
+    try:
+        return datetime.strptime(
+            f"{match.group(1)}_{match.group(2)}", "%Y%m%d_%H%M%S"
+        ).replace(tzinfo=UTC)
+    except ValueError:
+        return None
+
+
+def skip_reason(object_key, *, ingest_cutoff):
+    recorded = recorded_at(object_key)
+    if recorded is None:
         if object_key.endswith(".flac"):
             return "key does not match the pattern"
         return "not an audio object"
-    recorded = datetime.strptime(
-        f"{match.group(1)}_{match.group(2)}", "%Y%m%d_%H%M%S"
-    ).replace(tzinfo=UTC)
     if recorded.date() == date(1970, 1, 1):
         return "recorder clock not set"
     if ingest_cutoff is not None and recorded.date() < ingest_cutoff:
@@ -34,14 +47,13 @@ def skip_reason(object_key, *, ingest_cutoff):
     return None
 
 
-def creates_recording(store, object_key, *, size_bytes, clock):
-    recording_id = Path(object_key).stem
-    started_at = datetime.strptime(recording_id, "recording_%Y%m%d_%H%M%S").replace(
-        tzinfo=UTC
-    )
+def creates_recording(store, object_key, *, size_bytes, clock, queues=True):
+    started_at = recorded_at(object_key)
+    if started_at is None:
+        raise MalformedObjectKey(object_key)
     recording = store.saves(
         Recording(
-            recording_id=recording_id,
+            recording_id=Path(object_key).stem,
             object_key=object_key,
             state="discovered",
             started_at=started_at,
@@ -49,6 +61,8 @@ def creates_recording(store, object_key, *, size_bytes, clock):
             size_bytes=int(size_bytes or 0),
         )
     )
+    if not queues:
+        return recording
     EnqueuesJob(store)(
         Job(
             recording_id=recording.recording_id,
@@ -124,7 +138,11 @@ class ReconcilesBucket:
             if self.store.lists(Recording, object_key=object_key):
                 continue
             creates_recording(
-                self.store, object_key, size_bytes=size_bytes, clock=self.clock
+                self.store,
+                object_key,
+                size_bytes=size_bytes,
+                clock=self.clock,
+                queues=False,
             )
             discovered += 1
         self.store.saves(
@@ -136,6 +154,8 @@ class ReconcilesBucket:
         )
 
     def ingests(self, object_key, *, size_bytes=0):
+        if recorded_at(object_key) is None:
+            raise MalformedObjectKey(object_key)
         existing = self.store.lists(Recording, object_key=object_key)
         if existing:
             return existing[0]
