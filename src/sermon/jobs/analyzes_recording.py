@@ -64,7 +64,12 @@ CLASS_AND_SERVICE = RecordingContents(
 NOTHING_FABRICATED = RecordingContents(segments=())
 
 
-ITERATED_STAGES = frozenset({"blocking", "block_classification"})
+ITERATED_STAGES = ("blocking", "block_classification")
+WALK = (
+    STAGE_ORDER[: STAGE_ORDER.index("blocking")]
+    + ITERATED_STAGES * 2
+    + STAGE_ORDER[STAGE_ORDER.index("block_classification") + 1 :]
+)
 REASONING_STAGES = frozenset({"block_classification", "summarization"})
 OPTIONAL_STAGES = frozenset({"waveform", "preview", "summarization", "diarization"})
 STAGE_ARTIFACTS = {
@@ -210,16 +215,7 @@ class AnalyzesRecording:
             if self.analyses is not None:
                 self.analyses(analyzing)
             else:
-                for name in STAGE_ORDER:
-                    if name in ITERATED_STAGES:
-                        continue
-                    if name == "summarization":
-                        if self._run_stage(analyzing, "blocking") == "stop":
-                            return self.store.loads(Recording, recording.recording_id)
-                        if self._run_stage(analyzing, "block_classification") == "stop":
-                            return self.store.loads(Recording, recording.recording_id)
-                        self._run_stage(analyzing, "blocking")
-                        self._run_stage(analyzing, "block_classification")
+                for name in WALK:
                     if self._run_stage(analyzing, name) == "stop":
                         return self.store.loads(Recording, recording.recording_id)
         except ModelEndpointUnreachable as error:

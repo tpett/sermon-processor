@@ -201,8 +201,7 @@ def walks(store, sent, **fields):
         notifies=SendsNotification(store=store, sends=sent.append),
         clock=lambda: FROZEN,
         transcribes=transcribes_for(store, downloaded_recording()),
-        divides=divides_into_nothing_publishable,
-        **{"stages": lambda _name: None} | fields,
+        **{"stages": lambda _name: None, "divides": divides_into_nothing_publishable} | fields,
     )
 
 
@@ -255,3 +254,19 @@ def test_a_later_stage_reads_what_the_probe_measured(store, roots):
     walks(store, [], measures=measures_a_shorter_file)()
     peaks = store.lists(Artifact, recording_id=recording.recording_id, kind="waveform_peaks")[0]
     assert json.loads(store.resolves(peaks).read_text())["duration_seconds"] == 10990.0
+
+
+def test_a_blocking_failure_is_logged_under_blocking(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def divides_badly(doc):
+        raise RuntimeError("the divider broke")
+
+    walks(store, [], divides=divides_badly)()
+    failures = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.entered_state == "analysis_failed"
+    ]
+    assert failures == ["blocking: the divider broke"]
