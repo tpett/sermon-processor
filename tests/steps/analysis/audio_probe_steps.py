@@ -1,9 +1,9 @@
+import re
 from dataclasses import replace
 
 from pytest_bdd import given, parsers, then, when
 
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
-from sermon.lists_recordings import ListsRecordings
 from sermon.store import ChannelLevel, Recording
 from sermon.web import creates_app
 
@@ -260,22 +260,30 @@ def _(store, recording):
     store.saves(replace(recording, state="ignored", dynamic_range_db=4.0, active_fraction=0.001))
 
 
+def listed_row(store, recording, **query):
+    listed = creates_app(store=store).test_client().get("/", query_string=query).get_data(as_text=True)
+    found = re.search(rf'<li data-row="recording" data-id="{recording.recording_id}"[^>]*>', listed)
+    return found.group(0) if found else None
+
+
 @then("it does not appear in the default list")
-def _(store):
-    rows = ListsRecordings(store=store)()
-    assert all(row.state != "ignored" for row in rows)
+def _(store, recording):
+    assert store.loads(Recording, recording.recording_id).state == "ignored"
+    assert listed_row(store, recording) is None
 
 
 @then("it does not count as needing attention")
-def _(store):
-    rows = ListsRecordings(store=store)()
-    assert all(not row.needs_attention for row in rows if row.state == "ignored")
+def _(store, recording):
+    row = listed_row(store, recording, filter="Ignored")
+    assert row is not None
+    assert 'data-attention="false"' in row
 
 
 @then("a reviewer can find it by filtering for ignored recordings")
-def _(store):
-    rows = ListsRecordings(store=store)(filter_name="Ignored")
-    assert any(row.state == "ignored" for row in rows)
+def _(store, recording):
+    row = listed_row(store, recording, filter="Ignored")
+    assert row is not None
+    assert 'data-state="ignored"' in row
 
 
 @given(parsers.parse("the Recording's dynamic range is {range_db:d} dB"))

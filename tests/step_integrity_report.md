@@ -5,10 +5,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1336 step definitions read from `tests/steps`
-- 116 condemned
+- 113 condemned
 - 98 of 464 non-deferred scenarios rest on at least one condemned step
 - 134 of 607 expanded scenario tests likewise
-- 27 scenarios whose every Then is condemned, so nothing they claim is checked
+- 26 scenarios whose every Then is condemned, so nothing they claim is checked
 - 11 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 48 Gherkin steps matched more than one definition
@@ -28,7 +28,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an assertion operand that some scenario's own arguments make true | 2 |
 | a Then with a path through it that asserts nothing | 13 |
 | an assertion that compares a value with itself | 1 |
-| a Then that constructs and invokes a unit of the system | 26 |
+| a Then that constructs and invokes a unit of the system | 23 |
 | a Then that writes to the store | 20 |
 | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets | 11 |
 | a Then that asserts word for word what another Then in its scenario asserts | 10 |
@@ -46,7 +46,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | --- | --- | --- | --- |
 | `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 3 | partly condemned |
 | `tests/steps/analysis/approval_rate_steps.py` | 4 | 2 | partly condemned |
-| `tests/steps/analysis/audio_probe_steps.py` | 45 | 3 | partly condemned |
+| `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
 | `tests/steps/analysis/block_classification_steps.py` | 23 | 1 | partly condemned |
 | `tests/steps/analysis/blocking_steps.py` | 35 | 0 | sound |
 | `tests/steps/analysis/confidence_steps.py` | 27 | 0 | sound |
@@ -89,7 +89,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## Condemned outside the six named files
 
-96 definitions.
+93 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
@@ -98,9 +98,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/audio_probe_steps.py:263` | then | `it does not appear in the default list` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/audio_probe_steps.py:269` | then | `it does not count as needing attention` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/audio_probe_steps.py:275` | then | `a reviewer can find it by filtering for ignored recordings` | a Then that constructs and invokes a unit of the system |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/domain_steps.py:195` | then | `no utterances are produced for that span` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
 | `tests/steps/analysis/domain_steps.py:257` | then | `it calls that machine rather than a hosted service` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
@@ -199,9 +196,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/audio_probe_steps.py:263` | then | `it does not appear in the default list` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/audio_probe_steps.py:269` | then | `it does not count as needing attention` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/audio_probe_steps.py:275` | then | `a reviewer can find it by filtering for ignored recordings` | a Then that constructs and invokes a unit of the system |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/domain_steps.py:195` | then | `no utterances are produced for that span` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
 | `tests/steps/analysis/domain_steps.py:257` | then | `it calls that machine rather than a hosted service` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
@@ -317,7 +311,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | --- | --- | --- |
 | `analysis/analysis_confidence.feature` | 60 | A model's own confidence number is not used for anything |
 | `analysis/analysis_confidence.feature` | 179 | Degrading gracefully |
-| `analysis/audio_probe.feature` | 116 | Ignored recordings stay out of the way but remain visible |
 | `analysis/block_classification.feature` | 377 | A block that is genuinely two things |
 | `analysis/block_classification.feature` | 367 | An unsure teaching Block still produces a Segment |
 | `analysis/block_classification.feature` | 345 | Classification is unsure |
