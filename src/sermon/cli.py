@@ -1079,9 +1079,7 @@ CORPUS_REGIME_FLAGS = ("store", "before", "save", "drift")
 
 def parses_regrade_command(arguments, prints):
     parser = argparse.ArgumentParser(prog="sermon-regrade", usage=REGRADE_USAGE, add_help=True)
-    parser.add_argument(
-        "--corpus", default=os.environ.get("SERMON_SPIKE_DATA") or "experiments/data"
-    )
+    parser.add_argument("--corpus", default=os.environ.get("SERMON_SPIKE_DATA"))
     parser.add_argument("--baseline", default=SHIPPING_BASELINE)
     parser.add_argument("--split", choices=sorted(SPLITS), default="dev")
     parser.add_argument("--unseal")
@@ -1489,6 +1487,9 @@ def regrades(arguments=None, prints=print, derives=None, replays=None):
     asked = parses_regrade_command(sys.argv[1:] if arguments is None else arguments, prints)
     if asked is None:
         return 1
+    if asked.corpus is None:
+        prints("name the corpus: --corpus <corpus-root>, or set SERMON_SPIKE_DATA")
+        return 2
     if not asked.corpus_regime and not any(
         getattr(asked, flag) for flag in CORPUS_REGIME_FLAGS
     ):

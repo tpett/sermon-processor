@@ -137,3 +137,10 @@ def test_a_moved_proposal_says_how_to_move_the_reference_deliberately(accepted, 
     _, still = runs(accepted, {}, tmp_path=tmp_path)
     assert "--accept" in moved
     assert "--accept" not in still
+
+
+def test_with_no_corpus_named_anywhere_the_gate_says_how_to_name_one(monkeypatch):
+    monkeypatch.delenv("SERMON_SPIKE_DATA", raising=False)
+    printed = []
+    assert cli.regrades(arguments=[], prints=printed.append) == 2
+    assert "SERMON_SPIKE_DATA" in "\n".join(printed)
