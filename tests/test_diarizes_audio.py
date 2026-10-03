@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from sermon.analysis import DiarizesRecording
+from sermon.analysis import DiarizesRecording, ScoresProposals
 from sermon.analysis.diarizes_audio import (
     EMBEDDING,
     MODELS_SETTING,
@@ -18,9 +18,10 @@ from sermon.analysis.diarizes_audio import (
     RunsSherpaDiarizer,
     diarizes_with,
 )
-from sermon.analysis.io import reads_json
+from sermon.analysis.io import reads_json, writes_json
 from sermon.jobs.analyzes_recording import StageFailed
 from sermon.store import Recording, layout, opens_store
+from sermon.store import Segment as StoredSegment
 
 SAMPLE_RATE = 16_000
 
@@ -223,3 +224,34 @@ def test_the_real_engine_hears_synthetic_speech_and_nothing_in_a_tone(store, tmp
         assert turn["speaker"].startswith("S")
         assert turn["start"] >= 5.5, f"a speaker was heard in the tone: {turn}"
     assert sum(turn["end"] - turn["start"] for turn in turns) >= 3.0
+
+
+def a_scored_segment(store, turns):
+    recording = a_recording(store)
+    writes_json(store, recording, "transcript", {"utterances": [], "duration": 12.0})
+    if turns is not None:
+        writes_json(store, recording, "diarization", {"turns": turns})
+    segment = store.saves(
+        StoredSegment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state="proposed",
+            span_start_seconds=1.0,
+            span_end_seconds=11.0,
+            punch_in_seconds=1.0,
+            punch_out_seconds=11.0,
+        )
+    )
+    (proposal,) = ScoresProposals(store=store)(recording)
+    assert proposal.segment_id == segment.segment_id
+    return proposal
+
+
+@pytest.mark.parametrize("turns", [None, []])
+def test_a_proposal_without_speaker_turns_says_it_has_no_speaker_evidence(store, turns):
+    assert "no speaker evidence" in a_scored_segment(store, turns).missing_evidence
+
+
+def test_a_proposal_with_speaker_turns_does_not(store):
+    turns = [{"start": 0.0, "end": 12.0, "speaker": "S0"}]
+    assert "no speaker evidence" not in a_scored_segment(store, turns).missing_evidence

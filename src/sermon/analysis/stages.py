@@ -803,6 +803,8 @@ class ScoresProposals:
             missing.append("no opening cue")
         if not has_out_cue:
             missing.append("closing prayer")
+        if not (reads_json(self.store, recording, "diarization") or {}).get("turns"):
+            missing.append("no speaker evidence")
         existing = self.store.lists(Proposal, segment_id=segment.segment_id)
         kept = list(existing[0].evidence) if existing else []
         payload = dict(
