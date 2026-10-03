@@ -125,9 +125,9 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-render recording_20260823_103015 \
     --from 2:00:20 --to 2:43:32 --label "Hebrews 12.4-11" --date 2026-08-23
 .venv/bin/sermon-propose recording_20260412_102318 --corpus experiments/data
-.venv/bin/sermon-regrade --corpus experiments/data   # grade every proposal against the human cut
-.venv/bin/sermon-regrade --corpus experiments/data --before tests/pipeline_boundary_fingerprint.json
-.venv/bin/sermon-regrade --corpus experiments/data --store ./data  # grade against the stored corpus
+.venv/bin/sermon-regrade                        # the gate: production's walk vs the human cut, dev split
+.venv/bin/sermon-regrade --accept "<why>"       # move the reference, on purpose, with a reason
+.venv/bin/sermon-regrade --corpus-regime --before tests/pipeline_boundary_fingerprint.json  # old replay
 .venv/bin/sermon-approvals   # the headline: what fraction was approved untouched
 .venv/bin/sermon-approvals --since 2026-09-01 --until 2026-09-30
 .venv/bin/sermon-analyze recording_20260712_103000 --corpus experiments/data --summaries none
@@ -194,68 +194,54 @@ at the tree holding `transcripts/`, `blocks/`, `diarization/` and
 `--store` puts the Blocks, Segments and Proposals somewhere other than the data
 root. It exits non-zero when a labelled Segment was not found.
 
-`sermon-regrade` grades a proposed cut by **which silence run it lands in**
-rather than by how many seconds it is out. A silence run is a gap of at least
-1.0 s between consecutive words, plus the region before the first word and after
-the last; two cuts inside one run are *the same cut* however many seconds apart
-they are, while one second across a word is a different cut. So the headline per
-cut point is whether the proposal is in the same run as the human cut, and when
-it is not, how many **speech-seconds** lie between the two. The signed delta is
-reported and decides nothing.
+`sermon-regrade` answers one question: **does this change make production's
+first proposal closer to or further from where the human cut, on the recordings
+we have?** It replays production's analyze job itself — `RunsAnalyzeJob` and the
+stage walk as `sermon-work` builds it with no corpus, roots bound to an empty
+`corpus/diarization` — over each stored transcript, handing the stored model
+answer in at the walk's `divides` seam. Stages needing audio or a model
+(waveform, preview, diarization, summarization) are refused before they start,
+and only optional ones. No audio leaves the machine and no model is called; it
+needs `SERMON_SPIKE_DATA` or `--corpus`.
 
-It re-derives every tagged block file under `--corpus` through the live
-`derive()` and `choose()` and has three modes:
+**The judge is `analysis/judges_cut.py` and nothing else**, and every run prints
+its version and digest. A pause is a gap of at least 1.0 s between words, or the
+quiet before the first word or after the last. A proposal in the human's pause
+*is* the human's cut. Any other proposal is as far from it as the speech-seconds
+between them, and a move under 0.1 speech-seconds outside the human's pause is
+unchanged. Clearance from a word and landing inside one are diagnostics, never
+ranking keys. Pairing (more than half the human span) and the archived-whole
+exclusion (over 95% of the source) live there too.
 
-- **By default it measures accuracy** against `groundtruth.json`, pairing each
-  proposal to a human segment by maximum overlap the way `sermon-propose` does,
-  and prints a row per labelled cut point plus a summary. It exits non-zero only
-  when nothing could be scored at all: the corpus holds deliberately bad ladder
-  rungs, so a count of proposals that missed their labelled segment is data
-  rather than a fault.
-- **`--before <path>` grades a code change.** It scores a saved set of
-  proposals and the live ones against the same human cuts and reports, per cut
-  point, whether the change moved the cut closer to or further from the human —
-  `improved`, `degraded`, `same cut` or `equal`. **It exits non-zero when any cut
-  degraded**, and that is the regression gate. `--save <path>` writes the live
-  proposals in the same shape, and `tests/pipeline_boundary_fingerprint.json`
-  can be handed straight to `--before` because it already records what the
-  current code produces.
-- **`--drift` compares the block files' own stored `segments` field against live
-  output.** That is *drift, not accuracy*: 21 of the 181 fields predate the
-  current `segments.py` (`sp-66k`), so drift is expected on an unchanged tree and
-  **never decides the exit code.**
+**The reference is `tests/shipping_baseline.json`**: the shipping replay's
+proposals for every block file, with a history of who accepted them, at which
+commit, under which judge and why. It moves only by `--accept "<reason>"`.
+Accepting a changed judge together with moved proposals is refused — change the
+judge on an unchanged pipeline first. When the live proposals differ from it the
+gate says so; accept an improvement you want kept, or a later change can undo it
+and still pass.
 
-**A recording the human archived whole is not graded as a cut.** A members
-meeting is converted whole — "it's a members meeting so we don't really make any
-cuts we just archive the whole thing usually" — so its labelled span *is* the
-file, and there is no boundary decision in it to be right or wrong about. Both
-modes that read `groundtruth.json` leave it out, keyed on the labelled span
-covering more than 95% of the source, which is the coverage the ground-truth
-checker already flags an untrimmed archive by. `recording_20260628_130014` is the
-only one in the corpus and grading it cost an hour chasing a phantom regression.
-**Excluding it moves every corpus-wide figure**: 158 proposals / 340 cut points
-becomes 147 / 318, and `--tag whole.v2` 112 / 238 becomes 106 / 226. Read older
-numbers against the older baseline.
+By default it judges **recordings, not configurations**: `fw-qwen3.6.whole.v2`
+(faster-whisper int8 + `qwen3.6:35b-mlx`, which is what production runs) on the
+**dev split**, 7 recordings once 2026-06-28 (archived whole) is excluded. `--tag`
+names another config exactly; `--all` spells out unchanged recordings too. **Any
+other split is held out**: `--split test|all` is refused without `--unseal
+"<reason>"`, and an unsealed read is appended to `tests/held_out_reads.log`
+before anything is read — commit that line. The test split was scored
+repeatedly on 2026-10-03 and counts as seen.
 
-**`--store <data-root>` grades against the stored corpus instead of the frozen
-file.** `groundtruth.json` is frozen at the 39 recordings derived 2026-08-31,
-while `sermon-align` and every approval of a reviewer-moved boundary write
-`CorpusPair` rows that nothing could measure against. With `--store` the
-accuracy mode and the `--before` gate read those rows, admitting a pair only
-when `CorpusPair.labelled` says so — human provenance, `aligned`, both
-boundaries present, not `covers_more_than_95_percent` — so a refusal, a machine
-cut and an untouched approval can never become the yardstick. Without the flag
-nothing changes and the frozen file is still the source, which is why the
-summary line names the source it graded against rather than always naming
-`groundtruth.json`. Seeded with the frozen 39 the two sources agree line for
-line: 147 proposals / 318 cut points, 106 / 226 with `--tag whole.v2`, same
-medians and same worst case. The store needs a `Recording` row per pair, because
-the archived-whole exclusion is keyed on `duration_seconds`.
+It exits **0** when no recording got worse, **1** when one did (worse at either
+cut, a mixed result, or a new proposal no human cut pairs with), and **2** when
+it cannot say: no baseline, nothing compared, a held-out split refused, or the
+judge changed since the baseline was accepted. `tests/test_shipping_gate.py`
+runs the same check in the fast suite.
 
-`--tag <text>` restricts every mode to the tags containing it, which is how to
-look at the shipping `*.whole.v2` configs alone. It reads the corpus and writes
-nothing to it, sends no audio anywhere, and invokes neither a transcriber nor a
-classifier, so it needs no `.env` and no model host.
+`--corpus-regime` keeps the old replay (stored block files through `derive()` and
+`choose(model_segments)`) with its accuracy, `--before`, `--save`, `--store` and
+`--drift` modes; those flags select it on their own. It is not the walk
+production runs, and its `--before` against
+`tests/pipeline_boundary_fingerprint.json` is no longer a gate. That file stays
+as `test_pipeline_library.py`'s pin.
 
 `sermon-approvals` prints the owner's headline measure: of the Segments
 published in a period, the fraction approved with no boundary edit. The period
@@ -518,17 +504,18 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
   the first never executes the pipeline, and before the third existed, gutting
   `blocks.speech_runs` to `raise` left the whole suite green.
 - **Know which guard can see the seam you changed, before citing it as a gate.**
-  The drift guard (`sermon-regrade --before`) and `test_pipeline_library.py`
-  re-derive from *stored* block files, which already hold post-`coerce_blocks`
-  blocks and carry `model_segments` — so they cannot see a change to
-  `coerce_blocks` or anything else upstream of `derive`, and they measure
-  `choose()` *with* the model's boundaries. Shifting every block edge +30 s
-  inside `coerce_blocks` left both green; only `test_pipeline_behaviour.py`
-  noticed (`sp-glwk`). And the deployed analyze walk runs `choose([], ...)`
-  (`sp-atw`), a regime neither replays: `sp-l3p` moves 1 of 181 punch-ins
-  through the guard and 21 of 181 on the shipping path. An acceptance
-  criterion for a change before `derive`, or one that depends on
-  `model_segments`, must name an instrument that executes that path.
+  `sermon-regrade` (and `tests/test_shipping_gate.py`) executes the shipping walk
+  from the stored, already-coerced block table onward: the walk's stage list,
+  `ClassifiesBlocks`, `ProposesSegments`, `RefinesPunchIn/Out` → `_chooses` →
+  `ChoosesBoundaries`, and all of `pipeline/segments.py`. Deleting refinement
+  from the walk or shifting the punch-in +3 s fails it. It cannot see
+  `coerce_blocks` or anything else upstream of the stored blocks, the model's
+  variance (one frozen draw per recording), transcription, diarization,
+  summarization, `works()`'s own wiring, or anything after proposal; for
+  `coerce_blocks` only `test_pipeline_behaviour.py` notices (`sp-glwk`).
+  `test_pipeline_library.py` and `sermon-regrade --corpus-regime` replay
+  `choose(model_segments)`, which production does not run, and stay green under
+  both mutations above — they pin the library, they do not gate quality.
 - **Never run `rederive.py` against `experiments/data`.** It rewrites
   `blocks/` in place, and those 181 files *are* the extraction baseline.
 - **A `__file__`-relative path is how a verbatim move stops preserving behaviour.**
@@ -547,8 +534,9 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
   scores better. So each classification costs one refused request. The pipeline
   is frozen; dropping the constrained attempt is a behaviour change to measure,
   not a tidy-up.
-- **`experiments/data/test_access.log` records every held-out scoring run.** One
-  shot per configuration; honour it.
+- **`experiments/data/test_access.log` is the spike's frozen record** of held-out
+  scoring runs. New held-out reads go to `tests/held_out_reads.log` through
+  `sermon-regrade --unseal`, which refuses without a reason.
 - **Some published MP3s are machine cuts, not human edits.** `align.MACHINE_CUT_MP3S`
   excludes them from ground truth. Add to that set whenever a proposal ships
   unedited, or the corpus starts grading itself.
