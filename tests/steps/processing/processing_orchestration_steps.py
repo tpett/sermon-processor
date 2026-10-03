@@ -5,7 +5,7 @@ from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
-from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
+from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Reviewer, Segment
 
@@ -237,3 +237,17 @@ def _(store, segment):
     outcome = store.loads(Segment, segment.segment_id).state
     told = [(item.kind, item.segment_id, item.recipient) for item in store.lists(Notification)]
     assert told == [(NOTIFIED_OF.get(outcome, outcome), segment.segment_id, "reviewer")], told
+
+
+@then("the step is retried")
+def _(store, segment, process_log):
+    assert process_log.count("encode") == 2, process_log
+    (job,) = store.lists(Job, kind="render", segment_id=segment.segment_id)
+    attempts = [entry.error for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+    assert attempts == ["encode: encode failed once", None], attempts
+    entered = [
+        entry.entered_state
+        for entry in store.lists(LogEntry, segment_id=segment.segment_id)
+        if entry.kind == "state_change"
+    ]
+    assert entered == ["processing", "approved", "processing", "complete"], entered
