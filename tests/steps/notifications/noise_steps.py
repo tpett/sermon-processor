@@ -80,7 +80,7 @@ def _(store, delivery_channel, moments):
 
 @then("a reminder is sent to the reviewer")
 def _(store, delivery_channel):
-    recording = _notifications.registered(store)
+    recording = _notifications.the_recording(store)
     reminders = [item for item in delivery_channel.received if item.kind == "review_reminder"]
     assert [(item.recording_id, item.recipient) for item in reminders] == [(recording.recording_id, "reviewer")]
 

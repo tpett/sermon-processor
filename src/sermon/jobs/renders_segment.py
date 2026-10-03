@@ -9,7 +9,8 @@ from sermon.jobs.renders_mp3 import (
     refuses_unsettled_stereo,
 )
 from sermon.records_publication_details import names_rendered_mp3, places_publication_date
-from sermon.store import Artifact, Job, LogEntry, Notification, Recording, Segment, Store, layout
+from sermon.raises_notification import TellsProcessingOutcome
+from sermon.store import Artifact, Job, LogEntry, Recording, Segment, Store, layout
 
 
 def now():
@@ -74,6 +75,9 @@ class RendersSegment:
                     error=f"{step}: {error}",
                 )
             )
+            TellsProcessingOutcome(store=self.store, notifies=self.notifies, clock=self.clock)(
+                failed, reason=f"{step}: {error}"
+            )
             raise StepFailed(step, str(error)) from error
         recording = self.store.loads(Recording, processing.recording_id)
         filename = names_rendered_mp3(
@@ -125,18 +129,9 @@ class RendersSegment:
                 entered_state="complete",
             )
         )
-        notification = self.store.saves(
-            Notification(
-                recording_id=segment.recording_id,
-                segment_id=segment.segment_id,
-                kind="render_complete",
-                recipient="reviewer",
-                summary=filename,
-                created_at=self.clock(),
-                state="pending",
-            )
+        TellsProcessingOutcome(store=self.store, notifies=self.notifies, clock=self.clock)(
+            complete, filename=filename
         )
-        self.notifies(notification)
         return complete
 
 

@@ -217,7 +217,8 @@ def test_a_walk_that_proposes_nothing_fabricates_no_segment(store, roots):
     assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
     assert store.lists(Segment, recording_id=recording.recording_id) == []
     assert store.lists(Proposal) == []
-    assert store.lists(Notification, recording_id=recording.recording_id) == []
+    told = store.lists(Notification, recording_id=recording.recording_id)
+    assert [(item.kind, item.state) for item in told] == [("nothing_publishable", "suppressed")]
     assert sent == []
 
 

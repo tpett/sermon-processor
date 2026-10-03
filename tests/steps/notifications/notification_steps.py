@@ -50,7 +50,7 @@ def _(store, delivery_channel, moments):
 def _(store, datatable, moments):
     fields = [row[0] for row in datatable[1:]]
     assert fields == ["subject", "kind", "recipient", "summary", "created_at", "state"]
-    recording = _notifications.registered(store)
+    recording = _notifications.the_recording(store)
     notification = _notifications.the_only(store)
     assert notification.recording_id == recording.recording_id
     assert notification.kind == "segment_proposed"
@@ -85,7 +85,7 @@ def _(store, moments):
 
 @then("nothing fails")
 def _(store):
-    recording = _notifications.registered(store)
+    recording = _notifications.the_recording(store)
     assert recording.state == "awaiting_review"
     assert [job.state for job in store.lists(Job, recording_id=recording.recording_id)] == ["succeeded"]
 

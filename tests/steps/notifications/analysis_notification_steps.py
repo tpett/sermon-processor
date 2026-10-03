@@ -94,7 +94,7 @@ def _(store, moments):
 
 @then("the reviewer is notified once for the Recording")
 def _(store, delivery_channel):
-    recording = _notifications.registered(store)
+    recording = _notifications.the_recording(store)
     notification = _notifications.the_only(store)
     assert (notification.recording_id, notification.segment_id, notification.kind) == (
         recording.recording_id,
@@ -127,7 +127,7 @@ def _(store, delivery_channel):
 @then("the Recording is still visible in the recordings list")
 def _(store):
     page = creates_app(store=store).test_client().get("/").get_data(as_text=True)
-    assert [row["id"] for row in reads_rows(page, "recording")] == [_notifications.registered(store).recording_id]
+    assert [row["id"] for row in reads_rows(page, "recording")] == [_notifications.the_recording(store).recording_id]
 
 
 @then("the notification says the proposal needs careful review")
@@ -168,7 +168,7 @@ def _(store):
 
 @then("the reviewer is notified that analysis failed")
 def _(store, delivery_channel):
-    recording = _notifications.registered(store)
+    recording = _notifications.the_recording(store)
     notification = _notifications.the_only(store)
     assert (notification.kind, notification.recording_id) == ("analysis_failed", recording.recording_id)
     assert [item.notification_id for item in delivery_channel.received] == [notification.notification_id]

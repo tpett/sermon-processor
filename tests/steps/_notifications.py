@@ -190,3 +190,7 @@ def formats_length(seconds):
 
 def labelled(segment):
     return replace(segment, intent="publish", label="Hebrews 12.4-11")
+
+
+def the_recording(store):
+    return _analysis.the_recording(store)

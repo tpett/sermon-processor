@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1357 step definitions read from `tests/steps`
-- 36 condemned
-- 32 of 464 non-deferred scenarios rest on at least one condemned step
-- 42 of 607 expanded scenario tests likewise
-- 9 scenarios whose every Then is condemned, so nothing they claim is checked
-- 9 scenarios whose every step outside the Background is condemned
+- 1364 step definitions read from `tests/steps`
+- 27 condemned
+- 25 of 464 non-deferred scenarios rest on at least one condemned step
+- 35 of 607 expanded scenario tests likewise
+- 6 scenarios whose every Then is condemned, so nothing they claim is checked
+- 6 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 50 Gherkin steps matched more than one definition
-- 270 Gherkin steps matched no definition
+- 263 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -23,18 +23,18 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | an interface Then that reads the view model rather than the rendered page | 0 |
 | an assertion that cannot fail | 0 |
 | a boolean operand of True, which neutralises what it joins | 0 |
-| a Then whose every assertion only checks that some row exists | 8 |
-| an assertion that any existing row satisfies | 1 |
+| a Then whose every assertion only checks that some row exists | 4 |
+| an assertion that any existing row satisfies | 0 |
 | an assertion operand that some scenario's own arguments make true | 0 |
-| a Then with a path through it that asserts nothing | 4 |
+| a Then with a path through it that asserts nothing | 3 |
 | an assertion that compares a value with itself | 0 |
-| a Then that constructs and invokes a unit of the system | 11 |
+| a Then that constructs and invokes a unit of the system | 10 |
 | a Then that writes to the store | 13 |
-| a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets | 4 |
+| a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets | 3 |
 | a Then that asserts word for word what another Then in its scenario asserts | 0 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
-| a When that writes the outcome itself instead of invoking the system | 5 |
+| a When that writes the outcome itself instead of invoking the system | 3 |
 | an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate | 0 |
 | a step that skips or xfails instead of running | 0 |
 | a step name the guard cannot read from the source | 0 |
@@ -79,18 +79,19 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
-| `tests/steps/notifications/analysis_notification_steps.py` | 23 | 2 | partly condemned |
-| `tests/steps/notifications/notification_steps.py` | 8 | 5 | partly condemned |
+| `tests/steps/notifications/analysis_notification_steps.py` | 24 | 0 | sound |
+| `tests/steps/notifications/noise_steps.py` | 24 | 0 | sound |
+| `tests/steps/notifications/notification_steps.py` | 12 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 14 | 0 | sound |
 | `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
 | `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 114 | 6 | partly condemned |
+| `tests/steps/remaining_steps.py` (named) | 92 | 4 | partly condemned |
 
 ## Condemned outside the six named files
 
-30 definitions.
+23 definitions.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
@@ -117,13 +118,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/publication_details_steps.py:57` | then | `the details are saved with the Segment` | a Then that writes to the store |
 | `tests/steps/interface/publication_details_steps.py:74` | then | `I can change it` | a Then that writes to the store |
 | `tests/steps/interface/punch_point_adjustment_steps.py:186` | then | `the change is rejected if it would overlap the neighbouring Segment` | a Then that writes to the store |
-| `tests/steps/notifications/analysis_notification_steps.py:186` | then | `the notification links directly to that Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/notifications/analysis_notification_steps.py:220` | then | `the notification says the proposal needs careful review` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/notifications/notification_steps.py:50` | then | `the Notification exists whether or not any channel is configured` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/notifications/notification_steps.py:55` | when | `a Notification is created` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/notifications/notification_steps.py:82` | then | `it is recorded and left undelivered` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/notifications/notification_steps.py:90` | then | `it is visible in the interface` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/notifications/notification_steps.py:95` | then | `I can see which were delivered and which were not` | a Then with a path through it that asserts nothing |
 
 ## Every condemned definition
 
@@ -152,19 +146,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/publication_details_steps.py:57` | then | `the details are saved with the Segment` | a Then that writes to the store |
 | `tests/steps/interface/publication_details_steps.py:74` | then | `I can change it` | a Then that writes to the store |
 | `tests/steps/interface/punch_point_adjustment_steps.py:186` | then | `the change is rejected if it would overlap the neighbouring Segment` | a Then that writes to the store |
-| `tests/steps/notifications/analysis_notification_steps.py:186` | then | `the notification links directly to that Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
-| `tests/steps/notifications/analysis_notification_steps.py:220` | then | `the notification says the proposal needs careful review` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/notifications/notification_steps.py:50` | then | `the Notification exists whether or not any channel is configured` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/notifications/notification_steps.py:55` | when | `a Notification is created` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/notifications/notification_steps.py:82` | then | `it is recorded and left undelivered` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/notifications/notification_steps.py:90` | then | `it is visible in the interface` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/notifications/notification_steps.py:95` | then | `I can see which were delivered and which were not` | a Then with a path through it that asserts nothing |
-| `tests/steps/remaining_steps.py:188` | when | `a reviewer disables notifications` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:894` | then | `delivery is retried` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1035` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1054` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1068` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:1106` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:815` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:834` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:848` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:886` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
 
 ## Scenarios whose every Then is condemned
 
@@ -176,9 +161,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `analysis/punch_out_detection.feature` | 118 | The punch-out would land before the punch-in |
 | `analysis/speaker_diarization.feature` | 103 | The scripture reader and the preacher are the same person |
 | `interface/approval.feature` | 120 | Nothing renders without an explicit approval |
-| `notifications/approval_notifications.feature` | 80 | A low-confidence proposal says so |
-| `notifications/approval_notifications.feature` | 36 | No channel configured |
-| `notifications/approval_notifications.feature` | 51 | Notifications are visible in the interface regardless |
 
 ## Gherkin steps the guard could not match
 
@@ -361,16 +343,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/waveform_review.feature:330 then reviewing, adjusting and approving continue to work`
 - `interface/waveform_review.feature:331 then only the actions that need a model are shown as unavailable`
 - `interface/waveform_review.feature:332 then the reason names the endpoint rather than blaming the Recording`
-- `notifications/approval_notifications.feature:171 then no further notifications are sent to them`
-- `notifications/approval_notifications.feature:172 then recordings still appear in the recordings list`
-- `notifications/approval_notifications.feature:37 given no delivery channel is configured`
-- `notifications/approval_notifications.feature:41 then nothing fails`
 - `notifications/approval_notifications.feature:46 then delivering a Notification is separate from creating one`
 - `notifications/approval_notifications.feature:47 then adding or changing a channel does not change when Notifications are raised`
 - `notifications/approval_notifications.feature:48 then the same Notification can be delivered by more than one channel`
-- `notifications/approval_notifications.feature:52 when I open the interface`
-- `notifications/approval_notifications.feature:53 then I see the Notifications raised for me`
-- `notifications/approval_notifications.feature:83 then it states why confidence is low`
 - `operations/storage_and_retention.feature:18 then its "Segment boundaries" is still available`
 - `operations/storage_and_retention.feature:18 then its "rendered MP3" is still available`
 - `operations/storage_and_retention.feature:18 then its "source FLAC" is still available`
