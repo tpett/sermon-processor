@@ -70,6 +70,11 @@ def the_selected_segment(store, recording):
     )
 
 
+def stored_span(store, segment):
+    stored = store.loads(Segment, segment.segment_id)
+    return (stored.span_start_seconds, stored.span_end_seconds)
+
+
 def test_reads_the_timecodes_the_scenario_quotes():
     assert READS("1:26:00") == 5160.0
     assert READS("1:28:40") == 5320.0
@@ -120,6 +125,7 @@ def test_extending_into_a_neighbouring_segment_is_refused(store):
     )
     with pytest.raises(SpanWouldOverlapNeighbour, match="neighbouring Segment"):
         ExtendsSegmentSpan(store=store)(segment, start_seconds=READS("1:25:00"))
+    assert stored_span(store, segment) == (READS("1:28:40"), READS("3:12:00"))
 
 
 def test_covering_a_neighbour_is_refused(store):
@@ -134,6 +140,7 @@ def test_covering_a_neighbour_is_refused(store):
     )
     with pytest.raises(SpanWouldOverlapNeighbour, match="neighbouring Segment"):
         ExtendsSegmentSpan(store=store)(segment, start_seconds=READS("0:50:00"))
+    assert stored_span(store, segment) == (READS("1:28:40"), READS("3:12:00"))
 
 
 def test_the_stored_span_is_unchanged_when_overlap_is_refused(store):
@@ -191,6 +198,7 @@ def test_extending_the_end_into_a_neighbour_is_refused(store):
     )
     with pytest.raises(SpanWouldOverlapNeighbour, match="neighbouring Segment"):
         ExtendsSegmentSpan(store=store)(segment, end_seconds=READS("3:13:00"))
+    assert stored_span(store, segment) == (READS("1:28:40"), READS("3:12:00"))
 
 
 def test_the_store_still_saves_overlapping_spans(store):
