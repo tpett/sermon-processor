@@ -249,7 +249,9 @@ class Resolves:
 
 NAMES = {
     "localhost": ["127.0.0.1", "::1"],
-    "mac-m1.ts.net": ["100.88.211.71"],
+    "mac-m1.ts.net": ["100.88.211.71", "fd7a:115c:a1e0::5a01:d347"],
+    "ula.ts.net": ["fd00::7"],
+    "asr.home.v6": ["fd12:3456:789a::9"],
     "asr.home.internal": ["192.168.1.9"],
     "evil.example.com.local": ["93.184.216.34"],
     "split.home.internal": ["192.168.1.9", "93.184.216.34"],
@@ -281,6 +283,8 @@ def test_a_private_transcriber_is_allowed():
         "http://localhost:9000",
         "http://mac-m1.ts.net:9000",
         "http://asr.home.internal:9000",
+        "http://asr.home.v6:9000",
+        "http://[fd7a:115c:a1e0::5a01:d347]:9000",
     ):
         assert refuses_a_public_transcriber(endpoint, resolves=resolving()) == endpoint
 
@@ -292,6 +296,7 @@ def test_a_private_transcriber_is_allowed():
         "http://split.home.internal:9000",
         "http://funnel.ts.net:9000",
         "http://lan.ts.net:9000",
+        "http://ula.ts.net:9000",
         "http://unresolvable.internal:9000",
         "http://[::ffff:8.8.8.8]:9000",
         "http://0.0.0.0:9000",

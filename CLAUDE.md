@@ -290,9 +290,12 @@ store keeps no part of it but the Blocks it became — not `model_segments`, whi
 dropping `model_segments` changes the boundaries of 64 proposals and moves 68
 punch-ins by a median 2.100 s and a maximum 650.360 s, so a store-fed population
 would grade a different algorithm from the one that ships. The command therefore
-**refuses to overwrite a block file it already wrote**, for the same reason
-`rederive.py` must never be pointed at `experiments/data`, and it writes no
-stored row — `sermon-organize` is still the only command that does.
+**refuses to write any file that already exists in the target corpus** — the
+transcript and diarization as well as the block file — and **refuses a corpus
+root inside the frozen spike tree outright**, both before any model call; it
+creates files exclusively and removes what it created if a later step fails, so
+a failed run can simply be retried. It writes no stored row — `sermon-organize`
+is still the only command that does.
 
 `sermon-align` turns one human edit into ground truth. It finds where a published
 MP3 sits inside its Recording's source, writes one `CorpusPair` row, and prints

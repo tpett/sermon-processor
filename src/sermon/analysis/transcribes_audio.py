@@ -50,6 +50,7 @@ MUSIC_MIN_S = 60.0
 POOR_CONFIDENCE = 0.55
 
 TAILNET = ipaddress.ip_network("100.64.0.0/10")
+TAILNET_V6 = ipaddress.ip_network("fd7a:115c:a1e0::/48")
 TAILNET_SUFFIX = ".ts.net"
 THIS_NETWORK = tuple(
     ipaddress.ip_network(network)
@@ -61,6 +62,7 @@ THIS_NETWORK = tuple(
         "192.168.0.0/16",
         "169.254.0.0/16",
         "fe80::/10",
+        "fc00::/7",
         TAILNET,
     )
 )
@@ -110,7 +112,7 @@ def refuses_a_public_transcriber(endpoint, resolves=resolves_host):
     addresses = addresses_of(host, resolves)
     if not addresses:
         raise TranscriberRefused(f"{host!r} could not be resolved; audio may only go to a private address")
-    allowed = (TAILNET,) if host.rstrip(".").endswith(TAILNET_SUFFIX) else THIS_NETWORK
+    allowed = (TAILNET, TAILNET_V6) if host.rstrip(".").endswith(TAILNET_SUFFIX) else THIS_NETWORK
     elsewhere = [address for address in addresses if not any(address in network for network in allowed)]
     if elsewhere:
         raise TranscriberRefused(f"{host} reaches {elsewhere[0]}, which is not on this network; audio may not go there")
