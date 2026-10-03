@@ -41,6 +41,7 @@ from sermon.records_publication_details import (
 from sermon.reconciles_bucket import MalformedObjectKey, ReconcilesBucket
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
+from sermon.sends_notification import lists_undelivered
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import (
     NOTICES,
@@ -368,7 +369,8 @@ def creates_app(
         scan_failure = None if last_scan is None else last_scan.failure
         object_store_status = "unhealthy" if scan_failure else "healthy"
         disk_status = "healthy"
-        channel_status = "healthy"
+        undelivered = lists_undelivered(store)
+        channel_status = "unhealthy" if undelivered else "healthy"
         alerts = []
         recordings = store.lists(Recording)
         if any("source no longer available" in recording.warnings for recording in recordings):
@@ -394,6 +396,7 @@ def creates_app(
             "storage_alert": bool(short_on_disk) or bool(alerts),
             "storage_alert_reason": "local disk is short" if short_on_disk else (alerts[0] if alerts else None),
             "alerts": alerts,
+            "undelivered_notifications": len(undelivered),
             "object_store": object_store_status,
             "ffmpeg": ffmpeg_ok,
             "dependencies": {

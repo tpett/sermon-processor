@@ -9,6 +9,7 @@ import pytest
 
 from sermon.config import (
     VARIABLES,
+    NOTIFICATION_CHANNEL,
     WEBHOOK_TOKEN,
     Configuration,
     Credential,
@@ -263,3 +264,14 @@ def test_the_webhook_token_reaches_no_repr_or_log_line(caplog):
         caplog.text,
     ):
         assert WEBHOOK_TOKEN_VALUE not in rendered
+
+
+def test_notifications_default_to_in_app_only():
+    assert NOTIFICATION_CHANNEL not in VARIABLES
+    assert configured().notification_channel == "in-app"
+    assert configured(**{NOTIFICATION_CHANNEL: ""}).notification_channel == "in-app"
+
+
+def test_a_notification_channel_nothing_implements_is_refused():
+    with pytest.raises(UnusableConfiguration, match="in-app"):
+        configured(**{NOTIFICATION_CHANNEL: "email"})

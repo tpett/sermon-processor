@@ -102,7 +102,7 @@ class TellsAnalysisOutcome:
             return raises(
                 NO_TEACHING_IDENTIFIED,
                 f"Recording of {recorded_on(recording)}: content was found but no teaching was "
-                f"identified, so nothing was proposed. Retype a Block as teaching to produce a Segment.",
+                f"identified, so nothing was proposed. A Block can be retyped as teaching to produce a Segment.",
                 recording_id=recording.recording_id,
             )
         return raises(

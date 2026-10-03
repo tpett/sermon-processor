@@ -62,7 +62,7 @@ from sermon.reconciles_bucket import (
 )
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, LONG_RUN_SECONDS, SAME_CUT
-from sermon.sends_notification import SendsNotification
+from sermon.sends_notification import SendsNotification, opens_channel
 from sermon.store import (
     Artifact,
     Block,
@@ -351,7 +351,7 @@ def renders(settings=None, object_key=None, punch_in=None, punch_out=None, label
         RunsRenderJob(
             store=store,
             steps=lambda _name: None,
-            notifies=SendsNotification(store=store),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
             renders=keeps_what_it_rendered(RendersMp3(), produced),
             job_id=queued[0].job_id,
         )()
@@ -546,14 +546,14 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
             analyzes=RunsAnalyzeJob(
                 store=store,
                 stages=lambda _name: None,
-                notifies=SendsNotification(store=store),
+                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
                 analyses=analyses,
                 transcribes=transcribes_with(store=store),
             ),
             renders=RunsRenderJob(
                 store=store,
                 steps=lambda _name: None,
-                notifies=SendsNotification(store=store),
+                notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
                 renders=RendersMp3(),
             ),
         )
@@ -642,7 +642,7 @@ def analyzes(settings=None, arguments=None, reasons=None, prints=print):
         RunsAnalyzeJob(
             store=store,
             stages=lambda _name: None,
-            notifies=SendsNotification(store=store),
+            notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel)),
             contents=NOTHING_FABRICATED,
             recording_id=recording.recording_id,
             analyses=ProposesFromStoredTranscript(

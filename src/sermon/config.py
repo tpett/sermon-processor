@@ -14,6 +14,9 @@ OBJECT_STORE_ACCESS_KEY_ID = "SERMON_OBJECT_STORE_ACCESS_KEY_ID"
 OBJECT_STORE_SECRET_ACCESS_KEY = "SERMON_OBJECT_STORE_SECRET_ACCESS_KEY"
 MODEL_ENDPOINT = "SERMON_MODEL_ENDPOINT"
 WEBHOOK_TOKEN = "SERMON_WEBHOOK_TOKEN"
+NOTIFICATION_CHANNEL = "SERMON_NOTIFICATION_CHANNEL"
+IN_APP = "in-app"
+NOTIFICATION_CHANNELS = (IN_APP,)
 
 VARIABLES = (
     DATA_ROOT,
@@ -92,6 +95,7 @@ class Configuration:
     object_store: ObjectStore
     model_endpoint: str
     webhook_token: Credential | None = None
+    notification_channel: str = IN_APP
 
     def __post_init__(self):
         if not isinstance(self.data_root, Path):
@@ -105,6 +109,11 @@ class Configuration:
         refuses_a_non_http_endpoint(MODEL_ENDPOINT, self.model_endpoint)
         if self.webhook_token is not None:
             refuses_a_bare_credential(WEBHOOK_TOKEN, self.webhook_token)
+        if self.notification_channel not in NOTIFICATION_CHANNELS:
+            raise UnusableConfiguration(
+                f"{NOTIFICATION_CHANNEL} is {self.notification_channel!r}; no such channel is built, "
+                f"and {IN_APP!r} is the only one"
+            )
 
 
 @dataclass(frozen=True)
@@ -126,6 +135,7 @@ class ReadsConfiguration:
             ),
             model_endpoint=self.environment[MODEL_ENDPOINT],
             webhook_token=Credential(offered) if offered else None,
+            notification_channel=self.environment.get(NOTIFICATION_CHANNEL) or IN_APP,
         )
 
 

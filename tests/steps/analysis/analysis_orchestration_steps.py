@@ -152,7 +152,8 @@ def _(store, recording, state):
 def _(store, recording, sent):
     notifications = store.lists(Notification, recording_id=recording.recording_id)
     assert notifications
-    assert sent == notifications
+    assert [item.notification_id for item in sent] == [item.notification_id for item in notifications]
+    assert {item.state for item in notifications} == {"delivered"}
 
 
 @then(parsers.parse("{count:d} Segments exist"))

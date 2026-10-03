@@ -150,7 +150,8 @@ def test_a_notification_is_sent_when_segments_are_proposed(store, roots):
     analyzes(store, [], sent)(recording)
     notifications = store.lists(Notification, recording_id=recording.recording_id)
     assert len(notifications) == 1
-    assert sent == notifications
+    assert [item.notification_id for item in sent] == [notifications[0].notification_id]
+    assert notifications[0].state == "delivered"
     assert notifications[0].kind == "segment_proposed"
     assert notifications[0].recipient == "reviewer"
 
