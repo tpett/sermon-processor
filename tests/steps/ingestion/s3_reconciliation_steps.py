@@ -9,6 +9,7 @@ from steps._markup import reads_field
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
+SIDECAR = ".meta.json"
 
 
 def bucket(store, object_store, clock):
@@ -104,10 +105,16 @@ def _(store):
 
 
 @then("the sidecar metadata file is associated with its parent recording if one exists")
-def _(store):
-    parents = [item for item in store.lists(Recording) if item.sidecar_present]
-    skipped = store.lists(SkippedObject)
-    assert parents or skipped
+def _(store, object_store):
+    sidecars = sorted(key["object_key"] for key in object_store.lists() if key["object_key"].endswith(SIDECAR))
+    assert sidecars, "the bucket holds no sidecar"
+    for sidecar in sidecars:
+        parents = store.lists(Recording, object_key=sidecar[: -len(SIDECAR)])
+        held = [item.reason for item in store.lists(SkippedObject) if item.object_key == sidecar]
+        if parents:
+            assert [item.sidecar_present for item in parents] == [True]
+        else:
+            assert held == ["not an audio object"], f"an orphaned sidecar is held as {held}"
 
 
 @given("the Processor's ingest cutoff date is its deployment date")
@@ -170,7 +177,11 @@ def _(store):
 
 @then("an operator can see every object the Processor has ever skipped")
 def _(store):
-    assert store.lists(SkippedObject)
+    skipped = store.lists(SkippedObject)
+    client = creates_app(store=store, clock=lambda: FROZEN).test_client()
+    shown = client.get("/api/health").get_data(as_text=True) + client.get("/").get_data(as_text=True)
+    unseen = [item.object_key for item in skipped if item.object_key not in shown]
+    assert skipped and unseen == [], f"no operator view shows {unseen}"
 
 
 @then("no alert is raised for it")
@@ -229,8 +240,11 @@ def _(store):
 
 
 @then("this is how the sample corpus is loaded for the accuracy suite")
-def _(store):
-    assert store.lists(Recording)
+def _(store, ingest_response):
+    assert ingest_response.status_code == 202, ingest_response.status_code
+    forced = ingest_response.get_json()["recording_id"]
+    downloads = [job.state for job in store.lists(Job, recording_id=forced, kind="download")]
+    assert downloads == ["queued"], f"the forced Recording's downloads: {downloads}"
 
 
 @given("the bucket contains a recording the Processor has never seen")
