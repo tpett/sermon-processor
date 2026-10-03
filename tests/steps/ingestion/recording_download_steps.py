@@ -333,7 +333,8 @@ def _(store, recording, state):
         for entry in store.lists(LogEntry, recording_id=recording.recording_id)
         if entry.entered_state is not None
     ]
-    assert entered == [state] * len(attempts), entered
+    assert entered == [state] * len(attempts) + ["ingest_failed"], entered
+    assert job.failed_permanently
     assert len(attempts) == job.max_attempts and job.failed_permanently
     assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
 

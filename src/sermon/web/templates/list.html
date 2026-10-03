@@ -37,6 +37,7 @@
     {% endfor %}
     </span>
     <span data-field="row-awaiting">{{ row.awaiting_disposition }} awaiting</span>
+    {% if row.failure %}<span class="flag" data-field="row-failure">{{ row.failure }}</span>{% endif %}
     {% if row.ingest %}<span class="standing" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
     <form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}
   </li>

@@ -11,7 +11,7 @@ from sermon.forces_ingestion import (
     WAITING,
     reads_standing,
 )
-from sermon.store import Block, Job, Proposal, Recording, Segment, Store
+from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment, Store
 
 
 def now():
@@ -22,6 +22,19 @@ CONFIDENCE_RANK = {"high": 0, "medium": 1, "low": 2}
 INGEST_STATE = "discovered"
 
 PAGE_SIZE = 50
+
+FAILED_STATES = frozenset({"ingest_failed", "analysis_failed", "processing_failed"})
+
+
+def reads_failure(store, recording_id, segment_id=None):
+    entered = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording_id)
+        if entry.entered_state in FAILED_STATES
+        and entry.error
+        and (segment_id is None or entry.segment_id == segment_id)
+    ]
+    return entered[-1] if entered else None
 
 INGEST_STANDINGS = {
     NOTHING_QUEUED: "Nothing is queued for this Recording yet",
@@ -92,6 +105,7 @@ class RecordingRow:
     labels: tuple
     ingest: IngestView | None = None
     summaries: tuple = ()
+    failure: str | None = None
 
 
 @dataclass(frozen=True)
@@ -160,7 +174,7 @@ class ListsRecordings:
         elif filter_name == "In progress":
             rows = tuple(row for row in rows if row.state in {"analyzing", "processing"})
         elif filter_name == "Failed":
-            rows = tuple(row for row in rows if row.state in {"analysis_failed", "processing_failed"})
+            rows = tuple(row for row in rows if row.failed)
         elif filter_name == "Published":
             rows = tuple(
                 row for row in rows if any(item[2] == "complete" for item in row.segments)
@@ -203,6 +217,13 @@ class ListsRecordings:
             ):
                 best = confidence
         labels = tuple(segment.label for segment in segments if segment.label)
+        failing = [
+            reads_failure(self.store, recording.recording_id, segment.segment_id)
+            for segment in segments
+            if segment.state == "processing_failed"
+        ]
+        if recording.state in FAILED_STATES:
+            failing.insert(0, reads_failure(self.store, recording.recording_id))
         waiting = False
         if recording.waiting_since is not None:
             waiting = (self.clock() - recording.waiting_since).total_seconds() > 86400
@@ -214,7 +235,7 @@ class ListsRecordings:
             segments=tuple(summaries),
             confidence=best,
             needs_attention=awaiting > 0 or waiting,
-            failed=recording.state == "analysis_failed",
+            failed=bool(failing),
             awaiting_disposition=awaiting,
             labels=labels,
             ingest=reads_ingest(self.store, recording, queued=queued),
@@ -223,4 +244,5 @@ class ListsRecordings:
                 for block in self.store.lists(Block, recording_id=recording.recording_id)
                 if block.summary
             ),
+            failure=next((reason for reason in failing if reason), None),
         )

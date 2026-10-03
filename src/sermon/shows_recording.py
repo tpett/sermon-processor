@@ -15,10 +15,12 @@ from sermon.draws_waveform import DrawsWaveform, WaveformView
 from sermon.extends_segment_span import SPAN_STEPS
 from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.lists_recordings import (
+    FAILED_STATES,
     IngestView,
     formats_clock,
     formats_precise,
     formats_recorded_at,
+    reads_failure,
     reads_ingest,
 )
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
@@ -505,6 +507,7 @@ class RecordingView:
     analysis_stage: str | None = None
     analysis_detail: str | None = None
     analysis_completed: str | None = None
+    segment_failure: str | None = None
 
 
 @dataclass(frozen=True)
@@ -600,7 +603,12 @@ class ShowsRecording:
             duration=formats_clock(recording.duration_seconds or 0),
             state=recording.state,
             progress=PRE_REVIEW_PROGRESS.get(recording.state),
-            reason=recording.skip_reason,
+            reason=recording.skip_reason
+            or (
+                reads_failure(self.store, recording.recording_id)
+                if recording.state in FAILED_STATES
+                else None
+            ),
             object_key=recording.object_key,
             container=formats_container(recording.object_key),
             size=formats_size(recording.size_bytes),
@@ -691,6 +699,11 @@ class ShowsRecording:
             ),
             processing_step=step,
             processing_progress=progress,
+            segment_failure=(
+                reads_failure(self.store, recording.recording_id, selected.segment_id)
+                if selected is not None and selected.state == "processing_failed"
+                else None
+            ),
             cut_light=cut_light,
             published=self._published(selected),
             proposal=proposal_view,

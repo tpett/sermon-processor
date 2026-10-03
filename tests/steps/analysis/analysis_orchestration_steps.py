@@ -12,11 +12,14 @@ from sermon.analysis.io import reads_json
 from sermon.approves_segment import ApprovesSegment
 from sermon.config import ModelEndpointUnreachable, ReachesModelEndpoint
 from sermon.jobs.analyzes_recording import CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
+from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.web import creates_app
 from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment
 
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
+WORKER_POLL_GAP = timedelta(hours=1)
+MOST_WORKER_PASSES = 50
 
 
 @pytest.fixture
@@ -68,7 +71,7 @@ def stages_for(store, stage_log):
     return stages
 
 
-def runs_analysis(store, recording, stage_log, sent, contents, clock, **fields):
+def analyzes_with(store, recording, stage_log, sent, contents, clock, **fields):
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))
     if not store.lists(Job, recording_id=recording.recording_id, kind="analyze", state="queued"):
         store.saves(
@@ -81,7 +84,7 @@ def runs_analysis(store, recording, stage_log, sent, contents, clock, **fields):
                 queued_at=clock(),
             )
         )
-    RunsAnalyzeJob(
+    return dict(
         store=store,
         stages=stages_for(store, stage_log),
         notifies=SendsNotification(store=store, sends=sent.append),
@@ -91,7 +94,40 @@ def runs_analysis(store, recording, stage_log, sent, contents, clock, **fields):
         only=fields.get("only"),
         transcribes=transcribes_for(store, recording),
         divides=_analysis.divides_as(answers_for(recording, contents)),
-    )()
+    )
+
+
+def runs_analysis(store, recording, stage_log, sent, contents, clock, **fields):
+    RunsAnalyzeJob(**analyzes_with(store, recording, stage_log, sent, contents, clock, **fields))()
+
+
+class MovesOn:
+    def __init__(self, at):
+        self.at = at
+
+    def __call__(self):
+        return self.at
+
+
+def refuses_other_work():
+    raise AssertionError("Analysis ran a job that is not an analyze job")
+
+
+def drains_analysis(store, recording, stage_log, sent, contents):
+    clock = MovesOn(FROZEN)
+    runs = RunsQueuedJobs(
+        store=store,
+        downloads=refuses_other_work,
+        analyzes=RunsAnalyzeJob(**analyzes_with(store, recording, stage_log, sent, contents, clock)),
+        renders=refuses_other_work,
+        clock=clock,
+    )
+    for _ in range(MOST_WORKER_PASSES):
+        if not store.lists(Job, kind="analyze", state="queued"):
+            return
+        runs()
+        clock.at += WORKER_POLL_GAP
+    raise AssertionError("analyze jobs were still queued after the worker gave up")
 
 
 def answers_for(recording, contents):
@@ -259,7 +295,9 @@ def _(store, recording, stage_log, sent, contents, clock):
 
 @then("the Recording is left in a state the run can resume from")
 def _(store, recording):
-    assert store.loads(Recording, recording.recording_id).state == "analyzing"
+    assert store.loads(Recording, recording.recording_id).state == "downloaded"
+    (job,) = store.lists(Job, kind="analyze", recording_id=recording.recording_id)
+    assert (job.state, job.attempts, job.failed_permanently) == ("queued", 1, False)
 
 
 @then("the stages already cached are not recomputed")
@@ -528,14 +566,20 @@ def _(store, stage):
 
 
 @when("Analysis runs")
-def _(store, recording, stage_log, sent, contents, clock):
-    runs_analysis(store, recording, stage_log, sent, contents, clock)
+def _(store, recording, stage_log, sent, contents):
+    drains_analysis(store, recording, stage_log, sent, contents)
 
 
 @then(parsers.parse('the failure names the stage "{stage}" and its error'))
 def _(store, recording, stage):
-    entries = store.lists(LogEntry, recording_id=recording.recording_id)
-    assert any(entry.error and stage in entry.error for entry in entries)
+    failures = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.entered_state == "analysis_failed"
+    ]
+    assert len(failures) == 1, failures
+    assert failures[0].startswith(f"{stage}: "), failures[0]
+    assert failures[0] != f"{stage}: "
 
 
 @then("other Recordings continue to be analysed")
@@ -563,10 +607,28 @@ def _(store, recording):
     assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
 
 
+@then("the stage is retried")
+def _(store, recording, stage_log):
+    assert stage_log.count("transcription") == 2, stage_log.count("transcription")
+    (job,) = store.lists(Job, kind="analyze", recording_id=recording.recording_id)
+    attempts = [entry.error for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+    assert attempts == ["transcription: transcription failed once", None], attempts
+    assert (job.state, job.attempts) == ("succeeded", 1)
+
+
 @then("the retry is visible in the Recording's processing log")
 def _(store, recording):
-    errors = [entry.error for entry in store.lists(LogEntry, recording_id=recording.recording_id) if entry.error]
-    assert errors
+    entered = [
+        (entry.entered_state, entry.error)
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.kind == "state_change"
+    ]
+    assert entered == [
+        ("analyzing", None),
+        ("downloaded", "transcription: transcription failed once"),
+        ("analyzing", None),
+        ("awaiting_review", None),
+    ], entered
 
 
 @given("the analysis time budget is 90 minutes")

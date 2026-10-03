@@ -64,14 +64,14 @@ def downloaded_recording():
     )
 
 
-def queued_analyze(store, recording):
+def queued_analyze(store, recording, max_attempts=5):
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))
     return store.saves(
         Job(
             recording_id=recording.recording_id,
             kind="analyze",
             state="queued",
-            max_attempts=5,
+            max_attempts=max_attempts,
             dedupe_key=f"analyze:{recording.recording_id}",
             queued_at=FROZEN,
         )
@@ -236,7 +236,7 @@ def test_what_the_probe_measured_survives_the_end_of_the_walk(store, roots):
 
 def test_what_the_probe_measured_survives_a_failed_walk(store, roots):
     recording = store.saves(downloaded_recording())
-    queued_analyze(store, recording)
+    queued_analyze(store, recording, max_attempts=1)
 
     def fails_at_scoring(name):
         if name == "scoring":
@@ -263,7 +263,7 @@ def test_a_later_stage_reads_what_the_probe_measured(store, roots):
 
 def test_a_blocking_failure_is_logged_under_blocking(store, roots):
     recording = store.saves(downloaded_recording())
-    queued_analyze(store, recording)
+    queued_analyze(store, recording, max_attempts=1)
 
     def divides_badly(doc):
         raise RuntimeError("the divider broke")
