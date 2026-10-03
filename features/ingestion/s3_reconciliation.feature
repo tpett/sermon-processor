@@ -5,7 +5,10 @@ Feature: S3 reconciliation
   I want the Processor to find recordings even when the webhook did not arrive
 
   The webhook is an optimisation, not a guarantee. A periodic scan of the
-  bucket is the system of record for "what recordings exist".
+  bucket is the system of record for "what recordings exist". It fetches only
+  what is newer than every recording the Processor has already taken up, a few
+  at a time, so a recording whose webhook was lost is still processed while the
+  back catalogue already in the bucket is recorded and never downloaded.
 
   Background:
     Given the object store is a Garage S3 instance reachable over the tailnet
@@ -106,8 +109,8 @@ Feature: S3 reconciliation
 
     @happy-path
     Scenario: Scanning the bucket on demand
-      # The scheduled scan is still to come, so a recording whose webhook never
-      # arrived is invisible until someone asks. Listing a bucket is quick and
+      # The scheduled scan runs hours apart, so a recording whose webhook never
+      # arrived waits for it unless someone asks. Listing a bucket is quick and
       # answers in the request; what it finds waits for someone to ingest it,
       # because downloading is the slow part and belongs to the worker.
       Given I am on the tailnet

@@ -61,9 +61,13 @@ def creates_recording(store, object_key, *, size_bytes, clock, queues=True):
             size_bytes=int(size_bytes or 0),
         )
     )
-    if not queues:
-        return recording
-    EnqueuesJob(store)(
+    if queues:
+        queues_download(store, recording, clock=clock)
+    return recording
+
+
+def queues_download(store, recording, *, clock):
+    return EnqueuesJob(store)(
         Job(
             recording_id=recording.recording_id,
             kind="download",
@@ -73,7 +77,6 @@ def creates_recording(store, object_key, *, size_bytes, clock, queues=True):
             queued_at=clock(),
         )
     )
-    return recording
 
 
 @dataclass(frozen=True)
@@ -88,7 +91,7 @@ class ReconcilesBucket:
         try:
             objects = list(self.lists_objects())
         except ObjectStoreForbidden:
-            self.store.saves(
+            return self.store.saves(
                 Discovery(
                     kind="scan",
                     occurred_at=self.clock(),
@@ -96,9 +99,8 @@ class ReconcilesBucket:
                     failure="credentials",
                 )
             )
-            return
         except (ObjectStoreUnreachable, OSError):
-            self.store.saves(
+            return self.store.saves(
                 Discovery(
                     kind="scan",
                     occurred_at=self.clock(),
@@ -106,7 +108,6 @@ class ReconcilesBucket:
                     failure="transient",
                 )
             )
-            return
         discovered = 0
         moment = self.clock()
         for item in objects:
@@ -145,7 +146,7 @@ class ReconcilesBucket:
                 queues=False,
             )
             discovered += 1
-        self.store.saves(
+        return self.store.saves(
             Discovery(
                 kind="scan",
                 occurred_at=moment,

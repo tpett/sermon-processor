@@ -293,7 +293,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the opening sentences, or the stated main point"`
 - `analysis/summarization.feature:92 then the cue excerpt is chosen from "the passage announcement"`
-- `ingestion/s3_reconciliation.feature:64 then the next scheduled scan runs normally`
+- `ingestion/s3_reconciliation.feature:67 then the next scheduled scan runs normally`
 - `ingestion/webhook_notification.feature:79 then a Recording is uniquely identified by its bucket and object key`
 - `ingestion/webhook_notification.feature:80 then the same key always refers to the same audio`
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`
