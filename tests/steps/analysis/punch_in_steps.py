@@ -232,8 +232,9 @@ def _(store, run_up):
 
 @then("the punch-in is placed at the quietest available point")
 def _(store, run_up):
-    segment = the_segment(store)
-    assert run_up.reading_ends <= segment.punch_in_seconds <= run_up.first_word
+    punch_in = the_segment(store).punch_in_seconds
+    assert run_up.reading_ends <= punch_in <= run_up.first_word
+    assert abs(milliseconds(punch_in - run_up.reading_ends) - milliseconds(run_up.first_word - punch_in)) <= 1, f"{punch_in} is not midway between the words"
 
 
 @then("the reviewer is prompted to place it by hand")

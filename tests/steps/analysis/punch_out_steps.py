@@ -238,7 +238,9 @@ def _(store, tail):
 
 @then("the punch-out is placed at the quietest available point")
 def _(store, tail):
-    assert tail.last_word <= the_segment(store).punch_out_seconds <= tail.next_starts
+    punch_out = the_segment(store).punch_out_seconds
+    assert tail.last_word <= punch_out <= tail.next_starts
+    assert abs(milliseconds(punch_out - tail.last_word) - milliseconds(tail.next_starts - punch_out)) <= 1, f"{punch_out} is not midway between the words"
 
 
 @given(parsers.parse('a candidate falls at "{timecode}" during the final word'))
