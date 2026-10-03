@@ -1,9 +1,29 @@
-from datetime import UTC, datetime
-
+import pytest
 from pytest_bdd import given, then, when
 
-from sermon.sends_notification import SendsNotification
-from sermon.store import Notification, Recording, Reviewer
+from sermon.store import Job, Notification, Recording, Reviewer
+from sermon.web import creates_app
+
+from steps import _notifications
+from steps._markup import reads_rows
+
+
+@pytest.fixture
+def delivery_channel():
+    return _notifications.Channel()
+
+
+@pytest.fixture
+def moments():
+    return _notifications.Moments()
+
+
+def notifications_page(store, moments):
+    return creates_app(store=store, clock=moments).test_client().get("/notifications").get_data(as_text=True)
+
+
+def listed(page):
+    return {int(row["id"]): row for row in reads_rows(page, "notification")}
 
 
 @given("a reviewer is configured to receive notifications")
@@ -11,88 +31,83 @@ def _(store):
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))
 
 
+@given("no delivery channel is configured")
+def _(delivery_channel):
+    delivery_channel.configured = False
+
+
 @when("something happens that a reviewer should know about")
-def _(store, clock):
-    recording = store.saves(
-        Recording(
-            recording_id="recording_20260823_102900",
-            object_key="recordings/recording_20260823_102900.flac",
-            state="awaiting_review",
-            started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
-            started_at_source="key",
-            size_bytes=1,
-        )
-    )
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="segment_proposed",
-            recipient="reviewer",
-            summary="publishable Segments were found",
-            created_at=clock() if callable(clock) else datetime(2026, 8, 23, 16, 0, tzinfo=UTC),
-            state="pending",
-        )
-    )
-
-
-@then("a Notification is created with:")
-def _(store, datatable):
-    fields = {row[0] for row in datatable[1:]}
-    notification = store.lists(Notification)[0]
-    assert "kind" in fields
-    assert notification.kind
-    assert notification.recipient
-    assert notification.summary
-    assert notification.created_at
-    assert notification.state
-
-
-@then("the Notification exists whether or not any channel is configured")
-def _(store):
-    assert store.lists(Notification)
+def _(store, delivery_channel, moments):
+    _notifications.finishes_analysis(store, _notifications.SUNDAY, delivery_channel, moments)
 
 
 @when("a Notification is created")
-def _(store):
-    recording = store.lists(Recording) or [
-        store.saves(
-            Recording(
-                recording_id="recording_20260823_102900",
-                object_key="recordings/recording_20260823_102900.flac",
-                state="awaiting_review",
-                started_at=datetime(2026, 8, 23, 10, 29, tzinfo=UTC),
-                started_at_source="key",
-                size_bytes=1,
-            )
-        )
-    ]
-    recording = recording[0] if isinstance(recording, list) else store.lists(Recording)[0]
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="segment_proposed",
-            recipient="reviewer",
-            summary="publishable Segments were found",
-            created_at=datetime(2026, 8, 23, 16, 0, tzinfo=UTC),
-            state="pending",
-        )
-    )
+def _(store, delivery_channel, moments):
+    _notifications.finishes_analysis(store, _notifications.SUNDAY, delivery_channel, moments)
+
+
+@then("a Notification is created with:")
+def _(store, datatable, moments):
+    fields = [row[0] for row in datatable[1:]]
+    assert fields == ["subject", "kind", "recipient", "summary", "created_at", "state"]
+    recording = _notifications.registered(store)
+    notification = _notifications.the_only(store)
+    assert notification.recording_id == recording.recording_id
+    assert notification.kind == "segment_proposed"
+    assert notification.recipient == "reviewer"
+    assert "2026-08-23" in notification.summary
+    assert notification.created_at == moments()
+    assert notification.state == "delivered"
+
+
+@then("the Notification exists whether or not any channel is configured")
+def _(store, delivery_channel):
+    notification = _notifications.the_only(store)
+    assert notification.notification_id is not None
+    assert [item.notification_id for item in delivery_channel.received] == [notification.notification_id]
 
 
 @then("it is recorded and left undelivered")
-def _(store):
-    notification = store.lists(Notification)[0]
-    sent = []
-    SendsNotification(store=store, sends=sent.append)(notification)
+def _(store, delivery_channel):
+    notification = _notifications.the_only(store)
+    assert notification.kind == "segment_proposed"
     assert notification.state == "pending"
+    assert delivery_channel.attempts == 0
 
 
 @then("it is visible in the interface")
+def _(store, moments):
+    notification = _notifications.the_only(store)
+    shown = listed(notifications_page(store, moments))
+    assert list(shown) == [notification.notification_id]
+    assert notification.summary in shown[notification.notification_id]["text"]
+
+
+@then("nothing fails")
 def _(store):
-    assert store.lists(Notification)
+    recording = _notifications.registered(store)
+    assert recording.state == "awaiting_review"
+    assert [job.state for job in store.lists(Job, recording_id=recording.recording_id)] == ["succeeded"]
+
+
+@when("I open the interface", target_fixture="opened_interface")
+def _(store, moments):
+    return creates_app(store=store, clock=moments).test_client().get("/").get_data(as_text=True)
+
+
+@then("I see the Notifications raised for me")
+def _(store, moments, opened_interface):
+    raised = [item for item in store.lists(Notification) if item.recipient == "reviewer"]
+    assert raised, "no Notification has been raised for the reviewer, so there is nothing to see"
+    assert 'href="/notifications" data-field="notifications-link"' in opened_interface
+    assert set(listed(notifications_page(store, moments))) == {item.notification_id for item in raised}
 
 
 @then("I can see which were delivered and which were not")
-def _(store):
-    for notification in store.lists(Notification):
-        assert notification.state in {"pending", "delivered", "failed", "suppressed"}
+def _(store, moments):
+    raised = store.lists(Notification)
+    assert raised, "no Notification has been raised, so nothing shows whether it was delivered"
+    shown = listed(notifications_page(store, moments))
+    assert {key: item["state"] for key, item in shown.items()} == {
+        item.notification_id: item.state for item in raised
+    }

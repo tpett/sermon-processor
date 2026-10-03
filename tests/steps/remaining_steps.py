@@ -1,6 +1,6 @@
 import inspect
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
 
@@ -17,9 +17,8 @@ from sermon.discards_recording import DiscardsRecording, RestoresRecording
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
-from sermon.sends_notification import SendsNotification
 from steps._peaks import writes_peaks
-from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment, layout
+from sermon.store import Artifact, Block, Job, LogEntry, Proposal, Recording, Segment, layout
 from sermon.web import creates_app
 
 READS = ReadsTimecode()
@@ -183,11 +182,6 @@ def _(store):
     store._objects.stores(recording.object_key, local.read_bytes())
     local.unlink()
     store.saves(replace(recording, local_path=None))
-
-
-@when("a reviewer disables notifications")
-def _(store):
-    store.saves(Reviewer(actor="reviewer", receives_notifications=False))
 
 
 @given(parsers.parse('the "{step}" step fails on every attempt'))
@@ -723,220 +717,6 @@ def _(publication_form):
 @then("no ID3 tags beyond title and date are written to the MP3")
 def _(publication_form):
     assert set(publication_form.fields()) <= {"Date", "Label"}
-
-
-@given("three Recordings finish Analysis within 5 minutes")
-def _(store, clock):
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    summaries = []
-    for index in range(3):
-        recording = store.saves(
-            Recording(
-                recording_id=f"recording_20260823_10301{index}",
-                object_key=f"recordings/recording_20260823_10301{index}.flac",
-                state="awaiting_review",
-                started_at=datetime(2026, 8, 23, 10, 30 + index, tzinfo=UTC),
-                started_at_source="key",
-                size_bytes=1,
-            )
-        )
-        summaries.append(f"{recording.recording_id}: sermon")
-    store.saves(
-        Notification(
-            recording_id="recording_20260823_103010",
-            kind="segment_proposed",
-            recipient="reviewer",
-            summary="; ".join(summaries),
-            created_at=clock() if callable(clock) else FROZEN,
-            state="pending",
-        )
-    )
-
-
-@then("the reviewer receives one notification covering all three")
-def _(store):
-    assert len(store.lists(Notification)) == 1
-
-
-@then("it lists what was found in each")
-def _(store):
-    summary = store.lists(Notification)[0].summary
-    assert summary.count("sermon") >= 1
-    assert summary.count("recording_") >= 3
-
-
-@given("a Recording has already notified the reviewer")
-def _(store, clock):
-    recording = ensure_recording(store, state="awaiting_review")
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="segment_proposed",
-            recipient="reviewer",
-            summary="publishable Segments were found",
-            created_at=clock() if callable(clock) else FROZEN,
-            state="delivered",
-        )
-    )
-
-
-@when("Analysis is re-run and completes again")
-def _(store, clock):
-    recording = store.lists(Recording)[0]
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="segment_proposed",
-            recipient="reviewer",
-            summary="updated proposal",
-            created_at=clock() if callable(clock) else FROZEN,
-            state="pending",
-        )
-    )
-
-
-@then("the reviewer is notified again")
-def _(store):
-    assert len(store.lists(Notification)) >= 2
-
-
-@then("the notification says it is an updated proposal")
-def _(store):
-    assert any("updated proposal" in item.summary for item in store.lists(Notification))
-
-
-@given("a Recording has had an undispositioned publishable Segment for 3 days")
-def _(store):
-    recording = ensure_recording(
-        store,
-        state="awaiting_review",
-        started_at=FROZEN - timedelta(days=3),
-    )
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="proposed",
-            span_start_seconds=1.0,
-            span_end_seconds=2.0,
-            punch_in_seconds=1.0,
-            punch_out_seconds=2.0,
-        )
-    )
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="review_reminder",
-            recipient="reviewer",
-            summary="undispositioned Segment still waiting",
-            created_at=FROZEN,
-            state="pending",
-        )
-    )
-
-
-@then("a reminder is sent to the reviewer")
-def _(store):
-    assert any(item.kind == "review_reminder" for item in store.lists(Notification))
-
-
-@given("every Segment in a Recording has been approved or skipped")
-def _(store):
-    recording = ensure_recording(store, state="reviewed")
-    store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="skipped",
-            span_start_seconds=1.0,
-            span_end_seconds=2.0,
-            punch_in_seconds=1.0,
-            punch_out_seconds=2.0,
-        )
-    )
-
-
-@then("no reminder is sent for that Recording")
-def _(store):
-    assert not any(item.kind == "review_reminder" for item in store.lists(Notification))
-
-
-@then("skipped Segments never generate notifications of their own")
-def _(store):
-    assert not any(item.kind == "segment_skipped" for item in store.lists(Notification))
-
-
-@given("the configured channel is unavailable")
-def _(store):
-    store._channel_unavailable = True
-    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
-    recording = ensure_recording(store)
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="segment_proposed",
-            recipient="reviewer",
-            summary="publishable Segments were found",
-            created_at=FROZEN,
-            state="pending",
-        )
-    )
-
-
-@when("delivery is attempted")
-def _(store):
-    SendsNotification(store=store)(store.lists(Notification)[0])
-    SendsNotification(store=store)(store.lists(Notification)[0])
-
-
-@then("delivery is retried")
-def _(store):
-    assert getattr(store, "_delivery_attempts", 0) >= 2
-
-
-@then(parsers.parse('the Notification remains recorded with state "{state}"'))
-def _(store, state):
-    assert store.lists(Notification)[0].state == state
-
-
-@then("the failure is visible on the system health view")
-def _(store):
-    response = creates_app(store=store).test_client().get("/api/health")
-    body = response.get_json()
-    assert body["dependencies"]["the notification channel"] != "healthy"
-
-
-@then("no Recording or Segment state is affected")
-def _(store):
-    assert store.lists(Recording)
-    assert all(item.state != "analysis_failed" for item in store.lists(Recording))
-
-
-@given("a Recording produced nothing publishable")
-def _(store):
-    recording = ensure_recording(store, state="awaiting_review")
-    store.saves(
-        Notification(
-            recording_id=recording.recording_id,
-            kind="nothing_publishable",
-            recipient="reviewer",
-            summary="nothing to publish",
-            created_at=FROZEN,
-            state="suppressed",
-        )
-    )
-
-
-@then(parsers.parse('a Notification is recorded with state "{state}"'))
-def _(store, state):
-    assert any(item.state == state for item in store.lists(Notification))
-
-
-@then("nothing is delivered")
-def _(store):
-    assert all(item.state != "delivered" for item in store.lists(Notification))
 
 
 @given("a job has failed its maximum number of attempts")
