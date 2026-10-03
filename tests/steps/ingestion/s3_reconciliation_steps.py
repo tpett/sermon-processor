@@ -242,9 +242,10 @@ def _(store):
 @then("this is how the sample corpus is loaded for the accuracy suite")
 def _(store, ingest_response):
     assert ingest_response.status_code == 202, ingest_response.status_code
-    forced = ingest_response.get_json()["recording_id"]
-    downloads = [job.state for job in store.lists(Job, recording_id=forced, kind="download")]
-    assert downloads == ["queued"], f"the forced Recording's downloads: {downloads}"
+    answered = ingest_response.get_json()
+    held = store.loads(Recording, answered["recording_id"])
+    assert held is not None, f"the answer names {answered['recording_id']}, which is not stored"
+    assert (answered["state"], held.object_key) == (held.state, "recordings/recording_20240107_101500.flac")
 
 
 @given("the bucket contains a recording the Processor has never seen")
