@@ -15,6 +15,13 @@
 </form>
 {% if notice %}<p class="notice" data-field="scan-notice">{{ notice }}</p>{% endif %}
 
+<form class="inline" method="get" action="/" data-role="search">
+  <label>Find a recording by date, classification, label or summary
+    <input type="search" name="q" value="{{ searched or '' }}">
+  </label>
+  <button type="submit" data-field="search-control">Search</button>
+</form>
+
 {% if recordings %}
 <ol class="recordings">
 {% for row in recordings %}

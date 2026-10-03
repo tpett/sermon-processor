@@ -11,7 +11,7 @@ from sermon.forces_ingestion import (
     WAITING,
     reads_standing,
 )
-from sermon.store import Job, Proposal, Recording, Segment, Store
+from sermon.store import Block, Job, Proposal, Recording, Segment, Store
 
 
 def now():
@@ -91,6 +91,7 @@ class RecordingRow:
     awaiting_disposition: int
     labels: tuple
     ingest: IngestView | None = None
+    summaries: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -181,6 +182,7 @@ class ListsRecordings:
                 for row in rows
                 if needle in row.recorded_at.lower()
                 or any(needle in label.lower() for label in row.labels)
+                or any(needle in summary.lower() for summary in row.summaries)
                 or any(needle in item[0].lower() for item in row.segments)
             )
         return builds_page(rows, page)
@@ -216,4 +218,9 @@ class ListsRecordings:
             awaiting_disposition=awaiting,
             labels=labels,
             ingest=reads_ingest(self.store, recording, queued=queued),
+            summaries=tuple(
+                block.summary
+                for block in self.store.lists(Block, recording_id=recording.recording_id)
+                if block.summary
+            ),
         )

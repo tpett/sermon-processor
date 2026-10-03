@@ -1,14 +1,16 @@
 import re
+from dataclasses import replace
 from datetime import UTC, datetime
 from time import perf_counter
 
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.store import Proposal, Recording, Segment
+from sermon.store import Block, Proposal, Recording, Segment
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 from sermon.web import creates_app
 from steps._markup import reads_field, reads_rows
+from steps._peaks import writes_utterances
 
 READS = ReadsTimecode()
 
@@ -212,14 +214,61 @@ def _(store, day="2026-07-26"):
     assert [row for row in rows if day in row["recorded-at"]]
 
 
+SEARCH_FORM = re.compile(r'<form\b([^>]*data-role="search"[^>]*)>(.*?)</form>', re.S)
+SPOKEN_ON_THE_23RD = "the Lord disciplines the one he loves"
+
+
+def searches(store, query):
+    """Submit the search box the list page renders, as a browser would."""
+    form = SEARCH_FORM.search(renders_list(store))
+    assert form, "the recordings list renders no search box"
+    attributes, inside = form.groups()
+    assert 'method="get"' in attributes
+    action = re.search(r'action="([^"]*)"', attributes).group(1)
+    named = re.search(r'<input\b[^>]*type="search"[^>]*name="([^"]+)"', inside)
+    assert named, "the search box has no field to type into"
+    return (
+        creates_app(store=store)
+        .test_client()
+        .get(action, query_string={named.group(1): query})
+        .get_data(as_text=True)
+    )
+
+
+def found(page):
+    return {row["recorded-at"] for row in reads_rows(page, "recording")}
+
+
 @when(parsers.parse('I search for "{query}"'), target_fixture="list_page")
 def _(store, query):
-    return renders_list(store, f"?q={query}")
+    sermon = store.lists(Segment, recording_id="recording_20260823_102900")[0]
+    store.saves(replace(sermon, label="Hebrews 12.4-11"))
+    store.saves(
+        Block(
+            recording_id="recording_20260816_090000",
+            start_seconds=60.0,
+            end_seconds=3300.0,
+            type="lesson",
+            summary="A class on Hebrews 12 and the race set before us",
+        )
+    )
+    return searches(store, query)
 
 
 @then("I see recordings whose label or summary matches")
 def _(list_page):
-    assert reads_rows(list_page, "recording") or reads_field(list_page, "empty")
+    assert found(list_page) == {"2026-08-23 10:29 AM", "2026-08-16 09:00 AM"}
+
+
+@then("I can search by date, by classification, and by what was said")
+def _(store):
+    assert found(searches(store, "2026-08-16")) == {"2026-08-16 09:00 AM", "2026-08-16 08:15 AM"}
+    assert found(searches(store, "lesson")) == {"2026-08-16 09:00 AM"}
+    recording = store.loads(Recording, "recording_20260823_102900")
+    writes_utterances(store, recording, ((900.0, 904.0, SPOKEN_ON_THE_23RD),))
+    assert found(searches(store, "disciplines the one he loves")) == {"2026-08-23 10:29 AM"}, (
+        "what was said is not searched"
+    )
 
 
 @when(parsers.parse('I filter the list by "{filter_name}"'), target_fixture="list_page")

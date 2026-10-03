@@ -197,6 +197,7 @@ def creates_app(
             previous_url=keeps_the_narrowing(paged.previous),
             next_url=keeps_the_narrowing(paged.next),
             notice=scan_notice(),
+            searched=request.args.get("q"),
         )
 
     @app.get("/recordings/<recording_id>")
