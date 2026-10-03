@@ -11,6 +11,7 @@ from sermon.pipeline.segments import TAIL_S
 from sermon.store import Block, Proposal, Segment
 
 READS = _analysis.READS
+milliseconds = _analysis.milliseconds
 WORD_S = _analysis.WORD_S
 QUIET_MARGIN_S = 0.25
 CLOSING_PRAYER = "we thank you for this word in jesus name amen"
@@ -188,7 +189,7 @@ def _(store, tail):
 
 @then("a margin is left so that no part of the next Block is audible")
 def _(store, tail):
-    assert tail.next_starts - the_segment(store).punch_out_seconds >= QUIET_MARGIN_S
+    assert milliseconds(tail.next_starts - the_segment(store).punch_out_seconds) >= milliseconds(QUIET_MARGIN_S)
 
 
 @given(parsers.parse('the prayer ends with "{words}" at "{timecode}"'))
@@ -225,7 +226,8 @@ def _(store, start, end):
 @then("the punch-out is placed at least 250 ms away from the nearest audible sound")
 def _(store):
     punch = the_segment(store).punch_out_seconds
-    assert min(min(abs(word["start"] - punch), abs(word["end"] - punch)) for word in words_of(store)) >= QUIET_MARGIN_S
+    nearest = min(min(abs(word["start"] - punch), abs(word["end"] - punch)) for word in words_of(store))
+    assert milliseconds(nearest) >= milliseconds(QUIET_MARGIN_S)
 
 
 @given("the next Block begins immediately with no quiet between")

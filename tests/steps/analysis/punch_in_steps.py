@@ -6,12 +6,13 @@ from steps import _analysis, _web
 
 from sermon.analysis import ProposesSegments, RefinesPunchIn, ScoresProposals
 from sermon.analysis.io import reads_json, writes_json
+from sermon.pipeline.segments import WORD_BUFFER_S
 from sermon.store import Block, Segment
 
 READS = _analysis.READS
+milliseconds = _analysis.milliseconds
 WORD_S = _analysis.WORD_S
 LEAD_IN_LIMIT_S = 2.0
-WORD_BUFFER_S = 0.05
 QUIET_MARGIN_S = 0.25
 CLOSING_READING = "this is the word of the lord"
 TEACHING = _analysis.SPOKEN["sermon"]
@@ -192,8 +193,8 @@ def _(store):
     punch_in = the_segment(store).punch_in_seconds
     before, after, inside = words_either_side(store, punch_in)
     assert not inside, f"the punch-in {punch_in} falls inside {inside[0]['w']!r}"
-    assert after - punch_in >= WORD_BUFFER_S, f"{after - punch_in:.3f} s before the next word"
-    assert punch_in - before >= WORD_BUFFER_S, f"{punch_in - before:.3f} s after the last word"
+    assert milliseconds(after - punch_in) >= milliseconds(WORD_BUFFER_S), f"{after - punch_in:.3f} s before the next word"
+    assert milliseconds(punch_in - before) >= milliseconds(WORD_BUFFER_S), f"{punch_in - before:.3f} s after the last word"
 
 
 @then("the lead-in never exceeds 2.0 seconds")
@@ -219,7 +220,7 @@ def _(store, run_up):
 def _(store):
     segment = the_segment(store)
     nearest = min(min(abs(word["start"] - segment.punch_in_seconds), abs(word["end"] - segment.punch_in_seconds)) for word in words_of(store))
-    assert nearest >= QUIET_MARGIN_S
+    assert milliseconds(nearest) >= milliseconds(QUIET_MARGIN_S)
 
 
 @given("there is no 250 ms of quiet anywhere in the run-up to the first word")

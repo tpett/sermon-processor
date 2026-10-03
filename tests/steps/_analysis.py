@@ -61,6 +61,10 @@ class ModelCallRefused(RuntimeError):
     pass
 
 
+def milliseconds(seconds):
+    return round(seconds * 1000)
+
+
 def refuses_to_diarize(recording):
     raise DiarizationUnavailable(f"the diarizer could not be run on {recording.recording_id}")
 

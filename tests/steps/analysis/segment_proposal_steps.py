@@ -8,6 +8,7 @@ from sermon.analysis.io import reads_json
 from sermon.store import Block, Proposal, Segment
 
 READS = _analysis.READS
+milliseconds = _analysis.milliseconds
 CLASS_AND_SERVICE_S = 3 * 3600 + 12 * 60
 QUIET_MARGIN_S = 0.25
 QUIET_RUN_S = 0.5
@@ -63,7 +64,7 @@ def inside_a_word(store, moment):
 def quiet_exists_near(store, moment):
     words = sorted(words_of(store), key=lambda word: word["start"])
     return any(
-        later["start"] - earlier["end"] >= QUIET_RUN_S
+        milliseconds(later["start"] - earlier["end"]) >= milliseconds(QUIET_RUN_S)
         and earlier["end"] - 2.0 <= moment <= later["start"] + 2.0
         for earlier, later in zip(words, words[1:])
     )
@@ -383,7 +384,7 @@ def _(store):
     for boundary in UNCLEAN:
         moment = getattr(segment, boundary)
         assert quiet_exists_near(store, moment), f"{boundary} has no quiet near it to choose"
-        assert nearest_sound(store, moment) >= QUIET_MARGIN_S, f"{boundary} {moment} sits on sound"
+        assert milliseconds(nearest_sound(store, moment)) >= milliseconds(QUIET_MARGIN_S), f"{boundary} {moment} sits on sound"
 
 
 @then("the lead-in before the first word does not exceed 2.0 seconds")
