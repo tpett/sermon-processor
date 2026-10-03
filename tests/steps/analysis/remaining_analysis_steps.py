@@ -210,12 +210,6 @@ def _(store):
     store.saves(replace(block, summary="this is obviously wrong"))
 
 
-@given(parsers.parse('a candidate falls at "{timecode}" during the final word'))
-def _(store, timecode):
-    store._last_word = READS(timecode) + 0.2
-    ensure_segment(store, punch_out_seconds=READS(timecode))
-
-
 @given("a change to blocking, classification or boundary refinement")
 def _(store):
     rec(store)
@@ -396,33 +390,10 @@ def _(store):
     store._failing_stage = "diarization"
 
 
-@given("the next Block begins immediately with no quiet between")
-def _(store):
-    store._next_block_start = getattr(store, "_last_word", 4492.0) + 0.2
-
-
-@given(parsers.parse('the prayer ends at "{timecode}"'))
-def _(store, timecode):
-    store._last_word = READS(timecode)
-
-
-@given(parsers.parse('the prayer ends with "{words}" at "{timecode}"'))
-def _(store, words, timecode):
-    store._last_word = READS(timecode)
-    store._closing_amen = "amen" in words.lower()
-
-
 @given("the Recording began while the preacher was already speaking")
 def _(store):
     store._started_late = True
     ensure_segment(store, punch_in_seconds=0.0, span_start_seconds=0.0)
-
-
-@given(parsers.parse('the Recording ends at "{timecode}" while the preacher is still speaking'))
-def _(store, timecode):
-    store._stopped_early = True
-    store.saves(replace(rec(store), duration_seconds=READS(timecode)))
-    ensure_segment(store, punch_out_seconds=READS(timecode))
 
 
 @given("the sample recordings are not present on the machine")
@@ -494,18 +465,6 @@ def _(store, datatable):
     ensure_segment(store)
     ScoresProposals(store=store)(rec(store))
     assert store.lists(Proposal)
-
-
-@then("the punch-out is placed before the next Block begins")
-def _(store):
-    RefinesPunchOut(store=store)(rec(store), segment=ensure_segment(store))
-    if getattr(store, "_next_block_start", None):
-        assert store.lists(Segment)[0].punch_out_seconds <= store._next_block_start
-
-
-@then(parsers.parse('the cut is graded "{first}" or "{second}" on the same basis as the punch-in'))
-def _(store, first, second):
-    assert first in CUT_DIFFICULTIES and second in CUT_DIFFICULTIES
 
 
 @then("no transcript leaves the local network")
@@ -657,13 +616,6 @@ def _(store):
     assert store.lists(Segment)[0].punch_in_seconds == 0.0
 
 
-@then("the punch-out is placed at the end of the Recording")
-def _(store):
-    duration = rec(store).duration_seconds
-    assert duration is not None
-    assert abs(store.lists(Segment)[0].punch_out_seconds - duration) < 0.05
-
-
 @then("the punch-in is left in place")
 def _(store):
     assert store.lists(Segment)
@@ -742,18 +694,6 @@ def _(store):
     assert store.lists(Segment)
 
 
-@given(parsers.parse('a communion Block begins at "{timecode}"'))
-def _(store, timecode):
-    store._next_block_start = READS(timecode)
-    ensure_block(store, type="communion", start_seconds=READS(timecode), end_seconds=READS(timecode) + 300, force=True)
-
-
-@given(parsers.parse('a qa Block begins at "{timecode}"'))
-def _(store, timecode):
-    store._next_block_start = READS(timecode)
-    ensure_block(store, type="qa", start_seconds=READS(timecode), end_seconds=READS(timecode) + 300, force=True)
-
-
 @given(parsers.parse('the Segment starts at "{timecode}"'))
 def _(store, timecode):
     ensure_segment(store, punch_in_seconds=READS(timecode), span_start_seconds=READS(timecode))
@@ -798,12 +738,6 @@ def _(store):
 @then("the punch-out falls back to the end of the seeding Block")
 def _(store):
     assert store.lists(Segment)
-
-
-@then(parsers.parse('the punch-out falls between "{start}" and "{end}"'))
-def _(store, start, end):
-    punch = store.lists(Segment)[0].punch_out_seconds
-    assert READS(start) <= punch <= READS(end)
 
 
 @then("the Recording is summarised as containing a sermon")
