@@ -2,39 +2,48 @@
 Feature: Publication details
   In order to end up with a file I can find again
   As a reviewer
-  I want to give each published segment a date and a label
+  I want to give each published segment a label
 
   This replaces the speculative metadata screen in the first draft. With nothing
   downstream of the MP3 (Q58), and with every finished file in
   `~/Desktop/Sermons` named `YYYY-MM-DD - Label`, the real requirement is small:
-  a date and a human label. Everything else was invented.
+  a human label. The date in the name is the recording's, never typed — "Naming
+  is always based on recording date. Publication date is irrelevant other than
+  for logging." (the owner, 2026-10-03). Everything else was invented.
 
   Background:
     Given I am on the tailnet
     And a Recording from "2026-08-23 10:29 AM"
     And a Segment classified "sermon" awaiting approval
 
-  Rule: A published segment needs a date and a label
+  Rule: A published segment needs a label, and is dated by its recording
 
     @happy-path @measured
     Scenario: Entering publication details
       When I open the Segment
-      Then I can enter:
-        | field | example           | required |
-        | Date  | 2026-08-23        | yes      |
-        | Label | Hebrews 12.4-11   | yes      |
-      And the details are saved with the Segment
+      Then I can enter a publication label
+      And I am not asked for a date
+
+    @happy-path @stated
+    Scenario: The publication date is the recording's, kept for the log
+      When I approve the Segment with the label "Hebrews 12.4-11"
+      Then the label "Hebrews 12.4-11" is saved with the Segment
+      And the publication date "2026-08-23" is recorded with the Segment
+      And the page does not offer to change it
+
+    @edge-case @stated
+    Scenario: A publication date never names the file
+      # The date can still be written through the publication details request,
+      # which is how rows approved before dates were placed were backfilled.
+      When the publication details "2026-08-30" and "Hebrews 12.4-11" are recorded for it
+      And the Segment is processed
+      Then the publication date "2026-08-30" is recorded with the Segment
+      And the output file is named "2026-08-23 - Hebrews 12.4-11.mp3"
 
     @happy-path @measured
-    Scenario: The date defaults from the recording
-      When I open the Segment
-      Then the date is prefilled with "2026-08-23"
-      And I can change it
-
-    @happy-path @measured
-    Scenario Outline: The output filename is built from the details
+    Scenario Outline: The output filename is built from the recording date and the label
       # Matches the existing convention exactly.
-      Given the date is "<date>" and the label is "<label>"
+      Given the Recording was made on "<date>" and the label is "<label>"
       When the Segment is processed
       Then the output file is named "<filename>"
 

@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 468 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 469 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 613 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 614 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -686,8 +686,25 @@ on a phone`, asserting in a phone-sized Chromium that the waveform and the nudge
 controls are offered, the page is no wider than the screen, and skip and approve
 are still there. Same step count; no pin moved.
 
-Pins are now **34 files / 468 scenarios / 144 rules / 613 collected**, and
-`SPEC_STEPS` is 1939.
+On publication dates: "Naming is always based on recording date. Publication
+date is irrelevant other than for logging." `features/interface/publication_details.feature`
+made Date a required, prefilled, changeable reviewer entry and built the file
+name from it, and the product agreed: the render named the MP3 from
+`Segment.publication_date` whenever one was set, so a date written through
+`PUT /api/segments/<id>/publication` renamed the output. The Rule is now `A
+published segment needs a label, and is dated by its recording`. `Entering
+publication details` asserts on the rendered page that a label is asked for and
+a date is not; `The date defaults from the recording` became `The publication
+date is the recording's, kept for the log`, approving through the page and
+reading back the label and the placed date; `A publication date never names the
+file` was added, recording a different date through the real request and then
+processing; and the filename Outline's Given now sets the Recording's date
+rather than a publication date. The render and the collision check both name
+the file from the Recording's start, and `publication_date` is still stored.
+One scenario and five steps were added and one expanded test with them.
+
+Pins are now **34 files / 469 scenarios / 144 rules / 614 collected**, and
+`SPEC_STEPS` is 1944.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
