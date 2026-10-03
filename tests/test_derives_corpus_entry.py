@@ -246,21 +246,25 @@ def test_any_file_the_corpus_already_holds_is_never_overwritten(tmp_path, inject
     assert every_file_under(root / "corpus") == before
 
 
-def test_a_corpus_root_inside_experiments_is_refused_before_anything_is_touched(tmp_path, injected_roots):
-    root = data_root_holding_the_transcript(tmp_path)
-    frozen = tmp_path / "experiments" / "data"
-    with pytest.raises(FrozenCorpus):
-        derives(tmp_path, data_root=root, corpus_root=frozen, reasons=never_asked)
-    assert not (tmp_path / "experiments").exists()
+def a_frozen_tree(tmp_path):
+    frozen = tmp_path / "experiments"
+    (frozen / "data").mkdir(parents=True)
+    (frozen / "data" / "test_access.log").write_text("held-out runs\n")
+    (frozen / "prompts").mkdir()
+    return frozen
 
 
-def test_a_corpus_root_reached_through_experiments_by_a_relative_hop_is_refused(tmp_path, injected_roots):
+@pytest.mark.parametrize("inside", ["data", "data/blocks", ".", "prompts", "elsewhere/../data"])
+def test_a_corpus_root_inside_the_frozen_tree_is_refused_before_anything_is_touched(
+    tmp_path, injected_roots, inside
+):
     root = data_root_holding_the_transcript(tmp_path)
-    (tmp_path / "experiments" / "data").mkdir(parents=True)
-    hopped = tmp_path / "elsewhere" / ".." / "experiments" / "data"
+    frozen = a_frozen_tree(tmp_path)
+    before = every_file_under(frozen)
     with pytest.raises(FrozenCorpus):
-        derives(tmp_path, data_root=root, corpus_root=hopped, reasons=never_asked)
-    assert list((tmp_path / "experiments" / "data").iterdir()) == []
+        derives(tmp_path, data_root=root, corpus_root=frozen / inside, reasons=never_asked)
+    assert every_file_under(frozen) == before
+    assert sorted(path.name for path in frozen.rglob("*")) == ["data", "prompts", "test_access.log"]
 
 
 def test_a_classifier_that_fails_leaves_the_corpus_as_it_found_it(tmp_path, injected_roots):

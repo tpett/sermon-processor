@@ -861,6 +861,8 @@ def refuses_to_reason(doc=None):
 def test_deriving_into_a_corpus_under_experiments_is_refused_before_any_model_call(tmp_path, injected_roots):
     store_holding_the_hand_edit(tmp_path)
     frozen = tmp_path / "experiments" / "data"
+    frozen.mkdir(parents=True)
+    (frozen / "test_access.log").write_text("held-out runs\n")
     printed = RecordsLines()
     assert derives_corpus(
         settings=settings_file(tmp_path),
@@ -869,7 +871,7 @@ def test_deriving_into_a_corpus_under_experiments_is_refused_before_any_model_ca
         prints=printed,
     ) == 1
     assert "frozen" in str(printed)
-    assert not (tmp_path / "experiments").exists()
+    assert sorted(path.name for path in frozen.iterdir()) == ["test_access.log"]
 
 
 def test_deriving_over_a_transcript_the_corpus_already_holds_is_refused(tmp_path, injected_roots):

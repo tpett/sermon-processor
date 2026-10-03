@@ -34,12 +34,20 @@ class NothingToBlock(ValueError):
     pass
 
 
-FROZEN_TREE = "experiments"
+HELD_OUT_LOG = "test_access.log"
+
+
+def records_held_out_runs(directory):
+    return (directory / HELD_OUT_LOG).is_file() or (directory / "data" / HELD_OUT_LOG).is_file()
 
 
 def refuses_a_frozen_corpus(corpus_root):
-    if FROZEN_TREE in Path(corpus_root).resolve().parts:
-        raise FrozenCorpus(f"{corpus_root} is inside {FROZEN_TREE}/, which is frozen and never written")
+    resolved = Path(corpus_root).resolve()
+    if any(records_held_out_runs(directory) for directory in (resolved, *resolved.parents)):
+        raise FrozenCorpus(
+            f"{corpus_root} is inside the tree that records held-out runs in {HELD_OUT_LOG}; "
+            "it is frozen and never written"
+        )
 
 
 def creates(path, text, created):
