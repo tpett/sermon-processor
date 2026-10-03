@@ -1,3 +1,39 @@
+## The owner's answers, built (2026-10-03, second round)
+
+Seven branches, all merged, on the owner's answers to the triage questions.
+Master: **192 failed / 2056 passed** on `-m "not slow"`; pins moved by the
+owner's approval to **34 / 469 / 144 / 614 / 1939 → 1967 steps** (recorded in
+CLAUDE.md with their words); drift guard 0 moved against the regenerated
+fingerprint; `baseline.py` no drift; frozen md5s unchanged. Condemned step
+definitions: **7** (from 255 found).
+
+- **Cuts clear their words.** Every chosen cut is moved out of the word it lands
+  in and at least 50 ms clear (`WORD_BUFFER_S`), the punch-in never more than
+  2 s before its first word. Against the current shipping walk: 40 improved, 0
+  degraded. Corpus summary 139 → 145 in the human's run, 25 → 0 mid-word. The
+  metric ranks a cut crowding a word below one clear of it, within the human's
+  run. 50/100/150 ms differ only in narrow-gap leftovers.
+- **`model_segments` is persisted** beside each recording, but the walk does
+  not use it yet: that wiring (`8a4b3a4`, unmerged) gives 17 improved / 12
+  degraded, 7 by minutes. Owner's call.
+- **Notifications** for every way analysis and rendering end, an in-app
+  `/notifications` page and unread count, reminders after 3 days, delivery
+  behind a pluggable sender that defaults to in-app only.
+- **Retries**: analyze and render retry within budget and fail visibly only on
+  the last attempt; manual retry resets the budget (`POST /api/jobs/<id>/retry`).
+- **Scheduled scan** inside `sermon-work`, off until
+  `SERMON_SCAN_INTERVAL_SECONDS` is set; queues only recordings newer than any
+  taken up, two per scan. Production's mark is 2026-09-27; nothing pending.
+- **FLAC downloads stream from the bucket**; nothing written to disk.
+- **Offline diarizer** (sherpa-onnx, 46 MB of models fetched and checksummed at
+  image build — the nas needs github.com at build time): ~4 min and ~4.6 GB
+  peak for a 3-hour service. Evidence of who is speaking, never a boundary.
+- **Spec**: lead-in reworded to the owner's words; mobile describes what
+  shipped; the MP3 is always named from the recording date; transcript search
+  deferred; missing When/Given lines added.
+
+All need a deploy.
+
 ## Production cleaned up after the deploy (2026-10-03)
 
 With the owner's go, after deploying the triage round. Backup first:
