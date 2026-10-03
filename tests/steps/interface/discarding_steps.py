@@ -8,6 +8,7 @@ from sermon.skips_segment import SkipsSegment
 from sermon.store import Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
 from steps import _web
+from steps._interface_honesty import holds
 from steps._markup import reads_field, reads_rows
 
 MUTATIONS = ("put", "delete", "removes", "writes", "uploads", "moves")
@@ -211,13 +212,20 @@ def _(store, recording, clock):
 
 
 @then("it returns to the state it was in before it was discarded")
-def _(store, recording):
-    assert store.loads(Recording, recording.recording_id).state != "discarded"
+def _(store, recording, detail_page, held_before_discard):
+    assert recording.state == "discarded", recording.state
+    assert store.loads(Recording, recording.recording_id).state == held_before_discard["state"]
+    assert reads_field(detail_page, "state") == held_before_discard["state"]
 
 
 @then("the Recording's record and analysis artifacts are retained")
-def _(store, recording):
-    assert store.loads(Recording, recording.recording_id) is not None
+def _(store, recording, held_before_discard):
+    assert store.loads(Recording, recording.recording_id).state == "discarded"
+    now_held = holds(store, recording)
+    assert held_before_discard["artifacts"], "nothing was analysed before the discard"
+    assert now_held["artifacts"] == held_before_discard["artifacts"]
+    assert now_held["blocks"] == held_before_discard["blocks"]
+    assert now_held["segments"] == held_before_discard["segments"]
 
 
 @then("its Segments are intact")

@@ -7,10 +7,12 @@ from pytest_bdd import given, parsers, then, when
 from sermon.adjusts_punch_point import reads_boundary_history
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.shows_recording import NOTICES, formats_precise
-from sermon.store import Block, Proposal, Recording, Segment, opens_store
+from sermon.analysis.io import writes_json
+from sermon.store import Block, LogEntry, Proposal, Recording, Segment, opens_store
 from steps._markup import reads_field, reads_rows
 from steps._peaks import writes_peaks, writes_utterances
 from steps import _browser, _web
+from steps._interface_honesty import holds
 
 READS = ReadsTimecode()
 SPOKEN_AROUND_THE_CUT = (
@@ -43,19 +45,53 @@ def _():
     return None
 
 
+@pytest.fixture
+def held_before_discard():
+    return {}
+
+
 @given(parsers.re('^a Recording in state "(?P<state>[^"]+)"$'), target_fixture="recording")
-def _(store, state):
-    return store.saves(
+def _(store, state, held_before_discard):
+    discarding = state == "discarded"
+    recording = store.saves(
         Recording(
             recording_id="recording_20260913_090014",
             object_key="2026/09/13/recording_20260913_090014.flac",
-            state=state,
+            state="awaiting_review" if discarding else state,
             started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
             started_at_source="key",
             size_bytes=1,
             duration_seconds=READS("3:12:00"),
         )
     )
+    if not discarding:
+        return recording
+    store.saves(
+        LogEntry(
+            recording_id=recording.recording_id,
+            kind="state_change",
+            occurred_at=datetime(2026, 9, 13, 14, 0, tzinfo=UTC),
+            correlation_id=f"analyze:{recording.recording_id}",
+            entered_state="awaiting_review",
+        )
+    )
+    writes_json(store, recording, "transcript", {"utterances": [{"start": 7220.4, "end": 7226.0, "text": "good morning"}]})
+    for start, end, kind, summary in ANATOMY:
+        store.saves(Block(recording_id=recording.recording_id, start_seconds=start, end_seconds=end, type=kind, summary=summary))
+    store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state="skipped",
+            span_start_seconds=7220.0,
+            span_end_seconds=9812.0,
+            punch_in_seconds=7220.0,
+            punch_out_seconds=9812.0,
+        )
+    )
+    held_before_discard.update(holds(store, recording))
+    _web.posts(store, _web.recording_action(recording, "discard"))
+    return store.loads(Recording, recording.recording_id)
 
 
 @given(
