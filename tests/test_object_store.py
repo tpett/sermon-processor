@@ -15,6 +15,8 @@ from sermon.object_store import (
     FetchesBucketObject,
     ListsBucketObjects,
     OpensObjectStore,
+    StreamsBucketObject,
+    UnsatisfiableRange,
 )
 from sermon.reconciles_bucket import (
     ObjectStoreForbidden,
@@ -22,6 +24,7 @@ from sermon.reconciles_bucket import (
     ReconcilesBucket,
 )
 from sermon.store import Discovery, Recording, opens_store
+from steps._bucket import HoldsBucket
 
 MODULE = Path(__file__).resolve().parents[1] / "src" / "sermon" / "object_store.py"
 ENDPOINT = "https://s3.home.tpett.me"
@@ -444,3 +447,89 @@ def test_listing_and_reading_are_the_only_operations_asked_of_the_client():
         }
     )
     assert asked == ["get_object", "get_paginator"]
+
+
+def streams(error=None, **held):
+    bucket = HoldsBucket()
+    for key, payload in held.items():
+        bucket.holds(key, payload)
+    bucket.error = error
+    return bucket, StreamsBucketObject(bucket=BUCKET, client=bucket, chunk_bytes=16)
+
+
+def test_streaming_asks_the_store_for_exactly_the_named_object():
+    bucket, stream = streams(**{"held.flac": FLAC})
+    stream("held.flac")
+    assert bucket.asked == [{"Bucket": BUCKET, "Key": "held.flac"}]
+
+
+def test_streaming_reads_nothing_until_the_body_is_iterated():
+    bucket = HoldsBucket()
+    bucket.holds("held.flac", size_bytes=1_500_000_000)
+    streamed = StreamsBucketObject(bucket=BUCKET, client=bucket)("held.flac")
+    assert bucket.bodies[0].reads == []
+    assert streamed.size_bytes == 1_500_000_000
+
+
+def test_the_streamed_body_arrives_in_bounded_chunks_byte_for_byte():
+    bucket, stream = streams(**{"held.flac": FLAC})
+    chunks = list(stream("held.flac").chunks)
+    assert b"".join(chunks) == FLAC
+    assert max(len(chunk) for chunk in chunks) == 16
+    assert max(bucket.bodies[0].reads) == 16
+
+
+def test_closing_the_stream_closes_the_body_even_if_nothing_was_read():
+    bucket, stream = streams(**{"held.flac": FLAC})
+    stream("held.flac").chunks.close()
+    assert bucket.bodies[0].closed is True
+
+
+def test_the_stream_carries_the_object_metadata():
+    bucket, stream = streams(**{"held.flac": FLAC})
+    streamed = stream("held.flac")
+    assert (streamed.size_bytes, streamed.content_type, streamed.content_range) == (
+        len(FLAC),
+        "audio/flac",
+        None,
+    )
+    assert streamed.entity_tag == f'"{hashlib.md5(FLAC).hexdigest()}"'
+    assert streamed.last_modified == bucket.get_object(Bucket=BUCKET, Key="held.flac")["LastModified"]
+
+
+def test_a_range_is_asked_of_the_store_and_reported_back():
+    bucket, stream = streams(**{"held.flac": FLAC})
+    streamed = stream("held.flac", byte_range="bytes=100-")
+    assert bucket.asked == [{"Bucket": BUCKET, "Key": "held.flac", "Range": "bytes=100-"}]
+    assert streamed.content_range == f"bytes 100-{len(FLAC) - 1}/{len(FLAC)}"
+    assert b"".join(streamed.chunks) == FLAC[100:]
+
+
+def test_an_object_the_store_does_not_hold_streams_nothing():
+    _, stream = streams()
+    assert stream("held.flac") is None
+
+
+def test_a_range_past_the_end_is_refused_as_unsatisfiable():
+    _, stream = streams(**{"held.flac": FLAC})
+    with pytest.raises(UnsatisfiableRange):
+        stream("held.flac", byte_range=f"bytes={len(FLAC)}-")
+
+
+def test_a_refused_credential_on_a_stream_is_not_a_transient_failure():
+    _, stream = streams(error=forbidden("GetObject"), **{"held.flac": FLAC})
+    with pytest.raises(ObjectStoreForbidden):
+        stream("held.flac")
+
+
+def test_an_unreachable_endpoint_on_a_stream_is_a_transient_failure():
+    _, stream = streams(error=EndpointConnectionError(endpoint_url=ENDPOINT), **{"held.flac": FLAC})
+    with pytest.raises(ObjectStoreUnreachable):
+        stream("held.flac")
+
+
+def test_no_credential_survives_into_a_representation_of_the_stream():
+    client = OpensObjectStore(object_store=configured(), builds=HoldsBucket())()
+    stream = StreamsBucketObject(bucket=BUCKET, client=client)
+    assert ACCESS_KEY_ID not in repr(stream)
+    assert SECRET_ACCESS_KEY not in repr(stream)

@@ -218,6 +218,41 @@ def test_the_served_home_page_names_every_discovered_recording(tmp_path):
     assert "recording_20260816_102958" in page
 
 
+def test_the_served_app_streams_a_source_that_was_never_fetched(tmp_path):
+    from steps._bucket import HoldsBucket
+
+    settings = settings_file(tmp_path)
+    reconciles(settings=settings, lists_objects=bucket_holding(SEEN).lists)
+    bucket = HoldsBucket()
+    bucket.holds(SEEN, FLAC_BYTES)
+    runs = RecordsServer()
+    serves(settings=settings, lists_objects=bucket.lists, runs=runs, builds_client=bucket)
+    response = runs.app.test_client().get(f"/api/artifacts/{SEEN}")
+    assert response.status_code == 200
+    assert response.data == FLAC_BYTES
+    assert bucket.asked == [{"Bucket": BUCKET, "Key": SEEN}]
+    assert not (tmp_path / "data" / "recordings" / "recording_20260823_103015").exists()
+
+
+def test_serving_builds_its_bucket_client_from_the_configured_store(tmp_path):
+    from steps._bucket import HoldsBucket
+
+    built = []
+
+    class RecordsBuild(HoldsBucket):
+        def __call__(self, service, **configuration):
+            built.append((service, configuration["endpoint_url"]))
+            return self
+
+    serves(
+        settings=settings_file(tmp_path),
+        lists_objects=bucket_holding().lists,
+        runs=RecordsServer(),
+        builds_client=RecordsBuild(),
+    )
+    assert built == [("s3", ENDPOINT)]
+
+
 def test_an_incomplete_environment_is_refused_rather_than_guessed(tmp_path):
     from sermon.config import MissingConfiguration
 

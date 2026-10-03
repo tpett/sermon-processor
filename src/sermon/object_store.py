@@ -21,6 +21,8 @@ MULTIPART = "-"
 DIGEST_LENGTH = 32
 ABSENT_STATUS = 404
 ABSENT = frozenset({"NoSuchKey", "NoSuchBucket", "NotFound", "404"})
+UNSATISFIABLE_STATUS = 416
+UNSATISFIABLE = frozenset({"InvalidRange", "416"})
 REFUSED = 403
 REFUSALS = frozenset(
     {"AccessDenied", "InvalidAccessKeyId", "SignatureDoesNotMatch", "403", "Forbidden"}
@@ -139,4 +141,69 @@ class FetchesBucketObject:
             checksum=digest.hexdigest(),
             entity_tag=reads_a_plain_digest(answer.get("ETag")),
             last_modified=answer.get("LastModified"),
+        )
+
+
+class UnsatisfiableRange(Exception):
+    pass
+
+
+def asks_past_the_end(error):
+    response = error.response or {}
+    return (
+        response.get("ResponseMetadata", {}).get("HTTPStatusCode") == UNSATISFIABLE_STATUS
+        or response.get("Error", {}).get("Code") in UNSATISFIABLE
+    )
+
+
+@dataclass(frozen=True)
+class ReadsInChunks:
+    body: object
+    chunk_bytes: int
+
+    def __iter__(self):
+        while chunk := self.body.read(self.chunk_bytes):
+            yield chunk
+
+    def close(self):
+        self.body.close()
+
+
+@dataclass(frozen=True)
+class StreamedObject:
+    chunks: ReadsInChunks
+    size_bytes: int
+    content_type: str | None
+    entity_tag: str | None
+    last_modified: datetime | None
+    content_range: str | None
+
+
+@dataclass(frozen=True)
+class StreamsBucketObject:
+    bucket: str
+    client: object
+    chunk_bytes: int = CHUNK_BYTES
+
+    def __call__(self, object_key, byte_range=None):
+        asked = {"Bucket": self.bucket, "Key": object_key}
+        if byte_range is not None:
+            asked["Range"] = byte_range
+        try:
+            answer = self.client.get_object(**asked)
+        except ClientError as error:
+            if cannot_find_the_object(error):
+                return None
+            if asks_past_the_end(error):
+                raise UnsatisfiableRange(byte_range) from error
+            raise translates(error) from error
+        except BotoCoreError as error:
+            raise translates(error) from error
+        return StreamedObject(
+            chunks=ReadsInChunks(answer["Body"], self.chunk_bytes),
+            size_bytes=answer["ContentLength"],
+            content_type=answer.get("ContentType"),
+            entity_tag=answer.get("ETag"),
+            last_modified=answer.get("LastModified"),
+            content_range=answer.get("ContentRange"),
         )

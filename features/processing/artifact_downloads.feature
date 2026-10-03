@@ -93,9 +93,13 @@ Feature: Downloading artifacts
 
     @edge-case
     Scenario: The FLAC has been cleaned up locally
+      # Owner, on the link that 404'd for every source never fetched: "Stream it
+      # from S3 if possible." The one named object is streamed through to the
+      # download and nothing is written locally, so a click never commits the
+      # Processor to holding a 0.4-1.4 GB copy it was not asked to keep.
       Given the local FLAC has been removed to save disk
       When I download the original FLAC
-      Then it is fetched from the object store
+      Then it is streamed from the object store without being kept
       And the download still succeeds
 
     @edge-case
