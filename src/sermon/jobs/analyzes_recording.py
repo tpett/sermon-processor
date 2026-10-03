@@ -18,10 +18,9 @@ from sermon.analysis.progress import RecordsStageProgress
 from sermon.config import ModelEndpointUnreachable
 from sermon.extends_segment_span import WidensProposedSpan
 from sermon.jobs.generates_preview import GeneratesPreview
-from sermon.pipeline.preview import PreviewUnavailable
 from sermon.jobs.generates_waveform_peaks import GeneratesWaveformPeaks
 from sermon.jobs.probes_recording import ProbeResult, ProbesRecording
-from sermon.store import Artifact, Block, Job, LogEntry, Notification, Proposal, Recording, Segment, Store, layout
+from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, Recording, Segment, Store
 
 
 def now():
@@ -61,13 +60,19 @@ CLASS_AND_SERVICE = RecordingContents(
         ("sermon", 5400.0, 10800.0),
     )
 )
+NOTHING_FABRICATED = RecordingContents(segments=())
 
 
-ITERATED_STAGES = frozenset({"blocking", "block_classification"})
+ITERATED_STAGES = ("blocking", "block_classification")
+WALK = (
+    STAGE_ORDER[: STAGE_ORDER.index("blocking")]
+    + ITERATED_STAGES * 2
+    + STAGE_ORDER[STAGE_ORDER.index("block_classification") + 1 :]
+)
 REASONING_STAGES = frozenset({"block_classification", "summarization"})
 OPTIONAL_STAGES = frozenset({"waveform", "preview", "summarization", "diarization"})
+OPTIONAL_STAGE_FAILED = "optional_stage_failed"
 STAGE_ARTIFACTS = {
-    "envelope": "envelope",
     "waveform": "waveform_peaks",
     "preview": "preview",
     "transcription": "transcript",
@@ -87,7 +92,7 @@ class AnalyzesRecording:
     store: Store
     stages: object
     notifies: object
-    contents: object = CLASS_AND_SERVICE
+    contents: object = NOTHING_FABRICATED
     clock: object = now
     reaches: object = None
     only: str | None = None
@@ -100,7 +105,7 @@ class AnalyzesRecording:
         records = RecordsStageProgress(store=self.store, clock=self.clock)
         records.started(recording, name)
         began = self.clock()
-        outcome = self._performs_stage(recording, name)
+        outcome = self._performs_stage(self.store.loads(Recording, recording.recording_id), name)
         records.completed(recording, name, _elapsed(began, self.clock()))
         return outcome
 
@@ -109,15 +114,27 @@ class AnalyzesRecording:
             artifact.kind
             for artifact in self.store.lists(Artifact, recording_id=recording.recording_id)
         }
-        artifact_kind = STAGE_ARTIFACTS.get(name)
-        if self.only is not None and name != self.only and artifact_kind in cached:
+        if self.only is not None and name != self.only and STAGE_ARTIFACTS.get(name) in cached:
             return
         try:
             self.stages(name)
-        except StageFailed:
-            if name in OPTIONAL_STAGES:
-                return
+            return self._works(recording, name)
+        except ModelEndpointUnreachable:
             raise
+        except Exception as error:
+            if name not in OPTIONAL_STAGES:
+                raise
+            self.store.saves(
+                LogEntry(
+                    recording_id=recording.recording_id,
+                    kind=OPTIONAL_STAGE_FAILED,
+                    occurred_at=self.clock(),
+                    correlation_id=f"analyze:{recording.recording_id}",
+                    error=f"{name}: {error}",
+                )
+            )
+
+    def _works(self, recording, name):
         if name == "probe":
             measures = self.measures or (
                 lambda item: ProbeResult(
@@ -138,59 +155,27 @@ class AnalyzesRecording:
                 return "stop"
         if name == "waveform":
             GeneratesWaveformPeaks(store=self.store, clock=self.clock)(recording)
-            return
         if name == "preview":
-            try:
-                GeneratesPreview(store=self.store)(recording)
-            except PreviewUnavailable:
-                return
-            return
+            GeneratesPreview(store=self.store)(recording)
         if name == "transcription":
             TranscribesRecording(store=self.store, transcribes=self.transcribes)(recording)
-            return
         if name == "diarization":
-            try:
-                DiarizesRecording(store=self.store)(recording)
-            except StageFailed:
-                pass
-            return
+            DiarizesRecording(store=self.store)(recording)
         if name == "blocking":
             DividesIntoBlocks(store=self.store, divides=self.divides)(recording)
-            return
+        if name in REASONING_STAGES and self.reaches is not None:
+            self.reaches()
         if name == "block_classification":
-            if self.reaches is not None:
-                self.reaches()
             ClassifiesBlocks(store=self.store)(recording)
-            return
         if name == "summarization":
-            if self.reaches is not None:
-                self.reaches()
             SummarizesBlocks(store=self.store)(recording)
-            return
         if name == "segment_proposal":
             ProposesSegments(store=self.store)(recording)
-            return
         if name == "boundary_refinement":
             RefinesPunchIn(store=self.store)(recording)
             RefinesPunchOut(store=self.store)(recording)
-            return
         if name == "scoring":
             ScoresProposals(store=self.store)(recording)
-            return
-        if name in REASONING_STAGES and self.reaches is not None:
-            self.reaches()
-        if artifact_kind and artifact_kind not in cached:
-            self.store.saves(
-                Artifact(
-                    recording_id=recording.recording_id,
-                    kind=artifact_kind,
-                    path=layout.artifact_path(recording.recording_id, artifact_kind),
-                    size_bytes=1,
-                    checksum="0.0" if artifact_kind == "waveform_peaks" else name,
-                )
-            )
-        if name == "blocking" and not self.store.lists(Block, recording_id=recording.recording_id):
-            DividesIntoBlocks(store=self.store)(recording)
 
     def __call__(self, recording):
         correlation_id = f"analyze:{recording.recording_id}"
@@ -209,16 +194,7 @@ class AnalyzesRecording:
             if self.analyses is not None:
                 self.analyses(analyzing)
             else:
-                for name in STAGE_ORDER:
-                    if name in ITERATED_STAGES:
-                        continue
-                    if name == "summarization":
-                        if self._run_stage(analyzing, "blocking") == "stop":
-                            return self.store.loads(Recording, recording.recording_id)
-                        if self._run_stage(analyzing, "block_classification") == "stop":
-                            return self.store.loads(Recording, recording.recording_id)
-                        self._run_stage(analyzing, "blocking")
-                        self._run_stage(analyzing, "block_classification")
+                for name in WALK:
                     if self._run_stage(analyzing, name) == "stop":
                         return self.store.loads(Recording, recording.recording_id)
         except ModelEndpointUnreachable as error:
@@ -234,7 +210,9 @@ class AnalyzesRecording:
             raise
         except Exception as error:
             stage = getattr(error, "stage", name)
-            self.store.saves(replace(analyzing, state="analysis_failed"))
+            self.store.saves(
+                replace(self.store.loads(Recording, recording.recording_id), state="analysis_failed")
+            )
             self.store.saves(
                 LogEntry(
                     recording_id=recording.recording_id,
@@ -246,6 +224,7 @@ class AnalyzesRecording:
                 )
             )
             raise StageFailed(stage, str(error)) from error
+        analyzed = self.store.loads(Recording, recording.recording_id)
         if not self.store.lists(Segment, recording_id=recording.recording_id):
             for classification, punch_in, punch_out in self.contents.segments:
                 segment = self.store.saves(
@@ -259,7 +238,7 @@ class AnalyzesRecording:
                             punch_in_seconds=punch_in,
                             punch_out_seconds=punch_out,
                         ),
-                        recording.duration_seconds,
+                        analyzed.duration_seconds,
                     )
                 )
                 self.store.saves(
@@ -271,7 +250,7 @@ class AnalyzesRecording:
                         punch_out_grade="easy",
                     )
                 )
-        reviewed = self.store.saves(replace(analyzing, state="awaiting_review"))
+        reviewed = self.store.saves(replace(analyzed, state="awaiting_review"))
         self.store.saves(
             LogEntry(
                 recording_id=recording.recording_id,
@@ -301,7 +280,7 @@ class RunsAnalyzeJob:
     store: Store
     stages: object
     notifies: object
-    contents: object = CLASS_AND_SERVICE
+    contents: object = NOTHING_FABRICATED
     clock: object = now
     reaches: object = None
     only: str | None = None

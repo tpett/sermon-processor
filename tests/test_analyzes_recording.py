@@ -1,12 +1,30 @@
+import json
+import subprocess
 from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from steps._asr import transcribes_for
 
-from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob
+from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
+from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
+from sermon.jobs.probes_recording import ProbeResult
+from sermon.pipeline import classify, segments
 from sermon.sends_notification import SendsNotification
-from sermon.store import Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment, opens_store
+from sermon.store import (
+    Artifact,
+    ChannelLevel,
+    Job,
+    LogEntry,
+    Notification,
+    Proposal,
+    Recording,
+    Reviewer,
+    Segment,
+    layout,
+    opens_store,
+)
 
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
 
@@ -16,6 +34,22 @@ def store(tmp_path):
     opened = opens_store(tmp_path)
     yield opened
     opened.close()
+
+
+@pytest.fixture
+def roots(tmp_path):
+    held = (classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
+    layout.diarization_root(tmp_path).mkdir(parents=True, exist_ok=True)
+    BindsCorpusRoots(
+        corpus_root=layout.corpus_root(tmp_path),
+        prompts_root=Path(__file__).resolve().parents[1] / "experiments/prompts",
+    )()
+    yield
+    classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
+
+
+def divides_into_nothing_publishable(doc):
+    return [{"start": 0.0, "end": doc["duration"], "type": "music", "confidence": 0.9}]
 
 
 def downloaded_recording():
@@ -52,10 +86,11 @@ def analyzes(store, stages, sent):
         contents=CLASS_AND_SERVICE,
         clock=lambda: FROZEN,
         transcribes=transcribes_for(store, downloaded_recording()),
+        divides=divides_into_nothing_publishable,
     )
 
 
-def test_runs_analyze_job_picks_the_queued_job(store):
+def test_runs_analyze_job_picks_the_queued_job(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     stages = []
@@ -66,13 +101,14 @@ def test_runs_analyze_job_picks_the_queued_job(store):
         notifies=SendsNotification(store=store, sends=sent.append),
         clock=lambda: FROZEN,
         transcribes=transcribes_for(store, recording),
+        divides=divides_into_nothing_publishable,
     )()
     job = store.lists(Job, recording_id=recording.recording_id, kind="analyze")[0]
     assert job.state == "succeeded"
     assert job.started_at == FROZEN
 
 
-def test_state_log_is_downloaded_analyzing_awaiting_review(store):
+def test_state_log_is_downloaded_analyzing_awaiting_review(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
@@ -86,7 +122,7 @@ def test_state_log_is_downloaded_analyzing_awaiting_review(store):
     assert entered == ["analyzing", "awaiting_review"]
 
 
-def test_two_segments_have_distinct_punch_points_and_classifications(store):
+def test_two_segments_have_distinct_punch_points_and_classifications(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
@@ -97,7 +133,7 @@ def test_two_segments_have_distinct_punch_points_and_classifications(store):
     }
 
 
-def test_each_segment_has_a_proposal_with_confidence(store):
+def test_each_segment_has_a_proposal_with_confidence(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
@@ -107,7 +143,7 @@ def test_each_segment_has_a_proposal_with_confidence(store):
         assert proposal.boundary_confidence == "medium"
 
 
-def test_a_notification_is_sent_when_segments_are_proposed(store):
+def test_a_notification_is_sent_when_segments_are_proposed(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     sent = []
@@ -119,7 +155,7 @@ def test_a_notification_is_sent_when_segments_are_proposed(store):
     assert notifications[0].recipient == "reviewer"
 
 
-def test_stages_run_in_gherkin_order_and_blocking_iterates(store):
+def test_stages_run_in_gherkin_order_and_blocking_iterates(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     stages = []
@@ -142,10 +178,143 @@ def test_stages_run_in_gherkin_order_and_blocking_iterates(store):
     ]
 
 
-def test_approving_one_segment_does_not_mutate_the_other(store):
+def test_approving_one_segment_does_not_mutate_the_other(store, roots):
     recording = store.saves(downloaded_recording())
     queued_analyze(store, recording)
     analyzes(store, [], [])(recording)
     lesson, sermon = store.lists(Segment, recording_id=recording.recording_id)
     store.saves(replace(lesson, state="approved"))
     assert store.loads(Segment, sermon.segment_id).state == "proposed"
+
+
+def measures_loudness(recording):
+    return ProbeResult(
+        duration_seconds=recording.duration_seconds,
+        sample_rate=44100,
+        channels=1,
+        channel_levels=(ChannelLevel(channel=1, rms_db=-30.0),),
+        integrated_loudness_lufs=-20.4,
+        true_peak_dbtp=-1.2,
+    )
+
+
+def walks(store, sent, **fields):
+    return RunsAnalyzeJob(
+        store=store,
+        notifies=SendsNotification(store=store, sends=sent.append),
+        clock=lambda: FROZEN,
+        transcribes=transcribes_for(store, downloaded_recording()),
+        **{"stages": lambda _name: None, "divides": divides_into_nothing_publishable} | fields,
+    )
+
+
+def test_a_walk_that_proposes_nothing_fabricates_no_segment(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    sent = []
+    walks(store, sent)()
+    assert store.lists(Job, recording_id=recording.recording_id)[0].state == "succeeded"
+    assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
+    assert store.lists(Segment, recording_id=recording.recording_id) == []
+    assert store.lists(Proposal) == []
+    assert store.lists(Notification, recording_id=recording.recording_id) == []
+    assert sent == []
+
+
+def test_what_the_probe_measured_survives_the_end_of_the_walk(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    walks(store, [], measures=measures_loudness)()
+    stored = store.loads(Recording, recording.recording_id)
+    assert stored.state == "awaiting_review"
+    assert stored.integrated_loudness_lufs == -20.4
+    assert stored.true_peak_dbtp == -1.2
+    assert stored.channel_levels == (ChannelLevel(channel=1, rms_db=-30.0),)
+
+
+def test_what_the_probe_measured_survives_a_failed_walk(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def fails_at_scoring(name):
+        if name == "scoring":
+            raise StageFailed(name, "scoring failed")
+
+    walks(store, [], measures=measures_loudness, stages=fails_at_scoring)()
+    stored = store.loads(Recording, recording.recording_id)
+    assert stored.state == "analysis_failed"
+    assert stored.integrated_loudness_lufs == -20.4
+    assert stored.channel_levels == (ChannelLevel(channel=1, rms_db=-30.0),)
+
+
+def test_a_later_stage_reads_what_the_probe_measured(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def measures_a_shorter_file(item):
+        return replace(measures_loudness(item), duration_seconds=10990.0)
+
+    walks(store, [], measures=measures_a_shorter_file)()
+    peaks = store.lists(Artifact, recording_id=recording.recording_id, kind="waveform_peaks")[0]
+    assert json.loads(store.resolves(peaks).read_text())["duration_seconds"] == 10990.0
+
+
+def test_a_blocking_failure_is_logged_under_blocking(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+
+    def divides_badly(doc):
+        raise RuntimeError("the divider broke")
+
+    walks(store, [], divides=divides_badly)()
+    failures = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.entered_state == "analysis_failed"
+    ]
+    assert failures == ["blocking: the divider broke"]
+
+
+def a_recording_on_disk(store, tmp_path):
+    recording = downloaded_recording()
+    local = replace(recording, local_path=str(layout.source_path(recording)))
+    source = tmp_path / local.local_path
+    source.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=3", "-ac", "1", str(source)],
+        check=True,
+        capture_output=True,
+    )
+    return store.saves(local)
+
+
+def blocks_the_artifact(tmp_path, recording, kind):
+    (tmp_path / layout.artifact_path(recording.recording_id, kind)).mkdir(parents=True)
+
+
+def optional_failures(store, recording):
+    return [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.error and entry.entered_state is None
+    ]
+
+
+@pytest.mark.parametrize(("stage", "kind"), [("waveform", "waveform_peaks"), ("preview", "preview")])
+def test_an_optional_stage_whose_work_fails_does_not_fail_the_walk(store, roots, tmp_path, stage, kind):
+    recording = a_recording_on_disk(store, tmp_path)
+    queued_analyze(store, recording)
+    blocks_the_artifact(tmp_path, recording, kind)
+    walks(store, [])()
+    assert store.lists(Job, recording_id=recording.recording_id)[0].state == "succeeded"
+    assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
+    assert not store.lists(Artifact, recording_id=recording.recording_id, kind=kind)
+    assert [error for error in optional_failures(store, recording) if error.startswith(f"{stage}: ")]
+
+
+def test_the_envelope_stage_records_no_artifact_it_did_not_write(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    walks(store, [])()
+    for artifact in store.lists(Artifact, recording_id=recording.recording_id):
+        assert store.resolves(artifact).is_file(), artifact.kind

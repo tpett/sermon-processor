@@ -119,6 +119,7 @@ def test_times_are_absolute_against_the_source_across_every_chunk():
 
 def test_no_utterance_straddles_a_chunk_boundary():
     doc = transcribes(RecognizesSteadily(), duration=LONG_SERVICE_S)
+    assert len(doc["chunks"]) > 1
     for chunk in doc["chunks"][:-1]:
         assert not [
             item

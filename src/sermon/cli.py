@@ -42,7 +42,7 @@ from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
 from sermon.config import DATA_ROOT, ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
 from sermon.extends_segment_span import ReadsTimecode, WidensProposedSpan
-from sermon.jobs.analyzes_recording import RecordingContents, RunsAnalyzeJob
+from sermon.jobs.analyzes_recording import NOTHING_FABRICATED, RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
@@ -104,7 +104,6 @@ PROPOSE_USAGE = (
     "[--asr <config>] [--store <data-root>]"
 )
 NO_SUMMARIES = "none"
-NOTHING_FABRICATED = RecordingContents(segments=())
 JOB_ATTEMPTS = 5
 BIND_HOST = "SERMON_BIND_HOST"
 PORT = "SERMON_PORT"
