@@ -6,6 +6,13 @@
    "judge": "400999283fce",
    "moved": 181,
    "reason": "the shipping walk as deployed at master f49ad12 (pipeline, walk and stages untouched since); first snapshot under judge v1"
+  },
+  {
+   "at": "2026-10-03T20:44:29+00:00",
+   "commit": "ccd8c7f",
+   "judge": "400999283fce",
+   "moved": 152,
+   "reason": "The owner leans to a 250 ms word buffer: \"I would lean 250ms as a better baseline for cuts, 50ms seems too tight, but I'd need to hear it to be sure.\" Every dev punch-in moves 200 ms further into the silence; no recording's judgement changes (7 unchanged), cuts within 250 ms of a word 8 -> 1. Pending the owner's listening test."
   }
  ],
  "judge": "400999283fce",
@@ -13,28 +20,28 @@
   "recording_20260315_102948.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1228.75,
+    "punch_in": 1228.55,
     "punch_out": 4082.13
    }
   ],
   "recording_20260315_102948.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1228.75,
+    "punch_in": 1228.55,
     "punch_out": 4082.13
    }
   ],
   "recording_20260315_102948.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1228.75,
+    "punch_in": 1228.55,
     "punch_out": 4082.13
    }
   ],
   "recording_20260322_102843.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1401.65,
+    "punch_in": 1401.45,
     "punch_out": 4216.74
    }
   ],
@@ -42,236 +49,236 @@
   "recording_20260322_102843.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1401.65,
+    "punch_in": 1401.45,
     "punch_out": 4216.74
    }
   ],
   "recording_20260329_102928.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1342.05,
+    "punch_in": 1341.85,
     "punch_out": 4627.04
    }
   ],
   "recording_20260329_102928.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1342.05,
+    "punch_in": 1341.85,
     "punch_out": 4627.04
    }
   ],
   "recording_20260329_102928.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1342.05,
+    "punch_in": 1341.85,
     "punch_out": 4627.04
    }
   ],
   "recording_20260405_085215.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.31,
+    "punch_in": 1.11,
     "punch_out": 4008.88
    },
    {
     "classification": "sermon",
-    "punch_in": 7561.65,
+    "punch_in": 7561.45,
     "punch_out": 10554.26
    }
   ],
   "recording_20260405_085215.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 7907.23,
+    "punch_in": 7907.03,
     "punch_out": 10554.26
    }
   ],
   "recording_20260405_085215.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.31,
-    "punch_out": 4007.39
+    "punch_in": 1.11,
+    "punch_out": 4007.22
    },
    {
     "classification": "sermon",
-    "punch_in": 7561.65,
+    "punch_in": 7561.45,
     "punch_out": 10549.32
    }
   ],
   "recording_20260412_102318.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2026.11,
+    "punch_in": 2025.91,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2020.79,
+    "punch_in": 2020.59,
     "punch_out": 4881.94
    }
   ],
   "recording_20260412_102318.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2020.91,
+    "punch_in": 2020.71,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1.37,
-    "punch_out": 560.48
+    "punch_in": 1.17,
+    "punch_out": 560.63
    },
    {
     "classification": "sermon",
-    "punch_in": 897.31,
-    "punch_out": 1918.97
+    "punch_in": 897.11,
+    "punch_out": 1918.77
    },
    {
     "classification": "sermon",
-    "punch_in": 2020.91,
+    "punch_in": 2020.71,
     "punch_out": 6333.78
    }
   ],
   "recording_20260412_102318.t1-qwen3.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2020.91,
+    "punch_in": 2020.71,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.t2-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1461.99,
-    "punch_out": 1918.97
+    "punch_in": 1461.79,
+    "punch_out": 1918.77
    },
    {
     "classification": "sermon",
-    "punch_in": 2020.91,
+    "punch_in": 2020.71,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.t2-qwen3.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2026.11,
+    "punch_in": 2025.91,
     "punch_out": 2498.86
    },
    {
     "classification": "sermon",
-    "punch_in": 2503.47,
+    "punch_in": 2503.27,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1461.99,
-    "punch_out": 1918.97
+    "punch_in": 1461.79,
+    "punch_out": 1918.77
    },
    {
     "classification": "sermon",
-    "punch_in": 2020.91,
+    "punch_in": 2020.71,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2020.91,
+    "punch_in": 2020.71,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2026.11,
+    "punch_in": 2025.91,
     "punch_out": 4881.96
    }
   ],
   "recording_20260412_102318.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2026.11,
+    "punch_in": 2025.91,
     "punch_out": 4881.96
    }
   ],
   "recording_20260419_102511.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1746.71,
-    "punch_out": 5077.02
+    "punch_in": 1746.51,
+    "punch_out": 5076.91
    }
   ],
   "recording_20260419_102511.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 3839.29,
-    "punch_out": 5077.02
+    "punch_in": 3839.09,
+    "punch_out": 5076.91
    }
   ],
   "recording_20260419_102511.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1744.41,
-    "punch_out": 5025.43
+    "punch_in": 1744.21,
+    "punch_out": 5025.41
    }
   ],
   "recording_20260426_093527.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4707.85,
+    "punch_in": 4707.65,
     "punch_out": 7926.72
    }
   ],
   "recording_20260426_093527.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 6169.51,
+    "punch_in": 6169.31,
     "punch_out": 7926.72
    }
   ],
   "recording_20260426_093527.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4709.93,
+    "punch_in": 4709.73,
     "punch_out": 7926.72
    }
   ],
   "recording_20260503_090012.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 3579.64
    }
   ],
   "recording_20260503_090012.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.27,
+    "punch_in": 1.07,
     "punch_out": 3577.0
    }
   ],
   "recording_20260503_090012.t0-rules.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 2296.62
    }
   ],
   "recording_20260503_090012.t1-qwen3.perblock.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 2296.62
    },
    {
     "classification": "sermon",
-    "punch_in": 2323.69,
+    "punch_in": 2323.49,
     "punch_out": 4354.42
    }
   ],
@@ -279,379 +286,379 @@
   "recording_20260503_090012.t2-qwen3.perblock.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 3579.64
    }
   ],
   "recording_20260503_090012.t2-qwen3.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 120.95,
-    "punch_out": 3542.31
+    "punch_in": 120.91,
+    "punch_out": 3542.29
    },
    {
     "classification": "lesson",
-    "punch_in": 120.95,
-    "punch_out": 3542.31
+    "punch_in": 120.91,
+    "punch_out": 3542.29
    }
   ],
   "recording_20260503_090012.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 3579.64
    }
   ],
   "recording_20260503_090012.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 3579.64
    }
   ],
   "recording_20260503_090012.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
-    "punch_out": 3578.47
+    "punch_in": 1.09,
+    "punch_out": 3578.39
    }
   ],
   "recording_20260503_090012.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.29,
+    "punch_in": 1.09,
     "punch_out": 3579.64
    }
   ],
   "recording_20260503_102934.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1402.51,
+    "punch_in": 1402.31,
     "punch_out": 4457.46
    }
   ],
   "recording_20260503_102934.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1149.17,
+    "punch_in": 1148.97,
     "punch_out": 4457.46
    }
   ],
   "recording_20260503_102934.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1402.51,
+    "punch_in": 1402.31,
     "punch_out": 4457.46
    }
   ],
   "recording_20260510_102947.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1638.45,
+    "punch_in": 1638.25,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 573.75,
+    "punch_in": 573.55,
     "punch_out": 1025.24
    },
    {
     "classification": "sermon",
-    "punch_in": 1039.19,
+    "punch_in": 1038.99,
     "punch_out": 1558.72
    },
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t1-qwen3.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1638.37,
+    "punch_in": 1638.17,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t2-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1039.19,
+    "punch_in": 1038.99,
     "punch_out": 1558.72
    },
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t2-qwen3.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 774.65,
+    "punch_in": 774.45,
     "punch_out": 1386.0
    },
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1039.19,
+    "punch_in": 1038.99,
     "punch_out": 1558.72
    },
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1638.37,
+    "punch_in": 1638.17,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260510_102947.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1635.75,
+    "punch_in": 1635.55,
     "punch_out": 5020.68
    }
   ],
   "recording_20260517_102903.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1345.89,
+    "punch_in": 1345.69,
     "punch_out": 4395.8
    }
   ],
   "recording_20260517_102903.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1345.89,
+    "punch_in": 1345.69,
     "punch_out": 4395.8
    }
   ],
   "recording_20260517_102903.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1345.89,
+    "punch_in": 1345.69,
     "punch_out": 4395.8
    }
   ],
   "recording_20260524_102916.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1163.53,
+    "punch_in": 1163.33,
     "punch_out": 3569.98
    }
   ],
   "recording_20260524_102916.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1163.53,
+    "punch_in": 1163.33,
     "punch_out": 3068.96
    }
   ],
   "recording_20260524_102916.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1405.19,
+    "punch_in": 1405.12,
     "punch_out": 3569.98
    }
   ],
   "recording_20260531_102925.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 5131.84
    }
   ],
   "recording_20260531_102925.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1467.79,
+    "punch_in": 1467.59,
     "punch_out": 5132.46
    }
   ],
   "recording_20260531_102925.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 3407.55,
+    "punch_in": 3407.35,
     "punch_out": 5131.84
    }
   ],
   "recording_20260531_102925.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1042.65,
+    "punch_in": 1042.45,
     "punch_out": 1376.58
    },
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 6455.44
    }
   ],
   "recording_20260531_102925.t1-qwen3.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1467.67,
+    "punch_in": 1467.47,
     "punch_out": 5131.84
    }
   ],
   "recording_20260531_102925.t2-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1042.65,
+    "punch_in": 1042.45,
     "punch_out": 1376.58
    },
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 5131.84
    }
   ],
   "recording_20260531_102925.t2-qwen3.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 5071.8
    }
   ],
   "recording_20260531_102925.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1042.65,
+    "punch_in": 1042.45,
     "punch_out": 1376.58
    },
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 3396.74
    }
   ],
   "recording_20260531_102925.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1467.67,
+    "punch_in": 1467.47,
     "punch_out": 5131.84
    }
   ],
   "recording_20260531_102925.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 5131.84
    }
   ],
   "recording_20260531_102925.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1465.39,
+    "punch_in": 1465.19,
     "punch_out": 5131.84
    }
   ],
   "recording_20260607_082624.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1470.69,
-    "punch_out": 6203.24
+    "punch_in": 1470.49,
+    "punch_out": 6203.39
    }
   ],
   "recording_20260607_082624.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2036.95,
-    "punch_out": 5244.21
+    "punch_in": 2036.75,
+    "punch_out": 5244.19
    }
   ],
   "recording_20260607_082624.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2107.65,
-    "punch_out": 6203.24
+    "punch_in": 2107.45,
+    "punch_out": 6203.39
    }
   ],
   "recording_20260607_102901.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1360.78,
+    "punch_in": 1360.58,
     "punch_out": 4725.51
    }
   ],
   "recording_20260607_102901.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1357.92,
+    "punch_in": 1357.72,
     "punch_out": 4725.51
    }
   ],
   "recording_20260607_102901.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1360.78,
+    "punch_in": 1360.58,
     "punch_out": 4725.51
    }
   ],
   "recording_20260614_094126.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260614_094126.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.42
    }
   ],
   "recording_20260614_094126.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260614_094126.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1772.73,
+    "punch_in": 1772.53,
     "punch_out": 2008.28
    },
    {
     "classification": "lesson",
-    "punch_in": 3795.95,
+    "punch_in": 3795.75,
     "punch_out": 7405.34
    }
   ],
@@ -659,89 +666,89 @@
   "recording_20260614_094126.t2-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260614_094126.t2-qwen3.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 3510.03,
+    "punch_in": 3510.02,
     "punch_out": 4190.94
    },
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 5309.8
    }
   ],
   "recording_20260614_094126.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260614_094126.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260614_094126.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260614_094126.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4199.89,
+    "punch_in": 4199.69,
     "punch_out": 7215.38
    }
   ],
   "recording_20260621_095915.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 3531.47,
+    "punch_in": 3531.27,
     "punch_out": 6283.8
    }
   ],
   "recording_20260621_095915.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 3291.19,
+    "punch_in": 3290.99,
     "punch_out": 6283.8
    }
   ],
   "recording_20260621_095915.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 3531.47,
+    "punch_in": 3531.27,
     "punch_out": 6283.8
    }
   ],
   "recording_20260628_102921.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1590.47,
+    "punch_in": 1590.27,
     "punch_out": 4585.36
    }
   ],
   "recording_20260628_102921.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2126.37,
+    "punch_in": 2126.17,
     "punch_out": 4585.36
    }
   ],
   "recording_20260628_102921.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1590.47,
+    "punch_in": 1590.27,
     "punch_out": 4585.36
    }
   ],
@@ -749,7 +756,7 @@
   "recording_20260628_130014.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.49,
+    "punch_in": 1.29,
     "punch_out": 2629.1
    }
   ],
@@ -757,7 +764,7 @@
   "recording_20260628_130014.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1071.09,
+    "punch_in": 1070.89,
     "punch_out": 3583.8
    }
   ],
@@ -769,21 +776,21 @@
   "recording_20260628_130014.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.47,
+    "punch_in": 1.27,
     "punch_out": 2629.1
    }
   ],
   "recording_20260628_130014.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.47,
+    "punch_in": 1.27,
     "punch_out": 1908.0
    }
   ],
   "recording_20260705_082108.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1897.79,
+    "punch_in": 1897.59,
     "punch_out": 5687.52
    }
   ],
@@ -791,63 +798,63 @@
   "recording_20260705_082108.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1734.89,
+    "punch_in": 1734.69,
     "punch_out": 5687.52
    }
   ],
   "recording_20260705_103004.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1231.55,
+    "punch_in": 1231.35,
     "punch_out": 3968.42
    }
   ],
   "recording_20260705_103004.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1434.01,
+    "punch_in": 1433.81,
     "punch_out": 3968.42
    }
   ],
   "recording_20260705_103004.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1231.55,
+    "punch_in": 1231.35,
     "punch_out": 3968.42
    }
   ],
   "recording_20260712_103000.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1167.87,
+    "punch_in": 1167.67,
     "punch_out": 4243.76
    }
   ],
   "recording_20260712_103000.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.t1-qwen3.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4481.71,
+    "punch_in": 4481.51,
     "punch_out": 5378.3
    }
   ],
@@ -856,42 +863,42 @@
   "recording_20260712_103000.t2-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.t2-qwen3.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1387.63,
+    "punch_in": 1387.43,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1167.83,
+    "punch_in": 1167.63,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
   "recording_20260712_103000.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1165.69,
+    "punch_in": 1165.49,
     "punch_out": 4243.78
    }
   ],
@@ -899,13 +906,13 @@
    {
     "classification": "lesson",
     "punch_in": 0.0,
-    "punch_out": 5885.69
+    "punch_out": 5885.52
    }
   ],
   "recording_20260718_081932.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1355.91,
+    "punch_in": 1355.71,
     "punch_out": 6470.88
    }
   ],
@@ -919,104 +926,104 @@
   "recording_20260718_100850.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.53,
+    "punch_in": 1.33,
     "punch_out": 4991.88
    }
   ],
   "recording_20260718_100850.t0-rules.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 333.25,
+    "punch_in": 333.05,
     "punch_out": 2685.9
    }
   ],
   "recording_20260718_100850.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.53,
+    "punch_in": 1.33,
     "punch_out": 4991.88
    }
   ],
   "recording_20260719_093824.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4678.27,
+    "punch_in": 4678.07,
     "punch_out": 7100.0
    }
   ],
   "recording_20260719_093824.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4678.27,
+    "punch_in": 4678.07,
     "punch_out": 7100.0
    }
   ],
   "recording_20260719_093824.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 4678.27,
+    "punch_in": 4678.07,
     "punch_out": 7100.0
    }
   ],
   "recording_20260726_102957.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1484.07,
+    "punch_in": 1483.87,
     "punch_out": 5006.38
    }
   ],
   "recording_20260726_102957.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 2667.69,
+    "punch_in": 2667.49,
     "punch_out": 5006.38
    }
   ],
   "recording_20260726_102957.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1484.07,
+    "punch_in": 1483.87,
     "punch_out": 5006.38
    }
   ],
   "recording_20260802_090011.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.45,
+    "punch_in": 1.25,
     "punch_out": 3456.54
    },
    {
     "classification": "sermon",
-    "punch_in": 6576.25,
+    "punch_in": 6576.05,
     "punch_out": 9630.5
    }
   ],
   "recording_20260802_090011.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 7220.45,
+    "punch_in": 7220.25,
     "punch_out": 9630.5
    }
   ],
   "recording_20260802_090011.t1-qwen3.perblock.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.45,
+    "punch_in": 1.25,
     "punch_out": 574.32
    },
    {
     "classification": "sermon",
-    "punch_in": 818.41,
+    "punch_in": 818.21,
     "punch_out": 5359.4
    },
    {
     "classification": "sermon",
-    "punch_in": 5545.79,
+    "punch_in": 5545.59,
     "punch_out": 5739.04
    },
    {
     "classification": "sermon",
-    "punch_in": 6027.43,
+    "punch_in": 6027.23,
     "punch_out": 9630.5
    }
   ],
@@ -1024,22 +1031,22 @@
   "recording_20260802_090011.t2-qwen3.perblock.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.45,
+    "punch_in": 1.25,
     "punch_out": 574.32
    },
    {
     "classification": "sermon",
-    "punch_in": 684.23,
+    "punch_in": 684.03,
     "punch_out": 3456.54
    },
    {
     "classification": "lesson",
-    "punch_in": 3495.85,
+    "punch_in": 3495.65,
     "punch_out": 3985.82
    },
    {
     "classification": "sermon",
-    "punch_in": 6573.81,
+    "punch_in": 6573.61,
     "punch_out": 9630.5
    }
   ],
@@ -1047,22 +1054,22 @@
   "recording_20260802_090011.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.45,
+    "punch_in": 1.25,
     "punch_out": 574.32
    },
    {
     "classification": "sermon",
-    "punch_in": 684.23,
-    "punch_out": 1848.17
+    "punch_in": 684.03,
+    "punch_out": 1848.16
    },
    {
     "classification": "lesson",
-    "punch_in": 1874.95,
+    "punch_in": 1874.75,
     "punch_out": 3456.54
    },
    {
     "classification": "sermon",
-    "punch_in": 6573.81,
+    "punch_in": 6573.61,
     "punch_out": 9630.5
    }
   ],
@@ -1070,115 +1077,115 @@
   "recording_20260802_090011.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.45,
+    "punch_in": 1.25,
     "punch_out": 3456.54
    },
    {
     "classification": "sermon",
-    "punch_in": 6573.81,
+    "punch_in": 6573.61,
     "punch_out": 9630.5
    }
   ],
   "recording_20260809_102935.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1570.95,
+    "punch_in": 1570.75,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.fw-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1575.31,
+    "punch_in": 1575.11,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1911.81,
+    "punch_in": 1911.61,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t1-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 736.11,
+    "punch_in": 735.91,
     "punch_out": 1900.86
    },
    {
     "classification": "sermon",
-    "punch_in": 1911.81,
+    "punch_in": 1911.61,
     "punch_out": 6250.141
    }
   ],
   "recording_20260809_102935.t1-qwen3.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1999.23,
+    "punch_in": 1999.03,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t2-qwen3.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1911.81,
+    "punch_in": 1911.61,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t2-qwen3.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1570.95,
+    "punch_in": 1570.75,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t3-qwen3.6.perblock.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1306.99,
+    "punch_in": 1306.79,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t3-qwen3.6.structured.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1999.23,
+    "punch_in": 1999.03,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1570.95,
+    "punch_in": 1570.75,
     "punch_out": 4821.36
    }
   ],
   "recording_20260809_102935.u3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1570.95,
+    "punch_in": 1570.75,
     "punch_out": 4821.36
    }
   ],
   "recording_20260816_103007.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1446.82,
+    "punch_in": 1446.62,
     "punch_out": 4425.98
    }
   ],
   "recording_20260816_103007.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1745.95,
+    "punch_in": 1745.75,
     "punch_out": 4425.98
    }
   ],
   "recording_20260816_103007.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1446.82,
+    "punch_in": 1446.62,
     "punch_out": 4425.98
    }
   ],
@@ -1186,26 +1193,26 @@
   "recording_20260816_125512.t0-rules.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1079.05,
+    "punch_in": 1078.85,
     "punch_out": 2683.54
    }
   ],
   "recording_20260816_125512.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.35,
-    "punch_out": 540.41
+    "punch_in": 1.15,
+    "punch_out": 540.21
    },
    {
     "classification": "lesson",
-    "punch_in": 540.41,
+    "punch_in": 540.21,
     "punch_out": 3417.36
    }
   ],
   "recording_20260823_102952.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1495.69,
+    "punch_in": 1495.49,
     "punch_out": 4976.74
    }
   ],
@@ -1213,7 +1220,7 @@
   "recording_20260823_102952.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1495.69,
+    "punch_in": 1495.49,
     "punch_out": 4976.74
    }
   ],
@@ -1222,14 +1229,14 @@
   "recording_20260830_102838.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1533.55,
+    "punch_in": 1533.35,
     "punch_out": 4857.02
    }
   ],
   "recording_20260830_102838.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1533.55,
+    "punch_in": 1533.35,
     "punch_out": 4857.02
    }
   ],
@@ -1238,14 +1245,14 @@
   "recording_20260906_102720.c-frontier.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1519.39,
+    "punch_in": 1519.19,
     "punch_out": 4167.44
    }
   ],
   "recording_20260906_102720.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "sermon",
-    "punch_in": 1519.39,
+    "punch_in": 1519.19,
     "punch_out": 4167.44
    }
   ],
@@ -1256,24 +1263,24 @@
   "recording_20260913_090014.c-frontier.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.19,
+    "punch_in": 0.99,
     "punch_out": 3497.08
    },
    {
     "classification": "sermon",
-    "punch_in": 6970.01,
+    "punch_in": 6969.81,
     "punch_out": 9910.4
    }
   ],
   "recording_20260913_090014.t3-qwen3.6.whole.v2.json": [
    {
     "classification": "lesson",
-    "punch_in": 1.19,
+    "punch_in": 0.99,
     "punch_out": 3497.08
    },
    {
     "classification": "sermon",
-    "punch_in": 6970.01,
+    "punch_in": 6969.81,
     "punch_out": 9910.4
    }
   ],
