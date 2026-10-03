@@ -10,7 +10,8 @@ from sermon.store import Block, Segment
 
 READS = _analysis.READS
 WORD_S = _analysis.WORD_S
-LEAD_IN_LIMIT_S = 1.0
+LEAD_IN_LIMIT_S = 2.0
+WORD_BUFFER_S = 0.05
 QUIET_MARGIN_S = 0.25
 CLOSING_READING = "this is the word of the lord"
 TEACHING = _analysis.SPOKEN["sermon"]
@@ -169,12 +170,33 @@ def _(store):
     ScoresProposals(store=store)(recording)
 
 
-@then(parsers.parse('the punch-in is placed at "{timecode}"'))
-def _(store, timecode):
-    assert abs(the_segment(store).punch_in_seconds - READS(timecode)) < 0.05
+def words_either_side(store, moment):
+    words = words_of(store)
+    before = max((word["end"] for word in words if word["end"] <= moment), default=None)
+    after = min((word["start"] for word in words if word["start"] >= moment), default=None)
+    inside = [word for word in words if word["start"] < moment < word["end"]]
+    return before, after, inside
 
 
-@then("the lead-in never exceeds 1.0 second")
+@then("the punch-in is in the silence before the first word")
+def _(store, run_up):
+    punch_in = the_segment(store).punch_in_seconds
+    before, after, inside = words_either_side(store, punch_in)
+    assert not inside, f"the punch-in {punch_in} falls inside {inside[0]['w']!r}"
+    assert after == run_up.first_word, f"the first word after the punch-in is at {after}, not {run_up.first_word}"
+    assert before is not None and before <= run_up.reading_ends
+
+
+@then("it is at least 50 ms clear of the words either side")
+def _(store):
+    punch_in = the_segment(store).punch_in_seconds
+    before, after, inside = words_either_side(store, punch_in)
+    assert not inside, f"the punch-in {punch_in} falls inside {inside[0]['w']!r}"
+    assert after - punch_in >= WORD_BUFFER_S, f"{after - punch_in:.3f} s before the next word"
+    assert punch_in - before >= WORD_BUFFER_S, f"{punch_in - before:.3f} s after the last word"
+
+
+@then("the lead-in never exceeds 2.0 seconds")
 def _(store):
     segment = the_segment(store)
     assert 0.0 <= first_word_after(store, segment.punch_in_seconds) - segment.punch_in_seconds <= LEAD_IN_LIMIT_S
@@ -183,12 +205,6 @@ def _(store):
 @then(parsers.parse('the punch-in is placed after "{timecode}"'))
 def _(store, timecode):
     assert the_segment(store).punch_in_seconds > READS(timecode)
-
-
-@then("the lead-in is shorter than 1.0 second")
-def _(store):
-    segment = the_segment(store)
-    assert first_word_after(store, segment.punch_in_seconds) - segment.punch_in_seconds < LEAD_IN_LIMIT_S
 
 
 @then("no audio from the previous Block is included")

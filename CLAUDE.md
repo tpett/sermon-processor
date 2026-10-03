@@ -703,8 +703,27 @@ rather than a publication date. The render and the collision check both name
 the file from the Recording's start, and `publication_date` is still stored.
 One scenario and five steps were added and one expanded test with them.
 
+On the lead-in: "Lead-in silence is not necessary, but if it's too long it's a
+problem. 1-2s is probably about as long as you want to go or someone who's
+started the recording playback thinks nothing is happening." And on any cut:
+"there is some buffer needed due to room echo and other pre "word" sounds. 50ms
+is probably a good buffer but it might need to be a bit longer... Almost always
+though moving more into the silence produces a better cut."
+`features/analysis/punch_in_detection.feature`'s `A short lead-in is included`
+had turned an older remark, "One second is perfect", into an exact punch-in at
+`0:31:40.500` and a 1.0 s ceiling — an instant, where the owner's own measure is
+that two cuts in one silence are the same cut. It now asserts the punch-in is
+in the silence before the first word, at least 50 ms clear of the words either
+side, and never more than 2.0 s ahead of the first word; the Rule became `The
+punch-in sits in the silence before the first word`. `The lead-in is shortened
+rather than crossing into the previous block` traded its 1.0 s figure for the
+same 50 ms buffer. That scenario had been green with the cut landing exactly on
+the first word; it is now red until the buffer is placed, which is the honest
+state. The punch-out's 1.5 s tail was left alone: the owner chose it by ear
+from three real cuts and it is nowhere near a word. One step was added.
+
 Pins are now **34 files / 469 scenarios / 144 rules / 614 collected**, and
-`SPEC_STEPS` is 1944.
+`SPEC_STEPS` is 1945.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
