@@ -121,6 +121,14 @@ unique match counts, or `preview.mp3` would resolve to whichever Recording came
 first. The fallback is on the row, not on the old directory, so nothing has to be
 left behind on disk.
 
+A Recording's source that is not on disk is streamed from the bucket, never
+fetched into the data root. `/api/artifacts/<path>` asks the object store for
+that one named object and passes its body through in bounded chunks, with the
+object's own length, type and entity tag; nothing is written and no row changes.
+A single byte range is forwarded so a browser can resume. Fetching to disk stays
+with `sermon-fetch` and the download job, which are asked for deliberately: a
+click on a link must not commit the server to holding a 0.4–1.4 GB copy.
+
 ## Two rules that keep the spec primary
 
 **Step definitions carry no logic.** A step translates English into a call and
