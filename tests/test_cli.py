@@ -646,7 +646,7 @@ def test_analyzing_reports_the_state_the_boundaries_and_the_confidence(tmp_path,
     printed = RecordsLines()
     analyses(tmp_path, printed)
     assert f"{ANALYZED} is awaiting_review" in str(printed)
-    assert "sermon   0:10:00 -> 1:04:21" in str(printed)
+    assert "sermon   0:09:59 -> 1:04:21" in str(printed)
     assert "classification high, boundary high" in str(printed)
 
 
@@ -660,7 +660,7 @@ def test_analyzing_a_recording_with_no_stored_transcript_is_refused(tmp_path, in
 EDITED = "recording_20260920_094416"
 HUMAN_IN = 4151.2935
 HUMAN_OUT = 7599.5667
-MODEL_IN = 4151.0
+MODEL_IN = 4199.0
 SERVICE_SECONDS = 9000.0
 
 
@@ -745,7 +745,7 @@ def test_deriving_a_corpus_entry_writes_the_block_file_and_the_transcript(tmp_pa
     )
     assert recorded["model_segments"] == [{"punch_in": MODEL_IN, "punch_out": 7599.0}]
     assert str(corpus) in str(printed)
-    assert "sermon   1:09:11 -> 2:06:21  (model-in/refined-out)" in str(printed)
+    assert "sermon   1:09:59 -> 2:06:21  (model-in/refined-out)" in str(printed)
 
 
 def test_the_derived_entry_makes_the_stored_pair_change_the_reported_numbers(tmp_path, injected_roots):
