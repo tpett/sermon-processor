@@ -5,9 +5,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 ## What the guard found
 
 - 1348 step definitions read from `tests/steps`
-- 196 condemned
-- 132 of 464 non-deferred scenarios rest on at least one condemned step
-- 175 of 607 expanded scenario tests likewise
+- 195 condemned
+- 131 of 464 non-deferred scenarios rest on at least one condemned step
+- 174 of 607 expanded scenario tests likewise
 - 50 scenarios whose every Then is condemned, so nothing they claim is checked
 - 14 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
@@ -34,7 +34,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | a Then that asserts word for word what another Then in its scenario asserts | 14 |
 | a When with an empty body | 0 |
 | a When whose body never acts | 0 |
-| a When that writes the outcome itself instead of invoking the system | 18 |
+| a When that writes the outcome itself instead of invoking the system | 17 |
 | an empty Given that PERMITTED_EMPTY_GIVENS does not enumerate | 0 |
 | a step that skips or xfails instead of running | 0 |
 | a step name the guard cannot read from the source | 0 |
@@ -73,7 +73,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/recording_list_steps.py` | 36 | 1 | partly condemned |
 | `tests/steps/interface/segment_review_steps.py` | 37 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 103 | 5 | partly condemned |
-| `tests/steps/last_fourteen.py` (named) | 10 | 1 | partly condemned |
+| `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 2 | partly condemned |
 | `tests/steps/notifications/notification_steps.py` | 8 | 5 | partly condemned |
@@ -426,7 +426,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/waveform_steps.py:741` | then | `clicking a word places the boundary at that word` | a Then with a path through it that asserts nothing |
 | `tests/steps/interface/waveform_steps.py:787` | then | `I can drop a boundary into one with a single click` | a Then with a path through it that asserts nothing |
 | `tests/steps/interface/waveform_steps.py:841` | then | `neither boundary has moved` | a Then with a path through it that asserts nothing |
-| `tests/steps/last_fourteen.py:51` | when | `I revisit that Segment` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/notifications/analysis_notification_steps.py:186` | then | `the notification links directly to that Segment` | a Then whose every assertion only checks that some row exists; an assertion that any existing row satisfies |
 | `tests/steps/notifications/analysis_notification_steps.py:220` | then | `the notification says the proposal needs careful review` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/notifications/notification_steps.py:50` | then | `the Notification exists whether or not any channel is configured` | a Then whose every assertion only checks that some row exists |

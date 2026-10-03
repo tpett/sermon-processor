@@ -25,39 +25,29 @@ def _(store):
 
 @given("one of its Segments was skipped")
 def _(store, recording):
-    segment = store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="lesson",
-            state="skipped",
-            span_start_seconds=1.0,
-            span_end_seconds=3497.0,
-            punch_in_seconds=1.0,
-            punch_out_seconds=3497.0,
-        )
-    )
-    store.saves(
-        Proposal(
-            segment_id=segment.segment_id,
-            classification_confidence="high",
-            boundary_confidence="high",
-            punch_in_grade="easy",
-            punch_out_grade="easy",
-        )
-    )
-    store._revisited = segment
+    held = {item.classification: item for item in store.lists(Segment, recording_id=recording.recording_id)}
+    assert set(held) == {"lesson", "sermon"}
+    _web.posts(store, _web.segment_action(held["lesson"], "skip"))
+    _web.posts(store, _web.segment_action(held["sermon"], "approve"), intent="archive")
+    assert store.loads(Recording, recording.recording_id).state == "reviewed"
+
+
+def the_skipped_segment(store):
+    skipped = [item for item in store.lists(Segment) if item.classification == "lesson"]
+    assert len(skipped) == 1
+    return skipped[0]
 
 
 @when("I revisit that Segment")
 def _(store, recording):
-    segment = store._revisited
-    store.saves(replace(segment, state="proposed"))
-    store.saves(replace(store.loads(Recording, recording.recording_id), state="awaiting_review"))
+    segment = the_skipped_segment(store)
+    store._before_revisit = (segment, tuple(store.lists(Proposal, segment_id=segment.segment_id)))
+    _web.posts(store, _web.segment_action(segment, "reopen"))
 
 
 @then('the Segment returns to "proposed"')
 def _(store):
-    assert store.loads(Segment, store._revisited.segment_id).state == "proposed"
+    assert the_skipped_segment(store).state == "proposed"
 
 
 @then('the Recording returns to "awaiting_review"')
@@ -67,7 +57,10 @@ def _(store, recording):
 
 @then("its boundaries, classification, summary and evidence are unchanged")
 def _(store):
-    assert store.loads(Segment, store._revisited.segment_id).classification == "lesson"
+    before, proposals = store._before_revisit
+    after = the_skipped_segment(store)
+    assert replace(after, state=before.state, disposition_at=before.disposition_at) == before
+    assert tuple(store.lists(Proposal, segment_id=after.segment_id)) == proposals
 
 
 @then("no re-analysis is needed")
