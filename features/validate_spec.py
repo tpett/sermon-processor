@@ -48,6 +48,18 @@ RULE_RE = re.compile(r"^\s*Rule:")
 SCENARIO_RE = re.compile(r"^\s*Scenario")
 
 
+def counts_declared(parsed: dict) -> tuple[int, int]:
+    rules = scenarios = 0
+    for child in parsed.get("feature", {}).get("children", []):
+        if "scenario" in child:
+            scenarios += 1
+        if "rule" in child:
+            rules += 1
+            scenarios += sum(1 for inner in child["rule"].get("children", [])
+                             if "scenario" in inner)
+    return rules, scenarios
+
+
 def declared_tags(readme: pathlib.Path) -> set[str]:
     section = readme.read_text().split("## Tag conventions", 1)
     if len(section) < 2:
@@ -76,13 +88,13 @@ def main() -> int:
     scenarios = rules = 0
     for f in features:
         try:
-            Parser().parse(f.read_text())
+            parsed = Parser().parse(f.read_text())
         except CompositeParserException as e:
             problems.append(f"{f.relative_to(here)}: will not parse — {e}")
             continue
-        lines = f.read_text().splitlines()
-        rules += sum(1 for ln in lines if RULE_RE.match(ln))
-        scenarios += sum(1 for ln in lines if SCENARIO_RE.match(ln))
+        found_rules, found_scenarios = counts_declared(parsed)
+        rules += found_rules
+        scenarios += found_scenarios
 
     # 2. No implementation vocabulary outside comments.
     for f in features:
