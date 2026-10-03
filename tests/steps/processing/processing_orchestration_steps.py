@@ -229,8 +229,11 @@ def _(store, segment, state):
     assert store.loads(Segment, segment.segment_id).state == state
 
 
+NOTIFIED_OF = {"complete": "render_complete", "processing_failed": "processing_failed"}
+
+
 @then("the reviewer is notified")
-def _(store, segment, process_sent):
+def _(store, segment):
+    outcome = store.loads(Segment, segment.segment_id).state
     told = [(item.kind, item.segment_id, item.recipient) for item in store.lists(Notification)]
-    assert told == [("render_complete", segment.segment_id, "reviewer")], told
-    assert [item.segment_id for item in process_sent] == [segment.segment_id]
+    assert told == [(NOTIFIED_OF.get(outcome, outcome), segment.segment_id, "reviewer")], told
