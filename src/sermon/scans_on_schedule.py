@@ -4,6 +4,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 
+SCAN_INTERVAL = "SERMON_SCAN_INTERVAL_SECONDS"
+
+
+class IntervalNotUnderstood(ValueError):
+    pass
+
+
 def now():
     return datetime.now(UTC)
 
@@ -39,3 +46,14 @@ class ScansOnSchedule:
     def _fails(self, reason):
         self.prints(f"scheduled scan failed: {reason}; next scan in {self.interval}")
         return True
+
+
+def interval_from(asked_seconds, settings):
+    named = settings.get(SCAN_INTERVAL) if asked_seconds is None else asked_seconds
+    try:
+        seconds = float(named or 0)
+    except ValueError:
+        raise IntervalNotUnderstood(
+            f"{SCAN_INTERVAL} must be a number of seconds, not {named!r}"
+        ) from None
+    return timedelta(seconds=seconds) if seconds > 0 else None

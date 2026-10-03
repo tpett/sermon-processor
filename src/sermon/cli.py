@@ -60,7 +60,9 @@ from sermon.reconciles_bucket import (
     ObjectStoreUnreachable,
     ReconcilesBucket,
 )
+from sermon.queues_new_recordings import QueuesNewRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
+from sermon.scans_on_schedule import IntervalNotUnderstood, ScansOnSchedule, interval_from
 from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, LONG_RUN_SECONDS, SAME_CUT
 from sermon.sends_notification import SendsNotification
 from sermon.store import (
@@ -455,12 +457,13 @@ def parses_work_command(arguments, prints):
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--poll", type=float, default=IDLE_POLL_SECONDS)
+    parser.add_argument("--scan-every", type=float, default=None)
     try:
         return parser.parse_args(arguments)
     except SystemExit:
         prints(
             "usage: sermon-work [--corpus DIR] [--prompts DIR] "
-            "[--once] [--limit N] [--poll SECONDS]"
+            "[--once] [--limit N] [--poll SECONDS] [--scan-every SECONDS]"
         )
         return None
 
@@ -483,7 +486,7 @@ def analyses_for(store, asked, prints):
     )
 
 
-def drains(runs, asked, prints, sleeps):
+def drains(runs, asked, prints, sleeps, scans=None):
     """Run queued work until asked to stop.
 
     --once runs a single job. The queue holds 93 downloads against a read-only
@@ -491,6 +494,8 @@ def drains(runs, asked, prints, sleeps):
     """
     done = 0
     while True:
+        if scans is not None:
+            scans()
         job = runs()
         if job is not None:
             done += 1
@@ -504,14 +509,21 @@ def drains(runs, asked, prints, sleeps):
         sleeps(asked.poll)
 
 
-def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
+def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
+          lists_objects=None, fetches_object=None):
     asked = parses_work_command(sys.argv[1:] if arguments is None else arguments, prints)
     if asked is None:
         return 1
-    opened = opens_or_reports(settings, None, prints)
+    settings = resolves_settings() if settings is None else settings
+    try:
+        interval = interval_from(asked.scan_every, settings)
+    except IntervalNotUnderstood as refused:
+        prints(str(refused))
+        return 1
+    opened = opens_or_reports(settings, lists_objects, prints)
     if opened is None:
         return 1
-    configuration, store, _ = opened
+    configuration, store, lists_objects = opened
     try:
         recovered = RecoversInterruptedJobs(store=store)()
         for job in recovered:
@@ -540,7 +552,7 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
                 fetches=FetchesBucketObject(
                     bucket=configuration.object_store.bucket,
                     client=OpensObjectStore(object_store=configuration.object_store)(),
-                ),
+                ) if fetches_object is None else fetches_object,
                 probes=MeasuresRecordingAudio(),
             ),
             analyzes=RunsAnalyzeJob(
@@ -557,7 +569,19 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep):
                 renders=RendersMp3(),
             ),
         )
-        return drains(runs, asked, prints, sleeps)
+        scans = None
+        if interval is not None and not (asked.once or asked.limit):
+            scans = ScansOnSchedule(
+                reconciles=ReconcilesBucket(
+                    store=store,
+                    lists_objects=lists_objects,
+                    ingest_cutoff=cutoff_from(settings),
+                ),
+                queues=QueuesNewRecordings(store=store),
+                interval=interval,
+                prints=prints,
+            )
+        return drains(runs, asked, prints, sleeps, scans=scans)
     finally:
         store.close()
 
