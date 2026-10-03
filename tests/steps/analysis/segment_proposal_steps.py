@@ -5,7 +5,7 @@ from pytest_bdd import given, parsers, then, when
 from steps import _analysis, _web
 
 from sermon.analysis.io import reads_json
-from sermon.store import Block, Proposal, Recording, Segment
+from sermon.store import Block, Proposal, Segment
 
 READS = _analysis.READS
 CLASS_AND_SERVICE_S = 3 * 3600 + 12 * 60

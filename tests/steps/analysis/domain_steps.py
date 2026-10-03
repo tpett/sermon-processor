@@ -10,36 +10,19 @@ from steps._transcripts import covering_transcript
 
 from sermon.analysis import (
     TEACHING,
-    ClassifiesBlocks,
-    DerivesGroundTruth,
     DiarizesRecording,
-    DividesIntoBlocks,
     EnrolsVoiceProfiles,
-    ProposesSegments,
-    RefinesPunchIn,
-    RefinesPunchOut,
     ScoresProposals,
     SummarizesBlocks,
     TranscribesRecording,
-    seeds_segment,
 )
 from sermon.analysis.io import reads_json, writes_json
 from sermon.pipeline import classify
 from sermon.pipeline import segments as pipeline_segments
-from sermon.pipeline.segments import TAIL_S
 
 LEAD_IN_S = 1.0
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.store import (
-    Artifact,
-    Block,
-    CorpusPair,
-    Evidence,
-    Proposal,
-    Recording,
-    Segment,
-    SpeakerProfile,
-)
+from sermon.store import Artifact, Block, Proposal, Recording, Segment, SpeakerProfile
 from sermon.web import creates_app
 
 READS = ReadsTimecode()
@@ -688,11 +671,6 @@ def _(store, count):
 
 
 @then(parsers.parse("{count:d} Segments are proposed"))
-def _(store, count):
-    assert len(store.lists(Segment)) == count
-
-
-@then(parsers.parse("{count:d} Segments is proposed"))
 def _(store, count):
     assert len(store.lists(Segment)) == count
 

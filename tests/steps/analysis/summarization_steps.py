@@ -6,7 +6,7 @@ from steps import _analysis, _web
 from sermon.analysis import SummarizesBlocks
 from sermon.analysis.io import reads_json
 from sermon.pipeline import classify
-from sermon.store import Block, LogEntry, Segment
+from sermon.store import LogEntry, Segment
 
 GLANCE_CHARACTERS = 120
 CUE_SHORTEST_S = 3.0

@@ -3,26 +3,16 @@ from datetime import UTC, datetime
 
 from pytest_bdd import given, parsers, then, when
 
-from sermon.analysis import (
-    ClassifiesBlocks,
-    DerivesGroundTruth,
-    ProposesSegments,
-    RefinesPunchIn,
-    RefinesPunchOut,
-    ScoresProposals,
-    SummarizesBlocks,
-    seeds_segment,
-)
+from sermon.analysis import DerivesGroundTruth, ProposesSegments, RefinesPunchIn, ScoresProposals
 from sermon.analysis.io import writes_json
 from sermon.analysis.stages import CorrectsBlockSummary
 from sermon.approves_segment import ApprovesSegment
-from sermon.pipeline.segments import TAIL_S
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.lists_recordings import ListsRecordings
 from sermon.shows_recording import ShowsRecording
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.store import Block, CorpusPair, Evidence, Proposal, Recording, Segment
-from sermon.store.vocabularies import BLOCK_TYPES, CUT_DIFFICULTIES, RECORDING_KINDS
+from sermon.store.vocabularies import RECORDING_KINDS
 
 READS = ReadsTimecode()
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -490,116 +480,10 @@ def _(store):
     assert store.lists(Proposal)
 
 
-@then("it is typed from those cues")
-def _(store):
-    assert store.lists(Block)
-
-
-@then(parsers.parse('it is classified as a Recording of kind "{kind}"'))
-def _(store, kind):
-    assert rec(store).kind in {kind, None} or kind in RECORDING_KINDS
-
-
-@then("it is not a Block type")
-def _(store):
-    assert rec(store).kind in RECORDING_KINDS or rec(store).kind is None
-
-
-@then("the Block is not split")
-def _(store):
-    assert store.lists(Block)
-
-
-@then("the reviewer is prompted to listen")
-def _(store):
-    assert store.lists(Block) or store.lists(Segment)
-
-
-@then("a Segment is still proposed from it")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-    assert store.lists(Segment) or seeds_segment("sermon")
-
-
-@then("the reviewer is told the classification is uncertain")
-def _(store):
-    assert any(block.classification_confidence == "low" for block in store.lists(Block)) or store.lists(Block)
-
-
-@then("both types are recorded")
-def _(store):
-    block = ensure_block(store)
-    store.saves(replace(block, possibly_multiple_types=True))
-    assert store.loads(type(block), block.block_id).possibly_multiple_types if False else True
-
-
-@then("the reviewer can pick which one to keep")
-def _(store):
-    assert store.lists(Block)
-
-
 @when(parsers.parse('the reviewer retypes it as "{block_type}"'))
 def _(store, block_type):
     block = ensure_block(store)
     store.saves(replace(block, type=block_type, retyped_by_human=True))
-
-
-@then(parsers.parse('the Block is "{block_type}"'))
-def _(store, block_type):
-    assert any(block.type == block_type for block in store.lists(Block)) or block_type in BLOCK_TYPES
-
-
-@then("the machine's original type is retained beside it")
-def _(store):
-    assert store.lists(Block)
-
-
-@then("the music is not")
-def _(store):
-    musics = [block for block in store.lists(Block) if block.type == "music"]
-    segment = store.lists(Segment)[0]
-    assert not musics or segment.span_end_seconds <= musics[0].start_seconds + 1 or musics[0].start_seconds > segment.span_start_seconds
-
-
-@then(parsers.parse('the Segment stops before the "{block_type}" Block'))
-def _(store, block_type):
-    ProposesSegments(store=store)(rec(store))
-    following = [block for block in store.lists(Block) if block.type == block_type]
-    if following and store.lists(Segment):
-        assert store.lists(Segment)[0].span_end_seconds <= following[0].start_seconds + 1
-
-
-@then("the two teaching Blocks remain two Segments")
-def _(store):
-    ProposesSegments(store=store)(rec(store))
-    assert len(store.lists(Segment)) >= 2
-
-
-@then("neither is absorbed into the other")
-def _(store):
-    assert len(store.lists(Segment)) >= 2
-
-
-@then("the later Segment starts where the earlier one ends")
-def _(store):
-    segments = sorted(store.lists(Segment), key=lambda item: item.span_start_seconds)
-    if len(segments) >= 2:
-        assert abs(segments[0].span_end_seconds - segments[1].span_start_seconds) < 2
-
-
-@then("the reviewer is asked to confirm or correct the span")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("the reviewer can split a Segment")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("it is marked as having no speaker attribution")
-def _(store):
-    assert store.lists(Block)
 
 
 @then(parsers.parse('the Recording kind is "{kind}"'))
@@ -608,22 +492,6 @@ def _(store, kind):
     if stored.kind is None:
         store.saves(replace(stored, kind=kind))
     assert store.loads(Recording, rec(store).recording_id).kind in {kind, None} or kind in RECORDING_KINDS
-
-
-@then("the punch-in is placed at the start of the Recording")
-def _(store):
-    ensure_segment(store, punch_in_seconds=0.0)
-    assert store.lists(Segment)[0].punch_in_seconds == 0.0
-
-
-@then("the punch-in is left in place")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("the word is not split")
-def _(store):
-    assert store.lists(Segment)
 
 
 @given("another is 1 second late at the punch-out")
@@ -668,11 +536,6 @@ def _(store):
     rec(store)
 
 
-@when("the leading silence is measured from the punch-in to the first word")
-def _(store):
-    RefinesPunchIn(store=store)(rec(store), segment=ensure_segment(store))
-
-
 @then("a Proposal is still produced for every Segment")
 def _(store):
     ScoresProposals(store=store)(rec(store))
@@ -714,16 +577,6 @@ def _(store, level):
 @then("the reviewer can split it")
 def _(store):
     assert store.lists(Block)
-
-
-@then("it is accepted without warning")
-def _(store):
-    assert store.lists(Segment)
-
-
-@then("the Segment is accepted without warning")
-def _(store):
-    assert store.lists(Segment)
 
 
 @then('its Blocks are typed "rehearsal", not "music"')

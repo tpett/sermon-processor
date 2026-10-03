@@ -1,4 +1,4 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 import pytest
 from pytest_bdd import given, parsers, then, when
@@ -6,7 +6,7 @@ from steps import _analysis, _web
 
 from sermon.analysis import ProposesSegments, RefinesPunchIn, ScoresProposals
 from sermon.analysis.io import reads_json, writes_json
-from sermon.store import Block, Proposal, Segment
+from sermon.store import Block, Segment
 
 READS = _analysis.READS
 WORD_S = _analysis.WORD_S

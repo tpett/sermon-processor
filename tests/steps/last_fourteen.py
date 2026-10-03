@@ -1,7 +1,7 @@
 from dataclasses import replace
 from datetime import UTC, datetime
 
-from pytest_bdd import given, parsers, then, when
+from pytest_bdd import given, then, when
 
 from sermon.approves_segment import ApprovesSegment
 from sermon.store import Proposal, Recording, Segment
