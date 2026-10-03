@@ -188,13 +188,14 @@ def _(store, run_up):
     assert before is not None and before <= run_up.reading_ends
 
 
-@then("it is at least 50 ms clear of the words either side")
-def _(store):
+@then(parsers.parse("it is at least {buffer:d} ms clear of the words either side"))
+def _(store, buffer):
+    assert milliseconds(WORD_BUFFER_S) == buffer, f"the product keeps {milliseconds(WORD_BUFFER_S)} ms clear, not {buffer}"
     punch_in = the_segment(store).punch_in_seconds
     before, after, inside = words_either_side(store, punch_in)
     assert not inside, f"the punch-in {punch_in} falls inside {inside[0]['w']!r}"
-    assert milliseconds(after - punch_in) >= milliseconds(WORD_BUFFER_S), f"{after - punch_in:.3f} s before the next word"
-    assert milliseconds(punch_in - before) >= milliseconds(WORD_BUFFER_S), f"{punch_in - before:.3f} s after the last word"
+    assert milliseconds(after - punch_in) >= buffer, f"{after - punch_in:.3f} s before the next word"
+    assert milliseconds(punch_in - before) >= buffer, f"{punch_in - before:.3f} s after the last word"
 
 
 @then("the lead-in never exceeds 2.0 seconds")

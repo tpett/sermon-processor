@@ -23,22 +23,26 @@ Feature: Refining a segment's punch-in
       # cut: "there is some buffer needed due to room echo and other pre "word"
       # sounds. 50ms is probably a good buffer but it might need to be a bit
       # longer... Almost always though moving more into the silence produces a
-      # better cut." (the owner, 2026-10-03). These govern an earlier answer,
-      # "One second is perfect", which had been specified as an exact lead-in.
+      # better cut." (the owner, 2026-10-03). Then, on the buffer: "I would lean
+      # 250ms as a better baseline for cuts, 50ms seems too tight". These govern
+      # an earlier answer, "One second is perfect", which had been specified as
+      # an exact lead-in.
       # Two cuts in the same silence are the same cut, so no instant is asserted.
       Given the first word of the Block begins at "0:31:41.500"
       When punch-in refinement runs
       Then the punch-in is in the silence before the first word
-      And it is at least 50 ms clear of the words either side
+      And it is at least 250 ms clear of the words either side
       And the lead-in never exceeds 2.0 seconds
 
     @happy-path
     Scenario: The lead-in is shortened rather than crossing into the previous block
-      Given the first word begins at "0:31:40.300"
+      # The gap is 0.6 s, room for the buffer on both sides and nothing more. A
+      # gap too narrow for both is the next Rule's "No quiet margin" case.
+      Given the first word begins at "0:31:40.600"
       And the previous Block has audible speech up to "0:31:40.000"
       When punch-in refinement runs
       Then the punch-in is placed after "0:31:40.000"
-      And it is at least 50 ms clear of the words either side
+      And it is at least 250 ms clear of the words either side
       And no audio from the previous Block is included
 
   Rule: The cut is kept clear of noise

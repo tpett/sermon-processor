@@ -95,9 +95,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:220` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:266` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:354` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:226` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:272` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:360` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/remaining_analysis_steps.py:403` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:537` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:608` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
@@ -107,9 +107,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:220` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:266` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:354` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:226` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:272` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:360` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/remaining_analysis_steps.py:403` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:537` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:608` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
@@ -206,8 +206,8 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/detection_accuracy.feature:254 then a change that improves the median but worsens the worst case is visible as such`
 - `analysis/detection_accuracy.feature:277 then it reports that it was skipped`
 - `analysis/detection_accuracy.feature:278 then it does not report a pass`
-- `analysis/punch_in_detection.feature:53 then the resulting transition sounds natural rather than abrupt`
-- `analysis/punch_in_detection.feature:68 then the reviewer can move it in steps as small as 100 ms`
+- `analysis/punch_in_detection.feature:57 then the resulting transition sounds natural rather than abrupt`
+- `analysis/punch_in_detection.feature:72 then the reviewer can move it in steps as small as 100 ms`
 - `analysis/punch_out_detection.feature:79 then the resulting ending sounds natural rather than clipped`
 - `analysis/punch_out_detection.feature:98 then a hard punch-out is flagged for review`
 - `analysis/punch_out_detection.feature:99 then a hard punch-out is treated as less urgent than a hard punch-in`
