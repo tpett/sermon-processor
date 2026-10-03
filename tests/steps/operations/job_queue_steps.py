@@ -8,7 +8,7 @@ from sermon.approves_segment import ApprovesSegment
 from sermon.cli import drains
 from sermon.config import Credential
 from sermon.jobs.enqueues_job import EnqueuesJob
-from sermon.jobs.analyzes_recording import RunsAnalyzeJob
+from sermon.jobs.analyzes_recording import RunsAnalyzeJob, StageFailed
 from sermon.jobs.downloads_recording import (
     FetchesObject,
     ProbesAudio,
@@ -18,7 +18,6 @@ from sermon.jobs.renders_segment import RunsRenderJob
 from sermon.jobs.recovers_interrupted_jobs import RecoversInterruptedJobs
 from sermon.jobs.runs_queued_jobs import (
     ATTEMPT,
-    RetriesFailedJob,
     RunsQueuedJobs,
     retry_delay,
 )
@@ -63,7 +62,7 @@ def unreachable_bucket():
     return fetches
 
 
-def worker_at(store, fetches, clock):
+def worker_at(store, fetches, clock, analyzes=None):
     return RunsQueuedJobs(
         store=store,
         downloads=RunsDownloadJob(
@@ -72,9 +71,36 @@ def worker_at(store, fetches, clock):
             probes=ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1),
             clock=clock,
         ),
-        analyzes=lambda: None,
+        analyzes=analyzes or (lambda: None),
         renders=lambda: None,
         clock=clock,
+    )
+
+
+class TranscriberDown:
+    def __init__(self):
+        self.down = True
+        self.ran = 0
+
+    def __call__(self, recording):
+        self.ran += 1
+        if self.down:
+            raise StageFailed("transcription", "the transcriber did not answer")
+
+
+class TranscriberUp(TranscriberDown):
+    def __init__(self):
+        super().__init__()
+        self.down = False
+
+
+def analyzes_at(store, clock, analyses):
+    return RunsAnalyzeJob(
+        store=store,
+        stages=lambda _name: None,
+        notifies=SendsNotification(store=store),
+        clock=clock,
+        analyses=analyses,
     )
 
 
@@ -87,12 +113,7 @@ def worker(store, fetches):
             probes=ProbesAudio(duration_seconds=99.5, sample_rate=48000, channels=1),
             clock=lambda: FROZEN,
         ),
-        analyzes=RunsAnalyzeJob(
-            store=store,
-            stages=lambda _name: None,
-            notifies=SendsNotification(store=store),
-            clock=lambda: FROZEN,
-        ),
+        analyzes=analyzes_at(store, lambda: FROZEN, TranscriberUp()),
         renders=RunsRenderJob(
             store=store,
             steps=lambda _name: None,
@@ -169,31 +190,38 @@ def _(store, trigger):
         ApprovesSegment(store=store, clock=lambda: FROZEN)(segment)
         return None
     if trigger == "an operator retries a failed stage":
-        recording = store.saves(
-            Recording(
-                recording_id="recording_20260823_103015",
-                object_key=OBJECT_KEY,
-                state="analysis_failed",
-                started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
-                started_at_source="key",
-                size_bytes=1,
-            )
-        )
-        failed = store.saves(
-            Job(
-                recording_id=recording.recording_id,
-                kind="analyze",
-                state="failed",
-                max_attempts=5,
-                attempts=5,
-                dedupe_key=f"analyze:{recording.recording_id}",
-                queued_at=FROZEN,
-                last_error="transcription timed out",
-            )
-        )
-        RetriesFailedJob(store=store, clock=lambda: FROZEN)(failed)
-        return None
+        return retried_over_http(store)
     raise AssertionError(trigger)
+
+
+def retried_over_http(store):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key=OBJECT_KEY,
+            state="analysis_failed",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+        )
+    )
+    failed = store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="failed",
+            max_attempts=5,
+            attempts=5,
+            dedupe_key=f"analyze:{recording.recording_id}",
+            queued_at=FROZEN,
+            last_error="transcription timed out",
+        )
+    )
+    return (
+        creates_app(store=store, clock=lambda: FROZEN)
+        .test_client()
+        .post(f"/api/jobs/{failed.job_id}/retry")
+    )
 
 
 ENQUEUED_BY = {
@@ -212,7 +240,14 @@ def _(store, _pytest_bdd_example):
 
 
 @then("the triggering request returns immediately")
-def _(store, trigger_result):
+def _(store, trigger_result, _pytest_bdd_example):
+    if _pytest_bdd_example["trigger"] == "an operator retries a failed stage":
+        assert trigger_result.status_code == 202
+        (job,) = store.lists(Job, kind="analyze")
+        assert (job.state, job.attempts) == ("queued", 0)
+        assert store.lists(Recording)[0].state == "analysis_failed"
+        assert store.lists(LogEntry, job_id=job.job_id) == []
+        return
     if trigger_result is not None:
         assert trigger_result.status_code == 202
         assert store.lists(Recording)[0].state == "discovered"
@@ -324,10 +359,10 @@ def _(store):
 @then("only one job runs")
 def _(store):
     worker(store, FetchesObject())()
-    worker(store, FetchesObject())()
+    assert worker(store, FetchesObject())() is None
     jobs = store.lists(Job, kind="analyze")
-    succeeded = [job for job in jobs if job.state == "succeeded"]
-    assert len(succeeded) == 1
+    assert [job.state for job in jobs] == ["succeeded"]
+    assert len(attempts_logged(store, jobs[0])) == 1
     assert store.lists(Recording)[0].state == "awaiting_review"
 
 
@@ -409,3 +444,138 @@ def _(store):
                 last_error="boom" if state == "failed" else None,
             )
         )
+
+
+FAILED_STATE_OF = {"download": "ingest_failed", "analyze": "analysis_failed"}
+LONG_AFTER = timedelta(days=1)
+
+
+def attempts_logged(store, job):
+    return [entry for entry in store.lists(LogEntry, job_id=job.job_id) if entry.kind == ATTEMPT]
+
+
+@given("a job has failed its maximum number of attempts", target_fixture="failing_job")
+def _(store, queue_clock):
+    store.saves(Reviewer(actor="reviewer", receives_notifications=True))
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key=OBJECT_KEY,
+            state="downloaded",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=5412.0,
+        )
+    )
+    job = store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="analyze",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"analyze:{recording.recording_id}",
+            queued_at=FROZEN,
+        )
+    )
+    store._transcriber = TranscriberDown()
+    runs = worker_at(
+        store, FetchesObject(), queue_clock, analyzes_at(store, queue_clock, store._transcriber)
+    )
+    for attempt in range(1, job.max_attempts + 1):
+        assert runs() is not None, f"attempt {attempt} did not run"
+        queue_clock.passes(retry_delay(attempt))
+    return store.loads(Job, job.job_id)
+
+
+@then("the Recording enters the matching failed state")
+def _(store, failing_job):
+    expected = FAILED_STATE_OF[failing_job.kind]
+    assert store.loads(Recording, failing_job.recording_id).state == expected
+    failed = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=failing_job.recording_id)
+        if entry.entered_state == expected
+    ]
+    assert failed == ["transcription: the transcriber did not answer"], failed
+
+
+@then("the job stops retrying")
+def _(store, failing_job, queue_clock):
+    stopped = store.loads(Job, failing_job.job_id)
+    assert (stopped.state, stopped.attempts, stopped.failed_permanently) == ("failed", 5, True)
+    queue_clock.passes(LONG_AFTER)
+    runs = worker_at(
+        store, FetchesObject(), queue_clock, analyzes_at(store, queue_clock, store._transcriber)
+    )
+    assert runs() is None
+    assert store._transcriber.ran == 5
+    assert len(attempts_logged(store, stopped)) == 5
+
+
+@then("an operator can retry it manually")
+def _(store, failing_job, queue_clock):
+    answered = (
+        creates_app(store=store, clock=queue_clock)
+        .test_client()
+        .post(f"/api/jobs/{failing_job.job_id}/retry")
+    )
+    assert answered.status_code == 202, answered.status_code
+    store._transcriber.down = False
+    runs = worker_at(
+        store, FetchesObject(), queue_clock, analyzes_at(store, queue_clock, store._transcriber)
+    )
+    assert runs() is not None
+    assert store._transcriber.ran == 6
+    assert store.loads(Job, failing_job.job_id).state == "succeeded"
+    assert store.loads(Recording, failing_job.recording_id).state == "awaiting_review"
+
+
+@given("a job fails because the source file is not decodable audio", target_fixture="failing_job")
+def _(store, queue_clock):
+    recording = store.saves(
+        Recording(
+            recording_id="recording_20260823_103015",
+            object_key=OBJECT_KEY,
+            state="discovered",
+            started_at=datetime(2026, 8, 23, 10, 30, 15, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=len(FLAC_BYTES),
+        )
+    )
+    job = store.saves(
+        Job(
+            recording_id=recording.recording_id,
+            kind="download",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=f"download:{recording.recording_id}",
+            queued_at=FROZEN,
+        )
+    )
+    store._undecodable = FetchesObject()
+    store._undecodable.stores(OBJECT_KEY, b"")
+    assert worker_at(store, store._undecodable, queue_clock)() is not None
+    return store.loads(Job, job.job_id)
+
+
+@then("it is not retried")
+def _(store, failing_job, queue_clock):
+    for attempt in range(1, failing_job.max_attempts + 1):
+        queue_clock.passes(retry_delay(attempt))
+        assert worker_at(store, store._undecodable, queue_clock)() is None
+    stopped = store.loads(Job, failing_job.job_id)
+    assert (stopped.state, stopped.attempts, stopped.failed_permanently) == ("failed", 1, True)
+    assert len(attempts_logged(store, stopped)) == 1
+
+
+@then('the Recording enters "ingest_failed" immediately')
+def _(store, failing_job):
+    assert failing_job.attempts == 1
+    assert store.loads(Recording, failing_job.recording_id).state == "ingest_failed"
+    failed = [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=failing_job.recording_id)
+        if entry.entered_state == "ingest_failed"
+    ]
+    assert failed == ["source file is not decodable audio"], failed
