@@ -82,8 +82,8 @@ SEGMENT_ACTION_PATHS = {
     "Approve": "approve",
     "Skip": "skip",
     "Revisit": "reopen",
-    "Revert to proposed": "reopen",
     "Cancel processing": "reopen",
+    "Retry processing": "retry-processing",
 }
 
 SEGMENT_ACTIONS = {
@@ -91,7 +91,7 @@ SEGMENT_ACTIONS = {
     "skipped": ("Approve", "Revisit"),
     "approved": ("Cancel processing",),
     "processing": ("Cancel processing",),
-    "processing_failed": ("Revert to proposed",),
+    "processing_failed": ("Retry processing",),
     "recut": ("Approve", "Skip"),
     "complete": (),
 }
@@ -107,6 +107,8 @@ NOTICES = {
     ),
     "skipped": "the Segment is skipped and stays available",
     "reopened": "the Segment has returned to proposed",
+    "processing-retried": "the render is queued again, without re-approving",
+    "processing-standing": "a render for this Segment is already queued",
     "adjusted": "the adjustment is saved without approving",
     "reverted": "the boundaries have returned to the machine proposal",
     "discarded": "the Recording is discarded and its source is untouched",

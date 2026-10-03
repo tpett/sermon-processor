@@ -40,6 +40,7 @@ from sermon.records_publication_details import (
 )
 from sermon.reconciles_bucket import MalformedObjectKey, ReconcilesBucket
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
+from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import (
     NOTICES,
@@ -103,6 +104,7 @@ def creates_app(
     classifies = ClassifiesSegment(store=store, clock=clock)
     archives = ArchivesWholeRecording(store=store, clock=clock)
     reopens = ReopensSegment(store=store, clock=clock)
+    retries_processing = RetriesProcessing(store=store, clock=clock)
     reruns = RerunsAnalysis(store=store, clock=clock)
     adjusts = AdjustsPunchPoint(store=store, clock=clock)
     reverts = RevertsToProposal(store=store, clock=clock)
@@ -568,7 +570,9 @@ def creates_app(
             return returns_to(recording_id, "label-collides", segment_id, focus)
         except SegmentNotReady:
             return returns_to(recording_id, refusal_for(segment), segment_id, focus)
-        except (BoundaryRejected, SegmentAlreadyRendered, ClassificationRejected) as refusal:
+        except (
+            BoundaryRejected, SegmentAlreadyRendered, ClassificationRejected, ProcessingNotFailed
+        ) as refusal:
             return returns_to(recording_id, str(refusal), segment_id, focus)
         if notice is None:
             return ("", 404)
@@ -590,6 +594,9 @@ def creates_app(
         if action == "reopen":
             reopens(segment)
             return "reopened"
+        if action == "retry-processing":
+            _, queued = retries_processing(segment)
+            return "processing-retried" if queued else "processing-standing"
         if action == "revert":
             reverts(segment)
             return "reverted"
