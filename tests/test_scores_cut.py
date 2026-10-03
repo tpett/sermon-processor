@@ -9,6 +9,7 @@ from sermon.scores_cut import (
     SAME_CUT,
     EDGE_RUN_SECONDS,
     SILENCE_RUN_SECONDS,
+    WORD_BUFFER_SECONDS,
     FindsSilenceRuns,
     ScoresCut,
 )
@@ -294,3 +295,52 @@ def test_two_cuts_in_one_sub_threshold_gap_are_still_the_same_cut():
     assert scored.proposed_run is None
     assert scored.speech_seconds == 0.0
     assert scored.verdict == SAME_CUT
+
+
+AFTER_A_WORD_ENDS = 2.03
+BEFORE_A_WORD_STARTS = 6.97
+
+
+def test_the_word_buffer_is_the_named_constant():
+    assert WORD_BUFFER_SECONDS == 0.050
+
+
+def test_a_cut_in_a_run_but_within_the_buffer_of_a_word_crowds_it():
+    scoring = ScoresCut(transcript=three_runs())
+    assert scoring(AFTER_A_WORD_ENDS, IN_FIRST_RUN).within_buffer is True
+    assert scoring(BEFORE_A_WORD_STARTS, IN_FIRST_RUN).within_buffer is True
+    assert scoring(IN_FIRST_RUN, AFTER_A_WORD_ENDS).within_buffer is False
+    assert scoring(IN_FIRST_RUN, AFTER_A_WORD_ENDS).truth_within_buffer is True
+
+
+def test_a_cut_on_a_word_edge_is_within_the_buffer():
+    assert ScoresCut(transcript=three_runs())(2.0, IN_FIRST_RUN).within_buffer is True
+
+
+def test_a_cut_exactly_the_buffer_from_a_word_is_clear_of_it():
+    scoring = ScoresCut(transcript=three_runs())
+    assert scoring(2.05, IN_FIRST_RUN).within_buffer is False
+    assert scoring(2.049, IN_FIRST_RUN).within_buffer is True
+
+
+def test_a_cut_just_inside_a_word_is_mid_word_rather_than_within_the_buffer():
+    scored = ScoresCut(transcript=three_runs())(7.02, IN_FIRST_RUN)
+    assert scored.in_speech is True
+    assert scored.within_buffer is False
+
+
+def test_within_one_run_clearing_the_buffer_is_an_improvement():
+    scoring = ScoresCut(transcript=three_runs())
+    assert scoring(IN_FIRST_RUN, AFTER_A_WORD_ENDS).verdict == IMPROVED
+    assert scoring(AFTER_A_WORD_ENDS, IN_FIRST_RUN).verdict == DEGRADED
+
+
+def test_two_cuts_within_the_buffer_at_either_end_of_one_run_are_the_same_cut():
+    scored = ScoresCut(transcript=three_runs())(AFTER_A_WORD_ENDS, BEFORE_A_WORD_STARTS)
+    assert scored.verdict == SAME_CUT
+
+
+def test_the_buffer_can_be_widened():
+    widened = ScoresCut(transcript=three_runs(), buffer_seconds=0.150)
+    assert widened(2.1, IN_FIRST_RUN).within_buffer is True
+    assert ScoresCut(transcript=three_runs())(2.1, IN_FIRST_RUN).within_buffer is False

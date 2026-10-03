@@ -14,6 +14,7 @@ row is allowed to say.
                                /waveform_peaks.json  document, one per kind
                                /envelope.json
                                /analysis_progress.json
+                               /model_segments.json  the reasoning's own cuts
       published/<date> - <label>.mp3               what a human collects
       corpus/diarization/                          the pipeline's own roots
       models/                                      the whisper weights
@@ -38,6 +39,7 @@ MODELS = "models"
 SOURCE_STEM = "source"
 PREVIEW = "preview.mp3"
 PROGRESS = "analysis_progress.json"
+MODEL_SEGMENTS = "model_segments.json"
 
 #: Kinds whose file is not the `<kind>.json` document that `analysis.io` writes.
 NAMED_ARTIFACTS = {"preview": PREVIEW}
@@ -62,6 +64,11 @@ def artifact_path(recording_id, kind):
 def progress_path(recording_id):
     """Transcription's own fraction: a document no row owns."""
     return f"{recording_directory(recording_id)}/{PROGRESS}"
+
+
+def model_segments_path(recording_id):
+    """The reasoning stage's own boundaries, which no row holds."""
+    return f"{recording_directory(recording_id)}/{MODEL_SEGMENTS}"
 
 
 def published_path(filename):

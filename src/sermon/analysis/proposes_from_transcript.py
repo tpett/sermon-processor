@@ -76,7 +76,7 @@ class DividesByReasoning:
     reasons: object = None
 
     def __call__(self, doc):
-        return (self.reasons or ReasonsOverTranscript())(doc)["blocks"]
+        return (self.reasons or ReasonsOverTranscript())(doc)
 
 
 @dataclass(frozen=True)
@@ -168,7 +168,7 @@ class ProposesFromStoredTranscript:
         recording = TranscribesRecording(store=self.store)(recording)
         answer = (self.reasons or ReasonsOverTranscript(self.model))(doc)
         RecordsEdgesInsideSpeech(store=self.store)(recording, answer["blocks"], doc)
-        DividesIntoBlocks(store=self.store, divides=lambda _: answer["blocks"])(recording)
+        DividesIntoBlocks(store=self.store, divides=lambda _: answer)(recording)
         ClassifiesBlocks(store=self.store)(recording)
         if self.summarizer:
             SummarizesBlocks(

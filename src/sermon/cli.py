@@ -68,7 +68,14 @@ from sermon.reconciles_bucket import (
 from sermon.queues_new_recordings import QueuesNewRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.scans_on_schedule import IntervalNotUnderstood, ScansOnSchedule, interval_from
-from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, LONG_RUN_SECONDS, SAME_CUT
+from sermon.scores_cut import (
+    DEGRADED,
+    EQUAL,
+    IMPROVED,
+    LONG_RUN_SECONDS,
+    SAME_CUT,
+    WORD_BUFFER_SECONDS,
+)
 from sermon.reminds_reviewer import RemindsReviewer
 from sermon.sends_notification import SendsNotification, opens_channel
 from sermon.store import (
@@ -1105,7 +1112,8 @@ def reports_placing(run, in_speech):
 
 def reports_distance(score):
     named = "same run" if score.same_run else "a run away"
-    return f"{named:<10} speech {score.speech_seconds:7.3f} s"
+    crowded = " within the buffer" if score.within_buffer else ""
+    return f"{named:<10} speech {score.speech_seconds:7.3f} s{crowded}"
 
 
 def reports_accuracy_cut(cut, prints):
@@ -1134,7 +1142,9 @@ def reports_accuracy(graded, prints):
         f"{len(graded)} proposal{'' if len(graded) == 1 else 's'} graded, {len(cuts)} cut points: "
         f"{sum(cut.score.same_run for cut in found)} in the human's run, "
         f"{sum(cut.score.in_speech for cut in found)} mid-word, "
-        f"{len(cuts) - len(found)} not found"
+        f"{len(cuts) - len(found)} not found, "
+        f"{sum(cut.score.within_buffer for cut in found)} within "
+        f"{WORD_BUFFER_SECONDS * 1000:.0f} ms of a word"
     )
     if not found:
         prints("nothing could be scored against a human cut")
