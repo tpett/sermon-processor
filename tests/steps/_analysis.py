@@ -17,6 +17,7 @@ from sermon.analysis import (
     ScoresProposals,
     SummarizesBlocks,
 )
+from sermon.analysis.diarizes_audio import DiarizationUnavailable
 from sermon.analysis.io import reads_json, writes_json
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob
@@ -58,6 +59,10 @@ SUNDAY = (
 
 class ModelCallRefused(RuntimeError):
     pass
+
+
+def refuses_to_diarize(recording):
+    raise DiarizationUnavailable(f"the diarizer could not be run on {recording.recording_id}")
 
 
 def refuses_a_model_call(*_, **__):

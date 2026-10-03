@@ -10,7 +10,7 @@ from steps import _analysis, _audio, _remaining_analysis as _remaining, _web
 from steps._markup import reads_field, reads_rows, strips_tags
 
 from sermon.analysis import ClassifiesBlocks, DerivesGroundTruth, ProposesSegments, RefinesPunchIn, ScoresProposals
-from sermon.analysis.io import writes_json
+from sermon.analysis.io import reads_json, writes_json
 from sermon.analysis.stages import CorrectsBlockSummary, SummarizesBlocks
 from sermon.jobs.analyzes_recording import OPTIONAL_STAGE_FAILED
 from sermon.approves_segment import ApprovesSegment
@@ -359,7 +359,7 @@ def _(store):
 
 @given("the diarization stage fails on every attempt")
 def _(store):
-    store._failing_stage = "diarization"
+    store._diarizes = _analysis.refuses_to_diarize
 
 
 @given("the Recording began while the preacher was already speaking")
@@ -695,14 +695,51 @@ def _(store):
     assert proposal.classification_confidence in {"medium", "low"} or proposal.boundary_confidence == "low"
 
 
+@then("boundary detection continues using transcript evidence alone")
+def _(store, recording):
+    analysed = store.loads(Recording, recording.recording_id)
+    assert analysed.state == "awaiting_review", analysed.state
+    assert reads_json(store, analysed, "diarization") is None
+    failed = [entry.error for entry in store.lists(LogEntry, recording_id=analysed.recording_id, kind=OPTIONAL_STAGE_FAILED)]
+    assert [error for error in failed if error.startswith("diarization: ")], failed
+    placed = [
+        (segment.classification, segment.boundary_source)
+        for segment in store.lists(Segment, recording_id=analysed.recording_id)
+    ]
+    assert placed and all(source is not None for _, source in placed), f"no boundary was placed by the walk: {placed}"
+    spoken_of = [
+        evidence.implies
+        for block in _analysis.blocks_of(store, analysed)
+        for evidence in block.evidence
+        if evidence.implies == "speaker change"
+    ]
+    assert spoken_of == [], spoken_of
+
+
+@then(parsers.parse('the Proposal is marked as "{gap}"'))
+def _(store, recording, gap):
+    segments = store.lists(Segment, recording_id=recording.recording_id)
+    assert segments, "no Segment was proposed"
+    for segment in segments:
+        missing = _analysis.proposal_of(store, segment).missing_evidence
+        assert gap in missing, f"{segment.classification} is missing only {missing}"
+
+
+CUE_GAPS = frozenset({"no opening cue", "closing prayer"})
+CONFIDENCE_ORDER = ("high", "medium", "low")
+
+
 @then("its confidence is reduced")
 def _(store, recording):
     segments = store.lists(Segment, recording_id=recording.recording_id)
     assert segments, "no Segment was proposed"
     for segment in segments:
         proposal = _analysis.proposal_of(store, segment)
-        assert "no speaker evidence" in proposal.missing_evidence, proposal.missing_evidence
-        assert proposal.boundary_confidence != "high", proposal.boundary_confidence
+        earned = CONFIDENCE_ORDER[len(CUE_GAPS & set(proposal.missing_evidence))]
+        assert CONFIDENCE_ORDER.index(proposal.boundary_confidence) > CONFIDENCE_ORDER.index(earned), (
+            f"{segment.classification} is {proposal.boundary_confidence}, what its cues alone earn "
+            f"({', '.join(proposal.missing_evidence)})"
+        )
 
 
 @then("playback starts at the excerpt")
