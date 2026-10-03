@@ -770,6 +770,7 @@
    "AMEN_FALLBACK_MAX_S": "120.0",
    "AMEN_LOOKBACK_S": "150.0",
    "CUE_WINDOW_S": "240.0",
+   "LEAD_IN_MAX_S": "2.0",
    "LESSON_LEAD_IN": "{'announcements', 'other', 'prayer'}",
    "LOOKAHEAD_S": "420.0",
    "LOOKBACK_S": "0.0",
@@ -780,7 +781,8 @@
    "SEATED_WINDOW_S": "120.0",
    "SPEAKER_SNAP_S": "4.0",
    "TAIL_GUARD_S": "0.4",
-   "TAIL_S": "1.5"
+   "TAIL_S": "1.5",
+   "WORD_BUFFER_S": "0.05"
   }
  },
  "constants.unread": [
