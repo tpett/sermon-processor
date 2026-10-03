@@ -55,6 +55,8 @@ BOUNDARIES = ("punch-in", "punch-out")
 INLINE_KINDS = frozenset({"preview"})
 ARTIFACT_UNAVAILABLE = "the artifact is unavailable"
 REPROCESS_OFFER = "re-process the Segment"
+NO_SUCH_RECORDING = ({"error": "no such recording"}, 404)
+NO_SUCH_SEGMENT = ({"error": "no such segment"}, 404)
 
 
 def unavailable(path, entity):
@@ -218,6 +220,8 @@ def creates_app(
     @app.get("/api/recordings/<recording_id>/peaks")
     def recording_peaks(recording_id):
         recording = store.loads(Recording, recording_id)
+        if recording is None:
+            return NO_SUCH_RECORDING
         payload = reads_json(store, recording, "waveform_peaks") or {}
         resolutions = payload.get("resolutions") or {}
         wanted = request.args.get("resolution", "overview")
@@ -421,23 +425,23 @@ def creates_app(
             playhead_seconds=playhead_of(recording_id, selected),
         )
         if view is None:
-            return ({"error": "no such recording"}, 404)
+            return NO_SUCH_RECORDING
         return asdict(view)
 
     @app.post("/api/recordings/<recording_id>/seek")
     def seek(recording_id):
         seconds = float(request.get_json()["seconds"])
+        view = shows(recording_id, playhead_seconds=seconds)
+        if view is None:
+            return NO_SUCH_RECORDING
         playheads[recording_id] = seconds
-        return asdict(
-            shows(
-                recording_id,
-                playhead_seconds=seconds,
-            )
-        )
+        return asdict(view)
 
     @app.post("/api/segments/<int:segment_id>/approve")
     def approve_segment(segment_id):
         segment = store.loads(Segment, segment_id)
+        if segment is None:
+            return NO_SUCH_SEGMENT
         try:
             approved = approves(segment)
         except PublicationLabelRequired as error:
@@ -450,18 +454,24 @@ def creates_app(
     def discard_recording(recording_id):
         body = request.get_json(silent=True) or {}
         recording = store.loads(Recording, recording_id)
+        if recording is None:
+            return NO_SUCH_RECORDING
         discarded = discards(recording, reason=body.get("reason"))
         return {"recording_id": discarded.recording_id, "state": discarded.state}
 
     @app.post("/api/recordings/<recording_id>/restore")
     def restore_recording(recording_id):
         recording = store.loads(Recording, recording_id)
+        if recording is None:
+            return NO_SUCH_RECORDING
         restored = restores(recording)
         return {"recording_id": restored.recording_id, "state": restored.state}
 
     @app.post("/api/segments/<int:segment_id>/skip")
     def skip_segment(segment_id):
         segment = store.loads(Segment, segment_id)
+        if segment is None:
+            return NO_SUCH_SEGMENT
         skipped = skips(segment)
         return asdict(shows(skipped.recording_id))
 
@@ -642,6 +652,8 @@ def creates_app(
     def publication_details(segment_id):
         body = request.get_json()
         segment = store.loads(Segment, segment_id)
+        if segment is None:
+            return NO_SUCH_SEGMENT
         RecordsPublicationDetails(store=store).saves(
             segment,
             publication_date=date.fromisoformat(body["date"]),
