@@ -4,7 +4,10 @@ from datetime import UTC, datetime, date
 from pytest_bdd import given, parsers, then, when
 
 from sermon.records_publication_details import RecordsPublicationDetails
+from sermon.shows_recording import NOTICES
 from sermon.store import Recording, Segment
+from steps import _forms
+from steps._markup import reads_field
 
 
 @given(parsers.parse('a Recording from "{when}"'), target_fixture="recording")
@@ -122,3 +125,14 @@ def _(store, processed_segment, filename):
 
     artifacts = store.lists(Artifact, segment_id=processed_segment.segment_id, kind="rendered_mp3")
     assert artifacts[0].path == layout.published_path(filename)
+
+
+@then("I can change the label or confirm that this replaces the previous file")
+def _(store, segment, detail_page):
+    approving = 'data-field="action-control">Approve'
+    _, offered = _forms.finds_form(detail_page, approving)
+    assert _forms.offers_field(offered, "label"), "the label cannot be changed here"
+    assert _forms.offers_field(offered, "replace"), "replacing the previous file is not offered"
+    confirmed = _forms.submits(store, detail_page, approving, replace="yes")
+    assert reads_field(confirmed, "action-notice") == NOTICES["approved"]
+    assert store.loads(Segment, segment.segment_id).label == "Hebrews 12.4-11"

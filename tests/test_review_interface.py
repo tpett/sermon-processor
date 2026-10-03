@@ -262,3 +262,27 @@ def test_the_page_rounds_a_timecode_before_carrying_it(store, recording):
             [seconds for seconds, _ in A_HAIR_UNDER_A_BOUNDARY],
         )
     assert shown == [timecode for _, timecode in A_HAIR_UNDER_A_BOUNDARY]
+
+
+def test_a_colliding_label_can_be_changed_instead_of_replacing_the_file(store, recording):
+    from sermon.shows_recording import NOTICES
+    from sermon.store import Artifact, layout
+    from steps import _forms, _web
+
+    segment = saves_segment(store, recording)
+    store.saves(
+        Artifact(
+            recording_id=recording.recording_id,
+            kind="rendered_mp3",
+            path=layout.published_path("2026-09-13 - Hebrews 12.mp3"),
+            size_bytes=1,
+            checksum="existing",
+        )
+    )
+    approving = 'data-field="action-control">Approve'
+    page = _web.opens_detail(store, recording.recording_id, segment=segment.segment_id)
+    refused = _forms.submits(store, page, approving, label="Hebrews 12")
+    assert reads_field(refused, "action-notice") == NOTICES["label-collides"]
+    renamed = _forms.submits(store, refused, approving, label="Hebrews 12.1-3")
+    assert reads_field(renamed, "action-notice") == NOTICES["approved"]
+    assert store.loads(Segment, segment.segment_id).label == "Hebrews 12.1-3"

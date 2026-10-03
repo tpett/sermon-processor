@@ -33,11 +33,16 @@ from sermon.extends_segment_span import (
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.lists_recordings import ListsRecordings
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
-from sermon.records_publication_details import RecordsPublicationDetails
+from sermon.records_publication_details import (
+    FilenameCollision,
+    RecordsPublicationDetails,
+    places_publication_date,
+)
 from sermon.reconciles_bucket import ReconcilesBucket
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import (
+    NOTICES,
     PLAYHEAD_OUTSIDE_SPAN,
     ShowsRecording,
     formats_precise,
@@ -84,6 +89,7 @@ def creates_app(
     app.add_template_filter(formats_precise, "precise")
     app.add_template_filter(formats_seconds, "seconds")
     app.jinja_env.globals["playhead_outside_span"] = PLAYHEAD_OUTSIDE_SPAN
+    app.jinja_env.globals["notices"] = NOTICES
     accepts = AcceptsRecordingWebhook(store=store, clock=clock)
     authorizes = AuthorizesWebhook(token=webhook_token)
     lists = ListsRecordings(store=store, clock=clock)
@@ -551,6 +557,8 @@ def creates_app(
             notice = performs_segment_action(segment, action)
         except PublicationLabelRequired:
             return returns_to(recording_id, "label-required", segment_id, focus)
+        except FilenameCollision:
+            return returns_to(recording_id, "label-collides", segment_id, focus)
         except SegmentNotReady:
             return returns_to(recording_id, refusal_for(segment), segment_id, focus)
         except (BoundaryRejected, SegmentAlreadyRendered, ClassificationRejected) as refusal:
@@ -588,13 +596,22 @@ def creates_app(
         label = request.form.get("label")
         if intent is None and label is None:
             return segment
-        return store.saves(
+        chosen = store.saves(
             replace(
                 segment,
                 intent=intent or segment.intent,
                 label=(label or None) if label is not None else segment.label,
             )
         )
+        RecordsPublicationDetails(store=store).saves(
+            chosen,
+            publication_date=places_publication_date(
+                chosen, store.loads(Recording, chosen.recording_id)
+            ),
+            label=chosen.label,
+            replace_existing=request.form.get("replace") == "yes",
+        )
+        return store.saves(chosen)
 
     @app.post("/recordings/<recording_id>/segments/<int:segment_id>/span/<edge>")
     def span_action(recording_id, segment_id, edge):

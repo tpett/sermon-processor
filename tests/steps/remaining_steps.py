@@ -619,29 +619,28 @@ def _(store, filename):
         Artifact(
             recording_id=recording.recording_id,
             kind="rendered_mp3",
-            path=filename,
+            path=layout.published_path(filename),
             size_bytes=1,
             checksum="existing",
         )
     )
 
 
-@when("I approve another Segment with the same date and label", target_fixture="collision")
+@when("I approve another Segment with the same date and label", target_fixture="detail_page")
 def _(store, segment):
-    try:
-        RecordsPublicationDetails(store=store).saves(
-            segment,
-            publication_date=datetime(2026, 8, 23).date(),
-            label="Hebrews 12.4-11",
-        )
-    except FilenameCollision as refused:
-        return refused
-    return None
+    from steps import _forms
+
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    return _forms.submits(store, page, 'data-field="action-control">Approve', label="Hebrews 12.4-11")
 
 
 @then("I am warned about the collision")
-def _(collision):
-    assert isinstance(collision, FilenameCollision)
+def _(store, segment, detail_page):
+    from sermon.shows_recording import NOTICES
+    from steps._markup import reads_field
+
+    assert reads_field(detail_page, "action-notice") == NOTICES["label-collides"]
+    assert store.loads(Segment, segment.segment_id).state == "proposed"
 
 
 @given(parsers.parse('the label is "{label}"'), target_fixture="segment")

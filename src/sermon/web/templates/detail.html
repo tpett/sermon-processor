@@ -434,6 +434,7 @@
           </select>
         </label>
         <label>Publication label <input type="text" name="label" value="{{ view.label or '' }}"></label>
+        {% if view.notice == notices["label-collides"] %}<label><input type="checkbox" name="replace" value="yes" data-field="replace-control"> replace the file already published under this name</label>{% endif %}
         <button type="submit" class="primary" data-field="action-control">Approve</button>
       </form>
       {% else %}
