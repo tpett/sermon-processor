@@ -1197,9 +1197,15 @@ def regrades(arguments=None, prints=print, derives=None):
         prints(f"no stored proposals under {corpus / 'blocks'}")
         return 1
     data_root = Path(asked.store).resolve() if asked.store else None
+    labelled = data_root or corpus / "groundtruth.json"
+    if data_root is None and not asked.drift and not labelled.is_file():
+        prints(
+            f"no answer key at {labelled}: pass --store <data-root> to grade against "
+            "the stored corpus"
+        )
+        return 1
     store = opens_store(data_root) if data_root else None
     reads = ReadsLabelledFromStore(store=store) if store else None
-    labelled = data_root or corpus / "groundtruth.json"
     try:
         if asked.drift:
             prints(f"reading drift against {len(blocks)} stored proposals under {corpus}")

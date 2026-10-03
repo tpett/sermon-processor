@@ -600,3 +600,23 @@ def test_a_stored_pair_whose_duration_is_unknown_is_refused_by_the_gate_too(tmp_
     )
     assert f"{RECORDING} is not graded: its source duration is unknown" in printed
     assert "0 proposals graded, 0 cut points, 0 moved" in printed
+
+
+@pytest.mark.parametrize("gated", [False, True])
+def test_a_corpus_with_no_answer_key_and_no_store_is_refused_with_a_sentence(tmp_path, gated):
+    stages_corpus(tmp_path)
+    (tmp_path / "groundtruth.json").unlink()
+    (tmp_path / "before.json").write_text(json.dumps({}))
+    flags = ("--before", str(tmp_path / "before.json")) if gated else ()
+    code, printed = runs(tmp_path, [(7.0, 26.0)], *flags)
+    assert code == 1
+    assert f"no answer key at {tmp_path / 'groundtruth.json'}" in printed
+    assert "--store" in printed
+
+
+def test_the_drift_mode_needs_no_answer_key(tmp_path):
+    stages_corpus(tmp_path)
+    (tmp_path / "groundtruth.json").unlink()
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--drift")
+    assert code == 0
+    assert "drift only, not accuracy" in printed
