@@ -31,6 +31,7 @@ from sermon.extends_segment_span import (
     SpanWouldOverlapNeighbour,
 )
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
+from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob
 from sermon.lists_recordings import ListsRecordings
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import (
@@ -696,5 +697,18 @@ def creates_app(
         except FilenameCollision as collision:
             return {"error": NOTICES["label-collides"], "path": str(collision)}, 409
         return asdict(shows(segment.recording_id))
+
+    @app.post("/api/jobs/<int:job_id>/retry")
+    def retry_job(job_id):
+        job = store.loads(Job, job_id)
+        if job is None:
+            return {"error": "no such job"}, 404
+        try:
+            held, requeued = RetriesFailedJob(store=store, clock=clock)(job)
+        except JobNotFailed as refusal:
+            return {"error": str(refusal)}, 409
+        return {"job_id": held.job_id, "state": held.state, "requeued": requeued}, (
+            202 if requeued else 200
+        )
 
     return app

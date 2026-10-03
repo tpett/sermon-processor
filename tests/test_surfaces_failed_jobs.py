@@ -253,3 +253,62 @@ def test_an_undecodable_download_tells_the_reviewer_at_once(store):
     told = store.lists(Notification, recording_id=RECORDING_ID)
     assert [item.kind for item in told] == ["ingest_failed"]
     assert "not decodable" in told[0].summary
+
+
+def a_failed_analysis_job(store, **fields):
+    a_recording(store, "analysis_failed")
+    return store.saves(
+        Job(
+            recording_id=RECORDING_ID,
+            kind="analyze",
+            state=fields.get("state", "failed"),
+            attempts=3,
+            max_attempts=3,
+            failed_permanently=True,
+            dedupe_key=f"analyze:{RECORDING_ID}",
+            queued_at=STARTED,
+            last_error="transcription: the transcriber did not answer",
+        )
+    )
+
+
+def test_retrying_a_failed_job_over_http_requeues_it_with_a_fresh_budget(store):
+    job = a_failed_analysis_job(store)
+    response = client(store).post(f"/api/jobs/{job.job_id}/retry")
+
+    assert response.status_code == 202
+    assert response.get_json() == {"job_id": job.job_id, "state": "queued", "requeued": True}
+    held = store.loads(Job, job.job_id)
+    assert (held.state, held.attempts, held.failed_permanently) == ("queued", 0, False)
+
+
+def test_retrying_over_http_refuses_a_job_that_has_not_failed(store):
+    job = a_failed_analysis_job(store, state="succeeded")
+    response = client(store).post(f"/api/jobs/{job.job_id}/retry")
+
+    assert response.status_code == 409
+    assert "only a failed job" in response.get_json()["error"]
+    assert store.loads(Job, job.job_id).state == "succeeded"
+
+
+def test_retrying_over_http_while_the_same_work_is_queued_answers_with_that_job(store):
+    failed = a_failed_analysis_job(store)
+    standing = store.saves(
+        Job(
+            recording_id=RECORDING_ID,
+            kind="analyze",
+            state="queued",
+            max_attempts=5,
+            dedupe_key=failed.dedupe_key,
+            queued_at=STARTED,
+        )
+    )
+    response = client(store).post(f"/api/jobs/{failed.job_id}/retry")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"job_id": standing.job_id, "state": "queued", "requeued": False}
+    assert store.loads(Job, failed.job_id).state == "failed"
+
+
+def test_retrying_a_job_that_does_not_exist_is_not_found(store):
+    assert client(store).post("/api/jobs/999/retry").status_code == 404
