@@ -37,6 +37,8 @@ from sermon.analysis.measures_boundary_error import (
     ReadsLabelledFromStore,
 )
 from sermon.analysis.regrades_stored_cuts import DerivesStoredProposals, RegradesStoredCuts
+from sermon.analysis import gates_shipping_cuts as gate
+from sermon.analysis import judges_cut
 from sermon.analysis.diarizes_audio import diarizes_with
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
@@ -1060,14 +1062,33 @@ def organizes(settings=None, arguments=None, prints=print):
 
 
 REGRADE_USAGE = (
-    "sermon-regrade --corpus <corpus-root> [--store <data-root>] [--before <path>] "
-    "[--save <path>] [--tag <text>] [--drift]"
+    "sermon-regrade [--corpus <corpus-root>] [--baseline <path>] [--tag <config>] "
+    "[--split dev|test|all] [--unseal <reason>] [--access-log <path>] [--all] "
+    "[--accept <reason>] | sermon-regrade --corpus-regime [--store <data-root>] "
+    "[--before <path>] [--save <path>] [--tag <text>] [--drift]"
 )
+SHIPPING_BASELINE = "tests/shipping_baseline.json"
+HELD_OUT_READS = "tests/held_out_reads.log"
+SPLITS = {
+    "dev": ("dev",),
+    "test": ("test", "multi-output", "two-level", "blind"),
+    "all": ("dev", "test", "multi-output", "two-level", "blind"),
+}
+CORPUS_REGIME_FLAGS = ("store", "before", "save", "drift")
 
 
 def parses_regrade_command(arguments, prints):
     parser = argparse.ArgumentParser(prog="sermon-regrade", usage=REGRADE_USAGE, add_help=True)
-    parser.add_argument("--corpus", required=True)
+    parser.add_argument(
+        "--corpus", default=os.environ.get("SERMON_SPIKE_DATA") or "experiments/data"
+    )
+    parser.add_argument("--baseline", default=SHIPPING_BASELINE)
+    parser.add_argument("--split", choices=sorted(SPLITS), default="dev")
+    parser.add_argument("--unseal")
+    parser.add_argument("--access-log", default=HELD_OUT_READS)
+    parser.add_argument("--accept")
+    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--corpus-regime", action="store_true")
     parser.add_argument("--store")
     parser.add_argument("--before")
     parser.add_argument("--save")
@@ -1265,8 +1286,183 @@ def reports_approval_record(rate, prints):
     )
 
 
-def regrades(arguments=None, prints=print, derives=None):
-    """Grade every stored proposal against the human cut by silence-run identity.
+def clock_of(seconds):
+    tenths = round(seconds * 10)
+    return f"{tenths // 36000}:{tenths // 600 % 60:02d}:{tenths // 10 % 60:02d}.{tenths % 10}"
+
+
+def reports_distance_from_human(judged):
+    if judged.missed:
+        return "no proposal covers this cut"
+    apart = judged.seconds_from_human
+    when = "on the human's cut" if apart == 0 else (
+        f"{abs(apart):.2f} s {'early' if apart < 0 else 'late'}"
+    )
+    where = (
+        "in the human's pause"
+        if judged.same_pause
+        else f"{judged.speech_seconds:.2f} s of speech away"
+    )
+    if judged.inside_word:
+        noted = ", inside a word"
+    elif judged.clearance_seconds is not None and judged.clearance_seconds < 1.0:
+        noted = f", {judged.clearance_seconds * 1000:.0f} ms clear of a word"
+    else:
+        noted = ""
+    return f"{clock_of(judged.proposed)}  {when}, {where}{noted}"
+
+
+def reports_judged_recording(judged, prints):
+    prints(f"{judged.label}  ({judged.recording_id}, {judged.split})  {judged.verdict.upper()}")
+    for cut in judged.cuts:
+        named = "punch-in" if cut.boundary == "punch_in" else "punch-out"
+        prints(f"  {named:<9} human {clock_of(cut.human)}  {cut.verdict}")
+        prints(f"    before {reports_distance_from_human(cut.before)}")
+        prints(f"    after  {reports_distance_from_human(cut.after)}")
+    if judged.unpaired_before or judged.unpaired_after:
+        prints(
+            f"  proposals no human cut pairs with: before {judged.unpaired_before}, "
+            f"after {judged.unpaired_after}"
+        )
+
+
+def moved_by(judged):
+    finite = [
+        cut.after.speech_seconds - cut.before.speech_seconds
+        for cut in judged.cuts
+        if not cut.before.missed and not cut.after.missed
+    ]
+    return sum(finite)
+
+
+def reports_where_cuts_stand(report, side, prints):
+    cuts = [getattr(cut, side) for one in report.recordings for cut in one.cuts]
+    found = [cut for cut in cuts if not cut.missed]
+    if not found:
+        prints(f"{side}: no cut found")
+        return
+    apart = sorted(cut.speech_seconds for cut in found)
+    clear = [cut.clearance_seconds for cut in found if not cut.inside_word]
+    prints(
+        f"{side + ':':<7} {sum(cut.same_pause for cut in found)} of {len(cuts)} cuts in the "
+        f"human's pause, median {apart[len(apart) // 2]:.2f} / worst {apart[-1]:.2f} speech-s "
+        f"away, {len(cuts) - len(found)} missed; diagnostics: "
+        f"{sum(cut.inside_word for cut in found)} inside a word, "
+        f"{sum(seconds < 0.05 for seconds in clear)} within 50 ms of one, "
+        f"{sum(seconds < 0.25 for seconds in clear)} within 250 ms"
+    )
+
+
+def reports_gate(report, asked, prints):
+    counted = report.counts
+    shown = [
+        one for one in report.recordings
+        if asked.all or one.verdict != judges_cut.UNCHANGED
+    ]
+    for judged in shown:
+        reports_judged_recording(judged, prints)
+    for recording_id in report.not_in_baseline:
+        prints(f"{recording_id}  not in the baseline, not compared")
+    prints(
+        f"{len(report.recordings)} recordings judged: {counted[judges_cut.BETTER]} better, "
+        f"{counted[judges_cut.WORSE]} worse, {counted[gate.MIXED]} mixed, "
+        f"{counted[judges_cut.UNCHANGED]} unchanged"
+    )
+    for judged in report.recordings:
+        if judged.verdict == judges_cut.UNCHANGED:
+            continue
+        moved = moved_by(judged)
+        direction = "better" if moved < 0 else "worse"
+        prints(
+            f"  {judged.recording_id}  {judged.verdict}"
+            + (f", {direction} by {abs(moved):.2f} speech-s" if moved else "")
+        )
+    if report.recordings:
+        reports_where_cuts_stand(report, "before", prints)
+        reports_where_cuts_stand(report, "after", prints)
+    if report.judge_changed:
+        prints(
+            f"the judge changed since the baseline was accepted ({report.baseline_judge} -> "
+            f"{judges_cut.JUDGE_DIGEST}); review it, then --accept it on an unchanged pipeline"
+        )
+    if not report.recordings:
+        prints("nothing could be compared against a human cut, so nothing was gated")
+    return {gate.PASSED: 0, gate.WORSENED: 1, gate.CANNOT_GATE: 2}[report.outcome]
+
+
+def gates_shipping_cuts(asked, prints, replays=None):
+    corpus = Path(asked.corpus).resolve()
+    baseline_path = Path(asked.baseline)
+    tag = asked.tag or gate.PRODUCTION_TAG
+    if not gate.block_files(corpus):
+        prints(f"no stored model answers under {corpus / 'blocks'}")
+        return 2
+    if asked.accept is not None:
+        try:
+            accepted = gate.AcceptsBaseline(
+                corpus_root=corpus, path=baseline_path, replays=replays
+            )(asked.accept)
+        except ValueError as refused:
+            prints(str(refused))
+            return 1
+        if accepted.refused:
+            prints(f"not accepted: {accepted.refused}")
+            return 1
+        prints(
+            f"accepted the shipping replay into {baseline_path}: {len(accepted.moved)} "
+            f"proposal sets moved; reason recorded: {asked.accept.strip()}"
+        )
+        for name in accepted.moved:
+            prints(f"  moved {name}")
+        return 0
+    baseline = gate.reads_baseline(baseline_path)
+    if baseline is None:
+        prints(
+            f"no baseline at {baseline_path}: record one with --accept <reason> on the code "
+            "you want to compare against"
+        )
+        return 2
+    if not (corpus / "groundtruth.json").is_file():
+        prints(f"no answer key at {corpus / 'groundtruth.json'}")
+        return 2
+    splits = SPLITS[asked.split]
+    prints(f"production's analyze walk replayed over {tag}, {asked.split} split ({', '.join(splits)})")
+    prints(
+        f"judge v{judges_cut.JUDGE_VERSION} {judges_cut.JUDGE_DIGEST}: the human's pause first, "
+        f"then speech-seconds; tolerance {judges_cut.TOLERANCE_SPEECH_SECONDS} speech-s"
+    )
+    prints(
+        "a cut in the human's pause is the human's cut; any other is as far from it as the "
+        "speech between them"
+    )
+    if baseline.accepted:
+        last = baseline.accepted[-1]
+        prints(
+            f"against {baseline_path}, accepted {last['at']} at {last['commit']}: {last['reason']}"
+        )
+    if asked.split != "dev":
+        prints(
+            f"WARNING: the {asked.split} split is held out; reading it spends it, and the read "
+            f"is recorded in {asked.access_log}"
+        )
+    try:
+        report = gate.GatesShippingCuts(
+            corpus_root=corpus,
+            baseline=baseline,
+            replays=replays,
+            tag=tag,
+            splits=splits,
+            unsealed=asked.unseal,
+            records=gate.RecordsHeldOutRead(path=Path(asked.access_log)),
+        )()
+    except gate.HeldOutSealed as sealed:
+        prints(f"refused: {sealed}; pass --unseal <reason> to read it")
+        return 2
+    return reports_gate(report, asked, prints)
+
+
+def regrades(arguments=None, prints=print, derives=None, replays=None):
+    """Gate a change on production's proposals against the human cut, or replay the corpus regime.
 
     Reads the corpus and writes nothing to it. No audio leaves the machine and
     neither a transcriber nor a classifier is invoked.
@@ -1274,6 +1470,14 @@ def regrades(arguments=None, prints=print, derives=None):
     asked = parses_regrade_command(sys.argv[1:] if arguments is None else arguments, prints)
     if asked is None:
         return 1
+    if not asked.corpus_regime and not any(
+        getattr(asked, flag) for flag in CORPUS_REGIME_FLAGS
+    ):
+        return gates_shipping_cuts(asked, prints, replays)
+    prints(
+        "corpus regime: stored block files through derive() and choose(model_segments) -- "
+        "not the walk production runs"
+    )
     corpus = Path(asked.corpus).resolve()
     blocks = sorted((corpus / "blocks").glob("*.json"))
     if not blocks:

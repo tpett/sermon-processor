@@ -347,7 +347,7 @@ def test_a_baseline_that_says_nothing_about_a_proposal_leaves_it_ungraded(tmp_pa
 def runs(root, live, *flags):
     collected = []
     code = cli.regrades(
-        arguments=["--corpus", str(root), *flags],
+        arguments=["--corpus", str(root), "--corpus-regime", *flags],
         prints=collected.append,
         derives=lambda stored, doc: [
             {"punch_in": punch_in, "punch_out": punch_out} for punch_in, punch_out in live
