@@ -200,3 +200,20 @@ def test_a_key_with_an_impossible_date_is_skipped_rather_than_ending_the_scan(st
     ]
     assert [item.object_key for item in store.lists(Recording)] == [UNSEEN]
     assert store.lists(Discovery)[0].discovered_count == 1
+
+
+def test_each_scan_answers_with_the_discovery_it_recorded(store):
+    fetches = FetchesObject()
+    fetches.stores(UNSEEN, FLAC_BYTES, last_modified=FROZEN - timedelta(hours=1))
+    found = reconciles(store, fetches)()
+    fetches.error = "connection reset"
+    failed = reconciles(store, fetches)()
+    fetches.error = "403 Forbidden"
+    refused = reconciles(store, fetches)()
+
+    assert [found, failed, refused] == store.lists(Discovery, kind="scan")
+    assert [(item.discovered_count, item.failure) for item in (found, failed, refused)] == [
+        (1, None),
+        (0, "transient"),
+        (0, "credentials"),
+    ]
