@@ -7,7 +7,7 @@ from sermon.store import Job, LogEntry, Store
 
 FIRST_RETRY_DELAY = timedelta(minutes=1)
 ATTEMPT = "job_attempt"
-REQUEUED_AFTER_FAILURE = frozenset({"render"})
+REQUEUED_AFTER_FAILURE = frozenset({"analyze", "render"})
 
 
 def now():

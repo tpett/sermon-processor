@@ -43,7 +43,36 @@ class RendersSegment:
     clock: object = now
     renders: object = None
 
-    def __call__(self, segment):
+    def _fails(self, segment, reason, *, final):
+        entered = "processing_failed" if final else "approved"
+        self.store.saves(replace(self.store.loads(Segment, segment.segment_id), state=entered))
+        self.store.saves(
+            LogEntry(
+                recording_id=segment.recording_id,
+                segment_id=segment.segment_id,
+                kind="state_change",
+                occurred_at=self.clock(),
+                correlation_id=f"render:{segment.segment_id}",
+                entered_state=entered,
+                error=reason,
+            )
+        )
+        if not final:
+            return
+        notification = self.store.saves(
+            Notification(
+                recording_id=segment.recording_id,
+                segment_id=segment.segment_id,
+                kind="processing_failed",
+                recipient="reviewer",
+                summary=f"processing failed: {reason}",
+                created_at=self.clock(),
+                state="pending",
+            )
+        )
+        self.notifies(notification)
+
+    def __call__(self, segment, *, final_attempt=True):
         refuses_unsettled_stereo(self.store.loads(Recording, segment.recording_id))
         correlation_id = f"render:{segment.segment_id}"
         processing = self.store.saves(replace(segment, state="processing"))
@@ -58,23 +87,39 @@ class RendersSegment:
             )
         )
         try:
-            for name in PROCESS_STEPS:
-                self.steps(name)
+            processing, filename = self._renders(processing)
         except Exception as error:
             step = getattr(error, "step", "encode")
-            failed = self.store.saves(replace(processing, state="processing_failed"))
-            self.store.saves(
-                LogEntry(
-                    recording_id=segment.recording_id,
-                    segment_id=segment.segment_id,
-                    kind="state_change",
-                    occurred_at=self.clock(),
-                    correlation_id=correlation_id,
-                    entered_state="processing_failed",
-                    error=f"{step}: {error}",
-                )
-            )
+            self._fails(segment, f"{step}: {error}", final=final_attempt)
             raise StepFailed(step, str(error)) from error
+        complete = self.store.saves(replace(processing, state="complete"))
+        self.store.saves(
+            LogEntry(
+                recording_id=segment.recording_id,
+                segment_id=segment.segment_id,
+                kind="state_change",
+                occurred_at=self.clock(),
+                correlation_id=correlation_id,
+                entered_state="complete",
+            )
+        )
+        notification = self.store.saves(
+            Notification(
+                recording_id=segment.recording_id,
+                segment_id=segment.segment_id,
+                kind="render_complete",
+                recipient="reviewer",
+                summary=filename,
+                created_at=self.clock(),
+                state="pending",
+            )
+        )
+        self.notifies(notification)
+        return complete
+
+    def _renders(self, processing):
+        for name in PROCESS_STEPS:
+            self.steps(name)
         recording = self.store.loads(Recording, processing.recording_id)
         filename = names_rendered_mp3(
             places_publication_date(processing, recording), processing.label
@@ -85,8 +130,8 @@ class RendersSegment:
                 warnings.append("source was very quiet")
         processing = self.store.saves(replace(processing, warnings=tuple(warnings)))
         artifact = Artifact(
-            recording_id=segment.recording_id,
-            segment_id=segment.segment_id,
+            recording_id=processing.recording_id,
+            segment_id=processing.segment_id,
             kind="rendered_mp3",
             path=layout.published_path(filename),
             size_bytes=1,
@@ -114,30 +159,7 @@ class RendersSegment:
         else:
             destination.write_bytes(b"")
         self.store.saves(artifact)
-        complete = self.store.saves(replace(processing, state="complete"))
-        self.store.saves(
-            LogEntry(
-                recording_id=segment.recording_id,
-                segment_id=segment.segment_id,
-                kind="state_change",
-                occurred_at=self.clock(),
-                correlation_id=correlation_id,
-                entered_state="complete",
-            )
-        )
-        notification = self.store.saves(
-            Notification(
-                recording_id=segment.recording_id,
-                segment_id=segment.segment_id,
-                kind="render_complete",
-                recipient="reviewer",
-                summary=filename,
-                created_at=self.clock(),
-                state="pending",
-            )
-        )
-        self.notifies(notification)
-        return complete
+        return processing, filename
 
 
 @dataclass(frozen=True)
@@ -157,6 +179,8 @@ class RunsRenderJob:
         ][0]
         running = self.store.saves(replace(job, state="running", started_at=self.clock()))
         segment = self.store.loads(Segment, running.segment_id)
+        attempts = (running.attempts or 0) + 1
+        final = attempts >= running.max_attempts
         try:
             RendersSegment(
                 store=self.store,
@@ -164,14 +188,15 @@ class RunsRenderJob:
                 notifies=self.notifies,
                 clock=self.clock,
                 renders=self.renders,
-            )(segment)
+            )(segment, final_attempt=final)
         except StepFailed as error:
             self.store.saves(
                 replace(
                     running,
-                    state="failed",
+                    state="failed" if final else "queued",
                     last_error=f"{error.step}: {error}",
-                    attempts=(running.attempts or 0) + 1,
+                    attempts=attempts,
+                    failed_permanently=final,
                 )
             )
             return

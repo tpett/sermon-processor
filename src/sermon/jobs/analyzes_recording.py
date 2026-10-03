@@ -15,6 +15,7 @@ from sermon.analysis import (
     TranscribesRecording,
 )
 from sermon.analysis.progress import RecordsStageProgress
+from sermon.analysis.transcribes_audio import AudioNotDecodable
 from sermon.config import ModelEndpointUnreachable
 from sermon.extends_segment_span import WidensProposedSpan
 from sermon.jobs.generates_preview import GeneratesPreview
@@ -81,10 +82,29 @@ STAGE_ARTIFACTS = {
 
 
 class StageFailed(RuntimeError):
-    def __init__(self, stage, error="failed"):
+    def __init__(self, stage, error="failed", *, permanent=False):
         super().__init__(error)
         self.stage = stage
         self.error = error
+        self.permanent = permanent
+
+
+def names_failure(error):
+    stage = getattr(error, "stage", None)
+    return str(error) if stage is None else f"{stage}: {error}"
+
+
+def causes(error):
+    while error is not None:
+        yield error
+        error = error.__cause__
+
+
+def cannot_succeed_on_retry(error):
+    chain = tuple(causes(error))
+    return any(isinstance(link, AudioNotDecodable) for link in chain) and not any(
+        isinstance(link, OSError) for link in chain
+    )
 
 
 @dataclass(frozen=True)
@@ -177,7 +197,36 @@ class AnalyzesRecording:
         if name == "scoring":
             ScoresProposals(store=self.store)(recording)
 
-    def __call__(self, recording):
+    def _fails(self, recording, reason, *, final):
+        entered = "analysis_failed" if final else "downloaded"
+        self.store.saves(
+            replace(self.store.loads(Recording, recording.recording_id), state=entered)
+        )
+        self.store.saves(
+            LogEntry(
+                recording_id=recording.recording_id,
+                kind="state_change",
+                occurred_at=self.clock(),
+                correlation_id=f"analyze:{recording.recording_id}",
+                entered_state=entered,
+                error=reason,
+            )
+        )
+        if not final:
+            return
+        notification = self.store.saves(
+            Notification(
+                recording_id=recording.recording_id,
+                kind="analysis_failed",
+                recipient="reviewer",
+                summary=f"analysis failed: {reason}",
+                created_at=self.clock(),
+                state="pending",
+            )
+        )
+        self.notifies(notification)
+
+    def __call__(self, recording, *, final_attempt=True):
         correlation_id = f"analyze:{recording.recording_id}"
         analyzing = self.store.saves(replace(recording, state="analyzing"))
         self.store.saves(
@@ -198,32 +247,13 @@ class AnalyzesRecording:
                     if self._run_stage(analyzing, name) == "stop":
                         return self.store.loads(Recording, recording.recording_id)
         except ModelEndpointUnreachable as error:
-            self.store.saves(
-                LogEntry(
-                    recording_id=recording.recording_id,
-                    kind="state_change",
-                    occurred_at=self.clock(),
-                    correlation_id=correlation_id,
-                    error=str(error),
-                )
-            )
+            self._fails(recording, f"{name}: {error}", final=final_attempt)
             raise
         except Exception as error:
             stage = getattr(error, "stage", name)
-            self.store.saves(
-                replace(self.store.loads(Recording, recording.recording_id), state="analysis_failed")
-            )
-            self.store.saves(
-                LogEntry(
-                    recording_id=recording.recording_id,
-                    kind="state_change",
-                    occurred_at=self.clock(),
-                    correlation_id=correlation_id,
-                    entered_state="analysis_failed",
-                    error=f"{stage}: {error}",
-                )
-            )
-            raise StageFailed(stage, str(error)) from error
+            permanent = cannot_succeed_on_retry(error)
+            self._fails(recording, f"{stage}: {error}", final=final_attempt or permanent)
+            raise StageFailed(stage, str(error), permanent=permanent) from error
         analyzed = self.store.loads(Recording, recording.recording_id)
         if not self.store.lists(Segment, recording_id=recording.recording_id):
             for classification, punch_in, punch_out in self.contents.segments:
@@ -289,15 +319,19 @@ class RunsAnalyzeJob:
     transcribes: object = None
     divides: object = None
     recording_id: str | None = None
+    job_id: int | None = None
 
     def __call__(self):
         job = [
             queued
             for queued in self.store.lists(Job, kind="analyze", state="queued")
             if self.recording_id in (None, queued.recording_id)
+            and self.job_id in (None, queued.job_id)
         ][0]
         running = self.store.saves(replace(job, state="running", started_at=self.clock()))
         recording = self.store.loads(Recording, running.recording_id)
+        attempts = (running.attempts or 0) + 1
+        final = attempts >= running.max_attempts
         try:
             AnalyzesRecording(
                 store=self.store,
@@ -311,24 +345,16 @@ class RunsAnalyzeJob:
                 analyses=self.analyses,
                 transcribes=self.transcribes,
                 divides=self.divides,
-            )(recording)
-        except StageFailed as error:
+            )(recording, final_attempt=final)
+        except (StageFailed, ModelEndpointUnreachable) as error:
+            stops = final or getattr(error, "permanent", False)
             self.store.saves(
                 replace(
                     running,
-                    state="failed",
-                    last_error=str(error),
-                    attempts=(running.attempts or 0) + 1,
-                )
-            )
-            return
-        except ModelEndpointUnreachable as error:
-            self.store.saves(
-                replace(
-                    running,
-                    state="failed",
-                    last_error=str(error),
-                    attempts=(running.attempts or 0) + 1,
+                    state="failed" if stops else "queued",
+                    last_error=names_failure(error),
+                    attempts=attempts,
+                    failed_permanently=stops,
                 )
             )
             return
