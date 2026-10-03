@@ -61,6 +61,7 @@ CLASS_AND_SERVICE = RecordingContents(
         ("sermon", 5400.0, 10800.0),
     )
 )
+NOTHING_FABRICATED = RecordingContents(segments=())
 
 
 ITERATED_STAGES = frozenset({"blocking", "block_classification"})
@@ -87,7 +88,7 @@ class AnalyzesRecording:
     store: Store
     stages: object
     notifies: object
-    contents: object = CLASS_AND_SERVICE
+    contents: object = NOTHING_FABRICATED
     clock: object = now
     reaches: object = None
     only: str | None = None
@@ -301,7 +302,7 @@ class RunsAnalyzeJob:
     store: Store
     stages: object
     notifies: object
-    contents: object = CLASS_AND_SERVICE
+    contents: object = NOTHING_FABRICATED
     clock: object = now
     reaches: object = None
     only: str | None = None

@@ -1,12 +1,27 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from steps._asr import transcribes_for
 
+from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
 from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob
+from sermon.jobs.probes_recording import ProbeResult
+from sermon.pipeline import classify, segments
 from sermon.sends_notification import SendsNotification
-from sermon.store import Job, LogEntry, Notification, Proposal, Recording, Reviewer, Segment, opens_store
+from sermon.store import (
+    ChannelLevel,
+    Job,
+    LogEntry,
+    Notification,
+    Proposal,
+    Recording,
+    Reviewer,
+    Segment,
+    layout,
+    opens_store,
+)
 
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
 
@@ -149,3 +164,55 @@ def test_approving_one_segment_does_not_mutate_the_other(store):
     lesson, sermon = store.lists(Segment, recording_id=recording.recording_id)
     store.saves(replace(lesson, state="approved"))
     assert store.loads(Segment, sermon.segment_id).state == "proposed"
+
+
+@pytest.fixture
+def roots(tmp_path):
+    held = (classify.DATA, classify.PROMPTS, segments.DATA_ROOT)
+    layout.diarization_root(tmp_path).mkdir(parents=True, exist_ok=True)
+    BindsCorpusRoots(
+        corpus_root=layout.corpus_root(tmp_path),
+        prompts_root=Path(__file__).resolve().parents[1] / "experiments/prompts",
+    )()
+    yield
+    classify.DATA, classify.PROMPTS, segments.DATA_ROOT = held
+
+
+def divides_into_nothing_publishable(doc):
+    return [{"start": 0.0, "end": doc["duration"], "type": "music", "confidence": 0.9}]
+
+
+def measures_loudness(recording):
+    return ProbeResult(
+        duration_seconds=recording.duration_seconds,
+        sample_rate=44100,
+        channels=1,
+        channel_levels=(ChannelLevel(channel=1, rms_db=-30.0),),
+        integrated_loudness_lufs=-20.4,
+        true_peak_dbtp=-1.2,
+    )
+
+
+def walks(store, sent, **fields):
+    return RunsAnalyzeJob(
+        store=store,
+        notifies=SendsNotification(store=store, sends=sent.append),
+        clock=lambda: FROZEN,
+        transcribes=transcribes_for(store, downloaded_recording()),
+        divides=divides_into_nothing_publishable,
+        **{"stages": lambda _name: None} | fields,
+    )
+
+
+def test_a_walk_that_proposes_nothing_fabricates_no_segment(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    sent = []
+    walks(store, sent)()
+    assert store.lists(Job, recording_id=recording.recording_id)[0].state == "succeeded"
+    assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
+    assert store.lists(Segment, recording_id=recording.recording_id) == []
+    assert store.lists(Proposal) == []
+    assert store.lists(Notification, recording_id=recording.recording_id) == []
+    assert sent == []
+
