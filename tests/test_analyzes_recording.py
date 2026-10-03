@@ -1,4 +1,5 @@
 import json
+import subprocess
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -270,3 +271,48 @@ def test_a_blocking_failure_is_logged_under_blocking(store, roots):
         if entry.entered_state == "analysis_failed"
     ]
     assert failures == ["blocking: the divider broke"]
+
+
+def a_recording_on_disk(store, tmp_path):
+    recording = downloaded_recording()
+    local = replace(recording, local_path=str(layout.source_path(recording)))
+    source = tmp_path / local.local_path
+    source.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=3", "-ac", "1", str(source)],
+        check=True,
+        capture_output=True,
+    )
+    return store.saves(local)
+
+
+def blocks_the_artifact(tmp_path, recording, kind):
+    (tmp_path / layout.artifact_path(recording.recording_id, kind)).mkdir(parents=True)
+
+
+def optional_failures(store, recording):
+    return [
+        entry.error
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.error and entry.entered_state is None
+    ]
+
+
+@pytest.mark.parametrize(("stage", "kind"), [("waveform", "waveform_peaks"), ("preview", "preview")])
+def test_an_optional_stage_whose_work_fails_does_not_fail_the_walk(store, roots, tmp_path, stage, kind):
+    recording = a_recording_on_disk(store, tmp_path)
+    queued_analyze(store, recording)
+    blocks_the_artifact(tmp_path, recording, kind)
+    walks(store, [])()
+    assert store.lists(Job, recording_id=recording.recording_id)[0].state == "succeeded"
+    assert store.loads(Recording, recording.recording_id).state == "awaiting_review"
+    assert not store.lists(Artifact, recording_id=recording.recording_id, kind=kind)
+    assert [error for error in optional_failures(store, recording) if error.startswith(f"{stage}: ")]
+
+
+def test_the_envelope_stage_records_no_artifact_it_did_not_write(store, roots):
+    recording = store.saves(downloaded_recording())
+    queued_analyze(store, recording)
+    walks(store, [])()
+    for artifact in store.lists(Artifact, recording_id=recording.recording_id):
+        assert store.resolves(artifact).is_file(), artifact.kind
