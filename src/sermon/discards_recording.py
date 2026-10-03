@@ -26,7 +26,6 @@ class DiscardsRecording:
             if item.state == "complete"
         ]
         if published and not confirm:
-            self.store._discard_needs_confirm = True
             raise PublishedSegmentExists(recording.recording_id)
         occurred = self.clock()
         for job in self.store.lists(Job, recording_id=recording.recording_id):
