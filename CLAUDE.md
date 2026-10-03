@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 466 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 468 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -199,7 +199,7 @@ It re-derives every tagged block file under `--corpus` through the live
   can be handed straight to `--before` because it already records what the
   current code produces.
 - **`--drift` compares the block files' own stored `segments` field against live
-  output.** That is *drift, not accuracy*: nine of those fields predate the
+  output.** That is *drift, not accuracy*: 21 of the 181 fields predate the
   current `segments.py` (`sp-66k`), so drift is expected on an unchanged tree and
   **never decides the exit code.**
 
@@ -495,6 +495,18 @@ Parallel or long-running work gets its own worktree: `worktrees/<name>`, branch
   `tests/test_pipeline_behaviour.py` (the other seven modules). Each is needed:
   the first never executes the pipeline, and before the third existed, gutting
   `blocks.speech_runs` to `raise` left the whole suite green.
+- **Know which guard can see the seam you changed, before citing it as a gate.**
+  The drift guard (`sermon-regrade --before`) and `test_pipeline_library.py`
+  re-derive from *stored* block files, which already hold post-`coerce_blocks`
+  blocks and carry `model_segments` — so they cannot see a change to
+  `coerce_blocks` or anything else upstream of `derive`, and they measure
+  `choose()` *with* the model's boundaries. Shifting every block edge +30 s
+  inside `coerce_blocks` left both green; only `test_pipeline_behaviour.py`
+  noticed (`sp-glwk`). And the deployed analyze walk runs `choose([], ...)`
+  (`sp-atw`), a regime neither replays: `sp-l3p` moves 1 of 181 punch-ins
+  through the guard and 21 of 181 on the shipping path. An acceptance
+  criterion for a change before `derive`, or one that depends on
+  `model_segments`, must name an instrument that executes that path.
 - **Never run `rederive.py` against `experiments/data`.** It rewrites
   `blocks/` in place, and those 181 files *are* the extraction baseline.
 - **A `__file__`-relative path is how a verbatim move stops preserving behaviour.**
