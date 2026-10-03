@@ -2,7 +2,9 @@ from datetime import UTC, date, datetime, timedelta
 
 from pytest_bdd import given, parsers, then, when
 
+from sermon.queues_new_recordings import QueuesNewRecordings
 from sermon.reconciles_bucket import ReconcilesBucket
+from sermon.scans_on_schedule import ScansOnSchedule
 from sermon.store import Discovery, Job, Recording, SkippedObject
 from sermon.web import creates_app
 from steps._markup import reads_field
@@ -10,6 +12,7 @@ from steps._markup import reads_field
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
 SIDECAR = ".meta.json"
+SCAN_INTERVAL = timedelta(hours=3)
 
 
 def bucket(store, object_store, clock):
@@ -27,9 +30,15 @@ def _():
     return None
 
 
-@given("the Processor scans the bucket on a schedule")
+@given("the Processor scans the bucket on a schedule", target_fixture="schedule")
 def _(store, object_store, clock):
-    store._reconciles = bucket(store, object_store, clock)
+    return ScansOnSchedule(
+        reconciles=lambda: bucket(store, object_store, clock)(),
+        queues=QueuesNewRecordings(store=store, clock=clock),
+        interval=SCAN_INTERVAL,
+        clock=clock,
+        prints=lambda _line: None,
+    )
 
 
 @given("the bucket contains:")
@@ -57,8 +66,8 @@ def _(store, object_key):
 
 
 @when("the reconciliation scan runs")
-def _(store, object_store, clock):
-    bucket(store, object_store, clock)()
+def _(schedule):
+    schedule()
 
 
 @then(parsers.parse('a Recording is created for "{object_key}"'))
