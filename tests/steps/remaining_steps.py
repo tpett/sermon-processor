@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from pytest_bdd import given, parsers, then, when
 
 from steps import _audio, _forms, _web
+from steps._bucket import serves_as_deployed
 from steps._markup import reads_field
 
 from sermon.adjusts_punch_point import AdjustsPunchPoint
@@ -169,20 +170,16 @@ def _(store):
 
 
 @given("the FLAC is 1.4 GB")
-def _(store):
-    ensure_recording(store, size_bytes=1_500_000_000)
+def _(store, recorder_bucket):
+    recording = ensure_recording(store, size_bytes=1_500_000_000)
+    recorder_bucket.holds(recording.object_key, size_bytes=1_500_000_000)
 
 
 @given("the local FLAC has been removed to save disk")
 def _(store):
-    from sermon.jobs.downloads_recording import FetchesObject
-
     recording = ensure_recording(store)
-    local = store.resolves(recording)
-    store._objects = FetchesObject()
-    store._objects.stores(recording.object_key, local.read_bytes())
-    local.unlink()
-    store.saves(replace(recording, local_path=None))
+    kept = store.saves(replace(recording, local_path=layout.source_path(recording)))
+    store.resolves(kept).unlink(missing_ok=True)
 
 
 @when("a reviewer disables notifications")
@@ -492,26 +489,26 @@ def _(store):
         store.saves(replace(item, state="skipped"))
 
 
-def downloads(store, path):
-    return creates_app(store=store).test_client().get(f"/api/artifacts/{path}")
+def downloads(store, recorder_bucket, path):
+    return serves_as_deployed(store, recorder_bucket).test_client().get(f"/api/artifacts/{path}")
 
 
 @when("I download it")
-def _(store):
+def _(store, recorder_bucket):
     recording = store.lists(Recording)[0]
-    store._downloaded = downloads(store, recording.local_path or recording.object_key)
+    store._downloaded = downloads(store, recorder_bucket, recording.local_path or recording.object_key)
 
 
 @when("I download the original FLAC")
-def _(store):
+def _(store, recorder_bucket):
     recording = store.lists(Recording)[0]
-    store._downloaded = downloads(store, recording.local_path or recording.object_key)
+    store._downloaded = downloads(store, recorder_bucket, recording.local_path or recording.object_key)
 
 
 @when("I attempt to download it")
-def _(store):
+def _(store, recorder_bucket):
     artifact = store.lists(Artifact, kind="rendered_mp3")[0]
-    store._download_error = downloads(store, artifact.path)
+    store._download_error = downloads(store, recorder_bucket, artifact.path)
 
 
 @when("I approve it without entering a label", target_fixture="approval")

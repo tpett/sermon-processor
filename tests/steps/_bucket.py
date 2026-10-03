@@ -23,8 +23,12 @@ def refusal(code, status):
     )
 
 
+PATTERN = bytes(range(251))
+
+
 def repeating(start, length):
-    return bytes((start + offset) % 251 for offset in range(length))
+    offset = start % len(PATTERN)
+    return (PATTERN * (length // len(PATTERN) + 2))[offset:offset + length]
 
 
 @dataclass

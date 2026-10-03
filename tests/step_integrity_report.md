@@ -159,12 +159,12 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py:82` | then | `it is recorded and left undelivered` | a Then that constructs and invokes a unit of the system |
 | `tests/steps/notifications/notification_steps.py:90` | then | `it is visible in the interface` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/notifications/notification_steps.py:95` | then | `I can see which were delivered and which were not` | a Then with a path through it that asserts nothing |
-| `tests/steps/remaining_steps.py:188` | when | `a reviewer disables notifications` | a When that writes the outcome itself instead of invoking the system |
-| `tests/steps/remaining_steps.py:894` | then | `delivery is retried` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1035` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1054` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1068` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:1106` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:185` | when | `a reviewer disables notifications` | a When that writes the outcome itself instead of invoking the system |
+| `tests/steps/remaining_steps.py:889` | then | `delivery is retried` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:1030` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:1049` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:1063` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:1101` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
 
 ## Scenarios whose every Then is condemned
 

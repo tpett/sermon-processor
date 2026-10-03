@@ -47,6 +47,11 @@ def reads_pairs(page):
     return {strips_tags(label): strips_tags(value) for label, value in PAIR.findall(page)}
 
 
+def reads_field_link(page, name):
+    found = re.search(rf'<a\b[^>]*href="([^"]*)"[^>]*data-field="{name}"', page)
+    return unescape(found.group(1)) if found else None
+
+
 def reads_links(page):
     return HREF.findall(page)
 

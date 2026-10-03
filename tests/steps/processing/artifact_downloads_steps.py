@@ -1,26 +1,39 @@
 from datetime import UTC, date, datetime
 from pathlib import PurePosixPath
 
+import pytest
 from pytest_bdd import given, parsers, then, when
 
+from sermon.object_store import CHUNK_BYTES
 from sermon.store import Artifact, Recording, Segment, layout
 from sermon.web import ARTIFACT_UNAVAILABLE, REPROCESS_OFFER, creates_app
-from steps._markup import reads_field, reads_links, reads_rows
+from steps._bucket import BUCKET, HoldsBucket, serves_as_deployed
+from steps._markup import reads_field, reads_field_link, reads_links, reads_rows
+
+UPLOADED_FLAC = b"fLaC" + bytes(range(256)) * 16
 
 
-def serves(store, path, headers=None):
-    app = creates_app(store=store)
-    with app.test_request_context(f"/api/artifacts/{path}", headers=headers or {}):
+@pytest.fixture
+def recorder_bucket():
+    return HoldsBucket()
+
+
+def answers_unread(store, recorder_bucket, path):
+    app = serves_as_deployed(store, recorder_bucket)
+    with app.test_request_context(f"/api/artifacts/{path}"):
         return app.view_functions["artifact_download"](path)
 
 
-def describes_streaming(store, path):
-    response = serves(store, path)
+def describes_streaming(store, recorder_bucket, path):
+    response = answers_unread(store, recorder_bucket, path)
+    body = recorder_bucket.bodies[-1]
     described = {
         "passthrough": response.direct_passthrough,
-        "wrapper": type(response.response).__name__,
         "buffered": isinstance(response.response, (bytes, bytearray, list, tuple)),
         "content_length": int(response.headers["Content-Length"]),
+        "read_before_sending": list(body.reads),
+        "first_chunk": len(next(iter(response.response))),
+        "read_for_first_chunk": list(body.reads),
     }
     response.close()
     return described
@@ -31,14 +44,21 @@ def source_path(store):
     return recording.local_path or recording.object_key
 
 
+def downloads_as_deployed(store, recorder_bucket, path, headers=None):
+    return serves_as_deployed(store, recorder_bucket).test_client().get(
+        f"/api/artifacts/{path}", headers=headers or {}
+    )
+
+
 @given(
     parsers.parse('a Segment in state "{state}" from a Recording dated "{day}"'),
     target_fixture="segment",
 )
-def _(store, state, day):
+def _(store, recorder_bucket, state, day):
     started = datetime.strptime(day, "%Y-%m-%d").replace(hour=10, minute=29, tzinfo=UTC)
     recording_id = started.strftime("recording_%Y%m%d_%H%M%S")
     object_key = f"recordings/{recording_id}.flac"
+    recorder_bucket.holds(object_key, UPLOADED_FLAC)
     recording = store.saves(
         Recording(
             recording_id=recording_id,
@@ -46,14 +66,10 @@ def _(store, state, day):
             state="reviewed",
             started_at=started,
             started_at_source="key",
-            size_bytes=14,
+            size_bytes=len(UPLOADED_FLAC),
             duration_seconds=2592.0,
-            local_path=object_key,
         )
     )
-    flac = store.resolves(recording)
-    flac.parent.mkdir(parents=True, exist_ok=True)
-    flac.write_bytes(b"fLaC" + bytes(10))
     segment = store.saves(
         Segment(
             recording_id=recording.recording_id,
@@ -148,18 +164,21 @@ def _(store, segment):
 
 
 @then("I can download the original untrimmed FLAC")
-def _(store):
-    recording = store.lists(Recording)[0]
-    response = creates_app(store=store).test_client().get(f"/api/artifacts/{recording.local_path}")
+def _(store, recorder_bucket, detail_page):
+    link = reads_field_link(detail_page, "source-download")
+    assert link, "the page offers no FLAC download"
+    response = serves_as_deployed(store, recorder_bucket).test_client().get(link)
     assert response.status_code == 200
+    assert response.headers["Content-Disposition"].startswith("attachment")
     assert response.data.startswith(b"fLaC")
 
 
 @then("it is byte-identical to what the recorder uploaded")
-def _(store):
+def _(store, recorder_bucket, detail_page):
     recording = store.lists(Recording)[0]
-    response = creates_app(store=store).test_client().get(f"/api/artifacts/{recording.local_path}")
-    assert response.data == store.resolves(recording).read_bytes()
+    link = reads_field_link(detail_page, "source-download")
+    response = serves_as_deployed(store, recorder_bucket).test_client().get(link)
+    assert response.data == recorder_bucket.payload(recording.object_key)
 
 
 @given(parsers.parse('two Segments from the same Recording are "{state}"'))
@@ -255,39 +274,44 @@ def _(store, state, punch_in, punch_out):
 
 
 @then("the file is streamed")
-def _(store):
+def _(store, recorder_bucket):
     recording = store.lists(Recording)[0]
-    described = describes_streaming(store, source_path(store))
+    described = describes_streaming(store, recorder_bucket, source_path(store))
     assert described["passthrough"] is True
-    assert described["content_length"] == store.resolves(recording).stat().st_size
+    assert described["content_length"] == recorder_bucket.objects[recording.object_key].size_bytes
 
 
 @then("the application does not load the whole file into memory")
-def _(store):
-    described = describes_streaming(store, source_path(store))
+def _(store, recorder_bucket):
+    recording = store.lists(Recording)[0]
+    described = describes_streaming(store, recorder_bucket, source_path(store))
     assert described["buffered"] is False
-    assert described["wrapper"] == "FileWrapper"
+    assert described["read_before_sending"] == []
+    assert described["read_for_first_chunk"] == [CHUNK_BYTES]
+    assert described["first_chunk"] < recorder_bucket.objects[recording.object_key].size_bytes
 
 
 @given(parsers.parse("a download was interrupted at {megabytes:d} MB"))
-def _(store, megabytes):
+def _(store, recorder_bucket, megabytes):
     recording = store.lists(Recording)[0]
-    whole = store.resolves(recording)
-    whole.write_bytes(b"fLaC" + bytes(range(256)) * 16384)
-    store._interrupted_at = min(megabytes * 1024 * 1024, whole.stat().st_size // 2)
+    whole = b"fLaC" + bytes(range(256)) * 16384
+    recorder_bucket.holds(recording.object_key, whole)
+    store._interrupted_at = min(megabytes * 1024 * 1024, len(whole) // 2)
 
 
 @when("my browser resumes it")
-def _(store):
-    store._resumed = creates_app(store=store).test_client().get(
-        f"/api/artifacts/{source_path(store)}",
+def _(store, recorder_bucket):
+    store._resumed = downloads_as_deployed(
+        store,
+        recorder_bucket,
+        source_path(store),
         headers={"Range": f"bytes={store._interrupted_at}-"},
     )
 
 
 @then("the download continues from where it stopped")
-def _(store):
-    whole = store.resolves(store.lists(Recording)[0]).read_bytes()
+def _(store, recorder_bucket):
+    whole = recorder_bucket.payload(store.lists(Recording)[0].object_key)
     offset = store._interrupted_at
     assert store._resumed.status_code == 206
     assert store._resumed.headers["Content-Range"] == (
@@ -315,16 +339,16 @@ def _(store, segment):
     assert offered["segment_id"] == segment.segment_id
 
 
-@then("it is fetched from the object store")
-def _(store):
+@then("it is streamed from the object store without being kept")
+def _(store, recorder_bucket):
     recording = store.lists(Recording)[0]
-    assert store._objects.destinations
-    assert store.loads(Recording, recording.recording_id).local_path == layout.source_path(
-        recording
-    )
+    assert recorder_bucket.asked == [{"Bucket": BUCKET, "Key": recording.object_key}]
+    assert not store.resolves(recording).exists()
+    assert not store.resolves_path(layout.source_path(recording)).exists()
 
 
 @then("the download still succeeds")
-def _(store):
+def _(store, recorder_bucket):
+    recording = store.lists(Recording)[0]
     assert store._downloaded.status_code == 200
-    assert store._downloaded.data.startswith(b"fLaC")
+    assert store._downloaded.data == recorder_bucket.payload(recording.object_key)
