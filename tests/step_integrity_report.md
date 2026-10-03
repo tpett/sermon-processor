@@ -100,7 +100,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:671` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/domain_steps.py:673` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/analysis/preview_audio_steps.py:76` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:227` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/remaining_analysis_steps.py:387` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
@@ -135,7 +135,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/domain_steps.py:671` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/analysis/domain_steps.py:673` | then | `downstream confidence is reduced` | a Then whose every assertion only checks that some row exists |
 | `tests/steps/analysis/preview_audio_steps.py:76` | then | `the preview is never offered as a download` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/preview_audio_steps.py:227` | then | `the preview is a constant-bitrate file` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/remaining_analysis_steps.py:387` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |

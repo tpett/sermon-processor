@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from pytest_bdd import given, parsers, then, when
-from steps import _analysis
+from steps import _analysis, _diarization
 from steps._asr import AnswersOnTheTailnet, StatesTheAudio, transcribes_for
 from steps._transcripts import covering_transcript
 
@@ -447,7 +447,8 @@ def _(store):
 
 @when("the diarization stage runs")
 def _(store):
-    DiarizesRecording(store=store)(recording_of(store))
+    recording = recording_of(store)
+    DiarizesRecording(store=store, diarizes=_diarization.diarizes_a_service(store, recording))(recording)
 
 
 @then("the recording is divided into contiguous speaker segments")
@@ -465,8 +466,8 @@ def _(store):
 
 @then("the labels are stable within the recording")
 def _(store):
-    speakers = {turn["speaker"] for turn in reads_json(store, _analysis.the_recording(store), "diarization")["turns"]}
-    assert speakers
+    opening, between, returning, *_ = reads_json(store, _analysis.the_recording(store), "diarization")["turns"]
+    assert opening["speaker"] == returning["speaker"] != between["speaker"], (opening, between, returning)
 
 
 @then("each segment carries a confidence")
@@ -477,16 +478,17 @@ def _(store):
 @then("every transcript utterance is attributed to a speaker segment")
 def _(store):
     recording = _analysis.the_recording(store)
-    transcript = reads_json(store, recording, "transcript") or covering_transcript(recording.duration_seconds or 0, recording_id=recording.recording_id)
-    turns = reads_json(store, recording, "diarization")["turns"]
-    for utterance in transcript["utterances"]:
-        assert any(turn["start"] - 1 <= utterance["start"] <= turn["end"] + 1 for turn in turns)
+    labels = {turn["speaker"] for turn in reads_json(store, recording, "diarization")["turns"]}
+    detail = creates_app(store=store).test_client().get(f"/api/recordings/{recording.recording_id}").get_json()
+    unattributed = [utterance for utterance in detail["transcript"] if utterance[3] not in labels]
+    assert detail["transcript"] and unattributed == [], unattributed[:3]
 
 
 @then("the reviewer can see who is speaking beside each utterance in the transcript view")
 def _(store):
-    detail = creates_app(store=store).test_client().get(f"/api/recordings/{_analysis.the_recording(store).recording_id}").get_json()
-    assert detail["transcript"]
+    page = creates_app(store=store).test_client().get(f"/recordings/{_analysis.the_recording(store).recording_id}").get_data(as_text=True)
+    rows = page.count('data-row="utterance"')
+    assert rows and page.count('data-field="utterance-speaker"') == rows, rows
 
 
 @given("a voice profile exists for the primary preacher")
