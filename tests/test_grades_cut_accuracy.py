@@ -685,3 +685,13 @@ def test_a_publication_with_no_date_is_counted_rather_than_vanishing_from_the_re
         "from the approval record, not this run: 1 published Segment carries no "
         "publication date and is not counted"
     ) in printed
+
+
+def test_a_baseline_that_compared_nothing_does_not_pass(tmp_path):
+    stages_corpus(tmp_path, source_duration=None)
+    (tmp_path / "before.json").write_text(
+        json.dumps({BLOCK: {"chosen": [{"punch_in": 7.0, "punch_out": 26.0}]}})
+    )
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--before", str(tmp_path / "before.json"))
+    assert code == 1
+    assert "nothing could be compared against a human cut" in printed

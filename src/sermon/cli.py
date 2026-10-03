@@ -1136,6 +1136,9 @@ def reports_change(graded, prints):
         f"{moved} moved: {counted[IMPROVED]} {IMPROVED}, {counted[DEGRADED]} {DEGRADED}, "
         f"{counted[SAME_CUT]} {SAME_CUT}"
     )
+    if not cuts:
+        prints("nothing could be compared against a human cut, so nothing was gated")
+        return 1
     return 1 if counted[DEGRADED] else 0
 
 
