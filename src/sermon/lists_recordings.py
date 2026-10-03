@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -37,9 +38,9 @@ def formats_clock(seconds):
 
 
 def formats_precise(seconds):
-    hours, rest = divmod(float(seconds), 3600)
-    minutes, secs = divmod(rest, 60)
-    return f"{int(hours)}:{int(minutes):02d}:{secs:05.2f}"
+    hours, rest = divmod(math.floor(float(seconds) * 100 + 0.5), 360000)
+    minutes, centis = divmod(rest, 6000)
+    return f"{hours}:{minutes:02d}:{centis // 100:02d}.{centis % 100:02d}"
 
 
 def formats_recorded_at(moment):

@@ -102,7 +102,7 @@ function marksTicks(fromSeconds, windowSeconds) {
     const tick = document.createElement("li");
     tick.style.left = `${(100 * step) / places}%`;
     tick.textContent =
-      windowSeconds <= 10 ? formatsPrecise(at) : formatsPrecise(at).slice(0, -3);
+      windowSeconds <= 10 ? formatsTimecode(at) : formatsTimecode(at).slice(0, -3);
     ticks.appendChild(tick);
   }
 }
@@ -117,14 +117,6 @@ async function draws() {
   const source = finest(all) || overview;
   marksTicks(from, seconds);
   if (source) paint(detailCanvas, await peaks(source), from, from + seconds);
-}
-
-function formatsPrecise(seconds) {
-  const whole = Math.max(seconds, 0);
-  const hours = Math.floor(whole / 3600);
-  const minutes = Math.floor((whole % 3600) / 60);
-  const rest = whole % 60;
-  return `${hours}:${String(minutes).padStart(2, "0")}:${rest.toFixed(2).padStart(5, "0")}`;
 }
 
 const marks = wave ? [...wave.querySelectorAll('[data-role="boundary-mark"]')] : [];
@@ -167,7 +159,7 @@ function movesPlayhead(seconds) {
       marker.dataset.playheadOffset = `${offset >= 0 ? "+" : ""}${offset.toFixed(2)} s`;
     }
   }
-  if (readout) readout.textContent = formatsPrecise(seconds);
+  if (readout) readout.textContent = formatsTimecode(seconds);
   judgesPunch(seconds);
 }
 
@@ -275,7 +267,7 @@ if (detailPane) {
 function showsBoundary(handle, seconds) {
   handle.style.left = `${acrossWindow(seconds)}%`;
   const shown = document.querySelector(`[data-field="${handle.dataset.boundary}"]`);
-  if (shown) shown.textContent = formatsPrecise(seconds);
+  if (shown) shown.textContent = formatsTimecode(seconds);
   if (!region) return;
   const from = handle.dataset.boundary === "punch-in" ? seconds : Number(region.dataset.fromSeconds);
   const to = handle.dataset.boundary === "punch-out" ? seconds : Number(region.dataset.toSeconds);

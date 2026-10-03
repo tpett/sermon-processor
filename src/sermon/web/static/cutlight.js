@@ -41,14 +41,6 @@
     return sign + Math.abs(seconds).toFixed(2) + " s";
   }
 
-  function precise(seconds) {
-    const whole = Math.max(0, Math.floor(seconds));
-    const hours = Math.floor(whole / 3600);
-    const minutes = Math.floor((whole % 3600) / 60);
-    const rest = (Math.max(0, seconds) % 60).toFixed(2).padStart(5, "0");
-    return hours + ":" + String(minutes).padStart(2, "0") + ":" + rest;
-  }
-
   function sideFor(state) {
     if (state === "at") {
       return "on the cut";
@@ -137,7 +129,7 @@
       fields["cut-light-boundary"].textContent = boundary;
     }
     if (fields["cut-light-at"]) {
-      fields["cut-light-at"].textContent = precise(at);
+      fields["cut-light-at"].textContent = formatsTimecode(at);
     }
     if (fields["cut-light-discards"]) {
       fields["cut-light-discards"].textContent = discards + " is discarded";

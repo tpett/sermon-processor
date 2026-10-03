@@ -2,8 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 
+from sermon.lists_recordings import formats_precise
 from sermon.store import Evidence, Proposal, Recording, Segment, opens_store
 from sermon.web import creates_app
+from steps import _browser
+from steps._peaks import writes_peaks
 from steps._markup import reads_field, reads_role, reads_rows
 
 
@@ -24,7 +27,7 @@ def recording(store):
             started_at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC),
             started_at_source="key",
             size_bytes=1,
-            duration_seconds=3600.0,
+            duration_seconds=7200.0,
         )
     )
 
@@ -225,3 +228,37 @@ def test_a_segment_with_no_proposal_says_so(store, recording):
     page = opens_segment(store, saves_segment(store, recording))
     assert reads_field(page, "no-proposal") == "No proposal has been recorded for this Segment."
     assert reads_field(page, "punch-in-grade") is None
+
+
+A_HAIR_UNDER_A_BOUNDARY = (
+    (59.999, "0:01:00.00"),
+    (3599.9999, "1:00:00.00"),
+    (3899.999, "1:05:00.00"),
+    (86399.999, "24:00:00.00"),
+    (59.994, "0:00:59.99"),
+    (3051.25, "0:50:51.25"),
+    (0.0, "0:00:00.00"),
+)
+
+
+@pytest.mark.parametrize(("seconds", "shown"), A_HAIR_UNDER_A_BOUNDARY)
+def test_the_server_rounds_a_timecode_before_carrying_it(seconds, shown):
+    assert formats_precise(seconds) == shown
+
+
+def test_the_page_rounds_a_timecode_before_carrying_it(store, recording):
+    segment = saves_segment(store, recording)
+    writes_peaks(store, recording)
+    with _browser.opens_page(store) as page:
+        page.goto(
+            f"/recordings/{recording.recording_id}?segment={segment.segment_id}"
+            "&zoom=three+seconds&centre=3899.9&playhead=3899.899"
+        )
+        page.locator("body").click(position={"x": 5, "y": 5})
+        page.keyboard.press(".")
+        assert page.locator('.waveform [data-field="playhead"]').text_content() == "1:05:00.00"
+        shown = page.evaluate(
+            "(values) => values.map(formatsTimecode)",
+            [seconds for seconds, _ in A_HAIR_UNDER_A_BOUNDARY],
+        )
+    assert shown == [timecode for _, timecode in A_HAIR_UNDER_A_BOUNDARY]

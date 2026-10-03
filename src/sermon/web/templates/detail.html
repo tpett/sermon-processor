@@ -340,6 +340,7 @@
   <p class="quiet">Playhead <span data-field="playhead">{{ view.playhead_seconds|precise }}</span></p>
   {% endif %}
   </div>
+  <script src="{{ url_for('static', filename='timecode.js') }}" defer></script>
   <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
   <script src="{{ url_for('static', filename='cutlight.js') }}" defer></script>
   {% if wave.available %}<script type="module" src="{{ url_for('static', filename='review.js') }}"></script>{% endif %}
