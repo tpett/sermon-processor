@@ -8,7 +8,7 @@ from sermon.analysis.grades_cut_accuracy import (
     GradesCutAccuracy,
     compares,
 )
-from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT
+from sermon.scores_cut import DEGRADED, DIFFERENT_CUT, EQUAL, IMPROVED, SAME_CUT, ScoresCut
 from sermon.store import CorpusPair, Recording, opens_store
 
 RECORDING = "recording_20260628_130014"
@@ -179,6 +179,22 @@ def test_two_proposals_equally_far_from_the_human_are_the_same_cut(tmp_path):
     assert before[0].score.speech_seconds == after[0].score.speech_seconds == 2.0
     assert before[0].score.same_run == after[0].score.same_run is False
     assert compares(before[0], after[0]) == SAME_CUT
+
+
+def test_a_cut_that_moved_closer_between_gaps_placed_alike_improved(tmp_path):
+    packed = transcript()
+    packed["utterances"] = [
+        {"start": start, "end": end, "text": word,
+         "words": [{"w": word, "start": start, "end": end}]}
+        for word, start, end in [("a", 4.0, 5.0), ("b", 5.5, 6.5), ("c", 7.0, 8.0), ("d", 8.5, 9.5)]
+    ]
+    grading = GradesCutAccuracy(ground_truth=ground_truth(tmp_path, punch_in=8.2))
+    before = grading(RECORDING, packed, [(5.2, 26.0)])
+    after = grading(RECORDING, packed, [(6.7, 26.0)])
+    assert (before[0].score.speech_seconds, after[0].score.speech_seconds) == (2.0, 1.0)
+    assert compares(before[0], after[0]) == IMPROVED
+    assert compares(after[0], before[0]) == DEGRADED
+    assert ScoresCut(transcript=packed)(6.7, 5.2).verdict == DIFFERENT_CUT
 
 
 def test_a_proposal_that_stops_being_found_degraded(tmp_path):

@@ -2,6 +2,7 @@ import pytest
 
 from sermon.scores_cut import (
     DEGRADED,
+    DIFFERENT_CUT,
     EQUAL,
     IMPROVED,
     LONG_RUN_SECONDS,
@@ -86,7 +87,25 @@ def test_cuts_in_adjacent_runs_are_separated_by_the_speech_between_them():
     scored = ScoresCut(transcript=three_runs())(IN_SECOND_RUN, LATER_IN_FIRST_RUN)
     assert scored.same_run is False
     assert scored.speech_seconds == 2.0
-    assert scored.verdict == DEGRADED
+    assert scored.verdict == DIFFERENT_CUT
+
+
+def test_two_cuts_placed_alike_in_different_gaps_are_neither_better_nor_worse():
+    between_words = transcript(
+        [("one", 0.0, 1.0)], [("two", 1.5, 2.5)], [("three", 3.0, 4.0)], duration=4.0
+    )
+    scoring = ScoresCut(transcript=between_words)
+    for scored in (scoring(2.7, 1.2), scoring(1.2, 2.7)):
+        assert scored.proposed_run is scored.truth_run is None
+        assert scored.in_speech is scored.truth_in_speech is False
+        assert scored.speech_seconds == 1.0
+        assert scored.verdict == DIFFERENT_CUT
+
+
+def test_two_cuts_inside_different_words_are_neither_better_nor_worse():
+    scored = ScoresCut(transcript=three_runs())(MID_WORD, 11.5)
+    assert scored.in_speech is scored.truth_in_speech is True
+    assert scored.verdict == DIFFERENT_CUT
 
 
 def test_a_cut_inside_a_word_is_in_no_run_and_reads_as_speech():
@@ -249,11 +268,11 @@ def test_a_cut_beyond_the_recording_is_not_the_same_cut_as_one_inside_the_tail()
     assert scored.verdict == DEGRADED
 
 
-def test_leaving_a_word_gap_run_for_the_tail_run_is_a_degradation():
+def test_leaving_a_word_gap_run_for_the_tail_run_is_a_different_cut():
     scored = ScoresCut(transcript=with_edges())(IN_TAIL_RUN, 7.0)
     assert scored.same_run is False
     assert scored.speech_seconds == 1.0
-    assert scored.verdict == DEGRADED
+    assert scored.verdict == DIFFERENT_CUT
 
 
 def test_a_cut_in_the_head_run_is_in_a_run():
@@ -266,7 +285,7 @@ def test_two_cuts_far_apart_in_no_run_at_all_are_not_the_same_cut():
     scored = ScoresCut(transcript=with_edges())(BEYOND_THE_RECORDING, BEYOND_THE_RECORDING + 20.0)
     assert scored.speech_seconds == 0.0
     assert scored.same_run is False
-    assert scored.verdict == DEGRADED
+    assert scored.verdict == DIFFERENT_CUT
 
 
 def test_two_cuts_in_one_sub_threshold_gap_are_still_the_same_cut():
