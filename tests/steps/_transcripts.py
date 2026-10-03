@@ -1,4 +1,4 @@
-def covering_transcript(duration, *, confidence=0.92, text="good morning"):
+def covering_transcript(duration, *, recording_id, confidence=0.92, text="good morning"):
     utterances = []
     start = 0.0
     while start < duration:
@@ -18,4 +18,10 @@ def covering_transcript(duration, *, confidence=0.92, text="good morning"):
             }
         )
         start += 12.0
-    return {"duration": duration, "utterances": utterances, "silences": [], "likely_music": []}
+    return {
+        "recording_id": recording_id,
+        "duration": duration,
+        "utterances": utterances,
+        "silences": [],
+        "likely_music": [],
+    }

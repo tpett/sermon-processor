@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
+import builtins
+import importlib
+import inspect
+from dataclasses import dataclass, field, replace
+from functools import cache
 from pathlib import Path
 from string import Formatter
 
@@ -57,6 +61,16 @@ TRUE_OPERAND = "a boolean operand of True, which neutralises what it joins"
 NEUTERED_STEP = "a step that skips or xfails instead of running"
 UNREADABLE_NAME = "a step name the guard cannot read from the source"
 UNTYPED_DECORATOR = "a step decorator that declares no Given, When or Then"
+EXISTENCE_THEN = "a Then whose every assertion only checks that some row exists"
+EXISTENCE_DISJUNCT = "an assertion that any existing row satisfies"
+ARGUMENT_TRUTH = "an assertion operand that some scenario's own arguments make true"
+UNASSERTED_PATH = "a Then with a path through it that asserts nothing"
+SELF_COMPARISON = "an assertion that compares a value with itself"
+INVOKING_THEN = "a Then that constructs and invokes a unit of the system"
+WRITING_THEN = "a Then that writes to the store"
+STAGED_FLAG = "a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets"
+STAGING_WHEN = "a When that writes the outcome itself instead of invoking the system"
+DUPLICATE_THEN = "a Then that asserts word for word what another Then in its scenario asserts"
 
 FAULT_ORDER = (
     HOLLOW_THEN,
@@ -64,13 +78,40 @@ FAULT_ORDER = (
     VIEW_MODEL_THEN,
     UNFALSIFIABLE_ASSERTION,
     TRUE_OPERAND,
+    EXISTENCE_THEN,
+    EXISTENCE_DISJUNCT,
+    ARGUMENT_TRUTH,
+    UNASSERTED_PATH,
+    SELF_COMPARISON,
+    INVOKING_THEN,
+    WRITING_THEN,
+    STAGED_FLAG,
+    DUPLICATE_THEN,
     HOLLOW_WHEN,
     INERT_WHEN,
+    STAGING_WHEN,
     UNENUMERATED_GIVEN,
     NEUTERED_STEP,
     UNREADABLE_NAME,
     UNTYPED_DECORATOR,
 )
+
+PERMITTED_THEN_UNITS = {
+    "ReadsTimecode": "parses the Gherkin's own timecode text; it observes nothing the system did",
+}
+
+STORE_FIXTURE = "store"
+STORE_READERS = frozenset({"lists", "loads"})
+STORE_WRITERS = frozenset({"saves", "forgets"})
+STORE_PACKAGE = "sermon.store"
+STEP_PACKAGE = "steps"
+SAFE_BUILTINS = {
+    name: getattr(builtins, name)
+    for name in (
+        "abs", "all", "any", "bool", "float", "frozenset", "int", "len", "list",
+        "max", "min", "round", "set", "sorted", "str", "tuple",
+    )
+}
 
 NAMED_HOLLOW_FILES = (
     "tests/steps/catch_all_thens.py",
@@ -91,6 +132,8 @@ class Definition:
     faults: tuple[str, ...]
     omitted: bool = False
     parser: object = None
+    node: object = field(default=None, compare=False, repr=False)
+    scope: object = field(default=None, compare=False, repr=False)
 
     @property
     def location(self) -> str:
@@ -336,6 +379,11 @@ def evaluates_statically(node: ast.expr):
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
         inner = evaluates_statically(node.operand)
         return None if inner is None else (not inner[0],)
+    if isinstance(node, ast.IfExp):
+        test = evaluates_statically(node.test)
+        if test is None:
+            return None
+        return evaluates_statically(node.body if test[0] else node.orelse)
     try:
         return (ast.literal_eval(node),)
     except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
@@ -408,12 +456,549 @@ def names_parameters(node: ast.FunctionDef) -> frozenset[str]:
     return frozenset(argument.arg for argument in named)
 
 
+@dataclass(frozen=True)
+class ModuleScope:
+    path: Path
+    helpers: dict
+    imported: dict
+    namespaces: dict
+    sermon_names: dict
+    bound_units: dict
+    constants: dict
+
+    @property
+    def units(self) -> frozenset[str]:
+        return frozenset(
+            name
+            for name, module in self.sermon_names.items()
+            if name[:1].isupper() and not name.isupper() and not module.startswith(STORE_PACKAGE)
+        )
+
+
+def locates_step_module(dotted: str) -> Path | None:
+    parts = dotted.split(".")
+    if not parts or parts[0] != STEP_PACKAGE:
+        return None
+    candidate = STEP_ROOT.joinpath(*parts[1:]).with_suffix(".py")
+    return candidate if candidate.exists() else None
+
+
+def resolves_sermon_value(module: str, name: str):
+    try:
+        value = getattr(importlib.import_module(module), name)
+    except (ImportError, AttributeError):
+        return None
+    if inspect.isclass(value):
+        return None
+    if inspect.isfunction(value) or isinstance(value, (str, int, float, tuple, frozenset, set, list, dict)):
+        return (value,)
+    return None
+
+
+def builds_scope(path: Path, tree: ast.Module) -> ModuleScope:
+    helpers = finds_module_helpers(tree)
+    imported, namespaces, sermon_names = {}, {}, {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module:
+            if node.module.split(".")[0] == SERMON_PACKAGE:
+                for alias in node.names:
+                    sermon_names[alias.asname or alias.name] = node.module
+                continue
+            source = locates_step_module(node.module)
+            for alias in node.names:
+                nested = locates_step_module(f"{node.module}.{alias.name}")
+                if nested is not None:
+                    namespaces[alias.asname or alias.name] = nested
+                elif source is not None:
+                    imported[alias.asname or alias.name] = (source, alias.name)
+    constants = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            try:
+                constants[node.targets[0].id] = ast.literal_eval(node.value)
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+                pass
+    for name, module in sermon_names.items():
+        resolved = resolves_sermon_value(module, name)
+        if resolved is not None:
+            constants[name] = resolved[0]
+    scope = ModuleScope(path, helpers, imported, namespaces, sermon_names, {}, constants)
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            value = node.value
+            if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id in scope.units:
+                scope.bound_units[node.targets[0].id] = value.func.id
+    return scope
+
+
+@cache
+def reads_scope(path: Path) -> ModuleScope:
+    return builds_scope(path, ast.parse(path.read_text()))
+
+
+def resolves_callee(func: ast.expr, scope: ModuleScope):
+    if isinstance(func, ast.Name):
+        if func.id in scope.helpers:
+            return scope.helpers[func.id], scope
+        if func.id in scope.imported:
+            source, name = scope.imported[func.id]
+            other = reads_scope(source)
+            found = other.helpers.get(name)
+            return (found, other) if found is not None else None
+    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        source = scope.namespaces.get(func.value.id)
+        if source is not None:
+            other = reads_scope(source)
+            found = other.helpers.get(func.attr)
+            return (found, other) if found is not None else None
+    return None
+
+
+def reaches_everything(node, scope: ModuleScope):
+    reached = [(node, scope)]
+    seen = {id(node)}
+    position = 0
+    while position < len(reached):
+        body, where = reached[position]
+        position += 1
+        for call in ast.walk(body):
+            if not isinstance(call, ast.Call):
+                continue
+            found = resolves_callee(call.func, where)
+            if found is not None and id(found[0]) not in seen:
+                seen.add(id(found[0]))
+                reached.append(found)
+    return reached
+
+
+def binds_locals(node) -> dict[str, ast.expr]:
+    counted: dict[str, int] = {}
+    bound: dict[str, ast.expr] = {}
+    for statement in ast.walk(node):
+        targets = []
+        if isinstance(statement, ast.Assign):
+            targets = statement.targets
+        elif isinstance(statement, (ast.AnnAssign, ast.AugAssign, ast.For, ast.NamedExpr)):
+            targets = [statement.target]
+        for target in targets:
+            for name in ast.walk(target):
+                if isinstance(name, ast.Name):
+                    counted[name.id] = counted.get(name.id, 0) + 1
+                    if isinstance(statement, ast.Assign) and target is name:
+                        bound[name.id] = statement.value
+    return {name: value for name, value in bound.items() if counted.get(name) == 1}
+
+
+ZERO_OR_ONE = (0, 1)
+
+
+def checks_existence(node: ast.expr, bound: dict, depth: int = 0) -> bool:
+    if depth > 4:
+        return False
+    if isinstance(node, ast.Call):
+        called = node.func
+        if isinstance(called, ast.Attribute) and called.attr in STORE_READERS:
+            return True
+        if isinstance(called, ast.Name) and called.id in {"len", "any", "bool", "list", "tuple"} and node.args:
+            return checks_existence(node.args[0], bound, depth + 1)
+        return False
+    if isinstance(node, ast.Subscript):
+        return checks_existence(node.value, bound, depth + 1)
+    if isinstance(node, ast.Name) and node.id in bound:
+        return checks_existence(bound[node.id], bound, depth + 1)
+    if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And):
+        return all(checks_existence(value, bound, depth + 1) for value in node.values)
+    if isinstance(node, ast.Compare) and len(node.ops) == 1:
+        operator, other = node.ops[0], node.comparators[0]
+        if not checks_existence(node.left, bound, depth + 1):
+            return False
+        literal = evaluates_statically(other)
+        if isinstance(operator, ast.IsNot) and literal == (None,):
+            return True
+        if literal is None or literal[0] not in ZERO_OR_ONE:
+            return False
+        return (
+            (isinstance(operator, ast.Gt) and literal[0] == 0)
+            or (isinstance(operator, ast.GtE) and literal[0] == 1)
+            or (isinstance(operator, ast.NotEq) and literal[0] == 0)
+        )
+    return False
+
+
+def disjoins_existence(test: ast.expr, bound: dict) -> bool:
+    return (
+        isinstance(test, ast.BoolOp)
+        and isinstance(test.op, ast.Or)
+        and any(checks_existence(value, bound) for value in test.values)
+    )
+
+
+def excuses_emptiness(test: ast.expr, bound: dict) -> bool:
+    if not (isinstance(test, ast.BoolOp) and isinstance(test.op, ast.Or)):
+        return False
+    return any(
+        isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not) and checks_existence(value.operand, bound)
+        for value in test.values
+    )
+
+
+def lists_assertions(reached) -> list[tuple[ast.Assert, dict]]:
+    found = []
+    for body, _ in reached:
+        bound = binds_locals(body)
+        found += [(one, bound) for one in ast.walk(body) if isinstance(one, ast.Assert)]
+    return found
+
+
+def raises_or_fails(reached) -> bool:
+    for body, _ in reached:
+        for one in ast.walk(body):
+            if isinstance(one, ast.Raise):
+                return True
+            if isinstance(one, ast.Call) and calls_pytest(one, ASSERTING_PYTEST_CALLS):
+                return True
+    return False
+
+
+def asserts_only_existence(reached) -> bool:
+    assertions = lists_assertions(reached)
+    if not assertions or raises_or_fails(reached):
+        return False
+    return all(
+        checks_existence(one.test, bound) or disjoins_existence(one.test, bound) for one, bound in assertions
+    )
+
+
+def asserts_a_disjoined_existence(reached) -> bool:
+    return any(disjoins_existence(one.test, bound) for one, bound in lists_assertions(reached))
+
+
+def inlines(node: ast.expr, bound: dict, depth: int = 0) -> ast.expr:
+    class Inlines(ast.NodeTransformer):
+        def visit_Name(self, name):
+            if depth < 3 and name.id in bound and isinstance(name.ctx, ast.Load):
+                return inlines(bound[name.id], bound, depth + 1)
+            return name
+
+    return Inlines().visit(ast.parse(ast.unparse(node), mode="eval").body)
+
+
+def substitutes(node: ast.expr, bound: dict) -> str:
+    return ast.dump(inlines(node, bound))
+
+
+REFLEXIVE = (ast.Eq, ast.Is, ast.LtE, ast.GtE)
+
+
+def compares_with_itself(reached) -> bool:
+    for one, bound in lists_assertions(reached):
+        for compare in ast.walk(one.test):
+            if not isinstance(compare, ast.Compare):
+                continue
+            operands = [compare.left, *compare.comparators]
+            for operator, left, right in zip(compare.ops, operands, operands[1:]):
+                if isinstance(operator, REFLEXIVE) and substitutes(left, bound) == substitutes(right, bound):
+                    return True
+    return False
+
+
+def asserts_by_call(call: ast.Call, scope: ModuleScope, seen: frozenset) -> bool:
+    if calls_pytest(call, ASSERTING_PYTEST_CALLS):
+        return True
+    if isinstance(call.func, ast.Attribute) and call.func.attr.startswith("assert"):
+        return True
+    found = resolves_callee(call.func, scope)
+    if found is None or id(found[0]) in seen:
+        return False
+    return always_asserts(found[0], found[1], seen | {id(found[0])})
+
+
+def holds_an_asserting_call(node: ast.AST, scope: ModuleScope, seen: frozenset) -> bool:
+    return any(
+        isinstance(one, ast.Call) and asserts_by_call(one, scope, seen) for one in ast.walk(node)
+    )
+
+
+def merges_paths(first, second):
+    if first is None:
+        return second
+    if second is None:
+        return first
+    return first and second
+
+
+def iterates_a_nonempty_literal(loop) -> bool:
+    if not isinstance(loop, (ast.For, ast.AsyncFor)):
+        return False
+    value = evaluates_statically(loop.iter)
+    return value is not None and bool(value[0])
+
+
+def follows_paths(statements, entering, scope, seen, bound):
+    current, safe = entering, True
+    for statement in statements:
+        if current is None:
+            break
+        if isinstance(statement, ast.Assert):
+            if not excuses_emptiness(statement.test, bound):
+                current = True
+            continue
+        if isinstance(statement, ast.Raise):
+            current = None
+            continue
+        if isinstance(statement, ast.Return):
+            asserted = current or (
+                statement.value is not None and holds_an_asserting_call(statement.value, scope, seen)
+            )
+            safe = safe and bool(asserted)
+            current = None
+            continue
+        if isinstance(statement, ast.If):
+            if holds_an_asserting_call(statement.test, scope, seen):
+                current = True
+            body = follows_paths(statement.body, current, scope, seen, bound)
+            orelse = follows_paths(statement.orelse, current, scope, seen, bound)
+            safe = safe and body[1] and orelse[1]
+            current = merges_paths(body[0], orelse[0])
+            continue
+        if isinstance(statement, (ast.For, ast.AsyncFor, ast.While)):
+            if holds_an_asserting_call(statement.iter if hasattr(statement, "iter") else statement.test, scope, seen):
+                current = True
+            body = follows_paths(statement.body, current, scope, seen, bound)
+            safe = safe and body[1]
+            if iterates_a_nonempty_literal(statement) and body[0] is not None:
+                current = body[0]
+            continue
+        if isinstance(statement, (ast.With, ast.AsyncWith)):
+            raising = any(
+                isinstance(item.context_expr, ast.Call) and calls_pytest(item.context_expr, ASSERTING_PYTEST_CALLS)
+                for item in statement.items
+            )
+            body = follows_paths(statement.body, current, scope, seen, bound)
+            safe = safe and body[1]
+            current = True if raising else body[0]
+            continue
+        if isinstance(statement, ast.Try):
+            body = follows_paths(statement.body, current, scope, seen, bound)
+            ending = follows_paths(statement.orelse, body[0], scope, seen, bound) if body[0] is not None else body
+            outcomes = [ending]
+            for handler in statement.handlers:
+                outcomes.append(follows_paths(handler.body, current, scope, seen, bound))
+            safe = safe and body[1] and all(one[1] for one in outcomes)
+            current = outcomes[0][0]
+            for one in outcomes[1:]:
+                current = merges_paths(current, one[0])
+            if statement.finalbody and current is not None:
+                final = follows_paths(statement.finalbody, current, scope, seen, bound)
+                safe = safe and final[1]
+                current = final[0]
+            continue
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if holds_an_asserting_call(statement, scope, seen):
+            current = True
+    return current, safe
+
+
+def always_asserts(node, scope: ModuleScope, seen: frozenset = frozenset()) -> bool:
+    ending, safe = follows_paths(strips_docstring(node.body), False, scope, seen | {id(node)}, binds_locals(node))
+    return safe and ending is not False
+
+
+def invokes_units(reached) -> frozenset[str]:
+    invoked = set()
+    for body, scope in reached:
+        units = scope.units
+        constructed = {}
+        for statement in ast.walk(body):
+            if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Call):
+                built = statement.value.func
+                if isinstance(built, ast.Name) and built.id in units:
+                    for target in statement.targets:
+                        if isinstance(target, ast.Name):
+                            constructed[target.id] = built.id
+        for call in ast.walk(body):
+            if not isinstance(call, ast.Call):
+                continue
+            called = call.func
+            if isinstance(called, ast.Call) and isinstance(called.func, ast.Name) and called.func.id in units:
+                invoked.add(called.func.id)
+            elif isinstance(called, ast.Name) and called.id in constructed:
+                invoked.add(constructed[called.id])
+            elif isinstance(called, ast.Name) and called.id in scope.bound_units:
+                invoked.add(scope.bound_units[called.id])
+    return frozenset(name for name in invoked if name not in PERMITTED_THEN_UNITS)
+
+
+def names_store_flag(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        if node.value.id == STORE_FIXTURE and node.attr.startswith("_") and not node.attr.startswith("__"):
+            return node.attr
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"getattr", "hasattr", "setattr"}:
+        arguments = node.args
+        if len(arguments) >= 2 and isinstance(arguments[0], ast.Name) and arguments[0].id == STORE_FIXTURE:
+            if isinstance(arguments[1], ast.Constant) and str(arguments[1].value).startswith("_"):
+                return arguments[1].value
+    return None
+
+
+def writes_store_flags(reached) -> dict[str, list[ast.expr]]:
+    written: dict[str, list[ast.expr]] = {}
+    for body, _ in reached:
+        for statement in ast.walk(body):
+            if isinstance(statement, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+                targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+                for target in targets:
+                    for part in ast.walk(target):
+                        flag = names_store_flag(part) if isinstance(part, ast.Attribute) else None
+                        if flag is not None and isinstance(part.ctx, ast.Store):
+                            written.setdefault(flag, []).append(statement.value)
+            elif isinstance(statement, ast.Call) and isinstance(statement.func, ast.Name):
+                if statement.func.id == "setattr":
+                    flag = names_store_flag(statement)
+                    if flag is not None and len(statement.args) > 2:
+                        written.setdefault(flag, []).append(statement.args[2])
+    return written
+
+
+VALUE_CONTEXTS = (ast.Compare, ast.BoolOp, ast.BinOp, ast.UnaryOp, ast.Assert, ast.Assign, ast.IfExp, ast.FormattedValue)
+
+
+def reads_store_flags(reached) -> frozenset[str]:
+    read = set()
+    own = reached[0][0] if reached else None
+    for body, _ in reached:
+        parents = {id(child): parent for parent in ast.walk(body) for child in ast.iter_child_nodes(parent)}
+        searched = [body] if body is own else [one for one in ast.walk(body) if isinstance(one, ast.Assert)]
+        for statement in (node for root in searched for node in ast.walk(root)):
+            flag = None
+            if isinstance(statement, ast.Attribute) and isinstance(statement.ctx, ast.Load):
+                flag = names_store_flag(statement)
+            elif isinstance(statement, ast.Call) and isinstance(statement.func, ast.Name):
+                if statement.func.id in {"getattr", "hasattr"}:
+                    flag = names_store_flag(statement)
+            if flag is not None and isinstance(parents.get(id(statement)), VALUE_CONTEXTS):
+                read.add(flag)
+    return frozenset(read)
+
+
+def writes_the_store(reached) -> bool:
+    for body, scope in reached:
+        for statement in ast.walk(body):
+            if isinstance(statement, ast.Call):
+                called = statement.func
+                if isinstance(called, ast.Attribute) and called.attr in STORE_WRITERS:
+                    return True
+                if isinstance(called, ast.Name) and called.id in scope.sermon_names and called.id.startswith("writes_"):
+                    return True
+        if writes_store_flags([(body, scope)]):
+            return True
+    return False
+
+
+def roots_expression(node: ast.expr) -> str | None:
+    while isinstance(node, (ast.Attribute, ast.Call, ast.Subscript)):
+        node = node.func if isinstance(node, ast.Call) else node.value
+    return node.id if isinstance(node, ast.Name) else None
+
+
+SYSTEM_MODULES = frozenset({"subprocess"})
+
+
+def invokes_the_system(reached, parameters: frozenset[str]) -> bool:
+    if invokes_units(reached):
+        return True
+    for body, scope in reached:
+        sermon = {
+            name for name, module in scope.sermon_names.items() if not module.startswith(STORE_PACKAGE)
+        }
+        callers = (set(parameters) - {STORE_FIXTURE}) | sermon | SYSTEM_MODULES | set(scope.bound_units)
+        for _ in range(2):
+            for statement in ast.walk(body):
+                if isinstance(statement, ast.Assign) and roots_expression(statement.value) in callers:
+                    callers |= {target.id for target in statement.targets if isinstance(target, ast.Name)}
+        for call in ast.walk(body):
+            if not isinstance(call, ast.Call):
+                continue
+            root = roots_expression(call.func)
+            if root in callers and not (isinstance(call.func, ast.Name) and call.func.id in sermon and call.func.id.startswith("writes_")):
+                return True
+    return False
+
+
+def binds_gherkin_names(parser) -> frozenset[str]:
+    return names_gherkin_arguments(parser) - GHERKIN_BLOCK_ARGUMENTS
+
+
+def proposes_operands(test: ast.expr):
+    yield test, False
+    if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.Or):
+        for value in test.values:
+            yield value, True
+
+
+OPAQUE_NODES = (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp, ast.Attribute, ast.Subscript)
+
+
+def holds_for_some_binding(
+    operand: ast.expr, gherkin: frozenset[str], scope: ModuleScope, bindings, disjunct: bool
+) -> bool:
+    if any(isinstance(one, OPAQUE_NODES) for one in ast.walk(operand)):
+        return False
+    used = {one.id for one in ast.walk(operand) if isinstance(one, ast.Name)}
+    known = gherkin | set(SAFE_BUILTINS) | (set(scope.constants) if disjunct else set())
+    if not used or not used <= known:
+        return False
+    if not used & gherkin:
+        if not any(isinstance(one, ast.Call) for one in ast.walk(operand)):
+            return False
+        bindings = [{}]
+    if not bindings:
+        return False
+    compiled = compile(ast.Expression(body=operand), "<operand>", "eval")
+    for binding in bindings:
+        namespace = {"__builtins__": SAFE_BUILTINS, **scope.constants, **binding}
+        try:
+            if eval(compiled, namespace):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def finds_argument_truths(definition, bindings) -> bool:
+    gherkin = binds_gherkin_names(definition.parser)
+    for statement in ast.walk(definition.node):
+        if not isinstance(statement, ast.Assert):
+            continue
+        for operand, disjunct in proposes_operands(statement.test):
+            if disjunct and tests_membership_of_a_vocabulary(operand, gherkin, definition.scope):
+                return True
+            if holds_for_some_binding(operand, gherkin, definition.scope, bindings, disjunct):
+                return True
+    return False
+
+
+def tests_membership_of_a_vocabulary(operand: ast.expr, gherkin: frozenset[str], scope: ModuleScope) -> bool:
+    if not (isinstance(operand, ast.Compare) and len(operand.ops) == 1 and isinstance(operand.ops[0], ast.In)):
+        return False
+    member, vocabulary = operand.left, operand.comparators[0]
+    return (
+        isinstance(member, ast.Name)
+        and member.id in gherkin
+        and isinstance(vocabulary, ast.Name)
+        and vocabulary.id in scope.sermon_names
+        and vocabulary.id in scope.constants
+    )
+
+
 def judges_definition(
-    kind, parser, node, helpers, truths, sermon_names, payloads=frozenset(), rendered=False
+    kind, parser, node, helpers, truths, sermon_names, payloads=frozenset(), rendered=False, scope=None
 ) -> tuple[str, ...]:
     faults = []
     gherkin = names_gherkin_arguments(parser)
     bodies = reaches_bodies(node, helpers)
+    reached = reaches_everything(node, scope) if scope is not None else [(node, None)]
     if neuters_itself(bodies):
         faults.append(NEUTERED_STEP)
     if joins_a_literal_true(bodies):
@@ -429,6 +1014,8 @@ def judges_definition(
             faults.append(HOLLOW_THEN)
         elif not asserts_something(node, helpers):
             faults.append(INERT_THEN)
+        elif scope is not None:
+            faults += judges_a_then(node, scope, reached)
         if rendered and reads_the_view_model(node, helpers, payloads):
             faults.append(VIEW_MODEL_THEN)
     elif kind == "when":
@@ -436,9 +1023,29 @@ def judges_definition(
             faults.append(HOLLOW_WHEN)
         elif not acts_on_something(node, helpers, sermon_names, names_parameters(node)):
             faults.append(INERT_WHEN)
+        elif scope is not None and writes_the_store(reached):
+            if not invokes_the_system(reached, names_parameters(node)):
+                faults.append(STAGING_WHEN)
     elif omits_a_body(node) and (parser is None or parser.name not in PERMITTED_EMPTY_GIVENS):
         faults.append(UNENUMERATED_GIVEN)
     return tuple(faults)
+
+
+def judges_a_then(node, scope, reached) -> list[str]:
+    faults = []
+    if asserts_only_existence(reached):
+        faults.append(EXISTENCE_THEN)
+    if asserts_a_disjoined_existence(reached):
+        faults.append(EXISTENCE_DISJUNCT)
+    if not always_asserts(node, scope):
+        faults.append(UNASSERTED_PATH)
+    if compares_with_itself(reached):
+        faults.append(SELF_COMPARISON)
+    if invokes_units(reached):
+        faults.append(INVOKING_THEN)
+    if writes_the_store(reached):
+        faults.append(WRITING_THEN)
+    return faults
 
 
 def judges_step_module(path: Path, root: Path, payloads=frozenset()) -> list[Definition]:
@@ -446,6 +1053,7 @@ def judges_step_module(path: Path, root: Path, payloads=frozenset()) -> list[Def
     helpers = finds_module_helpers(tree)
     truths = finds_module_truths(tree)
     sermon_names = finds_sermon_names(tree)
+    scope = builds_scope(path, tree)
     module = path.relative_to(root).as_posix()
     rendered = INTERFACE_DIRECTORY in path.parts
     found = []
@@ -460,21 +1068,145 @@ def judges_step_module(path: Path, root: Path, payloads=frozenset()) -> list[Def
                     module=module,
                     line=line,
                     faults=judges_definition(
-                        kind, parser, node, helpers, truths, sermon_names, payloads, rendered
+                        kind, parser, node, helpers, truths, sermon_names, payloads, rendered, scope
                     ),
                     omitted=omits_a_body(node),
                     parser=parser,
+                    node=node,
+                    scope=scope,
                 )
             )
     return found
 
 
-def judges_step_tree(step_root: Path = STEP_ROOT, root: Path | None = None) -> list[Definition]:
+RECORDING_METHODS = frozenset({"append", "extend", "add", "update", "setdefault", "insert"})
+
+
+def records_into_flags(reached) -> frozenset[str]:
+    recorded = set()
+    for body, _ in reached:
+        for call in ast.walk(body):
+            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute):
+                if call.func.attr in RECORDING_METHODS:
+                    flag = names_store_flag(call.func.value)
+                    if flag is not None:
+                        recorded.add(flag)
+    return frozenset(recorded)
+
+
+def holds_data(value: ast.expr, gherkin: frozenset[str], bound: dict, depth: int = 0) -> bool:
+    """A value made only of literals and the step's own Gherkin arguments, not an object the system fills."""
+    if depth > 4:
+        return False
+    if isinstance(value, ast.Constant):
+        return True
+    if isinstance(value, ast.Name):
+        if value.id in gherkin:
+            return True
+        return value.id in bound and holds_data(bound[value.id], gherkin, bound, depth + 1)
+    if isinstance(value, ast.Call):
+        arguments = [*value.args, *(keyword.value for keyword in value.keywords)]
+        return bool(arguments) and all(holds_data(one, gherkin, bound, depth + 1) for one in arguments)
+    if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+        return all(holds_data(one, gherkin, bound, depth + 1) for one in value.elts)
+    if isinstance(value, ast.BinOp):
+        return holds_data(value.left, gherkin, bound, depth + 1) and holds_data(value.right, gherkin, bound, depth + 1)
+    if isinstance(value, ast.UnaryOp):
+        return holds_data(value.operand, gherkin, bound, depth + 1)
+    return False
+
+
+def finds_staged_flags(definitions: list[Definition]):
+    staged, written, recorded = set(), set(), set()
+    for one in definitions:
+        reached = reaches_everything(one.node, one.scope)
+        flags = writes_store_flags(reached)
+        recorded |= records_into_flags(reached)
+        written |= set(flags)
+        gherkin = binds_gherkin_names(one.parser) if one.parser is not None else frozenset()
+        bound = binds_locals(one.node)
+        for flag, values in flags.items():
+            if any(holds_data(value, gherkin, bound) for value in values):
+                staged.add(flag)
+    return frozenset(staged - recorded), frozenset(written | recorded)
+
+
+def collects_bindings(definitions: list[Definition], spec_root: Path):
+    index = indexes_by_kind(definitions)
+    bindings: dict[str, list[dict]] = {}
+    scenarios: list[frozenset[Definition]] = []
+    for _, template, tags in reads_scenario_templates(spec_root):
+        for context, example_tags in expands_contexts(template):
+            scenario = template.render(context)
+            thens = set()
+            for step in scenario.steps:
+                for one in matches_step(index, step.type, step.name):
+                    if one.kind == "then":
+                        thens.add(one)
+                    try:
+                        arguments = one.parser.parse_arguments(step.name) or {}
+                    except Exception:
+                        continue
+                    bindings.setdefault(one.location, []).append(dict(arguments))
+            scenarios.append(frozenset(thens))
+    return bindings, scenarios
+
+
+def orders_faults(faults) -> tuple[str, ...]:
+    return tuple(sorted(set(faults), key=FAULT_ORDER.index))
+
+
+def normalises_assertions(one: Definition) -> frozenset[str]:
+    bound = binds_locals(one.node)
+    return frozenset(
+        substitutes(statement.test, bound) for statement in ast.walk(one.node) if isinstance(statement, ast.Assert)
+    )
+
+
+def finds_duplicated_thens(scenarios) -> frozenset[str]:
+    duplicated = set()
+    for thens in set(scenarios):
+        claims: dict[frozenset[str], set[str]] = {}
+        for one in thens:
+            if one.node is None or one.omitted:
+                continue
+            asserted = normalises_assertions(one)
+            if asserted:
+                claims.setdefault(asserted, set()).add(one.location)
+        for locations in claims.values():
+            if len(locations) > 1:
+                duplicated |= locations
+    return frozenset(duplicated)
+
+
+def judges_across_steps(definitions: list[Definition], spec_root: Path | None) -> list[Definition]:
+    staged, written = finds_staged_flags(definitions)
+    bindings, scenarios = collects_bindings(definitions, spec_root) if spec_root is not None else ({}, [])
+    duplicated = finds_duplicated_thens(scenarios)
+    judged = []
+    for one in definitions:
+        added = [DUPLICATE_THEN] if one.location in duplicated else []
+        if one.kind == "then" and one.node is not None and not one.omitted:
+            read = reads_store_flags(reaches_everything(one.node, one.scope))
+            if read & staged or read - written:
+                added.append(STAGED_FLAG)
+            if one.parser is not None and finds_argument_truths(one, bindings.get(one.location, [])):
+                added.append(ARGUMENT_TRUTH)
+        judged.append(replace(one, faults=orders_faults((*one.faults, *added))) if added else one)
+    return judged
+
+
+def judges_step_tree(
+    step_root: Path = STEP_ROOT, root: Path | None = None, spec_root: Path | None = None
+) -> list[Definition]:
     base = root if root is not None else PROJECT_ROOT
+    if spec_root is None and step_root == STEP_ROOT:
+        spec_root = SPEC_ROOT
     payloads = finds_payload_names(step_root)
     found = []
     for path in sorted(step_root.rglob("[!_]*.py")):
         found += judges_step_module(path, base, payloads)
+    found = judges_across_steps(found, spec_root)
     return sorted(found, key=lambda one: (one.module, one.line, one.kind, one.text))
 
 

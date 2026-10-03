@@ -67,7 +67,7 @@ Feature: Dividing a recording into blocks
         | 1:16:20 | 1:30:12 | Speaker 1 |
       When blocking runs
       Then a Block is produced for each contiguous speaker span
-      And every Block has a start time, an end time and a speaker label
+      And every Block has a start time, an end time and evidence naming the speaker change
       And the Blocks cover the whole Recording with no gaps and no overlaps
 
     @happy-path

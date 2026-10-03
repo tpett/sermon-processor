@@ -1,3 +1,4 @@
+import inspect
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -5,8 +6,13 @@ from pytest_bdd import given, parsers, then, when
 
 from steps import _web
 
+from sermon.adjusts_punch_point import AdjustsPunchPoint
 from sermon.approves_segment import ApprovesSegment
-from sermon.discards_recording import DiscardsRecording, PublishedSegmentExists
+from sermon.classifies_segment import ClassifiesSegment
+from sermon.reopens_segment import ReopensSegment
+from sermon.reruns_analysis import RerunsAnalysis
+from sermon.skips_segment import SkipsSegment
+from sermon.discards_recording import DiscardsRecording, PublishedSegmentExists, RestoresRecording
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.records_publication_details import FilenameCollision, RecordsPublicationDetails
 from sermon.sends_notification import SendsNotification
@@ -543,20 +549,59 @@ def _(store):
     assert "source was very quiet" in warnings
 
 
+HUMAN_ACTIONS = (
+    AdjustsPunchPoint,
+    ApprovesSegment,
+    ClassifiesSegment,
+    DiscardsRecording,
+    ReopensSegment,
+    RerunsAnalysis,
+    RestoresRecording,
+    SkipsSegment,
+)
+NAMED_ACCOUNT = "travis"
+
+
 @given("the system records an actor on every human action")
-def _(store):
-    store._actor_seam = "reviewer"
+def _(store, recording):
+    held = store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="sermon",
+            state="proposed",
+            span_start_seconds=1700.0,
+            span_end_seconds=4700.0,
+            punch_in_seconds=1900.0,
+            punch_out_seconds=4492.0,
+            boundary_source="model",
+        )
+    )
+    moved = AdjustsPunchPoint(store=store)(held, punch_in_seconds=1898.0)
+    AdjustsPunchPoint(store=store)(moved, punch_in_seconds=1897.0, actor=NAMED_ACCOUNT)
+
+
+def boundary_changes(store, recording):
+    return [
+        entry
+        for entry in store.lists(LogEntry, recording_id=recording.recording_id)
+        if entry.boundary_source == "human"
+    ]
 
 
 @then("adding real accounts changes who that actor is")
-def _(store):
-    assert store._actor_seam
-    store._actor_seam = "travis"
+def _(store, recording):
+    assert [entry.actor for entry in boundary_changes(store, recording)] == ["reviewer", NAMED_ACCOUNT]
+    fixed = [unit.__name__ for unit in HUMAN_ACTIONS if "actor" not in inspect.signature(unit.__call__).parameters]
+    assert fixed == [], f"these human actions record a fixed actor: {fixed}"
 
 
 @then("it does not change what is recorded against it")
-def _(store):
-    assert store._actor_seam
+def _(store, recording):
+    first, second = boundary_changes(store, recording)
+    ignored = {"log_entry_id", "actor", "occurred_at", "punch_in_seconds"}
+    assert {k: v for k, v in vars(first).items() if k not in ignored} == {
+        k: v for k, v in vars(second).items() if k not in ignored
+    }
 
 
 @given(parsers.parse('a Recording containing a Segment in state "{state}"'), target_fixture="recording")

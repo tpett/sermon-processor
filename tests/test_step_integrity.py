@@ -4,6 +4,16 @@ from functools import cache
 import pytest
 
 from step_integrity import (
+    ARGUMENT_TRUTH,
+    DUPLICATE_THEN,
+    EXISTENCE_DISJUNCT,
+    EXISTENCE_THEN,
+    INVOKING_THEN,
+    SELF_COMPARISON,
+    STAGED_FLAG,
+    STAGING_WHEN,
+    UNASSERTED_PATH,
+    WRITING_THEN,
     HOLLOW_THEN,
     HOLLOW_WHEN,
     INERT_THEN,
@@ -58,6 +68,9 @@ HOLLOW_PREAMBLE = '''
 import pytest
 from pytest_bdd import given, parsers, step, then, when
 
+from sermon.analysis import ProposesSegments
+from sermon.store import Segment
+
 TRUTH = True
 ELSEWHERE = "it holds"
 
@@ -93,6 +106,36 @@ EVASIONS = (
     ('@given("the ledger holds three entries")\ndef _():\n    return None\n', UNENUMERATED_GIVEN),
     ('@step("it holds")\ndef _():\n    assert 0\n', UNTYPED_DECORATOR),
     ('@then(ELSEWHERE)\ndef _():\n    assert 0\n', UNREADABLE_NAME),
+    ('@then("it holds")\ndef _(store):\n    assert store.lists(Segment)\n', EXISTENCE_THEN),
+    (
+        '@then("it holds")\ndef _(store):\n    assert store.lists(Segment)[0].label == "x" or store.lists(Segment)\n',
+        EXISTENCE_DISJUNCT,
+    ),
+    (
+        '@then("it holds")\ndef _(store):\n    segments = store.lists(Segment)\n'
+        '    if segments:\n        assert segments[0].label == "x"\n',
+        UNASSERTED_PATH,
+    ),
+    (
+        '@then("it holds")\ndef _(store):\n    segments = store.lists(Segment)\n'
+        '    assert not segments or segments[0].label == "x"\n',
+        UNASSERTED_PATH,
+    ),
+    (
+        '@then("it holds")\ndef _(path):\n    original = path.read_bytes()\n    assert path.read_bytes() == original\n',
+        SELF_COMPARISON,
+    ),
+    (
+        '@then("it holds")\ndef _(store, recording):\n    ProposesSegments(store=store)(recording)\n'
+        '    assert store.lists(Segment)[0].label == "x"\n',
+        INVOKING_THEN,
+    ),
+    (
+        '@then("it holds")\ndef _(store, segment):\n    store.saves(segment)\n'
+        '    assert store.lists(Segment)[0].label == "x"\n',
+        WRITING_THEN,
+    ),
+    ('@when("it happens")\ndef _(store, segment):\n    store.saves(segment)\n', STAGING_WHEN),
 )
 
 RENDERED_MODULE = '''
@@ -278,3 +321,156 @@ def test_the_spec_rests_on_no_condemned_step():
         f"condemned step; {len(damage.unwitnessed)} of them check nothing at all. "
         f"See {REPORT_PATH.name}."
     )
+
+
+ARGUMENT_FEATURE = """
+Feature: A planted vocabulary
+  Scenario: A Block typed by the classifier
+    Then the Block is typed "music"
+"""
+
+ARGUMENT_MODULE = '''
+from pytest_bdd import parsers, then
+
+from sermon.store import Block
+from sermon.store.vocabularies import BLOCK_TYPES
+
+
+@then(parsers.parse('the Block is typed "{block_type}"'))
+def _(store, block_type):
+    assert store.lists(Block)[0].type == block_type or block_type in BLOCK_TYPES
+'''
+
+STAGED_MODULE = '''
+from pytest_bdd import given, then
+
+from sermon.store import CorpusPair
+
+
+@given("a pair whose offset is known")
+def _(store):
+    store._pair_offset = 1900.0
+
+
+@then("the punch-in is that offset")
+def _(store):
+    assert store.lists(CorpusPair)[-1].punch_in_seconds == store._pair_offset
+'''
+
+DUPLICATE_FEATURE = """
+Feature: Two claims
+  Scenario: A lossless copy
+    Then it is flagged
+    And it is excluded from boundary statistics
+"""
+
+DUPLICATE_MODULE = '''
+from pytest_bdd import then
+
+from sermon.store import CorpusPair
+
+
+@then("it is flagged")
+def _(store):
+    assert store.lists(CorpusPair)[-1].covers_more_than_95_percent
+
+
+@then("it is excluded from boundary statistics")
+def _(store):
+    pair = store.lists(CorpusPair)[-1]
+    assert pair.covers_more_than_95_percent
+'''
+
+FOUR_DISHONEST = '''
+from pytest_bdd import parsers, then
+
+from sermon.analysis import ProposesSegments
+from sermon.store import Block, Segment
+from sermon.store.vocabularies import BLOCK_TYPES
+
+
+@then("the Segment starts at the sermon Block")
+def _(store):
+    assert store.lists(Segment)
+
+
+@then(parsers.parse('the Block is typed "{block_type}"'))
+def _(store, block_type):
+    assert store.lists(Block)[0].type == block_type or block_type in BLOCK_TYPES
+
+
+@then("the local FLAC is unchanged")
+def _(path):
+    original = path.read_bytes()
+    assert path.read_bytes() == original
+
+
+@then("a Segment is proposed")
+def _(store, recording):
+    ProposesSegments(store=store)(recording)
+    assert len(store.lists(Segment)) == 1
+'''
+
+
+def plants_with_a_feature(tmp_path, source, feature):
+    steps = tmp_path / "steps"
+    spec = tmp_path / "features"
+    steps.mkdir()
+    spec.mkdir()
+    (steps / "planted_steps.py").write_text(textwrap.dedent(source))
+    (spec / "planted.feature").write_text(textwrap.dedent(feature))
+    return judges_step_tree(steps, tmp_path, spec)
+
+
+def test_the_guard_condemns_four_dishonest_definitions(tmp_path):
+    planted = plants(tmp_path, FOUR_DISHONEST)
+    assert [bool(one.faults) for one in planted] == [True, True, True, True]
+
+
+def test_the_guard_condemns_an_operand_the_vocabulary_makes_true(tmp_path):
+    planted = plants_with_a_feature(tmp_path, ARGUMENT_MODULE, ARGUMENT_FEATURE)
+    assert [ARGUMENT_TRUTH in one.faults for one in planted] == [True]
+
+
+def test_the_guard_condemns_a_then_that_asserts_its_givens_flag(tmp_path):
+    planted = plants(tmp_path, STAGED_MODULE)
+    assert {one.kind: STAGED_FLAG in one.faults for one in planted} == {"given": False, "then": True}
+
+
+def test_the_guard_condemns_two_thens_in_one_scenario_that_assert_the_same_thing(tmp_path):
+    planted = plants_with_a_feature(tmp_path, DUPLICATE_MODULE, DUPLICATE_FEATURE)
+    assert [DUPLICATE_THEN in one.faults for one in planted] == [True, True]
+
+
+def test_no_then_asserts_only_that_a_row_exists():
+    found = names(EXISTENCE_THEN) + names(EXISTENCE_DISJUNCT)
+    assert len(found) == 0, complains(sorted(found))
+
+
+def test_no_assertion_is_made_true_by_its_own_arguments():
+    refuses(ARGUMENT_TRUTH)
+
+
+def test_every_then_asserts_on_every_path():
+    refuses(UNASSERTED_PATH)
+
+
+def test_no_assertion_compares_a_value_with_itself():
+    refuses(SELF_COMPARISON)
+
+
+def test_no_then_performs_what_it_asserts():
+    found = names(INVOKING_THEN) + names(WRITING_THEN)
+    assert len(found) == 0, complains(sorted(found))
+
+
+def test_no_then_asserts_on_a_flag_its_scenario_set():
+    refuses(STAGED_FLAG)
+
+
+def test_no_two_thens_in_a_scenario_assert_the_same_thing():
+    refuses(DUPLICATE_THEN)
+
+
+def test_no_when_stages_the_outcome_itself():
+    refuses(STAGING_WHEN)
