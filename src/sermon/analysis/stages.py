@@ -141,7 +141,12 @@ class DiarizesRecording:
         if stored is not None:
             turns = list(stored.get("turns", ()))
         elif self.diarizes is not None:
-            turns = list(self.diarizes(recording))
+            from sermon.analysis.diarizes_audio import DiarizationUnavailable
+
+            try:
+                turns = list(self.diarizes(recording))
+            except DiarizationUnavailable as unavailable:
+                raise stage_failed("diarization", str(unavailable)) from unavailable
         else:
             raise stage_failed("diarization", "no diarization is stored for this Recording")
         profiles = self.store.lists(SpeakerProfile)
@@ -803,6 +808,8 @@ class ScoresProposals:
             missing.append("no opening cue")
         if not has_out_cue:
             missing.append("closing prayer")
+        if not (reads_json(self.store, recording, "diarization") or {}).get("turns"):
+            missing.append("no speaker evidence")
         existing = self.store.lists(Proposal, segment_id=segment.segment_id)
         kept = list(existing[0].evidence) if existing else []
         payload = dict(

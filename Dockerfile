@@ -11,7 +11,13 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     SERMON_DATA_ROOT=/data \
     HF_HOME=/models \
-    SERMON_PROMPTS_ROOT=/app/prompts
+    SERMON_PROMPTS_ROOT=/app/prompts \
+    SERMON_DIARIZATION_MODELS=/opt/diarization
+
+# Baked in, unlike the whisper weights; each file must match its pinned sha256.
+COPY src/sermon/analysis/provisions_diarization_models.py /tmp/
+RUN python /tmp/provisions_diarization_models.py /opt/diarization \
+ && rm /tmp/provisions_diarization_models.py
 
 WORKDIR /app
 COPY pyproject.toml ./

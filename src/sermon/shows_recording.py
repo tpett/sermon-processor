@@ -10,6 +10,7 @@ from sermon.adjusts_punch_point import (
     warns_about_length,
 )
 from sermon.analysis.io import reads_json
+from sermon.analysis.attributes_speakers import AttributesSpeakers
 from sermon.analysis.progress import reads_stage_progress, reads_transcription_progress
 from sermon.draws_waveform import DrawsWaveform, WaveformView
 from sermon.extends_segment_span import SPAN_STEPS
@@ -584,9 +585,11 @@ class ShowsRecording:
         transcript = ()
         doc = reads_json(self.store, recording, "transcript")
         if doc:
+            utterances = doc.get("utterances", [])
+            turns = (reads_json(self.store, recording, "diarization") or {}).get("turns") or []
             transcript = tuple(
-                (item["start"], item["end"], item.get("text", ""), item.get("speaker"))
-                for item in doc.get("utterances", [])
+                (item["start"], item["end"], item.get("text", ""), speaker)
+                for item, speaker in zip(utterances, AttributesSpeakers()(utterances, turns))
             )
         gap = self._gap(selected, segments, transcript)
         proposal = self._proposal(selected)

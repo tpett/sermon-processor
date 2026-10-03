@@ -93,6 +93,7 @@ def analyzes_with(store, recording, stage_log, sent, contents, clock, **fields):
         reaches=fields.get("reaches", getattr(store, "_reaches", None)),
         only=fields.get("only"),
         transcribes=transcribes_for(store, recording),
+        diarizes=getattr(store, "_diarizes", None),
         divides=_analysis.divides_as(answers_for(recording, contents)),
     )
 

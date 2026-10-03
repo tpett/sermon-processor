@@ -120,6 +120,7 @@ class AnalyzesRecording:
     measures: object = None
     analyses: object = None
     transcribes: object = None
+    diarizes: object = None
     divides: object = None
 
     def _run_stage(self, recording, name):
@@ -181,7 +182,7 @@ class AnalyzesRecording:
         if name == "transcription":
             TranscribesRecording(store=self.store, transcribes=self.transcribes)(recording)
         if name == "diarization":
-            DiarizesRecording(store=self.store)(recording)
+            DiarizesRecording(store=self.store, diarizes=self.diarizes)(recording)
         if name == "blocking":
             DividesIntoBlocks(store=self.store, divides=self.divides)(recording)
         if name in REASONING_STAGES and self.reaches is not None:
@@ -298,6 +299,7 @@ class RunsAnalyzeJob:
     measures: object = None
     analyses: object = None
     transcribes: object = None
+    diarizes: object = None
     divides: object = None
     recording_id: str | None = None
     job_id: int | None = None
@@ -325,6 +327,7 @@ class RunsAnalyzeJob:
                 measures=self.measures,
                 analyses=self.analyses,
                 transcribes=self.transcribes,
+                diarizes=self.diarizes,
                 divides=self.divides,
             )(recording, final_attempt=final)
         except (StageFailed, ModelEndpointUnreachable) as error:

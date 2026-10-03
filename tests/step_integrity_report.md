@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1384 step definitions read from `tests/steps`
+- 1386 step definitions read from `tests/steps`
 - 7 condemned
 - 9 of 464 non-deferred scenarios rest on at least one condemned step
 - 9 of 606 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 49 Gherkin steps matched more than one definition
-- 257 Gherkin steps matched no definition
+- 255 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -55,7 +55,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/punch_in_steps.py` | 34 | 0 | sound |
 | `tests/steps/analysis/punch_out_steps.py` | 25 | 0 | sound |
-| `tests/steps/analysis/remaining_analysis_steps.py` | 97 | 4 | partly condemned |
+| `tests/steps/analysis/remaining_analysis_steps.py` | 99 | 4 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
 | `tests/steps/analysis/summarization_steps.py` | 22 | 0 | sound |
 | `tests/steps/analysis/waveform_generation_steps.py` | 14 | 0 | sound |
@@ -95,9 +95,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:219` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:265` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:353` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:220` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:266` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:354` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/remaining_analysis_steps.py:403` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:537` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:608` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
@@ -107,9 +107,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:219` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:265` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:353` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:220` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:266` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:354` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/remaining_analysis_steps.py:403` | when | `the accuracy suite runs over the corpus` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:537` | when | `the accuracy suite runs` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/analysis/remaining_analysis_steps.py:608` | when | `the accuracy suite runs before and after` | a When that writes the outcome itself instead of invoking the system |
@@ -213,8 +213,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/punch_out_detection.feature:99 then a hard punch-out is treated as less urgent than a hard punch-in`
 - `analysis/speaker_diarization.feature:107 then no speaker change is detected at the sermon start`
 - `analysis/speaker_diarization.feature:108 then boundary detection must fall back to other evidence`
-- `analysis/speaker_diarization.feature:115 then boundary detection continues using transcript evidence alone`
-- `analysis/speaker_diarization.feature:116 then the Proposal is marked as "no speaker evidence"`
 - `analysis/speaker_diarization.feature:44 then it is combined with duration before a Segment is proposed`
 - `analysis/speaker_diarization.feature:85 then classification does not penalise it for being an unknown voice`
 - `analysis/summarization.feature:119 then no third-party API is called`
