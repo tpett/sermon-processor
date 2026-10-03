@@ -15,7 +15,7 @@ from sermon.jobs.downloads_recording import (
 )
 from sermon.jobs.probes_recording import AudioNotMeasurable
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
-from sermon.store import Job, LogEntry, Recording, opens_store
+from sermon.store import Job, LogEntry, Notification, Recording, opens_store
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -268,6 +268,7 @@ def test_an_empty_object_fails_ingest_once(store):
     RunsDownloadJob(store=store, fetches=fetches, probes=PROBE, clock=lambda: FROZEN)()
     assert store.loads(Recording, recording.recording_id).state == "ingest_failed"
     assert len(ingest_failures(store, recording)) == 1
+    assert [item.kind for item in store.lists(Notification)] == ["ingest_failed"]
 
 
 def test_an_unexpected_download_failure_fails_ingest_and_still_reaches_the_worker(store):

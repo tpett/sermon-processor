@@ -250,19 +250,18 @@ RETRYABLE = (ObjectNotReadable, ObjectStoreUnreachable, ChecksumMismatch)
 
 def fails_ingest(store, recording_id, reason, *, clock=now, notifies=None):
     recording = store.loads(Recording, recording_id)
-    if recording is None or recording.state == "ingest_failed":
-        return
-    store.saves(replace(recording, state="ingest_failed"))
-    store.saves(
-        LogEntry(
-            recording_id=recording_id,
-            kind="state_change",
-            occurred_at=clock(),
-            correlation_id=f"download:{recording_id}",
-            entered_state="ingest_failed",
-            error=reason,
+    if recording.state != "ingest_failed":
+        store.saves(replace(recording, state="ingest_failed"))
+        store.saves(
+            LogEntry(
+                recording_id=recording_id,
+                kind="state_change",
+                occurred_at=clock(),
+                correlation_id=f"download:{recording_id}",
+                entered_state="ingest_failed",
+                error=reason,
+            )
         )
-    )
     notification = store.saves(
         Notification(
             recording_id=recording_id,
