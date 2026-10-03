@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, then, when
 from steps import _analysis
-from steps._asr import transcribes_for
+from steps._asr import AnswersOnTheTailnet, StatesTheAudio, transcribes_for
 from steps._transcripts import covering_transcript
 
 from sermon.analysis import (
@@ -17,6 +17,7 @@ from sermon.analysis import (
     TranscribesRecording,
 )
 from sermon.analysis.io import reads_json, writes_json
+from sermon.analysis.transcribes_audio import ASR_ENDPOINT, PostsToTranscriber, transcribes_with
 from sermon.pipeline import classify
 from sermon.pipeline import segments as pipeline_segments
 
@@ -70,12 +71,45 @@ def _(store):
     TranscribesRecording(store=store)(recording)
 
 
+@pytest.fixture
+def stated_silences():
+    return []
+
+
+@pytest.fixture
+def model_endpoint():
+    return None
+
+
+@pytest.fixture
+def reached_destinations():
+    return []
+
+
+def transcriber(store, recording, silences, endpoint, destinations):
+    """The scenario's transcriber, with any stated silence and configured endpoint applied."""
+    chosen = transcribes_for(store, recording)
+    audio = chosen.transcribes.decodes
+    if silences:
+        audio = StatesTheAudio(
+            duration=audio.duration,
+            silences=tuple(sorted([*audio.silences, *silences], key=lambda gap: gap["start"])),
+        )
+    engine = chosen.transcribes.engine
+    if endpoint is not None:
+        configured = transcribes_with(store, environment={ASR_ENDPOINT: endpoint}).transcribes.engine
+        if isinstance(configured, PostsToTranscriber):
+            engine = replace(configured, opens=AnswersOnTheTailnet(destinations=destinations))
+    return replace(chosen, transcribes=replace(chosen.transcribes, decodes=audio, engine=engine))
+
+
 @when("the transcription stage runs")
-def _(store):
+def _(store, stated_silences, model_endpoint, reached_destinations):
     recording = recording_of(store)
     try:
         TranscribesRecording(
-            store=store, transcribes=transcribes_for(store, recording)
+            store=store,
+            transcribes=transcriber(store, recording, stated_silences, model_endpoint, reached_destinations),
         )(recording)
     except Exception as error:
         store.saves(replace(recording, state="analysis_failed"))
@@ -176,33 +210,32 @@ def _(store):
     assert doc.get("likely_music")
 
 
+NEAR_SILENCE = {"start": 1210.0, "end": 1300.0}
+
+
 @given("there is 90 seconds of near-silence between segments")
-def _(store):
-    recording = recording_of(store)
-    doc = {
-        "duration": recording.duration_seconds or 5412.0,
-        "utterances": [
-            {"start": 0.0, "end": 10.0, "text": "hello", "confidence": 0.9, "words": [{"word": "hello", "start": 0.0}]},
-            {"start": 100.0, "end": 110.0, "text": "again", "confidence": 0.9, "words": [{"word": "again", "start": 100.0}]},
-        ],
-        "silences": [{"start": 10.0, "end": 100.0}],
-        "likely_music": [],
-    }
-    writes_json(store, recording, "transcript", doc)
-    store._silence_span = (10.0, 100.0)
+def _(store, stated_silences):
+    recording_of(store)
+    stated_silences.append(dict(NEAR_SILENCE))
 
 
 @then("no utterances are produced for that span")
-def _(store):
-    start, end = store._silence_span
+def _(store, stated_silences):
+    (quiet,) = stated_silences
     doc = reads_json(store, _analysis.the_recording(store), "transcript")
-    assert not any(start < item["start"] < end for item in doc["utterances"])
+    inside = [
+        (item["start"], item["end"])
+        for item in doc["utterances"]
+        if item["start"] < quiet["end"] and item["end"] > quiet["start"]
+    ]
+    assert inside == [], f"utterances inside the silence: {inside}"
 
 
 @then("the span is recorded as a silence gap with its start and end times")
-def _(store):
+def _(store, stated_silences):
+    (quiet,) = stated_silences
     doc = reads_json(store, _analysis.the_recording(store), "transcript")
-    assert doc["silences"]
+    assert quiet in doc["silences"], doc["silences"]
 
 
 @given(parsers.parse("the recording has {condition}"))
@@ -249,17 +282,18 @@ def _(store):
         refuses_a_public_transcriber(destination)
 
 
-@given("the transcription model is hosted on another machine on the tailnet")
+@given("the transcription model is hosted on another machine on the tailnet", target_fixture="model_endpoint")
 def _(store):
-    store._transcription_host = "http://100.88.211.71:9000"
+    recording_of(store)
+    return "http://100.88.211.71:9000"
 
 
 @then("it calls that machine rather than a hosted service")
-def _(store):
-    host = getattr(store, "_transcription_host", None) or getattr(store, "_summary_host", None)
-    assert host and host.startswith("http://100.")
-    reached = getattr(store, "_asr_destinations", ())
-    assert reached and all(item.startswith(host) for item in reached)
+def _(model_endpoint, reached_destinations):
+    assert model_endpoint is not None, "no model endpoint was configured for this scenario"
+    assert reached_destinations, "no request reached any machine"
+    elsewhere = [url for url in reached_destinations if not url.startswith(model_endpoint.rstrip("/") + "/")]
+    assert elsewhere == [], f"requests went elsewhere: {elsewhere}"
 
 
 @then("the recording is transcribed in chunks")
