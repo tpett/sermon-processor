@@ -130,3 +130,10 @@ def test_cuts_that_moved_without_changing_the_judgement_are_counted(accepted, tm
     code, printed = runs(accepted, {DEV: ((13.0, HUMANS_PAUSE_OUT),)}, tmp_path=tmp_path)
     assert code == 0
     assert "1 cut moved without changing its judgement" in printed
+
+
+def test_a_moved_proposal_says_how_to_move_the_reference_deliberately(accepted, tmp_path):
+    _, moved = runs(accepted, {DEV: ((13.0, HUMANS_PAUSE_OUT),)}, tmp_path=tmp_path)
+    _, still = runs(accepted, {}, tmp_path=tmp_path)
+    assert "--accept" in moved
+    assert "--accept" not in still

@@ -1390,6 +1390,15 @@ def reports_gate(report, asked, prints):
     if report.recordings:
         reports_where_cuts_stand(report, "before", prints)
         reports_where_cuts_stand(report, "after", prints)
+    if any(
+        cut.before.proposed != cut.after.proposed
+        for judged in report.recordings
+        for cut in judged.cuts
+    ):
+        prints(
+            "these proposals differ from the reference; once the change is wanted, "
+            "sermon-regrade --accept \"<why>\" makes it the reference for the next one"
+        )
     if report.judge_changed:
         prints(
             f"the judge changed since the baseline was accepted ({report.baseline_judge} -> "
