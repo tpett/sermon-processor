@@ -1,5 +1,5 @@
 import hashlib
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -11,7 +11,7 @@ from sermon.adjusts_punch_point import AdjustsPunchPoint
 from sermon.analysis.io import reads_json
 from sermon.approves_segment import ApprovesSegment
 from sermon.config import ModelEndpointUnreachable, ReachesModelEndpoint
-from sermon.jobs.analyzes_recording import CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
+from sermon.jobs.analyzes_recording import RunsAnalyzeJob, StageFailed
 from sermon.jobs.runs_queued_jobs import ATTEMPT, RunsQueuedJobs
 from sermon.sends_notification import SendsNotification
 from sermon.web import creates_app
@@ -21,6 +21,16 @@ from steps._worker import refuses_other_work
 FROZEN = datetime(2026, 9, 13, 12, 41, tzinfo=UTC)
 WORKER_POLL_GAP = timedelta(hours=1)
 MOST_WORKER_PASSES = 50
+
+
+@dataclass(frozen=True)
+class SpokenContents:
+    """What the transcript and the reasoning answer describe; the product proposes from them."""
+
+    segments: tuple
+
+
+CLASS_AND_SERVICE = SpokenContents(segments=(("lesson", 60.0, 3300.0), ("sermon", 5400.0, 10800.0)))
 
 
 @pytest.fixture
@@ -89,7 +99,6 @@ def analyzes_with(store, recording, stage_log, sent, contents, clock, **fields):
         store=store,
         stages=stages_for(store, stage_log),
         notifies=SendsNotification(store=store, sends=sent.append),
-        contents=contents,
         clock=clock,
         reaches=fields.get("reaches", getattr(store, "_reaches", None)),
         only=fields.get("only"),
@@ -185,7 +194,7 @@ def _(store, recording, state):
 @then("a notification is sent to the reviewers unless nothing publishable was found")
 def _(store, recording, sent):
     notifications = store.lists(Notification, recording_id=recording.recording_id)
-    assert notifications
+    assert [item.kind for item in notifications] == ["segment_proposed"], "the class and the service were not reported"
     assert [item.notification_id for item in sent] == [item.notification_id for item in notifications]
     assert {item.state for item in notifications} == {"delivered"}
 
@@ -372,9 +381,9 @@ def _(store, recording, stage_log, sent, clock, count):
         ("sermon", float(index), float(index + 60))
         for index in range(count)
     )
-    contents = type(CLASS_AND_SERVICE)(segments=extra[:count] if count != 2 else CLASS_AND_SERVICE.segments)
+    contents = SpokenContents(segments=extra[:count] if count != 2 else CLASS_AND_SERVICE.segments)
     if count == 3:
-        contents = type(CLASS_AND_SERVICE)(
+        contents = SpokenContents(
             segments=(
                 ("lesson", 60.0, 3300.0),
                 ("sermon", 5400.0, 10800.0),

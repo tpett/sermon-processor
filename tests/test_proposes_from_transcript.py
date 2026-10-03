@@ -20,7 +20,6 @@ from sermon.analysis.proposes_from_transcript import (
     ProposesFromStoredTranscript,
 )
 from sermon.jobs.analyzes_recording import (
-    RecordingContents,
     RunsAnalyzeJob,
     StageFailed,
 )
@@ -301,9 +300,6 @@ def test_proposing_twice_updates_the_proposal_rather_than_adding_another(store):
     ]
 
 
-NOTHING_FABRICATED = RecordingContents(segments=())
-
-
 def drains_the_analyze_job(store, recording_id, doc):
     recording = registers(store, recording_id, doc)
     store.saves(Reviewer(actor="reviewer", receives_notifications=True))
@@ -321,7 +317,6 @@ def drains_the_analyze_job(store, recording_id, doc):
         store=store,
         stages=lambda _name: None,
         notifies=SendsNotification(store=store),
-        contents=NOTHING_FABRICATED,
         recording_id=recording_id,
         analyses=ProposesFromStoredTranscript(
             store=store,

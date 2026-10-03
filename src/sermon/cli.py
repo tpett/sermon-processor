@@ -43,7 +43,7 @@ from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
 from sermon.config import DATA_ROOT, ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
 from sermon.extends_segment_span import ReadsTimecode, WidensProposedSpan
-from sermon.jobs.analyzes_recording import NOTHING_FABRICATED, RunsAnalyzeJob
+from sermon.jobs.analyzes_recording import RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
@@ -695,7 +695,6 @@ def analyzes(settings=None, arguments=None, reasons=None, prints=print):
             store=store,
             stages=lambda _name: None,
             notifies=SendsNotification(store=store, sends=opens_channel(configuration.notification_channel, configuration.slack_webhook, configuration.app_url)),
-            contents=NOTHING_FABRICATED,
             recording_id=recording.recording_id,
             analyses=ProposesFromStoredTranscript(
                 store=store,
