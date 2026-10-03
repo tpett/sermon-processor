@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -12,7 +12,7 @@ from sermon.analysis.grades_cut_accuracy import (
     compares,
 )
 from sermon.scores_cut import DEGRADED, DIFFERENT_CUT, EQUAL, IMPROVED, SAME_CUT, ScoresCut
-from sermon.store import CorpusPair, Recording, opens_store
+from sermon.store import CorpusPair, Recording, Segment, opens_store
 
 RECORDING = "recording_20260628_130014"
 LABEL = "2026-06-28 - Members Meeting"
@@ -620,3 +620,55 @@ def test_the_drift_mode_needs_no_answer_key(tmp_path):
     code, printed = runs(tmp_path, [(7.0, 26.0)], "--drift")
     assert code == 0
     assert "drift only, not accuracy" in printed
+
+
+def publishes(data_root, boundary_source, published_on=date(2026, 6, 28)):
+    store = opens_store(data_root)
+    store.saves(
+        Segment(
+            recording_id=RECORDING,
+            classification="sermon",
+            state="complete",
+            intent="publish",
+            span_start_seconds=0.0,
+            span_end_seconds=30.0,
+            punch_in_seconds=HUMAN_IN,
+            punch_out_seconds=HUMAN_OUT,
+            boundary_source=boundary_source,
+            publication_date=published_on,
+        )
+    )
+    store.close()
+
+
+def test_the_proportion_approved_with_no_edit_is_read_from_the_approval_record(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    publishes(data_root, "model")
+    publishes(data_root, "human")
+    publishes(data_root, "refined")
+    code, printed = runs(tmp_path, [(14.0, 26.0)], "--store", str(data_root))
+    assert code == 0
+    assert (
+        "from the approval record, not this run: 2 of 3 published Segments "
+        "approved with no boundary edit (67%)"
+    ) in printed
+
+
+def test_an_approval_record_with_nothing_published_reports_no_proportion(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 0
+    assert (
+        "from the approval record, not this run: nothing has been published, "
+        "so there is no proportion approved with no boundary edit"
+    ) in printed
+
+
+def test_the_frozen_file_carries_no_approval_record(tmp_path):
+    stages_corpus(tmp_path)
+    _, printed = runs(tmp_path, [(7.0, 26.0)])
+    assert "approval record" not in printed

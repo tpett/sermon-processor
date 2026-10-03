@@ -1182,6 +1182,20 @@ def reports_regraded_proposal(proposal, prints):
         reports_regraded_cut(cut, prints)
 
 
+def reports_approval_record(rate, prints):
+    if rate.proportion is None:
+        prints(
+            "from the approval record, not this run: nothing has been published, "
+            "so there is no proportion approved with no boundary edit"
+        )
+        return
+    prints(
+        f"from the approval record, not this run: {len(rate.approved_with_no_edit)} of "
+        f"{rate.published} published Segment{'' if rate.published == 1 else 's'} "
+        f"approved with no boundary edit ({rate.proportion:.0%})"
+    )
+
+
 def regrades(arguments=None, prints=print, derives=None):
     """Grade every stored proposal against the human cut by silence-run identity.
 
@@ -1240,9 +1254,12 @@ def regrades(arguments=None, prints=print, derives=None):
             f"grading {len(graded)} labelled proposal{'' if len(graded) == 1 else 's'} "
             f"against {labelled}"
         )
-        return reports_change(graded, prints) if before is not None else reports_accuracy(
-            graded, prints
-        )
+        if before is not None:
+            return reports_change(graded, prints)
+        reported = reports_accuracy(graded, prints)
+        if store is not None:
+            reports_approval_record(ReportsApprovalRate(store=store)(), prints)
+        return reported
     except RootNotConfigured as refused:
         prints(str(refused))
         return 1
