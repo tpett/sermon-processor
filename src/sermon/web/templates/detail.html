@@ -450,6 +450,7 @@
   {% if view.boundary_controls == "read-only" %}
   <p data-field="processing-step">{{ view.processing_step }}</p>
   <p data-field="processing-progress">{{ view.processing_progress }}</p>
+  {% if view.segment_failure %}<p class="flag" data-field="segment-failure">{{ view.segment_failure }}</p>{% endif %}
   {% else %}
   {% if view.whole_span_note %}
   <p data-field="whole-span-note">{{ view.whole_span_note }}</p>
