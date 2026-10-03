@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 from steps._asr import transcribes_for
 
-from sermon.analysis.proposes_from_transcript import BindsCorpusRoots
+from sermon.analysis.io import reads_model_segments, writes_json, writes_model_segments
+from sermon.analysis.proposes_from_transcript import BindsCorpusRoots, DividesByReasoning
 from sermon.jobs.analyzes_recording import AnalyzesRecording, CLASS_AND_SERVICE, RunsAnalyzeJob, StageFailed
 from sermon.jobs.probes_recording import ProbeResult
 from sermon.pipeline import classify, segments
@@ -318,3 +319,73 @@ def test_the_envelope_stage_records_no_artifact_it_did_not_write(store, roots):
     walks(store, [])()
     for artifact in store.lists(Artifact, recording_id=recording.recording_id):
         assert store.resolves(artifact).is_file(), artifact.kind
+
+
+def spoken(*words):
+    return {"start": words[0][1], "end": words[-1][2], "text": " ".join(w for w, _, _ in words),
+            "words": [{"w": w, "start": start, "end": end} for w, start, end in words]}
+
+
+OPENS_INSIDE_A_WORD = {
+    "recording_id": "recording_20260913_090014",
+    "duration": 11520.0,
+    "utterances": [
+        spoken(("You", 130.0, 130.3), ("may", 130.3, 130.5), ("be", 130.5, 130.6),
+               ("seated.", 130.6, 131.0)),
+        spoken(("Well,", 151.87, 152.31), ("good", 152.31, 152.75), ("morning.", 152.75, 153.05)),
+        spoken(("Please", 154.19, 154.67), ("open", 154.67, 154.99), ("to", 154.99, 155.17),
+               ("Hebrews", 155.17, 155.63), ("13.", 155.63, 156.0)),
+        spoken(("As", 160.21, 160.69), ("you", 160.69, 160.79), ("do,", 160.79, 160.95)),
+        spoken(("In", 3799.0, 3799.5), ("Jesus'", 3799.5, 3800.0), ("name,", 3800.0, 3800.5),
+               ("amen.", 3800.5, 3801.0)),
+    ],
+}
+
+REASONED = {
+    "blocks": [
+        {"start": 0.0, "end": 140.0, "type": "music", "confidence": 0.9},
+        {"start": 140.0, "end": 3805.0, "type": "sermon", "confidence": 0.9},
+        {"start": 3805.0, "end": 11520.0, "type": "music", "confidence": 0.9},
+    ],
+    "model_segments": [
+        {"punch_in": 151.9, "punch_out": 3801.5, "classification": "sermon", "confidence": 0.9},
+    ],
+}
+
+
+def walks_the_reasoned_opening(store, divides):
+    recording = store.saves(downloaded_recording())
+    writes_json(store, recording, "transcript", OPENS_INSIDE_A_WORD)
+    queued_analyze(store, recording)
+    AnalyzesRecording(
+        store=store,
+        stages=[].append,
+        notifies=SendsNotification(store=store, sends=[].append),
+        clock=lambda: FROZEN,
+        divides=divides,
+    )(recording)
+    return recording
+
+
+def test_blocking_keeps_the_reasonings_own_segments_beside_the_blocks(store, roots):
+    recording = walks_the_reasoned_opening(store, lambda doc: REASONED)
+    assert reads_model_segments(store, recording) == REASONED["model_segments"]
+
+
+def test_dividing_afresh_with_only_blocks_leaves_no_earlier_answer_behind(store, roots):
+    writes_model_segments(store, downloaded_recording(), REASONED["model_segments"])
+    recording = walks_the_reasoned_opening(store, lambda doc: REASONED["blocks"])
+    assert reads_model_segments(store, recording) == []
+
+
+def test_keeping_the_reasonings_segments_needs_no_new_kind_of_row(store, roots):
+    recording = walks_the_reasoned_opening(store, lambda doc: REASONED)
+    kinds = {item.kind for item in store.lists(Artifact, recording_id=recording.recording_id)}
+    assert "model_segments" not in kinds
+
+
+def test_the_reasoning_divider_hands_blocking_its_whole_answer(store, roots):
+    recording = walks_the_reasoned_opening(
+        store, DividesByReasoning(reasons=lambda doc: REASONED)
+    )
+    assert reads_model_segments(store, recording) == REASONED["model_segments"]

@@ -95,7 +95,8 @@ too, reading as a peer of the recordings.
 │   ├── transcript.json              one document per artifact kind
 │   ├── waveform_peaks.json
 │   ├── envelope.json
-│   └── analysis_progress.json       written through resolves_path; no row owns it
+│   ├── analysis_progress.json       written through resolves_path; no row owns it
+│   └── model_segments.json          the reasoning's own cuts; no row owns it either
 ├── published/<date> - <label>.mp3   what a human collects, rsyncs or points a browser at
 ├── corpus/diarization/              pipeline.segments.DATA_ROOT, pipeline.classify.DATA
 └── models/                          HF_HOME; its own container mount

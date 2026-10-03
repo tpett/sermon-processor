@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
-from sermon.analysis.io import reads_json, writes_json
+from sermon.analysis.io import reads_json, writes_json, writes_model_segments
 from sermon.extends_segment_span import WidensProposedSpan
 from sermon.pipeline import cues, scripture
 from sermon.store import (
@@ -199,7 +199,12 @@ class DividesIntoBlocks:
         doc = reads_json(self.store, recording, "transcript")
         if doc is None:
             raise stage_failed("blocking", "no transcript is stored for this Recording")
-        spans = list(self._divides()(doc))
+        answer = self._divides()(doc)
+        reasoned = isinstance(answer, dict)
+        spans = list(answer["blocks"] if reasoned else answer)
+        writes_model_segments(
+            self.store, recording, (answer.get("model_segments") or ()) if reasoned else ()
+        )
         if not spans:
             return [
                 self.store.saves(

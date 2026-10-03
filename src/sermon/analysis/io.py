@@ -34,3 +34,17 @@ def reads_json(store, recording, kind):
     if path is None or not path.is_file():
         return None
     return json.loads(path.read_text())
+
+
+def writes_model_segments(store, recording, found):
+    path = store.resolves_path(layout.model_segments_path(recording.recording_id))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(list(found), sort_keys=True))
+    return path
+
+
+def reads_model_segments(store, recording):
+    path = store.resolves_path(layout.model_segments_path(recording.recording_id))
+    if path is None or not path.is_file():
+        return []
+    return json.loads(path.read_text())
