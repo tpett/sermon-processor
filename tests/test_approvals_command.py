@@ -69,6 +69,13 @@ def publishes_edited(store, recording_id, published_on):
     ApprovesSegment(store=store, clock=lambda: FROZEN)(moved)
 
 
+def publishes_half_edited(store, recording_id, published_on):
+    moved = AdjustsPunchPoint(store=store, clock=lambda: FROZEN)(
+        proposed(store, recording_id, published_on), punch_in_seconds=REVIEWER_CUT[0]
+    )
+    ApprovesSegment(store=store, clock=lambda: FROZEN)(moved)
+
+
 def runs(root, *flags):
     collected = []
     code = reports_approvals(
@@ -129,6 +136,18 @@ def test_an_untouched_cut_reports_no_error_figure_rather_than_zero(tmp_path):
     assert code == 0
     assert "recording_20260906_100000  sermon   2026-09-06  unedited" in printed
     assert "no error figure" in printed
+    assert "0.000" not in printed
+
+
+def test_a_boundary_the_reviewer_did_not_move_reports_no_error_figure_rather_than_zero(tmp_path):
+    store = store_for(tmp_path)
+    publishes_half_edited(store, "recording_20260830_102838", date(2026, 8, 30))
+    store.close()
+    code, printed = runs(tmp_path)
+    assert code == 0
+    assert "recording_20260830_102838  sermon   2026-08-30  edited" in printed
+    assert "punch-in   error   +5.000 s" in printed
+    assert "punch-out  no error figure: the reviewer did not move it" in printed
     assert "0.000" not in printed
 
 

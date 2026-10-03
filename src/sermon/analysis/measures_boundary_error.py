@@ -25,6 +25,15 @@ class BoundaryError:
 ARCHIVE_WHOLE_COVERAGE = 0.95
 
 
+class SourceDurationUnknown(ValueError):
+    def __init__(self, recording_id):
+        super().__init__(
+            f"{recording_id} is not graded: its source duration is unknown, "
+            "so a recording archived whole cannot be told from a cut"
+        )
+        self.recording_id = recording_id
+
+
 @dataclass(frozen=True)
 class ReadsLabelledFromFile:
     ground_truth: Path
@@ -84,7 +93,8 @@ class ArchivesRatherThanCuts:
     A members meeting is archived whole, so its labelled span is the file. That
     is not a boundary decision, and scoring it as one reports an error on a cut
     nobody made. The coverage is the one the ground-truth checker already flags
-    an untrimmed archive by.
+    an untrimmed archive by. A source of unknown length cannot be told either
+    way, so it is refused rather than admitted as a cut.
     """
 
     ground_truth: Path | None = None
@@ -98,7 +108,7 @@ class ArchivesRatherThanCuts:
             return False
         source = float(labelled.get("source_duration") or 0.0)
         if source <= 0.0:
-            return False
+            raise SourceDurationUnknown(recording_id)
         kept = sum(
             held["punch_out"] - held["punch_in"] for held in labelled.get("segments") or ()
         )

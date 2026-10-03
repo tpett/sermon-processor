@@ -673,6 +673,7 @@ def store_holding_the_hand_edit(root, transcript=True):
             started_at=datetime(2026, 9, 20, 9, 44, 16, tzinfo=UTC),
             started_at_source="key",
             size_bytes=1,
+            duration_seconds=10121.581315,
         )
     )
     if transcript:

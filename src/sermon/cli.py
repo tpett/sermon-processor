@@ -1182,6 +1182,30 @@ def reports_regraded_proposal(proposal, prints):
         reports_regraded_cut(cut, prints)
 
 
+def reports_approval_record(rate, prints):
+    if rate.unplaced:
+        prints(
+            f"from the approval record, not this run: {rate.unplaced} published Segment"
+            + (
+                " carries no publication date and is not counted"
+                if rate.unplaced == 1
+                else "s carry no publication date and are not counted"
+            )
+        )
+    if rate.proportion is None:
+        prints(
+            "from the approval record, not this run: nothing "
+            + ("else " if rate.unplaced else "")
+            + "has been published, so there is no proportion approved with no boundary edit"
+        )
+        return
+    prints(
+        f"from the approval record, not this run: {len(rate.approved_with_no_edit)} of "
+        f"{rate.published} published Segment{'' if rate.published == 1 else 's'} "
+        f"approved with no boundary edit ({rate.proportion:.0%})"
+    )
+
+
 def regrades(arguments=None, prints=print, derives=None):
     """Grade every stored proposal against the human cut by silence-run identity.
 
@@ -1197,9 +1221,15 @@ def regrades(arguments=None, prints=print, derives=None):
         prints(f"no stored proposals under {corpus / 'blocks'}")
         return 1
     data_root = Path(asked.store).resolve() if asked.store else None
+    labelled = data_root or corpus / "groundtruth.json"
+    if data_root is None and not asked.drift and not labelled.is_file():
+        prints(
+            f"no answer key at {labelled}: pass --store <data-root> to grade against "
+            "the stored corpus"
+        )
+        return 1
     store = opens_store(data_root) if data_root else None
     reads = ReadsLabelledFromStore(store=store) if store else None
-    labelled = data_root or corpus / "groundtruth.json"
     try:
         if asked.drift:
             prints(f"reading drift against {len(blocks)} stored proposals under {corpus}")
@@ -1207,9 +1237,17 @@ def regrades(arguments=None, prints=print, derives=None):
                 RegradesStoredCuts(corpus_root=corpus, derives=derives, tag=asked.tag)(), prints
             )
         before = reads_stored_proposals(asked.before) if asked.before else None
+        refused = {}
         graded = GradesCorpusAccuracy(
-            corpus_root=corpus, reads=reads, derives=derives, before=before, tag=asked.tag
+            corpus_root=corpus,
+            reads=reads,
+            derives=derives,
+            before=before,
+            tag=asked.tag,
+            refuses=lambda unknown: refused.setdefault(unknown.recording_id, str(unknown)),
         )()
+        for reason in refused.values():
+            prints(reason)
         if asked.save:
             writes_stored_proposals(
                 asked.save,
@@ -1226,9 +1264,12 @@ def regrades(arguments=None, prints=print, derives=None):
             f"grading {len(graded)} labelled proposal{'' if len(graded) == 1 else 's'} "
             f"against {labelled}"
         )
-        return reports_change(graded, prints) if before is not None else reports_accuracy(
-            graded, prints
-        )
+        if before is not None:
+            return reports_change(graded, prints)
+        reported = reports_accuracy(graded, prints)
+        if store is not None:
+            reports_approval_record(ReportsApprovalRate(store=store)(), prints)
+        return reported
     except RootNotConfigured as refused:
         prints(str(refused))
         return 1
@@ -1270,7 +1311,7 @@ def reports_published_cut(cut, prints):
         f"{cut.recording_id}  {cut.classification:<8} {cut.published_on.isoformat()}  "
         f"{'edited' if cut.edited else 'unedited'}"
     )
-    if cut.punch_in_error_seconds is None and cut.punch_out_error_seconds is None:
+    if not cut.edited or not cut.proposal_recorded:
         prints(
             "  no error figure: "
             + (
@@ -1280,8 +1321,16 @@ def reports_published_cut(cut, prints):
             )
         )
         return
-    prints(f"  punch-in   error {cut.punch_in_error_seconds:+8.3f} s")
-    prints(f"  punch-out  error {cut.punch_out_error_seconds:+8.3f} s")
+    for named, error in (
+        ("punch-in", cut.punch_in_error_seconds),
+        ("punch-out", cut.punch_out_error_seconds),
+    ):
+        prints(
+            f"  {named:<10} no error figure: the reviewer did not move it, "
+            "so there is no human answer to subtract"
+            if error is None
+            else f"  {named:<10} error {error:+8.3f} s"
+        )
 
 
 def reports_rate(rate, prints):

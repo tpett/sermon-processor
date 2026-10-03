@@ -3,7 +3,7 @@ import json
 from sermon import cli
 from sermon.analysis.regrades_stored_cuts import DerivesStoredSegments, RegradesStoredCuts
 from sermon.pipeline import segments
-from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT
+from sermon.scores_cut import DEGRADED, DIFFERENT_CUT, EQUAL, IMPROVED, SAME_CUT
 
 ASR = "an-asr-config"
 RECORDING = "recording_20260412_102318"
@@ -90,6 +90,12 @@ def test_a_cut_that_left_its_run_for_a_word_is_a_degradation(tmp_path):
     regraded = regrades(tmp_path, live=[(7.5, 10.0)], stored_segments=[(3.0, 10.0)])
     assert verdicts(regraded)["punch_in"] == DEGRADED
     assert regraded[0].degraded is True
+
+
+def test_a_cut_that_moved_to_another_run_is_a_different_cut_not_a_degradation(tmp_path):
+    regraded = regrades(tmp_path, live=[(10.0, 20.0)], stored_segments=[(3.0, 20.0)])
+    assert verdicts(regraded)["punch_in"] == DIFFERENT_CUT
+    assert regraded[0].degraded is False
 
 
 def test_a_cut_that_left_a_word_for_a_run_is_an_improvement(tmp_path):

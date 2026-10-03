@@ -9,6 +9,7 @@ LONG_RUN_SECONDS = 30.0
 
 EQUAL = "equal"
 SAME_CUT = "same cut"
+DIFFERENT_CUT = "different cut"
 IMPROVED = "improved"
 DEGRADED = "degraded"
 
@@ -175,4 +176,6 @@ def _decides(proposed, truth, same_run, speech_seconds, within, proposed_placing
     )
     if same_run or shares_a_gap:
         return SAME_CUT
+    if proposed_placing == truth_placing:
+        return DIFFERENT_CUT
     return IMPROVED if proposed_placing > truth_placing else DEGRADED

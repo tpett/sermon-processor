@@ -1,15 +1,18 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+
+import pytest
 
 from sermon import cli
+from sermon.analysis.measures_boundary_error import SourceDurationUnknown
 
 from sermon.analysis.grades_cut_accuracy import (
     GradesCorpusAccuracy,
     GradesCutAccuracy,
     compares,
 )
-from sermon.scores_cut import DEGRADED, EQUAL, IMPROVED, SAME_CUT
-from sermon.store import CorpusPair, Recording, opens_store
+from sermon.scores_cut import DEGRADED, DIFFERENT_CUT, EQUAL, IMPROVED, SAME_CUT, ScoresCut
+from sermon.store import CorpusPair, Recording, Segment, opens_store
 
 RECORDING = "recording_20260628_130014"
 LABEL = "2026-06-28 - Members Meeting"
@@ -116,11 +119,18 @@ def test_a_human_cut_that_leaves_a_fifth_of_the_recording_out_is_still_a_cut(tmp
     assert [cut.boundary for cut in graded] == ["punch_in", "punch_out"]
 
 
-def test_a_recording_whose_source_duration_is_unknown_is_graded_as_a_cut(tmp_path):
-    graded = grades(
-        tmp_path, [(7.0, 26.0)], punch_in=0.0, punch_out=SOURCE_SECONDS, source_duration=None
-    )
-    assert [cut.boundary for cut in graded] == ["punch_in", "punch_out"]
+@pytest.mark.parametrize("source_duration", [None, 0.0])
+def test_a_recording_whose_source_duration_is_unknown_is_refused_rather_than_graded(
+    tmp_path, source_duration
+):
+    with pytest.raises(SourceDurationUnknown, match="source duration is unknown"):
+        grades(
+            tmp_path,
+            [(7.0, 26.0)],
+            punch_in=0.0,
+            punch_out=SOURCE_SECONDS,
+            source_duration=source_duration,
+        )
 
 
 def test_a_recording_with_no_labelled_segment_grades_nothing(tmp_path):
@@ -179,6 +189,22 @@ def test_two_proposals_equally_far_from_the_human_are_the_same_cut(tmp_path):
     assert before[0].score.speech_seconds == after[0].score.speech_seconds == 2.0
     assert before[0].score.same_run == after[0].score.same_run is False
     assert compares(before[0], after[0]) == SAME_CUT
+
+
+def test_a_cut_that_moved_closer_between_gaps_placed_alike_improved(tmp_path):
+    packed = transcript()
+    packed["utterances"] = [
+        {"start": start, "end": end, "text": word,
+         "words": [{"w": word, "start": start, "end": end}]}
+        for word, start, end in [("a", 4.0, 5.0), ("b", 5.5, 6.5), ("c", 7.0, 8.0), ("d", 8.5, 9.5)]
+    ]
+    grading = GradesCutAccuracy(ground_truth=ground_truth(tmp_path, punch_in=8.2))
+    before = grading(RECORDING, packed, [(5.2, 26.0)])
+    after = grading(RECORDING, packed, [(6.7, 26.0)])
+    assert (before[0].score.speech_seconds, after[0].score.speech_seconds) == (2.0, 1.0)
+    assert compares(before[0], after[0]) == IMPROVED
+    assert compares(after[0], before[0]) == DEGRADED
+    assert ScoresCut(transcript=packed)(6.7, 5.2).verdict == DIFFERENT_CUT
 
 
 def test_a_proposal_that_stops_being_found_degraded(tmp_path):
@@ -246,6 +272,26 @@ def test_the_corpus_walk_reads_the_ground_truth_beside_the_blocks(tmp_path):
 def test_an_archived_whole_recording_is_left_out_of_the_walk(tmp_path):
     stages_corpus(tmp_path, punch_in=0.0, punch_out=SOURCE_SECONDS)
     assert walks(tmp_path, live=[(7.0, 26.0)]) == ()
+
+
+def test_a_recording_whose_source_duration_is_unknown_is_named_and_left_out_of_the_walk(
+    tmp_path,
+):
+    stages_corpus(tmp_path, source_duration=None)
+    refused = []
+    graded = GradesCorpusAccuracy(
+        corpus_root=tmp_path,
+        derives=lambda stored, doc: [{"punch_in": 7.0, "punch_out": 26.0}],
+        refuses=refused.append,
+    )()
+    assert graded == ()
+    assert [one.recording_id for one in refused] == [RECORDING]
+
+
+def test_a_walk_with_nowhere_to_report_a_refusal_does_not_drop_it_silently(tmp_path):
+    stages_corpus(tmp_path, source_duration=None)
+    with pytest.raises(SourceDurationUnknown):
+        walks(tmp_path, live=[(7.0, 26.0)])
 
 
 def test_a_recording_with_no_labelled_segment_is_left_out_of_the_walk(tmp_path):
@@ -523,3 +569,119 @@ def test_the_stored_corpus_reaches_the_regression_gate(tmp_path):
     )
     assert code == 0
     assert "2 cut points, 0 moved: 0 improved, 0 degraded, 0 same cut" in printed
+
+
+@pytest.mark.parametrize(
+    ("punch_in", "punch_out"), [(0.0, SOURCE_SECONDS), (HUMAN_IN, HUMAN_OUT)]
+)
+def test_a_stored_pair_whose_recording_has_no_measured_duration_is_refused_by_name(
+    tmp_path, punch_in, punch_out
+):
+    unlabelled_corpus(tmp_path)
+    stages_corpus(tmp_path, tag="another-tag.whole.v2")
+    (tmp_path / "groundtruth.json").write_text(json.dumps({"recordings": []}))
+    data_root = stages_store(tmp_path, duration=None)
+    labels(data_root, punch_in=punch_in, punch_out=punch_out)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 1
+    assert printed.count(f"{RECORDING} is not graded: its source duration is unknown") == 1
+    assert "0 proposals graded, 0 cut points" in printed
+
+
+def test_a_stored_pair_whose_duration_is_unknown_is_refused_by_the_gate_too(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path, duration=None)
+    labels(data_root)
+    (tmp_path / "before.json").write_text(
+        json.dumps({BLOCK: {"chosen": [{"punch_in": 14.0, "punch_out": 26.0}]}})
+    )
+    code, printed = runs(
+        tmp_path, [(7.0, 26.0)], "--store", str(data_root), "--before", str(tmp_path / "before.json")
+    )
+    assert f"{RECORDING} is not graded: its source duration is unknown" in printed
+    assert "0 proposals graded, 0 cut points, 0 moved" in printed
+
+
+@pytest.mark.parametrize("gated", [False, True])
+def test_a_corpus_with_no_answer_key_and_no_store_is_refused_with_a_sentence(tmp_path, gated):
+    stages_corpus(tmp_path)
+    (tmp_path / "groundtruth.json").unlink()
+    (tmp_path / "before.json").write_text(json.dumps({}))
+    flags = ("--before", str(tmp_path / "before.json")) if gated else ()
+    code, printed = runs(tmp_path, [(7.0, 26.0)], *flags)
+    assert code == 1
+    assert f"no answer key at {tmp_path / 'groundtruth.json'}" in printed
+    assert "--store" in printed
+
+
+def test_the_drift_mode_needs_no_answer_key(tmp_path):
+    stages_corpus(tmp_path)
+    (tmp_path / "groundtruth.json").unlink()
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--drift")
+    assert code == 0
+    assert "drift only, not accuracy" in printed
+
+
+def publishes(data_root, boundary_source, published_on=date(2026, 6, 28)):
+    store = opens_store(data_root)
+    store.saves(
+        Segment(
+            recording_id=RECORDING,
+            classification="sermon",
+            state="complete",
+            intent="publish",
+            span_start_seconds=0.0,
+            span_end_seconds=30.0,
+            punch_in_seconds=HUMAN_IN,
+            punch_out_seconds=HUMAN_OUT,
+            boundary_source=boundary_source,
+            publication_date=published_on,
+        )
+    )
+    store.close()
+
+
+def test_the_proportion_approved_with_no_edit_is_read_from_the_approval_record(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    publishes(data_root, "model")
+    publishes(data_root, "human")
+    publishes(data_root, "refined")
+    code, printed = runs(tmp_path, [(14.0, 26.0)], "--store", str(data_root))
+    assert code == 0
+    assert (
+        "from the approval record, not this run: 2 of 3 published Segments "
+        "approved with no boundary edit (67%)"
+    ) in printed
+
+
+def test_an_approval_record_with_nothing_published_reports_no_proportion(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    code, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert code == 0
+    assert (
+        "from the approval record, not this run: nothing has been published, "
+        "so there is no proportion approved with no boundary edit"
+    ) in printed
+
+
+def test_the_frozen_file_carries_no_approval_record(tmp_path):
+    stages_corpus(tmp_path)
+    _, printed = runs(tmp_path, [(7.0, 26.0)])
+    assert "approval record" not in printed
+
+
+def test_a_publication_with_no_date_is_counted_rather_than_vanishing_from_the_record(tmp_path):
+    unlabelled_corpus(tmp_path)
+    data_root = stages_store(tmp_path)
+    labels(data_root)
+    publishes(data_root, "model", published_on=None)
+    _, printed = runs(tmp_path, [(7.0, 26.0)], "--store", str(data_root))
+    assert "nothing has been published" not in printed
+    assert (
+        "from the approval record, not this run: 1 published Segment carries no "
+        "publication date and is not counted"
+    ) in printed
