@@ -1,3 +1,4 @@
+import re
 from dataclasses import replace
 from datetime import UTC, datetime
 
@@ -14,6 +15,7 @@ from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
 from steps import _audio, _forms, _web
 from steps._markup import reads_field, reads_rows
+from steps._peaks import writes_utterances
 
 READS = ReadsTimecode()
 PREVIEW_SECONDS = 11520.0
@@ -415,3 +417,40 @@ def _(store, segment):
     page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
     assert reads_field(page, "boundary-controls") in {"editable", "collapsed"}
     assert [row["boundary"] for row in reads_rows(page, "boundary")] == ["punch-in", "punch-out"]
+
+
+SPOKEN_ACROSS_THE_MORNING = (
+    (600.0, 606.0, "turn with me to the second chapter of Ruth"),
+    (5400.0, 5406.0, "let us stand and sing together"),
+    (7200.0, 7206.0, "good morning, open your bibles to Hebrews twelve"),
+    (9600.0, 9606.0, "let us pray as we close"),
+)
+
+
+@given("I have selected a Segment", target_fixture="segment")
+def _(store, recording):
+    writes_utterances(store, recording, SPOKEN_ACROSS_THE_MORNING)
+    return numbered_segment(store, recording, 2)
+
+
+@when("I read the transcript", target_fixture="detail_page")
+def _(store, segment):
+    return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+
+
+@then("I see the transcript for that Segment")
+def _(detail_page):
+    assert [row["utterance-text"] for row in reads_rows(detail_page, "utterance")] == [
+        "good morning, open your bibles to Hebrews twelve",
+        "let us pray as we close",
+    ]
+
+
+@then("I can expand to the full Recording transcript if I want it")
+def _(detail_page):
+    expander = re.search(r'<details\b([^>]*)data-role="full-transcript"([^>]*)>', detail_page)
+    assert expander, "no expander offers the whole Recording's transcript"
+    assert " open" not in "".join(expander.groups()), "the whole transcript is forced open"
+    assert [row["utterance-text"] for row in reads_rows(detail_page, "recording-utterance")] == [
+        text for _, _, text in SPOKEN_ACROSS_THE_MORNING
+    ]

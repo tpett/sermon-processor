@@ -561,6 +561,19 @@
   {% else %}
   <p data-field="transcript-state">No transcript has been produced for this Recording</p>
   {% endif %}
+  {% if view.selected_segment_id is not none and view.transcript %}
+  <details data-role="full-transcript">
+    <summary>The whole Recording's transcript</summary>
+    <ol>
+    {% for utterance in view.transcript %}
+      <li data-row="recording-utterance" data-utterance-at-seconds="{{ utterance[0] }}">
+        <span data-field="utterance-at">{{ utterance[0]|precise }}</span>
+        <span data-field="utterance-text">{{ utterance[2] }}</span>
+      </li>
+    {% endfor %}
+    </ol>
+  </details>
+  {% endif %}
 </section>
 
 <section class="source">
