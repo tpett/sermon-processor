@@ -32,7 +32,7 @@ sermon-work = "sermon.cli:works"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
+    "pytest==9.1.1",
     "setuptools>=80",
     "pytest-bdd==8.1.0",
     "playwright==1.63.0",
@@ -47,6 +47,9 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:'maxsplit' is passed as positional argument:DeprecationWarning:gherkin.gherkin_line",
+]
 markers = [
     "ingestion: subsystem",
     "analysis: subsystem",
