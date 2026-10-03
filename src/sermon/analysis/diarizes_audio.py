@@ -2,7 +2,7 @@
 
 features/analysis/speaker_diarization.feature. The turns are evidence of who is
 speaking, not a source of boundaries. The engine and its settings are the spike's
-`experiments/src/diarize.py`, unchanged.
+diarizer, unchanged.
 """
 
 from __future__ import annotations
