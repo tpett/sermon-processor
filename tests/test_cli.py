@@ -852,3 +852,34 @@ def test_queueing_an_analysis_takes_its_time_from_the_injected_clock(tmp_path):
         assert queues_analysis(store, recording, clock=lambda: stamped).queued_at == stamped
     finally:
         store.close()
+
+
+def refuses_to_reason(doc=None):
+    pytest.fail("the classifier was asked before the corpus was checked")
+
+
+def test_deriving_into_a_corpus_under_experiments_is_refused_before_any_model_call(tmp_path, injected_roots):
+    store_holding_the_hand_edit(tmp_path)
+    frozen = tmp_path / "experiments" / "data"
+    printed = RecordsLines()
+    assert derives_corpus(
+        settings=settings_file(tmp_path),
+        arguments=[EDITED, "--corpus", str(frozen)],
+        reasons=refuses_to_reason,
+        prints=printed,
+    ) == 1
+    assert "frozen" in str(printed)
+    assert not (tmp_path / "experiments").exists()
+
+
+def test_deriving_over_a_transcript_the_corpus_already_holds_is_refused(tmp_path, injected_roots):
+    store_holding_the_hand_edit(tmp_path)
+    held = tmp_path / "data" / "corpus" / "transcripts" / f"{EDITED}.{ASR_CONFIG}.json"
+    held.parent.mkdir(parents=True)
+    held.write_text("the frozen baseline")
+    printed = RecordsLines()
+    assert derives_corpus(
+        settings=settings_file(tmp_path), arguments=[EDITED], reasons=refuses_to_reason, prints=printed
+    ) == 1
+    assert "never overwritten" in str(printed)
+    assert held.read_text() == "the frozen baseline"

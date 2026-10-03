@@ -25,8 +25,9 @@ from sermon.analysis.recognises_machine_cut import MACHINE, RecognisesMachineCut
 from sermon.analysis.reports_approval_rate import ReportsApprovalRate
 from sermon.analysis.derives_corpus_entry import (
     DEFAULT_TAG,
-    BlockFileAlreadyWritten,
+    CorpusFileAlreadyWritten,
     DerivesCorpusEntry,
+    FrozenCorpus,
     NothingToBlock,
 )
 from sermon.analysis.proposes_from_transcript import BindsCorpusRoots, ReasonsOverTranscript
@@ -1497,7 +1498,8 @@ def derives_corpus(settings=None, arguments=None, reasons=None, prints=print):
             reasons=reasons or ReasonsOverTranscript(asked.model),
         )(asked.recording)
     except (
-        BlockFileAlreadyWritten,
+        CorpusFileAlreadyWritten,
+        FrozenCorpus,
         NothingToBlock,
         RootNotConfigured,
         TranscriptNotStored,

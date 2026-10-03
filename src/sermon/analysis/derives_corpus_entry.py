@@ -18,12 +18,34 @@ DEFAULT_TAG = "stored.whole.v2"
 CORPUS_DIRECTORIES = ("blocks", "transcripts", "diarization")
 
 
-class BlockFileAlreadyWritten(FileExistsError):
+class CorpusFileAlreadyWritten(FileExistsError):
+    pass
+
+
+class BlockFileAlreadyWritten(CorpusFileAlreadyWritten):
+    pass
+
+
+class FrozenCorpus(PermissionError):
     pass
 
 
 class NothingToBlock(ValueError):
     pass
+
+
+FROZEN_TREE = "experiments"
+
+
+def refuses_a_frozen_corpus(corpus_root):
+    if FROZEN_TREE in Path(corpus_root).resolve().parts:
+        raise FrozenCorpus(f"{corpus_root} is inside {FROZEN_TREE}/, which is frozen and never written")
+
+
+def creates(path, text, created):
+    with path.open("x", encoding="utf-8") as written:
+        created.append(path)
+        written.write(text)
 
 
 @dataclass(frozen=True)
@@ -51,12 +73,39 @@ class DerivesCorpusEntry:
     reasons: object = None
 
     def __call__(self, recording_id):
+        refuses_a_frozen_corpus(self.corpus_root)
         recording, doc = self._stored_transcript(recording_id)
-        recorded = self._destination(recording_id)
-        if recorded.is_file():
+        turns = reads_json(self.store, recording, "diarization")
+        transcript = self._root / "transcripts" / f"{recording_id}.{self.asr_config}.json"
+        diarization = self._root / "diarization" / f"{recording_id}.json"
+        recorded = self._root / "blocks" / f"{recording_id}.{self.tag}.json"
+        if recorded.exists():
             raise BlockFileAlreadyWritten(f"{recorded} already records a classifier answer")
-        transcript = self._writes_transcript(recording_id, doc)
-        self._writes_diarization(recording)
+        writes = [transcript, recorded] + ([diarization] if turns is not None else [])
+        held = [path for path in writes if path.exists()]
+        if held:
+            raise CorpusFileAlreadyWritten(
+                f"{', '.join(str(path) for path in held)} already exists and is never overwritten"
+            )
+        for name in CORPUS_DIRECTORIES:
+            (self._root / name).mkdir(parents=True, exist_ok=True)
+        created = []
+        try:
+            creates(transcript, json.dumps(doc), created)
+            if turns is not None:
+                creates(diarization, json.dumps(turns), created)
+            chosen = self._records(recording_id, doc, recorded, created)
+        except BaseException:
+            for path in created:
+                path.unlink(missing_ok=True)
+            raise
+        return CorpusEntry(transcript=transcript, blocks=recorded, chosen=tuple(chosen))
+
+    @property
+    def _root(self):
+        return Path(self.corpus_root)
+
+    def _records(self, recording_id, doc, recorded, created):
         BindsCorpusRoots(corpus_root=self.corpus_root, prompts_root=self.prompts_root)()
         answer = (self.reasons or ReasonsOverTranscript())(doc)
         blocks = list(answer.get("blocks") or ())
@@ -64,7 +113,8 @@ class DerivesCorpusEntry:
             raise NothingToBlock(f"the classifier found no blocks in {recording_id}")
         model_segments = list(answer.get("model_segments") or ())
         chosen = self._chooses(blocks, model_segments, doc)
-        recorded.write_text(
+        creates(
+            recorded,
             json.dumps(
                 {
                     "recording_id": recording_id,
@@ -76,9 +126,9 @@ class DerivesCorpusEntry:
                 },
                 indent=1,
             ),
-            encoding="utf-8",
+            created,
         )
-        return CorpusEntry(transcript=transcript, blocks=recorded, chosen=tuple(chosen))
+        return chosen
 
     def _chooses(self, blocks, model_segments, doc):
         segments.DATA_ROOT = Path(self.corpus_root)
@@ -91,23 +141,3 @@ class DerivesCorpusEntry:
         if doc is None:
             raise TranscriptNotStored(f"no transcript is stored for {recording_id}")
         return recording, doc
-
-    def _destination(self, recording_id):
-        for name in CORPUS_DIRECTORIES:
-            (Path(self.corpus_root) / name).mkdir(parents=True, exist_ok=True)
-        return Path(self.corpus_root) / "blocks" / f"{recording_id}.{self.tag}.json"
-
-    def _writes_transcript(self, recording_id, doc):
-        path = (
-            Path(self.corpus_root) / "transcripts" / f"{recording_id}.{self.asr_config}.json"
-        )
-        path.write_text(json.dumps(doc), encoding="utf-8")
-        return path
-
-    def _writes_diarization(self, recording):
-        turns = reads_json(self.store, recording, "diarization")
-        if turns is None:
-            return None
-        path = Path(self.corpus_root) / "diarization" / f"{recording.recording_id}.json"
-        path.write_text(json.dumps(turns), encoding="utf-8")
-        return path
