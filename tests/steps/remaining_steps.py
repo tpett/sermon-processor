@@ -973,7 +973,7 @@ def _(store):
 def _(store):
     from sermon.jobs.runs_queued_jobs import RetriesFailedJob
 
-    retried = RetriesFailedJob(store=store, clock=lambda: FROZEN)(store.lists(Job)[0])
+    retried, _ = RetriesFailedJob(store=store, clock=lambda: FROZEN)(store.lists(Job)[0])
     assert retried.state == "queued"
 
 

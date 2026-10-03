@@ -4,6 +4,7 @@ from dataclasses import dataclass, fields, is_dataclass, replace
 from datetime import UTC, datetime, timedelta
 
 from sermon.store import Job, LogEntry, Store
+from sermon.store.vocabularies import JOB_STATES_IN_FLIGHT
 
 FIRST_RETRY_DELAY = timedelta(minutes=1)
 ATTEMPT = "job_attempt"
@@ -38,20 +39,36 @@ def aimed_at(handler, job):
     return handler
 
 
+class JobNotFailed(ValueError):
+    def __init__(self, job):
+        super().__init__(f"only a failed job can be retried; job {job.job_id} is {job.state}")
+
+
 @dataclass(frozen=True)
 class RetriesFailedJob:
     store: Store
     clock: object = now
 
     def __call__(self, job):
-        return self.store.saves(
+        if job.state != "failed":
+            raise JobNotFailed(job)
+        standing = [
+            held
+            for held in self.store.lists(Job, recording_id=job.recording_id, kind=job.kind)
+            if held.state in JOB_STATES_IN_FLIGHT and held.dedupe_key == job.dedupe_key
+        ]
+        if standing:
+            return standing[0], False
+        requeued = self.store.saves(
             replace(
                 job,
                 state="queued",
+                attempts=0,
                 failed_permanently=False,
                 queued_at=self.clock(),
             )
         )
+        return requeued, True
 
 
 @dataclass(frozen=True)

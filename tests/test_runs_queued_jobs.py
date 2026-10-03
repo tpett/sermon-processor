@@ -9,7 +9,7 @@ from sermon.jobs.analyzes_recording import RunsAnalyzeJob, StageFailed
 from sermon.jobs.downloads_recording import FetchesObject, ProbesAudio, RunsDownloadJob
 from sermon.jobs.renders_mp3 import RenderProducedNothing
 from sermon.jobs.renders_segment import RunsRenderJob, StepFailed
-from sermon.jobs.runs_queued_jobs import RetriesFailedJob, RunsQueuedJobs, retry_delay
+from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob, RunsQueuedJobs, retry_delay
 from sermon.sends_notification import SendsNotification
 from sermon.store import Job, LogEntry, Notification, Recording, Reviewer, Segment, opens_store
 
@@ -566,6 +566,51 @@ def test_a_render_chain_that_keeps_failing_fails_the_segment(store, clock, tmp_p
     assert store.loads(Job, job.job_id).failed_permanently
     assert store.loads(Segment, job.segment_id).state == "processing_failed"
     assert [item.kind for item in store.lists(Notification)] == ["processing_failed"]
+
+
+def an_exhausted_download(store):
+    job = a_download(store)
+    return store.saves(
+        replace(
+            job,
+            state="failed",
+            attempts=5,
+            failed_permanently=True,
+            last_error="connection refused",
+        )
+    )
+
+
+def test_retrying_a_failed_job_by_hand_starts_a_fresh_budget(store, clock):
+    job = an_exhausted_download(store)
+    retried, requeued = RetriesFailedJob(store=store, clock=clock)(job)
+
+    assert requeued
+    assert (retried.state, retried.attempts, retried.failed_permanently) == ("queued", 0, False)
+    fetches = FetchesObject()
+    fetches.stores(f"recordings/{job.recording_id}.flac", FLAC_BYTES)
+    worker(store, clock, fetches)()
+    assert store.loads(Job, job.job_id).state == "succeeded"
+
+
+@pytest.mark.parametrize("state", ["queued", "running", "succeeded", "cancelled"])
+def test_only_a_failed_job_can_be_retried_by_hand(store, clock, state):
+    job = store.saves(replace(a_download(store), state=state))
+    with pytest.raises(JobNotFailed):
+        RetriesFailedJob(store=store, clock=clock)(job)
+    assert store.loads(Job, job.job_id) == job
+
+
+def test_retrying_by_hand_while_the_same_work_is_in_flight_returns_that_job(store, clock):
+    failed = an_exhausted_download(store)
+    standing = store.saves(
+        replace(failed, job_id=None, state="queued", attempts=0, failed_permanently=False)
+    )
+    returned, requeued = RetriesFailedJob(store=store, clock=clock)(failed)
+
+    assert not requeued
+    assert returned == standing
+    assert store.loads(Job, failed.job_id) == failed
 
 
 def test_a_source_that_failed_to_decode_for_want_of_disk_is_retried(store, clock):
