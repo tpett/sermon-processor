@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1357 step definitions read from `tests/steps`
+- 1359 step definitions read from `tests/steps`
 - 36 condemned
 - 32 of 464 non-deferred scenarios rest on at least one condemned step
 - 42 of 607 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 9 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 50 Gherkin steps matched more than one definition
-- 270 Gherkin steps matched no definition
+- 268 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -44,7 +44,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | module | definitions | condemned | verdict |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py` | 61 | 3 | partly condemned |
+| `tests/steps/analysis/analysis_orchestration_steps.py` | 62 | 3 | partly condemned |
 | `tests/steps/analysis/approval_rate_steps.py` | 4 | 2 | partly condemned |
 | `tests/steps/analysis/audio_probe_steps.py` | 45 | 0 | sound |
 | `tests/steps/analysis/block_classification_steps.py` | 23 | 1 | partly condemned |
@@ -82,11 +82,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/analysis_notification_steps.py` | 23 | 2 | partly condemned |
 | `tests/steps/notifications/notification_steps.py` | 8 | 5 | partly condemned |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
-| `tests/steps/operations/job_queue_steps.py` | 14 | 0 | sound |
+| `tests/steps/operations/job_queue_steps.py` | 21 | 0 | sound |
 | `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
 | `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
-| `tests/steps/processing/processing_orchestration_steps.py` | 15 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 114 | 6 | partly condemned |
+| `tests/steps/processing/processing_orchestration_steps.py` | 16 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 107 | 6 | partly condemned |
 
 ## Condemned outside the six named files
 
@@ -94,9 +94,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:182` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:228` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:219` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:265` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:353` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
@@ -129,9 +129,9 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 | location | kind | step | faults |
 | --- | --- | --- | --- |
-| `tests/steps/analysis/analysis_orchestration_steps.py:182` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
-| `tests/steps/analysis/analysis_orchestration_steps.py:228` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
-| `tests/steps/analysis/analysis_orchestration_steps.py:314` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:219` | then | `approving one does not affect the other` | a Then that constructs and invokes a unit of the system |
+| `tests/steps/analysis/analysis_orchestration_steps.py:265` | then | `transcription runs wherever the application itself runs` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
+| `tests/steps/analysis/analysis_orchestration_steps.py:353` | then | `re-running only the "{later}" stage does not re-run "{earlier}"` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:104` | then | `the headline measure is the proportion of a period's published Segments approved with no boundary edit` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/approval_rate_steps.py:114` | then | `it is reported alongside the raw error figures, not replaced by them` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
 | `tests/steps/analysis/block_classification_steps.py:53` | then | `a Block typed "{block_type}" {seeds} a Segment` | a Then that constructs and invokes a unit of the system; a Then that writes to the store |
@@ -161,10 +161,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py:95` | then | `I can see which were delivered and which were not` | a Then with a path through it that asserts nothing |
 | `tests/steps/remaining_steps.py:188` | when | `a reviewer disables notifications` | a When that writes the outcome itself instead of invoking the system |
 | `tests/steps/remaining_steps.py:894` | then | `delivery is retried` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1035` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1054` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
-| `tests/steps/remaining_steps.py:1068` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
-| `tests/steps/remaining_steps.py:1106` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:968` | then | `no more than the configured number of analysis jobs run concurrently` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:987` | then | `new downloads and renders pause` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
+| `tests/steps/remaining_steps.py:1001` | then | `no Recording or Segment state is lost` | a Then whose every assertion only checks that some row exists |
+| `tests/steps/remaining_steps.py:1039` | then | `its skipped Segments are marked as no longer extractable` | a Then that asserts on data a step put on the store as a flag, or on a flag nothing sets |
 
 ## Scenarios whose every Then is condemned
 
@@ -198,7 +198,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/analysis_confidence.feature:65 then a self-reported confidence may be stored for diagnosis`
 - `analysis/analysis_confidence.feature:66 then it is never shown to a reviewer as a quality signal`
 - `analysis/analysis_orchestration.feature:109 then they can be revisited and approved months later`
-- `analysis/analysis_orchestration.feature:163 then the stage is retried`
 - `analysis/audio_probe.feature:122 then a reviewer can restore it for analysis if the machine was wrong`
 - `analysis/block_classification.feature:154 then that shape counts as evidence for "qa"`
 - `analysis/block_classification.feature:173 then the confidence that the Block is teaching is increased`
@@ -422,7 +421,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/processing_orchestration.feature:47 then the reviewer can continue working with other Recordings and Segments`
 - `processing/processing_orchestration.feature:58 then partial output is cleaned up`
 - `processing/processing_orchestration.feature:59 then a reviewer can retry processing without re-approving`
-- `processing/processing_orchestration.feature:71 then the step is retried`
 - `processing/processing_orchestration.feature:78 then the source is re-downloaded from the object store first`
 - `processing/processing_orchestration.feature:79 then processing continues normally`
 - `processing/processing_orchestration.feature:96 then a storage alert is raised`
