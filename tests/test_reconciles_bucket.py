@@ -5,6 +5,7 @@ import pytest
 from sermon.jobs.downloads_recording import FetchesObject
 from sermon.reconciles_bucket import ReconcilesBucket
 from sermon.store import Discovery, Job, Recording, SkippedObject, opens_store
+from sermon.web import creates_app
 
 FLAC_BYTES = b"fLaC" + bytes(64)
 FROZEN = datetime(2026, 8, 23, 16, 0, tzinfo=UTC)
@@ -128,3 +129,74 @@ def test_manual_ingest_queues_the_download_the_scan_does_not(store):
     assert [(job.state, job.dedupe_key) for job in jobs] == [
         ("queued", f"download:{recording.recording_id}")
     ]
+
+
+def ingests_over_http(store, body):
+    client = creates_app(
+        store=store, clock=lambda: FROZEN, lists_objects=FetchesObject().lists
+    ).test_client()
+    return client.post("/api/ingest", json=body)
+
+
+def leaves_no_trace(store):
+    assert store.lists(Recording) == []
+    assert store.lists(Job) == []
+    assert store.lists(Discovery) == []
+    assert store.lists(SkippedObject) == []
+
+
+@pytest.mark.parametrize(
+    "object_key",
+    [
+        "recordings/not-a-recording.flac",
+        "notes/readme.txt",
+        "recordings/recording_20261399_250000.flac",
+        "recordings/recording_20260823_102952.flac.meta.json",
+        7,
+    ],
+)
+def test_ingesting_a_key_that_names_no_recording_is_refused_without_side_effects(
+    store, object_key
+):
+    response = ingests_over_http(store, {"object_key": object_key})
+    assert response.status_code == 422
+    assert response.get_json() == {"malformed": "object_key"}
+    leaves_no_trace(store)
+
+
+@pytest.mark.parametrize("body", [{}, {"object_key": ""}, None])
+def test_ingesting_without_a_key_is_refused_without_side_effects(store, body):
+    response = ingests_over_http(store, body)
+    assert response.status_code == 422
+    assert response.get_json() == {"missing": "object_key"}
+    leaves_no_trace(store)
+
+
+def test_ingesting_a_body_that_is_not_an_object_is_refused_without_side_effects(store):
+    response = ingests_over_http(store, [UNSEEN])
+    assert response.status_code == 422
+    leaves_no_trace(store)
+
+
+def test_ingesting_a_well_formed_key_before_the_cutoff_is_still_accepted(store):
+    response = ingests_over_http(
+        store, {"object_key": "recordings/recording_20240107_101500.flac"}
+    )
+    assert response.status_code == 202
+    assert response.get_json()["recording_id"] == "recording_20240107_101500"
+
+
+def test_a_key_with_an_impossible_date_is_skipped_rather_than_ending_the_scan(store):
+    fetches = FetchesObject()
+    fetches.stores(
+        "recordings/recording_20261399_250000.flac",
+        FLAC_BYTES,
+        last_modified=FROZEN - timedelta(hours=1),
+    )
+    fetches.stores(UNSEEN, FLAC_BYTES, last_modified=FROZEN - timedelta(hours=1))
+    reconciles(store, fetches)()
+    assert [item.reason for item in store.lists(SkippedObject)] == [
+        "key does not match the pattern"
+    ]
+    assert [item.object_key for item in store.lists(Recording)] == [UNSEEN]
+    assert store.lists(Discovery)[0].discovered_count == 1
