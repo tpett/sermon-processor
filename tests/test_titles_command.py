@@ -62,7 +62,7 @@ def run(data_root, *arguments):
 def test_a_dry_run_prints_the_proposed_title_and_writes_nothing(data_root, model):
     code, printed = run(data_root, "--dry-run")
     assert code == 0
-    assert any("recording_20260830_094400  rehearsal  Pre-Service Rehearsal" in line for line in printed), printed
+    assert "2026-08-30 09:44  rehearsal  Pre-Service Rehearsal  [recording_20260830_094400]" in printed, printed
     assert not any("recording_20260831_120000" in line for line in printed), "an unanalysed Recording was named"
     store = opens_store(data_root)
     try:
@@ -126,3 +126,45 @@ def test_the_segments_it_names_get_a_label_only_where_none_is_written(data_root,
         assert sorted(one.label for one in store.lists(Segment)) == ["Members Meeting", "Members Meeting (budget)"]
     finally:
         store.close()
+
+
+def test_a_write_run_never_touches_a_recording_a_reviewer_titled(data_root, model):
+    store = opens_store(data_root)
+    store.saves(RecordingTitle(recording_id="recording_20260830_094400", title="Band practice", edited_by_human=True))
+    store.close()
+    code, printed = run(data_root, "--again")
+    assert code == 0
+    assert model == []
+    assert any("Band practice  (kept: titled by a reviewer)" in line for line in printed), printed
+    store = opens_store(data_root)
+    try:
+        assert store.loads(Recording, "recording_20260830_094400").kind is None
+        assert store.loads(RecordingTitle, "recording_20260830_094400").title == "Band practice"
+    finally:
+        store.close()
+
+
+def test_a_dry_run_line_carries_the_label_it_would_suggest(data_root, monkeypatch):
+    store = opens_store(data_root)
+    store.saves(
+        Segment(
+            recording_id="recording_20260830_094400",
+            classification="lesson",
+            state="proposed",
+            span_start_seconds=0.0,
+            span_end_seconds=1200.0,
+            punch_in_seconds=0.0,
+            punch_out_seconds=1200.0,
+        )
+    )
+    store.close()
+    monkeypatch.setattr(
+        classify,
+        "call_json",
+        lambda *_a, **_k: ({"kind": "class", "title": "TEC - Giving", "series": "TEC", "topic": "Giving"}, 0),
+    )
+    _, printed = run(data_root, "--dry-run")
+    assert (
+        "2026-08-30 09:44  class  Theological Equipping Class - Giving  label: TEC - Giving (lesson)"
+        "  [recording_20260830_094400]"
+    ) in printed, printed
