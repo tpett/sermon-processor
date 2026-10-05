@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 487 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 491 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 638 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 642 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -788,8 +788,22 @@ the output omits each span, each join fades rather than clicks, and the loudness
 pass measures only the audio that ships. That is **one file, eighteen scenarios
 and nine Rules** added; 85 steps.
 
-Pins are now **35 files / 487 scenarios / 153 rules / 638 collected**, and
-`SPEC_STEPS` is 2052.
+Later on 2026-10-05 the owner rendered a Segment and then wanted the podium
+bump out of it, but a `complete` Segment offered no action at all. Asked whether
+to add a Re-cut action for a completed segment so the bump could be removed and
+the Segment approved again, they said "yes build it". `processing/reprocessing.feature`
+already specified re-cutting; it said nothing about removed spans, about the
+published name colliding with the Segment's own file, about skipping a re-cut,
+or about cancelling its render. Four scenarios were added to `A completed
+segment can be sent back for re-cutting`: `Re-cutting to take a span out`,
+`Re-approving under the same label is not a name collision`, `Skipping a re-cut
+keeps the MP3 already published` and `Cancelling a re-approved render goes back
+to re-cutting`. `Approving the new cut` gained `And the worker renders it`, the
+action its Then had nothing to observe without, the same kind of When the owner
+approved on 2026-10-03. Four scenarios, no Rule, 22 steps.
+
+Pins are now **35 files / 491 scenarios / 153 rules / 642 collected**, and
+`SPEC_STEPS` is 2074.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

@@ -24,6 +24,7 @@ Feature: Re-cutting a completed segment
     Scenario: Approving the new cut
       Given I re-cut and adjusted the punch-out to "2:44:10"
       When I approve the Segment
+      And the worker renders it
       Then it is processed again
       And the new MP3 replaces the previous one
       And the previous cut's boundaries are retained in the history
@@ -40,6 +41,45 @@ Feature: Re-cutting a completed segment
       When I re-cut this Segment
       Then the other Segment stays "complete"
       And its MP3 is untouched
+
+    @happy-path
+    Scenario: Re-cutting to take a span out
+      # Asked for when a rendered sermon still held a podium bump: "yes build
+      # it". Removing a span is part of the cut, so re-cutting reopens it too.
+      Given I have re-cut the Segment
+      And I have removed the span from "2:00:21.400" to "2:00:22.100"
+      When I approve the Segment
+      And the worker renders it
+      Then it is processed again
+      And the new MP3 leaves out the span from "2:00:21.400" to "2:00:22.100"
+      And the new MP3 replaces the previous one
+
+    @edge-case
+    Scenario: Re-approving under the same label is not a name collision
+      # The file already published under that name is this Segment's own, and
+      # it is the file the new render replaces.
+      Given I have re-cut the Segment
+      When I approve the Segment with the label "Hebrews 12.4-11"
+      And the worker renders it
+      Then it is processed again
+      And the new MP3 replaces the previous one
+
+    @edge-case
+    Scenario: Skipping a re-cut keeps the MP3 already published
+      # Skipping says no new cut is wanted. It does not unpublish the old one.
+      Given I have re-cut the Segment
+      When I skip the Segment
+      Then it enters "skipped"
+      And the existing MP3 remains downloadable until a new one replaces it
+
+    @edge-case
+    Scenario: Cancelling a re-approved render goes back to re-cutting
+      # Not to "proposed": the Segment still has a published MP3 behind it.
+      Given I have re-cut the Segment
+      And I approve the Segment
+      When I cancel processing
+      Then it enters "recut"
+      And the existing MP3 remains downloadable until a new one replaces it
 
   Rule: Re-rendering can be triggered without changing boundaries
 
