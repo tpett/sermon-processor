@@ -22,7 +22,7 @@
     <details class="rename">
       <summary>Rename</summary>
       <form class="inline" method="post" action="/recordings/{{ view.recording_id }}/actions/retitle">
-        <label>Title <input type="text" name="title" value="{{ view.title or '' }}" data-field="title-input"></label>
+        <label>Title <input type="text" name="title" size="40" value="{{ view.title or '' }}" data-field="title-input"></label>
         <button type="submit" data-field="retitle-control">Save title</button>
       </form>
     </details>
