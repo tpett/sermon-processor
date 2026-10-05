@@ -4,6 +4,9 @@ from datetime import UTC, date, datetime
 
 from pytest_bdd import given, parsers, then, when
 
+from sermon.analysis.io import writes_json
+from sermon.analysis.stages import SuggestsPublicationLabel
+from sermon.analysis.titles_recording import TitlesRecording
 from sermon.records_publication_details import RecordsPublicationDetails
 from sermon.shows_recording import NOTICES
 from sermon.store import Recording, Segment
@@ -147,3 +150,44 @@ def _(store, segment, detail_page):
     confirmed = _forms.submits(store, detail_page, approving, replace="yes")
     assert reads_field(confirmed, "action-notice") == NOTICES["approved"]
     assert store.loads(Segment, segment.segment_id).label == "Hebrews 12.4-11"
+
+
+LABEL_INPUT = re.compile(r'<input\b[^>]*\bname="label"[^>]*>')
+
+
+@given(parsers.parse('its transcript contains "{said}"'))
+def _(store, recording, segment, said):
+    start = segment.punch_in_seconds + 30.0
+    writes_json(
+        store,
+        recording,
+        "transcript",
+        {
+            "duration": segment.span_end_seconds + 60.0,
+            "utterances": [{"start": start, "end": start + 4.0, "text": said, "confidence": 0.9, "words": []}],
+            "silences": [],
+            "likely_music": [],
+        },
+    )
+    SuggestsPublicationLabel(store=store)(recording)
+
+
+@given(parsers.parse('analysis named its recording the class "{series}"'))
+def _(store, recording, series):
+    answer = {"kind": "class", "title": series, "series": series, "topic": None}
+    TitlesRecording(store=store, asks=lambda _prompt: answer)(recording)
+
+
+@then(parsers.parse('the label is suggested as "{label}"'))
+def _(store, segment, label):
+    _, approving = _forms.finds_form(opens_segment(store, segment), APPROVING)
+    assert _forms.fields_of(approving).get("label") == label
+
+
+@then("I can correct it before approving")
+def _(store, segment):
+    _, approving = _forms.finds_form(opens_segment(store, segment), APPROVING)
+    written = LABEL_INPUT.search(approving)
+    assert written, "the approval form takes no label"
+    assert 'type="text"' in written.group(0)
+    assert "readonly" not in written.group(0) and "disabled" not in written.group(0)

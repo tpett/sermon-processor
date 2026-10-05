@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1386 step definitions read from `tests/steps`
+- 1424 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 464 non-deferred scenarios rest on at least one condemned step
-- 9 of 606 expanded scenario tests likewise
+- 9 of 481 non-deferred scenarios rest on at least one condemned step
+- 9 of 628 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 49 Gherkin steps matched more than one definition
-- 255 Gherkin steps matched no definition
+- 250 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -55,6 +55,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/punch_in_steps.py` | 34 | 0 | sound |
 | `tests/steps/analysis/punch_out_steps.py` | 25 | 0 | sound |
+| `tests/steps/analysis/recording_titles_steps.py` | 34 | 0 | sound |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 99 | 4 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
 | `tests/steps/analysis/summarization_steps.py` | 22 | 0 | sound |
@@ -70,7 +71,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
 | `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
 | `tests/steps/interface/proposal_display_steps.py` | 1 | 0 | sound |
-| `tests/steps/interface/publication_details_steps.py` | 14 | 0 | sound |
+| `tests/steps/interface/publication_details_steps.py` | 18 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 43 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
@@ -138,7 +139,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `analysis/analysis_confidence.feature:222 then correctness is established by the accuracy suite instead`
 - `analysis/analysis_confidence.feature:67 then a self-reported confidence may be stored for diagnosis`
 - `analysis/analysis_confidence.feature:68 then it is never shown to a reviewer as a quality signal`
-- `analysis/analysis_orchestration.feature:109 then they can be revisited and approved months later`
+- `analysis/analysis_orchestration.feature:110 then they can be revisited and approved months later`
 - `analysis/audio_probe.feature:122 then a reviewer can restore it for analysis if the machine was wrong`
 - `analysis/block_classification.feature:156 then that shape counts as evidence for "qa"`
 - `analysis/block_classification.feature:175 then the confidence that the Block is teaching is increased`
@@ -236,18 +237,13 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/discarding_recordings.feature:115 then it is flagged "no substantive content" and marked ignored`
 - `interface/discarding_recordings.feature:116 then it never appears as work`
 - `interface/discarding_recordings.feature:117 then I can still find and restore it if the machine was wrong`
-- `interface/publication_details.feature:116 then the stored details are updated`
-- `interface/publication_details.feature:117 then the downloadable file is renamed`
-- `interface/publication_details.feature:118 then the audio is not re-encoded`
-- `interface/publication_details.feature:61 given its transcript contains "turn with me to Hebrews chapter 12"`
-- `interface/publication_details.feature:63 then the label is suggested as "Hebrews 12"`
-- `interface/publication_details.feature:64 then I can correct it before approving`
-- `interface/publication_details.feature:70 then the label is suggested as "TEC"`
-- `interface/publication_details.feature:71 then I can correct it before approving`
-- `interface/publication_details.feature:77 then each carries its own label`
-- `interface/publication_details.feature:78 then the two output files do not collide`
-- `interface/publication_details.feature:86 then the output file is named from the recording date`
-- `interface/publication_details.feature:87 then I am not prompted for anything else`
+- `interface/publication_details.feature:121 then the stored details are updated`
+- `interface/publication_details.feature:122 then the downloadable file is renamed`
+- `interface/publication_details.feature:123 then the audio is not re-encoded`
+- `interface/publication_details.feature:82 then each carries its own label`
+- `interface/publication_details.feature:83 then the two output files do not collide`
+- `interface/publication_details.feature:91 then the output file is named from the recording date`
+- `interface/publication_details.feature:92 then I am not prompted for anything else`
 - `interface/punch_point_adjustment.feature:129 then the punch-in moves to the nearest silence gap boundary`
 - `interface/punch_point_adjustment.feature:130 then the amount it moved is shown`
 - `interface/punch_point_adjustment.feature:146 then I am warned that the cut is too close to the audio`

@@ -63,9 +63,14 @@ Feature: Publication details
       Then the label is suggested as "Hebrews 12"
       And I can correct it before approving
 
-    @happy-path @assumption
-    Scenario: The label is suggested from the classification for other content
+    @happy-path @stated
+    Scenario: The label is suggested from the class for other content
+      # The owner, 2026-10-05: a class's topic feeds the label the way
+      # scripture does for a sermon, and the label uses the acronym. With no
+      # topic named it is the acronym alone, as two of the owner's own files
+      # are ("2026-05-03 - TEC", "2026-07-05 - TEC").
       Given the Segment is classified "lesson"
+      And analysis named its recording the class "Theological Equipping Class"
       When I open the Segment
       Then the label is suggested as "TEC"
       And I can correct it before approving

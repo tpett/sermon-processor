@@ -72,6 +72,7 @@ Feature: Analysis orchestration
         | segment_proposal     | publishable Segments built from Blocks              |
         | boundary_refinement  | precise punch-in and punch-out per Segment          |
         | scoring              | a Proposal per Segment, with its evidence           |
+        | titling              | the Recording's kind and title, and a class's label |
       # They iterate until stable, because a block edge can depend on what its
       # neighbour turns out to be.
       And blocking and block_classification iterate until stable

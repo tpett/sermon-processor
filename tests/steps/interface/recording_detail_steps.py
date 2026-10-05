@@ -172,7 +172,7 @@ def _(store, recording, detail_page):
     completed = _progress.completed_stages(store, recording)
     assert completed == {"envelope", "probe", "waveform", "preview"}
     assert {row["stage"] for row in rows if row["state"] == "complete"} == completed
-    assert reads_field(detail_page, "analysis-completed") == "4 of 12 stages complete"
+    assert reads_field(detail_page, "analysis-completed") == f"4 of {len(STAGE_ORDER)} stages complete"
     assert all(row["stage-took"] for row in rows if row["state"] == "complete")
 
 

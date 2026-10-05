@@ -18,6 +18,8 @@ framework against a known shape.
 ## Entities at a glance
 
 ```
+Recording ──1:1──▶ RecordingTitle  (what the recording is called, once analysis or a reviewer names it)
+    │
 Recording ──1:N──▶ Block
     │                 │
     │                 │ seeds (teaching Blocks only)
@@ -41,9 +43,9 @@ Discovery                       (a webhook received or a scan run, and what it f
 Reviewer                        (the actor seam; whether they receive notifications)
 ```
 
-Five nouns the reviewer names, plus eight the system needs: `Job`,
+Six nouns the reviewer names, plus eight the system needs: `Job`,
 `Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject`, `Discovery`,
-`CorpusPair` and `Reviewer`.
+`CorpusPair` and `Reviewer`. The sixth is `RecordingTitle`.
 
 ---
 
@@ -65,7 +67,7 @@ One source audio file from the recorder. The unit of ingestion.
 | `mono_source` | Which channel or mix the render must take: "the Recording records that the render should use channel 1 only" (`analysis/audio_probe.feature`). Deliberately not a closed set — the scenarios name that one value and declare no vocabulary for the reviewer's answer when both channels carry signal. |
 | `mono_source_confirmed` | A Recording flagged "unexpected stereo content" does not render until a human answers how to mix it (`processing/audio_rendering.feature`), and that answer has to outlive a re-probe which would otherwise recompute `mono_source` over it. Null until the question is asked, written the way `Segment.distribution_confirmed` is. |
 | `state` | One of ten. See the lifecycle in `README.md`; every state's exits are tabulated there. |
-| `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. |
+| `kind` | `service`, `class`, `special_service`, `meeting`, `rehearsal`, `empty`, `unknown`. Descriptive only — it changes no processing. Written by the analyze walk's last stage from the model's reading of the stored text, "Then the Recording kind is …" (`analysis/recording_titles.feature`); an answer outside the set is `unknown` ("A kind outside the vocabulary is unknown"). Reasoning, not quoted: an `unknown` answer leaves a kind already known in place. Shown on the list as a short tag, the glossary's acronym where the series has one ("its row is tagged …"). |
 | `local_path` | Null until downloaded, and null again if local audio is reclaimed. The source in the object store is the durable copy. |
 | `checksum` | The download must hash identically to the object (`recording_download.feature`). |
 | `sidecar_present` | "The missing sidecar is noted on the Recording" (`ingestion/recording_download.feature`), which `started_at_source` does not say — the key supplies the start time whether a sidecar exists or not. Null until the download looks, and not a warning, because no object in the bucket has one. |
@@ -111,6 +113,28 @@ container's own name could only ever disagree with the file.
 **Not stored:** any notion of "needs attention" as a field. It is derived from
 state, Segment dispositions and confidence. Storing it means two sources of truth
 for the one thing the reviewer looks at first.
+
+---
+
+## RecordingTitle
+
+What a Recording is called: "Pre-Service Rehearsal", "Theological Equipping
+Class - Giving", "Sunday Service - Hebrews 13:1-6" (`analysis/recording_titles.feature`).
+One per Recording at most, absent until analysis or a reviewer names it, and the
+list falls back to the date and time alone without one ("A recording nobody has
+named").
+
+| Field | Why it exists |
+| --- | --- |
+| `recording_id` | The Recording it names, and its identity: there is never a second title. |
+| `title` | Never the date — "the Recording is titled …" after the model answered with one ("A title never repeats the date"). Names are spelled out ("Theological Equipping Class", not "TEC") and a passage is written with a colon ("A passage is written with a colon in the title and a dot in the label"). |
+| `series` | The class or series the model named, spelled out. Not in any Then on its own; it is what the list's tag and a class's label abbreviate ("its row is tagged "TEC""), so it is kept rather than parsed back out of a title the reviewer may have rewritten. |
+| `edited_by_human` | "Analysing again keeps the reviewer's title" and "The backfill keeps the reviewer's title". Without it a reviewer's title and a machine's are the same row, and the next analysis would overwrite the reviewer's. The rename itself is a `LogEntry` of kind `title_change` with the reviewer as actor ("the rename is in the processing log as the reviewer's"). |
+
+**Its own entity rather than columns on Recording.** Reasoning, not quoted: a
+database made before titles existed must open unchanged, nothing here migrates
+a table that lacks a declared column, and a new table can be created where it is
+missing. Nothing in the Gherkin forces the split.
 
 ---
 
@@ -161,7 +185,7 @@ and what renders.
 | `leading_silence_seconds` | Checked against the 2.0 s cap (`analysis/detection_accuracy.feature`, "Silence before the first word is bounded"). Computable on any proposal without ground truth, which is what makes it the one hard boundary rule. |
 | `warnings[]` | `check the opening`, `no clean cut point found at punch-in`, `no clean cut point found at punch-out`, `boundary is not acceptable`, `source was very quiet`. Five named conditions, held the way `Recording.warnings[]` is and for the same reasons (`analysis/punch_in_detection.feature`, `analysis/punch_out_detection.feature`, `analysis/segment_proposal.feature`, `processing/audio_rendering.feature`). |
 | `publication_date` | When the Segment was published, kept for the log — and so for the periods `sermon-approvals` reports over — and never part of the file name: "The publication date is the recording's, kept for the log" and "A publication date never names the file" (`interface/publication_details.feature`); the name takes the Recording's date. Placed at approval from the Recording's start wherever none was recorded, so a published Segment is never in no period. Null while a Segment is still proposed, which is most of its life: it is proposed long before it is published (reasoning, not quoted). |
-| `label` | The other half. Summarization suggests it from the summary; the reviewer can correct it. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. |
+| `label` | The other half. Summarization suggests it from the summary; the reviewer can correct it. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. For a sermon the suggestion is the passage, written with a dot (`Hebrews 12.25-29`); for a class it is the class's acronym and topic, "Then the class's suggested label is …" (`TEC - Giving`, `TEC` with no topic) (`analysis/recording_titles.feature`). A suggestion is never written over a label already there ("A label already given is kept"). |
 
 **Four of the conditions a scenario flags on a Segment are derivable, and are not
 stored.** `length outside expected range` is the distance between the boundaries,

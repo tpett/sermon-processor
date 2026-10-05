@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 469 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 486 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 614 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 636 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -134,6 +134,7 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-corpus recording_20260920_094416 --prompts experiments/prompts
 .venv/bin/sermon-align recording_20260927_095721 "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.mp3" \
     --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
+.venv/bin/sermon-title --dry-run             # name recordings analysed before titles existed
 ```
 
 **Configuration.** Every variable is read from the environment or `.env`; only
@@ -200,7 +201,7 @@ we have?** It replays production's analyze job itself — `RunsAnalyzeJob` and t
 stage walk as `sermon-work` builds it with no corpus, roots bound to an empty
 `corpus/diarization` — over each stored transcript, handing the stored model
 answer in at the walk's `divides` seam. Stages needing audio or a model
-(waveform, preview, diarization, summarization) are refused before they start,
+(waveform, preview, diarization, summarization, titling) are refused before they start,
 and only optional ones. No audio leaves the machine and no model is called; it
 needs `SERMON_SPIKE_DATA` or `--corpus`.
 
@@ -357,6 +358,24 @@ anywhere and invokes no transcriber.
 ground truth without `sermon-align` being run by hand. An approval the reviewer
 did not touch writes nothing: it is the machine's own answer, and it is recorded
 as a `machine` pair by `sermon-align` once the output has been rendered.
+
+`sermon-title` names Recordings that were analysed before the walk had a
+`titling` stage. It reads only what is stored — the Blocks and their summaries,
+the Segments and their labels, the weekday and start time — and sends that text
+to `SERMON_MODEL_ENDPOINT`; no audio, no transcript, no re-analysis. It needs
+only `SERMON_DATA_ROOT` (or `--store`) and the endpoint. By default it names
+only Recordings with no title yet; `--again` re-asks for machine titles too, and
+a reviewer's title is always kept and reported as kept. Labels are suggested
+only for Segments that have none. `--dry-run` prints what it would write and
+writes nothing — run it first, and never straight against production.
+
+**The names glossary is `src/sermon/names.toml`**, one `ACRONYM = "Full name"`
+line each (`TEC`, `CT` today). A title spells a name out; the list's kind tag
+and a class's suggested label use the acronym. To add a name, add a line; it
+ships in the image with the code. The titling prompt is
+`src/sermon/analysis/prompts/titles.v1.md`, also shipped with the code: the
+classifier's prompts are the frozen `experiments/prompts`, copied by the
+Dockerfile to `SERMON_PROMPTS_ROOT`, and nothing new may be added there.
 
 `sermon-render` is the whole cut in one command: it fetches and probes the source
 if it is not already local, creates the Segment from the boundaries you gave it,
@@ -765,8 +784,30 @@ diarization and does follow the model's self-reported number, no leading-silence
 flag exists, and the punch-out falls back to the end of the span rather than of
 the seeding Block. Twenty-two steps were added; no scenario or Rule.
 
-Pins are now **34 files / 469 scenarios / 144 rules / 614 collected**, and
-`SPEC_STEPS` is 1967.
+On 2026-10-05 the owner asked for the list to say what each recording is,
+because they were inferring it from the date and time: "Pre-Service Rehearsal",
+"Theological Equipping Class - Giving", "Sunday Service - Hebrews 13:1-6". The
+date stays on every row and the title does not repeat it: "Sunday Service -
+Hebrews 13:1-6 would be more indicative when the date is already there." On
+names: "CT is Culture and Theology. I think for the title, spelling it out looks
+nicer, for more concise parts of the view, using the acronym is preferred." And
+the class topic feeds the suggested label as scripture does for a sermon: "Note
+that for the scripture we sub `:` for `.` since some of the platforms we use
+reject `:` in filenames. So Hebrews 13:1-6 becomes Hebrews 13.1-6." Nothing in
+the spec named a recording at all, so `features/analysis/recording_titles.feature`
+was added: six Rules, seventeen scenarios, twenty-two expanded tests — inference
+of the kind and title from text, the glossary's two forms, a class's label, the
+reviewer's title surviving analysis, the list and detail view, and the backfill.
+In `features/interface/publication_details.feature`, `The label is suggested
+from the classification for other content` was an `@assumption` that a lesson is
+"TEC"; it is now `The label is suggested from the class for other content`,
+`@stated`, with one Given saying analysis named the recording the class. Its Then
+is unchanged. `A full analysis run` in
+`features/analysis/analysis_orchestration.feature` gained a `titling` row, because
+the walk now ends there; a table row is not a step. Seventy-nine steps were added.
+
+Pins are now **35 files / 486 scenarios / 150 rules / 636 collected**, and
+`SPEC_STEPS` is 2046.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
