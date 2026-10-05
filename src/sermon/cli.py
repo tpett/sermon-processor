@@ -44,7 +44,9 @@ from sermon.analysis.diarizes_audio import diarizes_with
 from sermon.analysis.transcribes_audio import transcribes_with
 from sermon.approves_segment import ApprovesSegment
 from sermon.binds_model_endpoint import BindsModelEndpoint
+from sermon.analysis.titles_recording import TITLER, AsksModelForTitle
 from sermon.config import DATA_ROOT, ModelEndpointUnreachable, MissingConfiguration, ReadsConfiguration
+from sermon.config import MODEL_ENDPOINT, UnusableConfiguration, refuses_a_non_http_endpoint
 from sermon.extends_segment_span import ReadsTimecode, WidensProposedSpan
 from sermon.jobs.analyzes_recording import RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
@@ -61,6 +63,8 @@ from sermon.object_store import (
     StreamsBucketObject,
 )
 from sermon.organizes_data_root import IN_PLACE, OrganizesDataRoot
+from sermon.names_stored_recordings import NamesStoredRecordings
+from sermon.pipeline import classify
 from sermon.pipeline.classify import hms
 from sermon.pipeline.roots import RootNotConfigured
 from sermon.reconciles_bucket import (
@@ -1738,3 +1742,68 @@ def derives_corpus(settings=None, arguments=None, reasons=None, prints=print):
             f"{hms(chosen['punch_out'])}  ({chosen['boundary_source']})"
         )
     return 0
+
+
+TITLES_USAGE = (
+    "sermon-title [<recording-id> ...] [--dry-run] [--again] [--store <data-root>] [--model <name>]"
+)
+
+
+def parses_titles_command(arguments, prints):
+    parser = argparse.ArgumentParser(prog="sermon-title", usage=TITLES_USAGE, add_help=True)
+    parser.add_argument("recordings", nargs="*")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--again", action="store_true")
+    parser.add_argument("--store")
+    parser.add_argument("--model", default=TITLER)
+    try:
+        return parser.parse_args(arguments)
+    except SystemExit:
+        prints(f"usage: {TITLES_USAGE}")
+        return None
+
+
+def titles(settings=None, arguments=None, prints=print):
+    """Name recordings analysed before titling existed, from their stored text alone.
+
+    No audio, no transcript and no re-analysis: only Blocks, summaries and Segments.
+    """
+    asked = parses_titles_command(sys.argv[1:] if arguments is None else arguments, prints)
+    if asked is None:
+        return 1
+    settings = resolves_settings() if settings is None else settings
+    configured = settings.get(DATA_ROOT)
+    endpoint = settings.get(MODEL_ENDPOINT)
+    if not asked.store and not configured:
+        prints(f"nothing sets {DATA_ROOT}")
+        return 1
+    if not endpoint:
+        prints(f"nothing sets {MODEL_ENDPOINT}")
+        return 1
+    try:
+        refuses_a_non_http_endpoint(MODEL_ENDPOINT, endpoint)
+    except UnusableConfiguration as refused:
+        prints(str(refused))
+        return 1
+    data_root = Path(asked.store).resolve() if asked.store else Path(configured)
+    try:
+        store = opens_store(data_root)
+    except StoredSchemaDiffers as stale:
+        prints(str(stale))
+        return 1
+    held = classify.ENDPOINT
+    classify.ENDPOINT = endpoint
+    try:
+        prints(f"naming recordings in {data_root}{' (dry run: nothing is written)' if asked.dry_run else ''}")
+        NamesStoredRecordings(
+            store=store,
+            prints=prints,
+            asks=AsksModelForTitle(model=asked.model),
+            dry_run=asked.dry_run,
+            again=asked.again,
+            only=tuple(asked.recordings),
+        )()
+        return 0
+    finally:
+        classify.ENDPOINT = held
+        store.close()
