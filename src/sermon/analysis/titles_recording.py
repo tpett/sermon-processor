@@ -13,7 +13,7 @@ from sermon.store.vocabularies import RECORDING_KINDS
 
 TITLER = "qwen3.6:35b-mlx"
 TITLE_TEMPLATE = Path(__file__).with_name("prompts") / "titles.v1.md"
-TITLE_LIMIT = 80
+TITLE_LIMIT = 120
 SUMMARY_SHOWN = 160
 NAMED_BY_CLASS = frozenset({"lesson", "seminar"})
 NAMED_BY_TITLE = frozenset({"meeting"})
@@ -82,6 +82,14 @@ def keeps_passages_shown(title, shown):
         if all(supported(one) for one in scripture.references_in(part))
     ]
     return " - ".join(kept)
+
+
+def shortened(title):
+    """A title cut at a separator rather than inside a word or a verse."""
+    if len(title) <= TITLE_LIMIT:
+        return title.strip(SEPARATORS)
+    cut = next((at for at in (title.rfind(mark, 0, TITLE_LIMIT) for mark in (", ", " - ")) if at > 0), -1)
+    return (title[:cut] if cut > 0 else title[:TITLE_LIMIT]).strip(SEPARATORS)
 
 
 def without_dates(text):
@@ -175,6 +183,7 @@ class InfersTitle:
             raise TitleNotInferred("the model named neither a kind nor a title")
         kind = (_text(answer, "kind") or "").lower()
         topic = _text(answer, "topic")
+        topic = topic[:1].upper() + topic[1:] if topic else None
         return Titling(
             kind=kind if kind in RECORDING_KINDS else UNKNOWN_KIND,
             title=self._titled(_text(answer, "title"), glossary, segments, describes.evidence(blocks, segments)),
@@ -189,8 +198,7 @@ class InfersTitle:
         for segment in segments:
             if segment.classification in LABELLED_BY_PASSAGE and segment.label:
                 title = title.replace(segment.label, spoken_passage(segment.label))
-        title = keeps_passages_shown(title, shown)
-        return title[:TITLE_LIMIT].strip(SEPARATORS) or None
+        return shortened(keeps_passages_shown(title, shown)) or None
 
 
 @dataclass(frozen=True)

@@ -213,3 +213,18 @@ def test_a_passage_the_model_was_shown_stays(store):
         store=store, asks=answering({"kind": "service", "title": "Sunday Service - Hebrews 12:25-29"}), glossary=NAMES
     )(recording)
     assert titled.title == "Sunday Service - Hebrews 12:25-29"
+
+
+def test_a_long_title_is_cut_at_a_separator_never_inside_a_verse():
+    from sermon.analysis.titles_recording import TITLE_LIMIT, shortened
+
+    long = "Theological Equipping Class - Stewardship and Generosity in the Life of the Local Church, then Sunday Service - Hebrews 12:25-29"
+    assert len(long) > TITLE_LIMIT
+    assert shortened(long) == "Theological Equipping Class - Stewardship and Generosity in the Life of the Local Church"
+
+
+def test_a_topic_starts_with_a_capital(store):
+    recording = recorded(store)
+    with_contents(store, recording)
+    TitlesRecording(store=store, asks=answering({"kind": "class", "title": "TEC - Speech", "series": "TEC", "topic": "theology of speech"}), glossary=NAMES)(recording)
+    assert {one.classification: one.label for one in store.lists(Segment)}["lesson"] == "TEC - Theology of speech"

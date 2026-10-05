@@ -34,7 +34,10 @@ Answer with one JSON object and nothing else:
   "Sunday Service - <passage>", "Theological Equipping Class - <topic>",
   "Pre-Service Rehearsal", "Members Meeting", "Good Friday Service".
   {passage}
-- series: the name of the class or series if the recording is one, written in
-  full, otherwise null.
-- topic: the subject of the class or series session in one to three words,
-  otherwise null.
+  A recording that holds a class and then a service names both, the class
+  first: "Theological Equipping Class - <topic>, then Sunday Service - <passage>".
+- series: whenever any lesson or seminar is listed above, the name of that
+  class or series written in full, even when a service follows it in the same
+  recording; otherwise null.
+- topic: the subject of that lesson or seminar in one to three words, otherwise
+  null.
