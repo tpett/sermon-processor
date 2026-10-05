@@ -88,6 +88,7 @@ SEGMENT_ACTION_PATHS = {
     "Revisit": "reopen",
     "Cancel processing": "reopen",
     "Retry processing": "retry-processing",
+    "Re-cut": "recut",
 }
 
 SEGMENT_ACTIONS = {
@@ -97,7 +98,7 @@ SEGMENT_ACTIONS = {
     "processing": ("Cancel processing",),
     "processing_failed": ("Retry processing",),
     "recut": ("Approve", "Skip"),
-    "complete": (),
+    "complete": ("Re-cut",),
 }
 
 NOTICES = {
@@ -111,6 +112,10 @@ NOTICES = {
     ),
     "skipped": "the Segment is skipped and stays available",
     "reopened": "the Segment has returned to proposed",
+    "recut": (
+        "the Segment is open for re-cutting; its MP3 stays downloadable "
+        "until a new render replaces it"
+    ),
     "processing-retried": "the render is queued again, without re-approving",
     "processing-standing": "a render for this Segment is already queued",
     "adjusted": "the adjustment is saved without approving",
@@ -139,6 +144,9 @@ NOTICES = {
     ),
     "a Segment that has already rendered cannot be reopened": (
         "a Segment that has already rendered cannot be reopened"
+    ),
+    "only a Segment that has finished rendering can be re-cut": (
+        "only a Segment that has finished rendering can be re-cut"
     ),
     "it would overlap the neighbouring Segment": "it would overlap the neighbouring Segment",
     "that is not a classification a Segment can have": (

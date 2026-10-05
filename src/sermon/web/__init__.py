@@ -55,6 +55,7 @@ from sermon.removes_span import (
     RestoresSpan,
     kept_pieces,
 )
+from sermon.recuts_segment import RecutsSegment, SegmentNotComplete
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.sends_notification import lists_undelivered
@@ -160,6 +161,7 @@ def creates_app(
     classifies = ClassifiesSegment(store=store, clock=clock)
     archives = ArchivesWholeRecording(store=store, clock=clock)
     reopens = ReopensSegment(store=store, clock=clock)
+    recuts = RecutsSegment(store=store, clock=clock)
     retries_processing = RetriesProcessing(store=store, clock=clock)
     reruns = RerunsAnalysis(store=store, clock=clock)
     adjusts = AdjustsPunchPoint(store=store, clock=clock)
@@ -665,7 +667,11 @@ def creates_app(
         except SegmentNotReady:
             return returns_to(recording_id, refusal_for(segment), segment_id, focus)
         except (
-            BoundaryRejected, SegmentAlreadyRendered, ClassificationRejected, ProcessingNotFailed
+            BoundaryRejected,
+            SegmentAlreadyRendered,
+            SegmentNotComplete,
+            ClassificationRejected,
+            ProcessingNotFailed,
         ) as refusal:
             return returns_to(recording_id, str(refusal), segment_id, focus)
         if notice is None:
@@ -688,6 +694,9 @@ def creates_app(
         if action == "reopen":
             reopens(segment)
             return "reopened"
+        if action == "recut":
+            recuts(segment)
+            return "recut"
         if action == "retry-processing":
             _, queued = retries_processing(segment)
             return "processing-retried" if queued else "processing-standing"
