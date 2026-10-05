@@ -341,14 +341,14 @@ def renders_span(source_path, start, end):
 def _keeps(renderer, produced):
     def renders_and_keeps(*arguments, **named):
         rendered = renderer(*arguments, **named)
-        produced.append(rendered)
+        produced.append(_snapshots(rendered))
         return rendered
 
     return renders_and_keeps
 
 
 def _snapshots(rendered):
-    """A re-render overwrites the published name, so each output is kept aside."""
+    """Kept aside as written, before it is moved over the published name."""
     aside = Path(tempfile.mkdtemp()) / rendered.path.name
     return replace(rendered, path=copies(rendered.path, aside))
 
@@ -368,7 +368,7 @@ def renders(store, reuse=True):
             produced,
         ),
     )()
-    return _snapshots(produced[-1]) if produced else None
+    return produced[-1] if produced else None
 
 
 def probes(store, recording):

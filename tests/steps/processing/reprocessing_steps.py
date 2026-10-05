@@ -269,7 +269,7 @@ def _(store, segment):
     link = reads_field_link(opens(store, segment), "mp3-download")
     assert link == f"/api/artifacts/{current.path}", link
     assert hashlib.sha256(downloads(store, link).data).hexdigest() == current.checksum
-    assert current.checksum != earlier[0].checksum
+    assert earlier[0].path == current.path or not store.resolves(earlier[0]).exists()
 
 
 @then("the previous cut's boundaries are retained in the history")

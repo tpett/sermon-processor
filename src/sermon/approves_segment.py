@@ -40,7 +40,7 @@ class ApprovesSegment:
     adds_to_corpus: object | None = None
 
     def __call__(self, segment):
-        if segment.state not in {"proposed", "skipped"}:
+        if segment.state not in {"proposed", "skipped", "recut"}:
             raise SegmentNotReady(segment.state)
         if segment.intent == "publish" and not segment.label:
             raise PublicationLabelRequired("a publication label is required")
