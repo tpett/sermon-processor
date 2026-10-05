@@ -42,5 +42,6 @@ Answer with one JSON object and nothing else:
 - series: whenever any lesson or seminar is listed above, the name of that
   class or series written in full, even when a service follows it in the same
   recording; otherwise null.
-- topic: the subject of that lesson or seminar in one to three words, otherwise
+- topic: the subject of that lesson or seminar, or the main business of a
+  members' meeting, in one to three words and never a person's name; otherwise
   null.
