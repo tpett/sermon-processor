@@ -74,6 +74,13 @@ class Segment:
     warnings: tuple[str, ...] = ()
     publication_date: date | None = None
     label: str | None = None
+    removed_spans: tuple[RemovedSpan, ...] = ()
+
+
+@dataclass(frozen=True, kw_only=True)
+class RemovedSpan:
+    start_seconds: float
+    end_seconds: float
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -194,6 +201,7 @@ class LogEntry:
     punch_in_seconds: float | None = None
     punch_out_seconds: float | None = None
     boundary_source: str | None = None
+    removed_spans: tuple[RemovedSpan, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)

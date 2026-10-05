@@ -19,6 +19,7 @@ from .entities import (
     Notification,
     Proposal,
     Recording,
+    RemovedSpan,
     Reviewer,
     Segment,
     SkippedObject,
@@ -199,6 +200,12 @@ TABLES = {
                     distinct=True,
                     closed={"warning": vocabularies.SEGMENT_WARNINGS},
                 ),
+                Collection(
+                    field="removed_spans",
+                    table="segment_removed_span",
+                    owner="segment_id",
+                    element=RemovedSpan,
+                ),
             ),
         ),
         Table(
@@ -368,6 +375,14 @@ TABLES = {
                 "entered_state": vocabularies.LOGGED_STATES,
                 "boundary_source": vocabularies.BOUNDARY_SOURCES,
             },
+            collections=(
+                Collection(
+                    field="removed_spans",
+                    table="log_entry_removed_span",
+                    owner="log_entry_id",
+                    element=RemovedSpan,
+                ),
+            ),
         ),
     )
 }
