@@ -332,7 +332,7 @@ def _(store):
 
 @then("it reports that the reviewer's title was kept")
 def _(printed):
-    assert [line for line in printed if SUNDAY_CLASS in line and "reviewer's title" in line], printed
+    assert [line for line in printed if SUNDAY_CLASS in line and "kept: titled by a reviewer" in line], printed
 
 
 SILENT = "recording_20260913_120452"
