@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 486 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 487 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -795,8 +795,8 @@ the class topic feeds the suggested label as scripture does for a sermon: "Note
 that for the scripture we sub `:` for `.` since some of the platforms we use
 reject `:` in filenames. So Hebrews 13:1-6 becomes Hebrews 13.1-6." Nothing in
 the spec named a recording at all, so `features/analysis/recording_titles.feature`
-was added: six Rules, seventeen scenarios, twenty-two expanded tests — inference
-of the kind and title from text, the glossary's two forms, a class's label, the
+was added: six Rules, eighteen scenarios, twenty-two expanded tests — inference
+of the kind and title from text, never naming a passage the model was not shown, the glossary's two forms, a class's label, the
 reviewer's title surviving analysis, the list and detail view, and the backfill.
 In `features/interface/publication_details.feature`, `The label is suggested
 from the classification for other content` was an `@assumption` that a lesson is
@@ -804,10 +804,10 @@ from the classification for other content` was an `@assumption` that a lesson is
 `@stated`, with one Given saying analysis named the recording the class. Its Then
 is unchanged. `A full analysis run` in
 `features/analysis/analysis_orchestration.feature` gained a `titling` row, because
-the walk now ends there; a table row is not a step. Seventy-nine steps were added.
+the walk now ends there; a table row is not a step. Eighty-three steps were added.
 
-Pins are now **35 files / 486 scenarios / 150 rules / 636 collected**, and
-`SPEC_STEPS` is 2046.
+Pins are now **35 files / 487 scenarios / 150 rules / 636 collected**, and
+`SPEC_STEPS` is 2050.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

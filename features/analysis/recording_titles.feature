@@ -41,9 +41,9 @@ Feature: Naming what a recording is
       Then the Recording is titled "<title>"
 
       Examples:
-        | said                                       | title                            |
-        | Sunday Service - September 13, 2026        | Sunday Service                   |
-        | 2026-09-13 Sunday Service - Hebrews 13:1-6 | Sunday Service - Hebrews 13:1-6  |
+        | said                                         | title                             |
+        | Sunday Service - September 13, 2026          | Sunday Service                    |
+        | 2026-09-13 Sunday Service - Hebrews 12:25-29 | Sunday Service - Hebrews 12:25-29 |
 
     @edge-case
     Scenario: A kind outside the vocabulary is unknown
@@ -91,11 +91,10 @@ Feature: Naming what a recording is
       And the sermon's suggested label is still "Hebrews 12.25-29"
 
       Examples:
-        | said                | series                      | topic         | label               |
-        | TEC - Giving        | Theological Equipping Class | Giving        | TEC - Giving        |
-        | CT - Islam          | CT                          | Islam         | CT - Islam          |
-        | TEC                 | TEC                         |               | TEC                 |
-        | TEC - Romans 8:1-11 | TEC                         | Romans 8:1-11 | TEC - Romans 8.1-11 |
+        | said         | series                      | topic  | label        |
+        | TEC - Giving | Theological Equipping Class | Giving | TEC - Giving |
+        | CT - Islam   | CT                          | Islam  | CT - Islam   |
+        | TEC          | TEC                         |        | TEC          |
 
     @happy-path @stated
     Scenario: A passage is written with a colon in the title and a dot in the label
@@ -110,6 +109,15 @@ Feature: Naming what a recording is
       And the model will name it kind "class", title "TEC - Giving", series "TEC" and topic "Giving"
       When the Recording is analysed
       Then the class's suggested label is "TEC - Generosity"
+
+    @edge-case @stated
+    Scenario: A passage the model was not shown is never named
+      # Measured against a stored service with no passage found: the model
+      # copied the passage out of the example it was given.
+      Given the sermon has no passage
+      And the model will name it kind "service" and title "Sunday Service - Romans 8:1-11"
+      When the Recording is analysed
+      Then the Recording is titled "Sunday Service"
 
   Rule: A title the reviewer writes is theirs
 

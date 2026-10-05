@@ -31,9 +31,8 @@ Answer with one JSON object and nothing else:
   empty, unknown.
 - title: short, at most eight words. Never include a date, a day of the month,
   a month or a year. Examples of the style wanted:
-  "Sunday Service - Hebrews 13:1-6", "Theological Equipping Class - Giving",
+  "Sunday Service - <passage>", "Theological Equipping Class - <topic>",
   "Pre-Service Rehearsal", "Members Meeting", "Good Friday Service".
-  For a service with a passage, end the title with the passage:
   {passage}
 - series: the name of the class or series if the recording is one, written in
   full, otherwise null.

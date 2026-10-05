@@ -21,6 +21,7 @@ SUNDAY_CLASS = "recording_20260913_090014"
 REHEARSAL = "recording_20260913_081500"
 READINGS = {
     "Hebrews 12.25-29": "please stand for the reading of gods word from hebrews chapter 12 verses 25 to 29",
+    None: "please stand for the reading of gods word",
 }
 CLASS_THEN_SERMON = (
     (0.0, 60.0, "music"),
@@ -77,6 +78,15 @@ def answered(kind, title, series=None, topic=None):
     return {"kind": kind, "title": title, "series": series or None, "topic": topic or None}
 
 
+def lays_out_class_then_sermon(store, recording, reading):
+    spans = [
+        (start, end, kind, reading) if kind == "scripture_reading" else (start, end, kind)
+        for start, end, kind in CLASS_THEN_SERMON
+    ]
+    _analysis.lays_out(store, recording, spans, typed=False)
+    DividesIntoBlocks(store=store, divides=divides_each([(*span[:3], 0.9) for span in spans]))(recording)
+
+
 def named_by_analysis(store, recording, answer):
     return TitlesRecording(store=store, asks=lambda _prompt: answer)(recording)
 
@@ -94,12 +104,12 @@ def _(store, passage):
             duration_seconds=11520.0,
         )
     )
-    spans = [
-        (start, end, kind, READINGS[passage]) if kind == "scripture_reading" else (start, end, kind)
-        for start, end, kind in CLASS_THEN_SERMON
-    ]
-    _analysis.lays_out(store, recording, spans, typed=False)
-    DividesIntoBlocks(store=store, divides=divides_each([(*span[:3], 0.9) for span in spans]))(recording)
+    lays_out_class_then_sermon(store, recording, READINGS[passage])
+
+
+@given("the sermon has no passage")
+def _(store):
+    lays_out_class_then_sermon(store, the_class_recording(store), READINGS[None])
 
 
 @given(

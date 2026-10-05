@@ -40,8 +40,8 @@ def recorded(store, at=datetime(2026, 9, 13, 9, 0, 14, tzinfo=UTC), kind=None):
     )
 
 
-def with_contents(store, recording, label="Hebrews 12.25-29"):
-    store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=3300.0, type="lesson", summary="A class on giving as worship"))
+def with_contents(store, recording, label="Hebrews 12.25-29", taught="A class on giving as worship"):
+    store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=3300.0, type="lesson", summary=taught))
     store.saves(Block(recording_id=recording.recording_id, start_seconds=5400.0, end_seconds=10800.0, type="sermon"))
     for classification, start, end, written in (("lesson", 60.0, 3300.0, None), ("sermon", 5400.0, 10800.0, label)):
         store.saves(
@@ -188,7 +188,28 @@ def test_a_class_without_a_topic_is_labelled_by_its_acronym(store):
 
 def test_a_suggested_label_writes_a_verse_with_a_dot(store):
     recording = recorded(store)
-    with_contents(store, recording)
+    with_contents(store, recording, taught="A class working through Romans 8:1-11")
     TitlesRecording(store=store, asks=answering({"kind": "class", "title": "TEC - Romans 8:1-11", "series": "TEC", "topic": "Romans 8:1-11"}), glossary=NAMES)(recording)
     assert {one.classification: one.label for one in store.lists(Segment)}["lesson"] == "TEC - Romans 8.1-11"
     assert store.loads(RecordingTitle, recording.recording_id).title == "Theological Equipping Class - Romans 8:1-11"
+
+
+def test_a_passage_the_model_was_not_shown_is_dropped_from_title_and_topic(store):
+    recording = recorded(store)
+    with_contents(store, recording, label=None)
+    titled = InfersTitle(
+        store=store,
+        asks=answering({"kind": "service", "title": "Sunday Service - Hebrews 13:1-6", "series": "TEC", "topic": "Romans 8"}),
+        glossary=NAMES,
+    )(recording)
+    assert titled.title == "Sunday Service"
+    assert titled.topic is None
+
+
+def test_a_passage_the_model_was_shown_stays(store):
+    recording = recorded(store)
+    with_contents(store, recording)
+    titled = InfersTitle(
+        store=store, asks=answering({"kind": "service", "title": "Sunday Service - Hebrews 12:25-29"}), glossary=NAMES
+    )(recording)
+    assert titled.title == "Sunday Service - Hebrews 12:25-29"

@@ -7,7 +7,7 @@ from pathlib import Path
 from sermon.analysis.stages import LABEL_LIMIT, LABELLED_BY_PASSAGE
 from sermon.config import ModelEndpointUnreachable
 from sermon.glossary import ReadsGlossary
-from sermon.pipeline import classify
+from sermon.pipeline import classify, scripture
 from sermon.store import Block, Recording, RecordingTitle, Segment, Store
 from sermon.store.vocabularies import RECORDING_KINDS
 
@@ -31,6 +31,12 @@ DATES = (
     re.compile(r"\b(?:19|20)\d{2}\b"),
 )
 SEPARATORS = " -–—,:;/|"
+PASSAGE_GIVEN = "For a service, end the title with its passage, {}. Name no other passage."
+NO_PASSAGE = (
+    "No passage was found, so the title names no passage at all; an ordinary service"
+    " is then just \"Sunday Service\"."
+)
+PLACEHOLDER = re.compile(r"<[^>]*>")
 DOTTED_VERSE = re.compile(r"(\d)\.(\d)")
 COLON_VERSE = re.compile(r"(\d):(\d)")
 
@@ -60,7 +66,26 @@ def written_passage(label):
     return COLON_VERSE.sub(r"\1.\2", label)
 
 
+def keeps_passages_shown(title, shown):
+    """Drops any part of the title naming a passage the model was not shown."""
+    known = {(one.book, one.chapter) for one in scripture.references_in(shown)}
+    books = {book for book, _ in known}
+
+    def supported(reference):
+        if reference.chapter is None:
+            return reference.book in books
+        return (reference.book, reference.chapter) in known
+
+    kept = [
+        part
+        for part in title.split(" - ")
+        if all(supported(one) for one in scripture.references_in(part))
+    ]
+    return " - ".join(kept)
+
+
 def without_dates(text):
+    text = PLACEHOLDER.sub(" ", text)
     for pattern in DATES:
         text = pattern.sub(" ", text)
     text = re.sub(r"\(\s*\)", " ", text)
@@ -74,6 +99,9 @@ class DescribesRecording:
 
     glossary: object
 
+    def evidence(self, blocks, segments):
+        return f"{self._blocks(blocks)}\n{self._segments(segments)}"
+
     def __call__(self, recording, blocks, segments, template=None):
         template = TITLE_TEMPLATE.read_text() if template is None else template
         passages = [spoken_passage(one.label) for one in segments if one.classification in LABELLED_BY_PASSAGE and one.label]
@@ -84,7 +112,7 @@ class DescribesRecording:
             .replace("{start_time}", recording.started_at.strftime("%H:%M"))
             .replace("{duration}", clock(recording.duration_seconds))
             .replace("{glossary}", self._names())
-            .replace("{passage}", passages[0] if passages else "(no passage was found)")
+            .replace("{passage}", PASSAGE_GIVEN.format(passages[0]) if passages else NO_PASSAGE)
         )
 
     def _blocks(self, blocks):
@@ -141,25 +169,27 @@ class InfersTitle:
         glossary = self.glossary or ReadsGlossary()()
         blocks = sorted(self.store.lists(Block, recording_id=recording.recording_id), key=lambda one: one.start_seconds)
         segments = sorted(self.store.lists(Segment, recording_id=recording.recording_id), key=lambda one: one.punch_in_seconds)
-        prompt = DescribesRecording(glossary)(recording, blocks, segments)
-        answer = (self.asks or AsksModelForTitle())(prompt)
+        describes = DescribesRecording(glossary)
+        answer = (self.asks or AsksModelForTitle())(describes(recording, blocks, segments))
         if not isinstance(answer, dict) or not ({"kind", "title"} & set(answer)):
             raise TitleNotInferred("the model named neither a kind nor a title")
         kind = (_text(answer, "kind") or "").lower()
+        topic = _text(answer, "topic")
         return Titling(
             kind=kind if kind in RECORDING_KINDS else UNKNOWN_KIND,
-            title=self._titled(_text(answer, "title"), glossary, segments),
+            title=self._titled(_text(answer, "title"), glossary, segments, describes.evidence(blocks, segments)),
             series=_text(answer, "series") and glossary.spells_out(_text(answer, "series")),
-            topic=_text(answer, "topic"),
+            topic=topic and (keeps_passages_shown(topic, describes.evidence(blocks, segments)) or None),
         )
 
-    def _titled(self, title, glossary, segments):
+    def _titled(self, title, glossary, segments, shown):
         if title is None:
             return None
         title = glossary.spells_out(without_dates(title))
         for segment in segments:
             if segment.classification in LABELLED_BY_PASSAGE and segment.label:
                 title = title.replace(segment.label, spoken_passage(segment.label))
+        title = keeps_passages_shown(title, shown)
         return title[:TITLE_LIMIT].strip(SEPARATORS) or None
 
 
