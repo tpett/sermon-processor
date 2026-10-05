@@ -66,6 +66,7 @@ class ApprovesSegment:
                 entered_state="approved",
                 punch_in_seconds=approved.punch_in_seconds,
                 punch_out_seconds=approved.punch_out_seconds,
+                removed_spans=approved.removed_spans,
             )
         )
         adds = self.adds_to_corpus or AddsApprovalToCorpus(store=self.store)

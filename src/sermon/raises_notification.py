@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sermon.removes_span import kept_seconds
 from sermon.store import Block, Notification, Proposal, Recording, Segment, Store
 
 REVIEWER = "reviewer"
@@ -35,7 +36,7 @@ def recorded_on(recording):
 
 
 def names_session(segment):
-    return f"{segment.classification} ({formats_length(segment.punch_out_seconds - segment.punch_in_seconds)})"
+    return f"{segment.classification} ({formats_length(kept_seconds(segment))})"
 
 
 def why_uncertain(proposal):

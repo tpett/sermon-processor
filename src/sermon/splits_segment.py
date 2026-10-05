@@ -11,6 +11,11 @@ class SplitPointOutsideSegment(ValueError):
         super().__init__("the split point must fall within the Segment")
 
 
+class SplitPointInsideRemovedSpan(ValueError):
+    def __init__(self):
+        super().__init__("the split point falls inside a removed span")
+
+
 class NothingToMerge(ValueError):
     def __init__(self):
         super().__init__("two adjacent Segments are needed to merge")
@@ -26,8 +31,17 @@ class SplitsSegment:
             raise SplitPointOutsideSegment()
         if min(at - segment.punch_in_seconds, segment.punch_out_seconds - at) < MINIMUM_SPAN_SECONDS:
             raise SelectionTooShort()
+        if any(span.start_seconds <= at <= span.end_seconds for span in segment.removed_spans):
+            raise SplitPointInsideRemovedSpan()
         earlier = self.store.saves(
-            replace(segment, span_end_seconds=at, punch_out_seconds=at)
+            replace(
+                segment,
+                span_end_seconds=at,
+                punch_out_seconds=at,
+                removed_spans=tuple(
+                    span for span in segment.removed_spans if span.end_seconds < at
+                ),
+            )
         )
         later = self.store.saves(
             replace(
@@ -39,6 +53,9 @@ class SplitsSegment:
                 disposition_at=None,
                 label=None,
                 boundary_source="human",
+                removed_spans=tuple(
+                    span for span in segment.removed_spans if span.start_seconds > at
+                ),
             )
         )
         return (earlier, later)
@@ -60,6 +77,12 @@ class MergesSegments:
                 punch_in_seconds=first.punch_in_seconds,
                 punch_out_seconds=second.punch_out_seconds,
                 boundary_source="human",
+                removed_spans=tuple(
+                    sorted(
+                        (*first.removed_spans, *second.removed_spans),
+                        key=lambda span: span.start_seconds,
+                    )
+                ),
             )
         )
         self.store.saves(replace(second, state="recut", disposition_at=None))

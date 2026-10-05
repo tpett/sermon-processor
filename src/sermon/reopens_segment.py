@@ -43,6 +43,7 @@ class ReopensSegment:
                 entered_state="proposed",
                 punch_in_seconds=reopened.punch_in_seconds,
                 punch_out_seconds=reopened.punch_out_seconds,
+                removed_spans=reopened.removed_spans,
             )
         )
         SettlesRecording(self.store, clock=self.clock)(reopened.recording_id)
