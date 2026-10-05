@@ -49,6 +49,7 @@ ANALYSIS_STAGE_LABELS = {
     "segment_proposal": "proposing Segments",
     "boundary_refinement": "refining the boundaries",
     "scoring": "scoring the proposals",
+    "titling": "naming the recording",
 }
 
 STAGES_WORTH_SHOWING = frozenset({"analyzing", "analysis_failed"})

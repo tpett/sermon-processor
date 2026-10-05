@@ -190,6 +190,7 @@ def test_stages_run_in_gherkin_order_and_blocking_iterates(store, roots):
         "segment_proposal",
         "boundary_refinement",
         "scoring",
+        "titling",
     ]
 
 

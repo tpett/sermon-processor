@@ -157,12 +157,12 @@ def test_the_replay_runs_the_walk_so_a_stage_dropped_from_it_shows(corpus, monke
 
 def test_the_replay_skips_only_stages_the_walk_already_survives_losing(corpus):
     assert SKIPPED_IN_REPLAY <= analyzes_recording.OPTIONAL_STAGES
-    assert {"summarization", "diarization", "waveform", "preview"} == SKIPPED_IN_REPLAY
+    assert {"summarization", "diarization", "waveform", "preview", "titling"} == SKIPPED_IN_REPLAY
 
 
 def test_a_skipped_stage_the_walk_cannot_survive_losing_fails_the_replay(corpus, monkeypatch):
     monkeypatch.setattr(
-        analyzes_recording, "OPTIONAL_STAGES", frozenset({"waveform", "preview", "diarization"})
+        analyzes_recording, "OPTIONAL_STAGES", frozenset({"waveform", "preview", "diarization", "titling"})
     )
     with pytest.raises(ReplayFailed, match="summarization"):
         replayed(corpus)

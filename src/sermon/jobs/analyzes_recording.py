@@ -15,6 +15,7 @@ from sermon.analysis import (
     TranscribesRecording,
 )
 from sermon.analysis.progress import RecordsStageProgress
+from sermon.analysis.titles_recording import TitlesRecording
 from sermon.analysis.transcribes_audio import AudioNotDecodable
 from sermon.config import ModelEndpointUnreachable
 from sermon.jobs.generates_preview import GeneratesPreview
@@ -47,6 +48,7 @@ STAGE_ORDER = (
     "segment_proposal",
     "boundary_refinement",
     "scoring",
+    "titling",
 )
 
 
@@ -57,7 +59,7 @@ WALK = (
     + STAGE_ORDER[STAGE_ORDER.index("block_classification") + 1 :]
 )
 REASONING_STAGES = frozenset({"block_classification", "summarization"})
-OPTIONAL_STAGES = frozenset({"waveform", "preview", "summarization", "diarization"})
+OPTIONAL_STAGES = frozenset({"waveform", "preview", "summarization", "diarization", "titling"})
 OPTIONAL_STAGE_FAILED = "optional_stage_failed"
 STAGE_ARTIFACTS = {
     "waveform": "waveform_peaks",
@@ -106,6 +108,7 @@ class AnalyzesRecording:
     transcribes: object = None
     diarizes: object = None
     divides: object = None
+    titles: object = None
 
     def _run_stage(self, recording, name):
         records = RecordsStageProgress(store=self.store, clock=self.clock)
@@ -182,6 +185,8 @@ class AnalyzesRecording:
             RefinesPunchOut(store=self.store)(recording)
         if name == "scoring":
             ScoresProposals(store=self.store)(recording)
+        if name == "titling":
+            TitlesRecording(store=self.store, asks=self.titles)(recording)
 
     def _fails(self, recording, reason, *, final):
         entered = "analysis_failed" if final else "downloaded"
@@ -259,6 +264,7 @@ class RunsAnalyzeJob:
     transcribes: object = None
     diarizes: object = None
     divides: object = None
+    titles: object = None
     recording_id: str | None = None
     job_id: int | None = None
 
@@ -286,6 +292,7 @@ class RunsAnalyzeJob:
                 transcribes=self.transcribes,
                 diarizes=self.diarizes,
                 divides=self.divides,
+                titles=self.titles,
             )(recording, final_attempt=final)
         except (StageFailed, ModelEndpointUnreachable) as error:
             stops = final or getattr(error, "permanent", False)

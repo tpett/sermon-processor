@@ -43,6 +43,8 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
+"sermon" = ["names.toml"]
+"sermon.analysis" = ["prompts/*.md"]
 "sermon.web" = ["templates/**/*", "static/**/*"]
 
 [tool.pytest.ini_options]

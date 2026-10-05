@@ -24,7 +24,7 @@ from sermon.pipeline import classify, segments
 from sermon.sends_notification import SendsNotification
 from sermon.store import Job, Recording, Segment, layout, opens_store
 
-SKIPPED_IN_REPLAY = frozenset({"waveform", "preview", "diarization", "summarization"})
+SKIPPED_IN_REPLAY = frozenset({"waveform", "preview", "diarization", "summarization", "titling"})
 
 
 class ReplayFailed(RuntimeError):
