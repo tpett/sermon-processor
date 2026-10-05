@@ -11,7 +11,7 @@ from steps import _rendering
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.renders_mp3 import CEILING_TP, PUBLISHED_I, TOLERANCE_LU
 from sermon.pipeline.render import TARGET_I, TARGET_LRA, TARGET_TP
-from sermon.store import Artifact, Job, Recording, Reviewer, Segment, layout
+from sermon.store import Artifact, Job, Recording, RemovedSpan, Reviewer, Segment, layout
 
 READS = ReadsTimecode()
 STARTED_AT = datetime(2026, 8, 23, 10, 29, tzinfo=UTC)
@@ -547,3 +547,125 @@ def _(rendering):
 def _(rendering):
     once, again = rendering["renders"][-2:]
     assert once.settings == again.settings
+
+
+JOIN_DIP_DB = 12.0
+JOIN_RECOVERY_DB = 2.0
+JOIN_EDGE_SECONDS = 0.003
+JOIN_SETTLED_SECONDS = 0.025
+JOIN_WINDOW_SECONDS = 0.025
+NEAR_JOIN_SECONDS = 0.25
+SHIPPED_PEAK_TOLERANCE_DB = 0.5
+
+
+def _removed(segment):
+    return [(span.start_seconds, span.end_seconds) for span in segment.removed_spans]
+
+
+def _joins(segment):
+    """Each join's place in the output, and its removed span's end in the source."""
+    gone = 0.0
+    placed = []
+    for start, end in _removed(segment):
+        placed.append((start - segment.punch_in_seconds - gone, end))
+        gone += end - start
+    return placed
+
+
+def _kept_pieces(segment):
+    edges = [segment.punch_in_seconds]
+    for start, end in _removed(segment):
+        edges += [start, end]
+    edges.append(segment.punch_out_seconds)
+    return list(zip(edges[::2], edges[1::2]))
+
+
+@given(
+    parsers.parse(
+        'the reviewer removed the spans from "{first_start}" to "{first_end}" '
+        'and from "{second_start}" to "{second_end}"'
+    ),
+    target_fixture="segment",
+)
+def _(store, segment, first_start, first_end, second_start, second_end):
+    return store.saves(
+        replace(
+            store.loads(Segment, segment.segment_id),
+            removed_spans=(
+                RemovedSpan(start_seconds=READS(first_start), end_seconds=READS(first_end)),
+                RemovedSpan(start_seconds=READS(second_start), end_seconds=READS(second_end)),
+            ),
+        )
+    )
+
+
+@then(
+    parsers.parse(
+        "the output duration is the approved span less the removed spans, within {frames:d} MP3 frames"
+    )
+)
+def _(segment, rendered, frames):
+    kept = sum(end - start for start, end in _kept_pieces(segment))
+    assert abs(rendered.duration_seconds - kept) <= frames * _rendering.MP3_FRAME_SECONDS
+
+
+@then("the isolated peak is not in the output")
+def _(segment, rendered):
+    (join, _), _ = _joins(segment)
+    around = _rendering.peak_db(rendered.path, join - NEAR_JOIN_SECONDS, 2 * NEAR_JOIN_SECONDS)
+    before = _rendering.peak_db(rendered.path, join - 1.5, 1.0)
+    assert around <= before + LEVEL_TOLERANCE_DB
+
+
+@then("the audio after each removed span follows the audio before it")
+def _(segment, rendered, rendering):
+    removed = _removed(segment)
+    assert removed
+    gone = 0.0
+    for start, end in removed:
+        gone += end - start
+        after = end + 1.0
+        assert _carries_the_structure(rendering["source"], after)
+        assert _carries_the_structure(
+            rendered.path, after, offset=segment.punch_in_seconds + gone
+        )
+
+
+@then("the output dips to near silence at each join and is back to speech level within 50 ms")
+def _(segment, rendered):
+    joins = _joins(segment)
+    assert joins
+    for join, _ in joins:
+        at_the_join = _rendering.level_db(
+            rendered.path, join - JOIN_EDGE_SECONDS, 2 * JOIN_EDGE_SECONDS
+        )
+        before = _rendering.level_db(
+            rendered.path, join - JOIN_SETTLED_SECONDS - JOIN_WINDOW_SECONDS, JOIN_WINDOW_SECONDS
+        )
+        after = _rendering.level_db(rendered.path, join + JOIN_SETTLED_SECONDS, JOIN_WINDOW_SECONDS)
+        assert at_the_join <= min(before, after) - JOIN_DIP_DB
+        assert abs(before - after) <= JOIN_DIP_DB - JOIN_RECOVERY_DB
+
+
+@then("the loudness measurement saw the audio that ships and not the removed spans")
+def _(segment, rendered, rendering):
+    source = rendering["source"]
+    shipped = max(
+        _rendering.loudness(source, start, end - start, filters="pan=mono|c0=c0")["Peak"]
+        for start, end in _kept_pieces(segment)
+    )
+    whole = _rendering.loudness(
+        source,
+        segment.punch_in_seconds,
+        segment.punch_out_seconds - segment.punch_in_seconds,
+        filters="pan=mono|c0=c0",
+    )["Peak"]
+    assert abs(rendered.input_true_peak_dbtp - shipped) <= SHIPPED_PEAK_TOLERANCE_DB
+    assert rendered.input_true_peak_dbtp <= whole - ORDERED_MARGIN_DB
+
+
+@then("the output still meets the loudness and true-peak targets")
+def _(rendered):
+    achieved = _rendering.loudness(rendered.path)
+    assert abs(achieved["I"] - PUBLISHED_I) <= TOLERANCE_LU
+    assert achieved["Peak"] <= CEILING_TP

@@ -4,10 +4,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1386 step definitions read from `tests/steps`
+- 1419 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 464 non-deferred scenarios rest on at least one condemned step
-- 9 of 606 expanded scenario tests likewise
+- 9 of 482 non-deferred scenarios rest on at least one condemned step
+- 9 of 630 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
@@ -75,6 +75,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 43 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 39 | 0 | sound |
+| `tests/steps/interface/removed_spans_steps.py` | 26 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 58 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
@@ -85,7 +86,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 21 | 0 | sound |
 | `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
-| `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
+| `tests/steps/processing/audio_rendering_steps.py` | 55 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 16 | 0 | sound |
 | `tests/steps/remaining_steps.py` (named) | 88 | 0 | sound |
 
@@ -329,16 +330,16 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/artifact_downloads.feature:52 then I can read its transcript without downloading anything`
 - `processing/artifact_downloads.feature:53 then the transcript covers the approved span`
 - `processing/artifact_downloads.feature:54 then I can expand to the full Recording transcript`
-- `processing/audio_rendering.feature:110 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
-- `processing/audio_rendering.feature:111 then the settings used are recorded on every rendered Segment`
-- `processing/audio_rendering.feature:112 then changing them is what makes a re-render meaningful`
-- `processing/audio_rendering.feature:155 then bitrate, channel layout and sample rate are configuration, not code`
-- `processing/audio_rendering.feature:156 then changing them is a re-render, never a re-analysis`
-- `processing/audio_rendering.feature:182 given a rendered MP3`
-- `processing/audio_rendering.feature:183 when a reviewer listens to it end to end`
-- `processing/audio_rendering.feature:184 then the speech is intelligible throughout`
-- `processing/audio_rendering.feature:185 then there are no clicks, dropouts or pumping artifacts`
-- `processing/audio_rendering.feature:186 then it sits at a comparable volume to other recent sermons`
+- `processing/audio_rendering.feature:148 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
+- `processing/audio_rendering.feature:149 then the settings used are recorded on every rendered Segment`
+- `processing/audio_rendering.feature:150 then changing them is what makes a re-render meaningful`
+- `processing/audio_rendering.feature:193 then bitrate, channel layout and sample rate are configuration, not code`
+- `processing/audio_rendering.feature:194 then changing them is a re-render, never a re-analysis`
+- `processing/audio_rendering.feature:220 given a rendered MP3`
+- `processing/audio_rendering.feature:221 when a reviewer listens to it end to end`
+- `processing/audio_rendering.feature:222 then the speech is intelligible throughout`
+- `processing/audio_rendering.feature:223 then there are no clicks, dropouts or pumping artifacts`
+- `processing/audio_rendering.feature:224 then it sits at a comparable volume to other recent sermons`
 - `processing/audio_rendering.feature:31 given the probe flagged the Recording "unexpected stereo content"`
 - `processing/audio_rendering.feature:33 then the render does not start automatically`
 - `processing/audio_rendering.feature:34 then the reviewer is asked how the channels should be treated`

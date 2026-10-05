@@ -36,7 +36,7 @@ credentials for it. mac-m1 never calls back.
 | **Queue** | A `Job` table and one worker process. No Redis, no broker. | `job_queue.feature` demands survive-restart, no-double-run, backoff, budget exhaustion, manual retry — 24 scenarios of real behaviour. A table the suite can assert against directly beats a library it has to reach inside. At one job a week a broker is pure operational cost. |
 | **Store** | SQLite + files on a ZFS dataset | 39 recordings, ~1/week. The entities are in `features/DOMAIN.md`. |
 | **Client** | Vanilla ES modules + Canvas 2D, no bundler | The editor is two linked canvases, an `<audio>` element and a transcript panel. No build step keeps the Dockerfile single-stage. Revisit if the client outgrows it. |
-| **Tests** | `pytest-bdd` 8.1.0 over `features/`, `playwright` 1.63.0 for the browser | One runner for all 469 scenarios; the whole spec collects as 614 tests. |
+| **Tests** | `pytest-bdd` 8.1.0 over `features/`, `playwright` 1.63.0 for the browser | One runner for all 487 scenarios; the whole spec collects as 638 tests. |
 
 ## Why the web framework is the least interesting choice
 

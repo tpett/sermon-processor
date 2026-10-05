@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 469 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 487 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 614 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 638 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -765,8 +765,31 @@ diarization and does follow the model's self-reported number, no leading-silence
 flag exists, and the punch-out falls back to the end of the span rather than of
 the seeding Block. Twenty-two steps were added; no scenario or Rule.
 
-Pins are now **34 files / 469 scenarios / 144 rules / 614 collected**, and
-`SPEC_STEPS` is 1967.
+On 2026-10-05 the owner asked to cut pieces out from inside a Segment. A
+Segment was one continuous span rendered straight through, and this week's
+sermon opens "Good morning", then a loud bump on the podium, then the message.
+Their words: "Yes, build it — marking spans by hand is enough. This will be
+useful for other things too. Seminars often have large breaks, or there could be
+times when there are long prayer segments with silence that we would want to cut
+out. Having the ability to trim small pieces out of a message is nice. We don't
+need any kind of automation with the detection pipeline right now... just being
+able to do that manually would be good enough."
+
+Nothing in the spec let a Segment be anything but one stretch, so a new file,
+`features/interface/removed_spans.feature`, specifies the removed span: marked
+from the playhead or by typing timecodes, listed with its length and drawn on the
+waveform, restorable, strictly inside the punch points, refused rather than
+merged when it overlaps another, never stranded by a boundary move (the move is
+refused), locked by approval like the boundaries, untouched by analysis, logged,
+and audible as a join before approval. Its eight Rules hold fifteen scenarios
+(twenty-one tests). `features/processing/audio_rendering.feature` gained the Rule
+`Spans the reviewer removed are left out of the output` with three scenarios:
+the output omits each span, each join fades rather than clicks, and the loudness
+pass measures only the audio that ships. That is **one file, eighteen scenarios
+and nine Rules** added; 84 steps.
+
+Pins are now **35 files / 487 scenarios / 153 rules / 638 collected**, and
+`SPEC_STEPS` is 2051.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
