@@ -1,3 +1,25 @@
+## Titles: the owner's answers built (2026-10-05, tpett/ai/titles)
+
+Master 0f3e6be (removed spans, re-cut) merged in; pins recounted, now 36 / 514 /
+160 / 672 / 2178. Unmerged, undeployed.
+
+- Silence or noise: no music Block and fewer than 20 different utterances in the
+  stored transcript (corpus: stray triggers say 1, 1, 5; next fewest 154) makes a
+  Recording `empty`, titled "Silence or noise", without asking the model. Its list
+  row is small, muted, dashed, with no state, confidence, tag or awaiting count.
+- Meetings are "Members Meeting - <Topic>" in title and label; possessive names
+  are stripped and the prompt forbids names (catches "Ed's", not every name).
+- Labels: "<ACRONYM> - <Topic>" for every series.
+- Long joined titles wrap within the row; date never wraps; checked in Chromium at
+  1400 px and 390 px.
+- A label typed on a not-yet-approved Segment survives re-analysis (re-proposal
+  carries the standing label over; a machine's earlier suggestion carries too).
+- `sermon-title` prints one line per recording (start, kind, title, label, id);
+  reviewer-titled recordings are listed as kept and never touched. The owner runs
+  the production preview and write.
+- Model variance: 2026-09-13 (class then service) got the joined title on one run
+  and the service alone on later ones.
+
 ## Recordings are named: kind, title and a class's label (2026-10-05, branch tpett/ai/titles)
 
 Unmerged, undeployed. The owner reads the list by date and wanted it to say what
