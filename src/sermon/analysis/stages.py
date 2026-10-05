@@ -512,7 +512,7 @@ class ProposesSegments:
             boundary_source="model",
         )
         if standing is not None:
-            proposed = replace(proposed, segment_id=standing.segment_id)
+            proposed = replace(proposed, segment_id=standing.segment_id, label=standing.label)
         segment = self.store.saves(
             WidensProposedSpan(store=self.store)(proposed, recording.duration_seconds)
         )
