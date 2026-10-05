@@ -132,7 +132,8 @@ Feature: Removing spans from inside a segment
       # A Segment holding a removed span is the reviewer's work, as one whose
       # boundaries they moved is: the machine offers a new proposal beside it
       # rather than over it.
-      Given I have removed the span from "2:00:21.400" to "2:00:22.100"
+      Given the Recording's transcript covers each of its Blocks
+      And I have removed the span from "2:00:21.400" to "2:00:22.100"
       When the machine proposes Segments for the Recording again
       Then the span from "2:00:21.400" to "2:00:22.100" is still listed as removed
       And the punch-in and punch-out are still "2:00:20.000" and "2:43:32.000"

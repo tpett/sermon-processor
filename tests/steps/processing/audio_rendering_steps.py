@@ -554,6 +554,7 @@ JOIN_RECOVERY_DB = 2.0
 JOIN_EDGE_SECONDS = 0.003
 JOIN_SETTLED_SECONDS = 0.025
 JOIN_WINDOW_SECONDS = 0.025
+JOIN_LEAD_IN_SECONDS = 1.0
 NEAR_JOIN_SECONDS = 0.25
 SHIPPED_PEAK_TOLERANCE_DB = 0.5
 
@@ -631,18 +632,26 @@ def _(segment, rendered, rendering):
         )
 
 
+def _level_near(path, at, length):
+    """Decoded from a second ahead, since a seek into an MP3 opens on silence."""
+    return _rendering.level_db(
+        path,
+        at - JOIN_LEAD_IN_SECONDS,
+        JOIN_LEAD_IN_SECONDS + length,
+        filters=f"atrim=start={JOIN_LEAD_IN_SECONDS}:duration={length}",
+    )
+
+
 @then("the output dips to near silence at each join and is back to speech level within 50 ms")
 def _(segment, rendered):
     joins = _joins(segment)
     assert joins
     for join, _ in joins:
-        at_the_join = _rendering.level_db(
-            rendered.path, join - JOIN_EDGE_SECONDS, 2 * JOIN_EDGE_SECONDS
-        )
-        before = _rendering.level_db(
+        at_the_join = _level_near(rendered.path, join - JOIN_EDGE_SECONDS, 2 * JOIN_EDGE_SECONDS)
+        before = _level_near(
             rendered.path, join - JOIN_SETTLED_SECONDS - JOIN_WINDOW_SECONDS, JOIN_WINDOW_SECONDS
         )
-        after = _rendering.level_db(rendered.path, join + JOIN_SETTLED_SECONDS, JOIN_WINDOW_SECONDS)
+        after = _level_near(rendered.path, join + JOIN_SETTLED_SECONDS, JOIN_WINDOW_SECONDS)
         assert at_the_join <= min(before, after) - JOIN_DIP_DB
         assert abs(before - after) <= JOIN_DIP_DB - JOIN_RECOVERY_DB
 

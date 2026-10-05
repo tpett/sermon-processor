@@ -786,10 +786,10 @@ and audible as a join before approval. Its eight Rules hold fifteen scenarios
 `Spans the reviewer removed are left out of the output` with three scenarios:
 the output omits each span, each join fades rather than clicks, and the loudness
 pass measures only the audio that ships. That is **one file, eighteen scenarios
-and nine Rules** added; 84 steps.
+and nine Rules** added; 85 steps.
 
 Pins are now **35 files / 487 scenarios / 153 rules / 638 collected**, and
-`SPEC_STEPS` is 2051.
+`SPEC_STEPS` is 2052.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

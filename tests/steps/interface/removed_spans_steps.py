@@ -1,4 +1,5 @@
 import tempfile
+from html import unescape
 from dataclasses import replace
 from pathlib import Path
 
@@ -65,12 +66,16 @@ def _(store, segment, start, end):
 
 @when("I mark the start of a removal at the playhead", target_fixture="detail_page")
 def _(store, segment):
-    return _forms.submits(store, opens(store, segment), REMOVAL_CONTROL, do="mark-start")
+    return _forms.submits(
+        store, opens(store, segment), REMOVAL_CONTROL, do="mark-start", playhead=store._playhead
+    )
 
 
 @when("I mark the end of the removal at the playhead", target_fixture="detail_page")
 def _(store, detail_page):
-    return _forms.submits(store, detail_page, REMOVAL_CONTROL, do="mark-end")
+    return _forms.submits(
+        store, detail_page, REMOVAL_CONTROL, do="mark-end", playhead=store._playhead
+    )
 
 
 def restores_from(store, page):
@@ -92,7 +97,7 @@ def _(store, segment, detail_page):
         store,
         removed_spans_url(segment),
         do="restore",
-        **{"from": rows[0]["removed-from"], "to": rows[0]["removed-to"]},
+        **{"from": rows[0]["from-seconds"], "to": rows[0]["to-seconds"]},
     )
 
 
@@ -112,6 +117,21 @@ def _(store, segment, detail_page):
     if store.loads(Segment, segment.segment_id).state != "proposed":
         raise AssertionError(f"processing was not cancelled: {reads_field(page, 'action-notice')}")
     return page
+
+
+@given("the Recording's transcript covers each of its Blocks")
+def _(store, recording):
+    blocks = _analysis.blocks_of(store, recording)
+    if not blocks:
+        raise AssertionError("the Recording holds no Blocks")
+    _analysis.writes_json(
+        store,
+        recording,
+        "transcript",
+        _analysis.transcript_over(
+            recording, [(block.start_seconds, block.end_seconds, block.type) for block in blocks]
+        ),
+    )
 
 
 @when("the machine proposes Segments for the Recording again", target_fixture="detail_page")
@@ -231,7 +251,7 @@ def _(store, recording, at, seconds):
 def _(store, segment, detail_page):
     control = reads_role(detail_page, "hear-join")
     assert control is not None, "the page offers no way to hear the join"
-    heard = _web.opens_app(store).test_client().get(control["url"])
+    heard = _web.opens_app(store).test_client().get(unescape(control["url"]))
     assert heard.status_code == 200, heard.get_data(as_text=True)
     path = Path(tempfile.mkdtemp()) / "join.mp3"
     path.write_bytes(heard.data)
