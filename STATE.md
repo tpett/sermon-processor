@@ -1,3 +1,46 @@
+## Re-cutting a rendered Segment (2026-10-05, branch `tpett/ai/recut`, not merged)
+
+The owner rendered a Segment, then wanted the podium bump removed with the new
+removed spans, but a `complete` Segment offered no action. Asked whether to add
+a Re-cut action for a completed segment, they said "yes build it".
+
+- **Spec**: `processing/reprocessing.feature`'s re-cutting Rule gained four
+  scenarios (take a span out, re-approve under the same label, skip a re-cut,
+  cancel a re-approved render) and `Approving the new cut` gained `And the
+  worker renders it`. Pins 35 / 491 / 153 / 642 / 2074, recorded in CLAUDE.md.
+  Green now: every scenario of that Rule and `A re-render replaces its
+  predecessor`. Still red, not in scope: `Every past render remains
+  reproducible` and `Reproducing a past render is not offered` (no history view
+  on the page) and the `Re-rendering can be triggered without changing
+  boundaries` Rule (operator re-render, rename without re-encode).
+- **Behaviour**: Re-cut on a complete Segment → `recut`, logged with the cut it
+  started from; boundaries and removed spans are editable there
+  (`EDITABLE_STATES` already held `recut`) and lock again on approval. Approve
+  accepts `recut`. The render now writes `<name>.rendering.mp3` and moves it over
+  the published name only on success, then marks earlier renders
+  `superseded_by` the new Artifact (rows kept, with their settings) and deletes
+  their files unless a current render still has that name. No schema change.
+- **Decisions taken conservatively, for the owner to confirm**: a re-cut
+  Segment's old MP3 stays offered in every state until a new render replaces
+  it — skipped included (skipping does not unpublish); Revisit or Cancel
+  processing on such a Segment returns it to `recut`, not `proposed`; a failed
+  re-render leaves the old MP3 in place; the label collision check ignores the
+  Segment's own files and superseded rows of others; re-analysis treats a
+  `recut` Segment as the reviewer's; a re-render raises one render-complete
+  notification, like the first; a re-cut does not move the Recording back to
+  `awaiting_review`. `MergesSegments` already parks an absorbed Segment in
+  `recut` (pre-existing); it has no render, so none of the above touches it.
+- **Verified**: on a scratch store with a synthetic 10-minute source, through
+  the page and `sermon-work --once`: 480.0 s render, Re-cut, remove 0.5 s
+  around a 0 dBFS bump, approve under the same label, old MP3 served
+  byte-identical until the worker ran, then 479.5 s, one file in `published/`,
+  peak at the join -10.1 dB against -11.1 dB elsewhere. Screenshots in the
+  session scratchpad.
+- **Suite**: fast tier 183 failed / 2235 passed against master's 187 / 2212 —
+  five reprocessing scenarios fixed, none newly failing. Slow tier 26 / 49 on
+  both, same failures. Step integrity: 7 condemned before and after. 13 of 13
+  mutations killed.
+
 ## Removed spans: cutting pieces out from inside a Segment (2026-10-05, branch `tpett/ai/removespans`, not merged)
 
 The owner asked for it after this week's sermon opened "Good morning", a loud
