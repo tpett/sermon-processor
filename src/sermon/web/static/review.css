@@ -1333,10 +1333,28 @@ select {
 }
 
 .recordings a.title {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.recordings li[data-quiet="true"] {
+  padding: 2px 11px;
+  border-style: dashed;
+  background: transparent;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.recordings li[data-quiet="true"] a.title {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .recordings a.when {
+  white-space: nowrap;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 400;
@@ -1371,6 +1389,10 @@ details summary {
 }
 
 @media (max-width: 560px) {
+  .recordings a.title {
+    flex-basis: 100%;
+  }
+
   .waveform .words {
     height: 44px;
   }

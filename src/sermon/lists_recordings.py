@@ -32,7 +32,7 @@ KIND_TAGS = {
     "special_service": "Special",
     "meeting": "Meeting",
     "rehearsal": "Rehearsal",
-    "empty": "Empty",
+    "empty": "Silence or noise",
 }
 
 
