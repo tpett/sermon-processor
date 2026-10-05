@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from sermon.analysis.io import reads_json
 from sermon.analysis.stages import LABEL_LIMIT, LABELLED_BY_PASSAGE
 from sermon.config import ModelEndpointUnreachable
 from sermon.glossary import ReadsGlossary
@@ -18,6 +19,12 @@ SUMMARY_SHOWN = 160
 NAMED_BY_CLASS = frozenset({"lesson", "seminar"})
 NAMED_BY_TITLE = frozenset({"meeting"})
 UNKNOWN_KIND = "unknown"
+EMPTY_KIND = "empty"
+MEETING_KIND = "meeting"
+SILENCE_TITLE = "Silence or noise"
+MEETING_NAME = "Members Meeting"
+DISTINCT_UTTERANCES_OF_SPEECH = 20
+POSSESSIVE_NAME = re.compile(r"\b[A-Z][a-z]+['’]s\b")
 MONTHS = (
     "january|february|march|april|may|june|july|august|september|october|november|december"
     "|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec"
@@ -90,6 +97,26 @@ def shortened(title):
         return title.strip(SEPARATORS)
     cut = next((at for at in (title.rfind(mark, 0, TITLE_LIMIT) for mark in (", ", " - ")) if at > 0), -1)
     return (title[:cut] if cut > 0 else title[:TITLE_LIMIT]).strip(SEPARATORS)
+
+
+def hears_nothing(blocks, doc):
+    """No music and almost nothing said: what a stray trigger or a mic check leaves."""
+    if doc is None or any(block.type == "music" for block in blocks):
+        return False
+    said = {" ".join(one.get("text", "").lower().split()) for one in doc.get("utterances", ())}
+    return len(said - {""}) < DISTINCT_UTTERANCES_OF_SPEECH
+
+
+def without_names(text):
+    return " ".join(POSSESSIVE_NAME.sub(" ", text).split()).strip(SEPARATORS)
+
+
+def capitalised(text):
+    return text[:1].upper() + text[1:] if text else None
+
+
+def named_meeting(topic):
+    return f"{MEETING_NAME} - {topic}" if topic else MEETING_NAME
 
 
 def without_dates(text):
@@ -177,24 +204,32 @@ class InfersTitle:
         glossary = self.glossary or ReadsGlossary()()
         blocks = sorted(self.store.lists(Block, recording_id=recording.recording_id), key=lambda one: one.start_seconds)
         segments = sorted(self.store.lists(Segment, recording_id=recording.recording_id), key=lambda one: one.punch_in_seconds)
+        if hears_nothing(blocks, reads_json(self.store, recording, "transcript")):
+            return Titling(kind=EMPTY_KIND, title=SILENCE_TITLE)
         describes = DescribesRecording(glossary)
         answer = (self.asks or AsksModelForTitle())(describes(recording, blocks, segments))
         if not isinstance(answer, dict) or not ({"kind", "title"} & set(answer)):
             raise TitleNotInferred("the model named neither a kind nor a title")
         kind = (_text(answer, "kind") or "").lower()
+        kind = kind if kind in RECORDING_KINDS else UNKNOWN_KIND
+        shown = describes.evidence(blocks, segments)
         topic = _text(answer, "topic")
-        topic = topic[:1].upper() + topic[1:] if topic else None
+        topic = capitalised(topic and without_names(keeps_passages_shown(topic, shown)))
+        if kind == EMPTY_KIND:
+            return Titling(kind=kind, title=SILENCE_TITLE)
+        if kind == MEETING_KIND:
+            return Titling(kind=kind, title=named_meeting(topic), topic=topic)
         return Titling(
-            kind=kind if kind in RECORDING_KINDS else UNKNOWN_KIND,
-            title=self._titled(_text(answer, "title"), glossary, segments, describes.evidence(blocks, segments)),
+            kind=kind,
+            title=self._titled(_text(answer, "title"), glossary, segments, shown),
             series=_text(answer, "series") and glossary.spells_out(_text(answer, "series")),
-            topic=topic and (keeps_passages_shown(topic, describes.evidence(blocks, segments)) or None),
+            topic=topic,
         )
 
     def _titled(self, title, glossary, segments, shown):
         if title is None:
             return None
-        title = glossary.spells_out(without_dates(title))
+        title = glossary.spells_out(without_names(without_dates(title)))
         for segment in segments:
             if segment.classification in LABELLED_BY_PASSAGE and segment.label:
                 title = title.replace(segment.label, spoken_passage(segment.label))
@@ -208,21 +243,24 @@ class SuggestsNamedLabel:
     store: Store
     glossary: object
 
-    def __call__(self, recording, titling, title):
+    def __call__(self, recording, titling):
         suggested = []
         for segment in self.store.lists(Segment, recording_id=recording.recording_id):
             if segment.label or segment.classification in LABELLED_BY_PASSAGE:
                 continue
-            label = self.suggests(segment, titling, title)
+            label = self.suggests(segment, titling)
             if label:
                 suggested.append(self.store.saves(replace(segment, label=label)))
         return tuple(suggested)
 
-    def suggests(self, segment, titling, title):
-        named = self._class_label(titling)
-        if named is None and segment.classification in NAMED_BY_TITLE and title:
-            named = self.glossary.abbreviates(title)
-        if named is None or segment.classification not in NAMED_BY_CLASS | NAMED_BY_TITLE:
+    def suggests(self, segment, titling):
+        if segment.classification not in NAMED_BY_CLASS | NAMED_BY_TITLE:
+            return None
+        if titling.kind == MEETING_KIND or segment.classification in NAMED_BY_TITLE:
+            named = named_meeting(titling.topic)
+        else:
+            named = self._class_label(titling)
+        if named is None:
             return None
         return written_passage(named)[:LABEL_LIMIT].strip(SEPARATORS) or None
 
@@ -251,7 +289,5 @@ class TitlesRecording:
             held = self.store.saves(
                 RecordingTitle(recording_id=recording.recording_id, title=titling.title, series=titling.series)
             )
-        SuggestsNamedLabel(store=self.store, glossary=glossary)(
-            recording, titling, held.title if held else None
-        )
+        SuggestsNamedLabel(store=self.store, glossary=glossary)(recording, titling)
         return titling

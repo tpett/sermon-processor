@@ -34,6 +34,9 @@ Answer with one JSON object and nothing else:
   "Sunday Service - <passage>", "Theological Equipping Class - <topic>",
   "Pre-Service Rehearsal", "Members Meeting", "Good Friday Service".
   {passage}
+  Never name a person. A members' meeting is "Members Meeting", with at most a
+  high-level topic: "Members Meeting - Budget".
+  A recording with no identifiable speech or music is kind empty.
   A recording that holds a class and then a service names both, the class
   first: "Theological Equipping Class - <topic>, then Sunday Service - <passage>".
 - series: whenever any lesson or seminar is listed above, the name of that

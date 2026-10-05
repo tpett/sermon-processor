@@ -228,3 +228,61 @@ def test_a_topic_starts_with_a_capital(store):
     with_contents(store, recording)
     TitlesRecording(store=store, asks=answering({"kind": "class", "title": "TEC - Speech", "series": "TEC", "topic": "theology of speech"}), glossary=NAMES)(recording)
     assert {one.classification: one.label for one in store.lists(Segment)}["lesson"] == "TEC - Theology of speech"
+
+
+def transcribed(store, recording, lines):
+    from sermon.analysis.io import writes_json
+
+    writes_json(
+        store,
+        recording,
+        "transcript",
+        {"duration": 600.0, "utterances": [{"start": float(i), "end": i + 1.0, "text": line, "words": []} for i, line in enumerate(lines)]},
+    )
+
+
+def test_a_recording_with_almost_nothing_said_and_no_music_is_silence_or_noise(store):
+    recording = recorded(store)
+    store.saves(Block(recording_id=recording.recording_id, start_seconds=0.0, end_seconds=600.0, type="other"))
+    transcribed(store, recording, ["Thank you."] * 22)
+    asks = answering({"kind": "service", "title": "Sunday Service"})
+    titled = TitlesRecording(store=store, asks=asks, glossary=NAMES)(recording)
+    assert (titled.kind, titled.title) == ("empty", "Silence or noise")
+    assert asks.asked == []
+    assert store.loads(Recording, recording.recording_id).kind == "empty"
+
+
+def test_music_or_enough_distinct_speech_is_not_silence(store):
+    from sermon.analysis.titles_recording import hears_nothing
+
+    music = [Block(recording_id="r", start_seconds=0.0, end_seconds=60.0, type="music")]
+    other = [Block(recording_id="r", start_seconds=0.0, end_seconds=60.0, type="other")]
+    said = {"utterances": [{"text": f"line {i}"} for i in range(20)]}
+    hardly = {"utterances": [{"text": f"line {i}"} for i in range(19)]}
+    assert not hears_nothing(music, hardly)
+    assert not hears_nothing(other, said)
+    assert hears_nothing(other, hardly)
+    assert not hears_nothing(other, None)
+
+
+def test_the_model_calling_it_empty_gets_the_plain_title(store):
+    recording = recorded(store)
+    titled = InfersTitle(store=store, asks=answering({"kind": "empty", "title": "Unknown Recording - Thank You Repetitions"}), glossary=NAMES)(recording)
+    assert (titled.kind, titled.title) == ("empty", "Silence or noise")
+
+
+def test_a_meeting_is_a_members_meeting_with_a_topic_and_no_name(store):
+    recording = recorded(store)
+    titled = InfersTitle(
+        store=store,
+        asks=answering({"kind": "meeting", "title": "Church Meeting - Ed's Resignation and Culture Shift", "topic": "Ed's Resignation"}),
+        glossary=NAMES,
+    )(recording)
+    assert titled.title == "Members Meeting - Resignation"
+
+
+def test_a_meeting_segment_is_labelled_members_meeting(store):
+    recording = recorded(store)
+    with_contents(store, recording)
+    TitlesRecording(store=store, asks=answering({"kind": "meeting", "title": "Members Meeting", "topic": "budget"}), glossary=NAMES)(recording)
+    assert {one.classification: one.label for one in store.lists(Segment)}["lesson"] == "Members Meeting - Budget"
