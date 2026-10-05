@@ -1,3 +1,52 @@
+## Recordings are named: kind, title and a class's label (2026-10-05, branch tpett/ai/titles)
+
+Unmerged, undeployed. The owner reads the list by date and wanted it to say what
+each recording is ("Pre-Service Rehearsal", "Theological Equipping Class -
+Giving", "Sunday Service - Hebrews 13:1-6"), date kept, never repeated.
+
+- **A `titling` stage ends the analyze walk.** Optional like summarization: an
+  unreachable model or an unusable answer logs `optional_stage_failed` and the
+  Recording still reaches `awaiting_review`. Text only — block types and
+  summaries, the teaching Segments with any suggested passage, weekday and local
+  start time, the glossary. Never audio, never the date. Kind outside
+  `RECORDING_KINDS` becomes `unknown`; `unknown` never replaces a known kind.
+  Dates stripped, acronyms spelled out, a verse written with a colon, any
+  passage the model was not shown dropped (it copied the prompt's example
+  passage before that guard), long titles cut at a comma or " - ".
+- **Store:** `recording_title` (title, series, `edited_by_human`), its own table so
+  an existing database gains it at open with no row touched; proven against the
+  schema 2e7b55b creates (`tests/fixtures/schema_at_2e7b55b.sql`). `Recording.kind`
+  is now written.
+- **Glossary `src/sermon/names.toml`** (TEC, CT); prompt
+  `src/sermon/analysis/prompts/titles.v1.md`; both ship in the package, not under
+  the frozen `experiments/prompts`.
+- **UI:** list rows lead with the title, date beside it, a kind tag (the
+  acronym when the series has one); `?kind=` filter; detail heading is title +
+  date with a Rename form (audit-logged `title_change`, reviewer's title never
+  replaced). No title → date alone, as before.
+- **Labels:** a lesson/seminar with no label gets "<acronym> - <Topic>" ("TEC -
+  Stewardship", "CT - Islam", "TEC" with no topic), ':' written '.'; a meeting
+  falls back to its abbreviated title. Never over a label already there. The
+  sermon's scripture label already used dots and the file name already maps
+  ':' to '.'.
+- **`sermon-title`** backfills from stored text; `--dry-run`, `--again`. Not run
+  against production.
+- Spec: `features/analysis/recording_titles.feature` (6 Rules, 18 scenarios);
+  publication_details' class-label scenario is now the owner's rule. Pins 35 /
+  487 / 150 / 636 / 2050 steps. **Master has since taken removed-spans (35 / 487
+  / 153 / 638 / 2052 from 34 / 469 / 144 / 614 / 1967); merged, the pins should
+  be 36 files / 505 scenarios / 159 rules / 660 collected / 2135 steps — recount
+  rather than trust this sum.** Fast suite 185 failed / 2234 passed against
+  master's 187 / 2177, no new failure; 20 of 20 mutations caught.
+
+Real model on 19 corpus recordings (scratch store, production summarizer): every
+service titled with its passage; CT and TEC classes named and labelled; the
+class-then-service 2026-09-13 named both. Misses: 2026-04-05 (TEC - Forgiveness
+before the service) titled as the service only; 2026-06-28 "Church Member
+Meeting" not the owner's "Members Meeting"; 2026-08-16 meeting titled with
+personal detail ("Ed's Resignation…"); 2026-09-06 11:59 "Unknown Recording - Thank
+You Repetitions".
+
 ## Corrections after an adversarial review (2026-10-03)
 
 An independent read-only review, mutation-backed, found that several things
