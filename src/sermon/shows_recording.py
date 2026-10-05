@@ -25,6 +25,7 @@ from sermon.lists_recordings import (
     reads_ingest,
 )
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
+from sermon.recuts_segment import current_renders, holds_published_render
 from sermon.removes_span import kept_seconds, removed_seconds
 from sermon.store import Artifact, Block, Job, Proposal, Recording, Segment, Store
 from sermon.store import vocabularies
@@ -906,13 +907,11 @@ class ShowsRecording:
     def _published(self, selected):
         # artifact_downloads.feature offers it only for a finished Segment: a
         # link to a file that is still rendering is worse than no link.
-        if selected is None or selected.state != "complete":
+        if selected is None:
             return None
-        rendered = [
-            item
-            for item in self.store.lists(Artifact, segment_id=selected.segment_id)
-            if item.kind == "rendered_mp3"
-        ]
+        if selected.state != "complete" and not holds_published_render(self.store, selected):
+            return None
+        rendered = current_renders(self.store, selected)
         if not rendered:
             return None
         mp3 = rendered[-1]
