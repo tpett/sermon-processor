@@ -1,4 +1,5 @@
 import subprocess
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -18,9 +19,18 @@ from sermon.jobs.renders_mp3 import (
     reads_source_channel,
 )
 from sermon.jobs.renders_segment import RendersSegment
+from sermon.pipeline.render import probe_format
 from sermon.pipeline import render as chain
 from sermon.sends_notification import SendsNotification
-from sermon.store import Artifact, ChannelLevel, Recording, Reviewer, Segment, opens_store
+from sermon.store import (
+    Artifact,
+    ChannelLevel,
+    Recording,
+    RemovedSpan,
+    Reviewer,
+    Segment,
+    opens_store,
+)
 
 SAMPLE_RATE = 44100
 SECONDS = 20.0
@@ -322,3 +332,72 @@ def test_a_segment_left_unrendered_by_a_refusal_does_not_claim_to_be_complete(st
     with pytest.raises(ChannelsNeedReview):
         renders(store)(segment)
     assert store.loads(Segment, segment.segment_id).state == "approved"
+
+
+BURST = (9.0, 9.3)
+REMOVED = (
+    RemovedSpan(start_seconds=8.6, end_seconds=9.5),
+    RemovedSpan(start_seconds=12.6, end_seconds=14.7),
+)
+KEPT_SECONDS = PUNCH_OUT - PUNCH_IN - 0.9 - 2.1
+MP3_FRAME_SECONDS = 1152 / SAMPLE_RATE
+
+
+def bursting(tmp_path):
+    spoken = phrases(0.3)
+    first, last = (int(at * SAMPLE_RATE) for at in BURST)
+    spoken[first:last] = 0.98 * np.sign(np.sin(2 * np.pi * 300 * np.arange(last - first) / SAMPLE_RATE))
+    return writes_flac(tmp_path / OBJECT_KEY, [spoken, silent()])
+
+
+def decoded(path):
+    raw = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "1", "-"],
+        capture_output=True,
+        check=True,
+    ).stdout
+    return np.frombuffer(raw, dtype=np.float32)
+
+
+def level_db(samples, at, length):
+    first = int(at * SAMPLE_RATE)
+    window = samples[first:first + max(int(length * SAMPLE_RATE), 1)]
+    return 20 * np.log10(np.sqrt(np.mean(window * window)) + 1e-9)
+
+
+def test_a_render_leaves_out_every_removed_span(tmp_path):
+    rendered = RendersMp3()(
+        bursting(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3", removed=REMOVED
+    )
+    assert rendered.duration_seconds == pytest.approx(KEPT_SECONDS, abs=2 * MP3_FRAME_SECONDS)
+    assert rendered.settings["removed_spans"] == [[8.6, 9.5], [12.6, 14.7]]
+
+
+def test_the_loudness_pass_measures_only_the_audio_that_ships(tmp_path):
+    whole = RendersMp3()(bursting(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "whole.mp3")
+    kept = RendersMp3()(
+        bursting(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "kept.mp3", removed=REMOVED
+    )
+    assert kept.input_true_peak_dbtp < whole.input_true_peak_dbtp - 6.0
+
+
+def test_each_join_passes_through_silence_rather_than_stepping(tmp_path):
+    rendered = RendersMp3()(
+        bursting(tmp_path), PUNCH_IN, PUNCH_OUT, tmp_path / "out.mp3", removed=REMOVED
+    )
+    samples = decoded(rendered.path)
+    joins = (8.6 - PUNCH_IN, 12.6 - PUNCH_IN - 0.9)
+    for join in joins:
+        at_the_join = level_db(samples, join - 0.003, 0.006)
+        either_side = min(level_db(samples, join - 0.05, 0.025), level_db(samples, join + 0.025, 0.025))
+        assert at_the_join <= either_side - 12.0
+
+
+def test_a_segments_removed_spans_reach_its_render(store, tmp_path):
+    segment = approved(store, tmp_path)
+    renders(store)(store.saves(replace(segment, removed_spans=REMOVED)))
+    artifact = store.lists(Artifact, kind="rendered_mp3")[0]
+    assert artifact.render_settings["removed_spans"] == [[8.6, 9.5], [12.6, 14.7]]
+    assert probe_format(store.resolves(artifact))["duration"] == pytest.approx(
+        KEPT_SECONDS, abs=2 * MP3_FRAME_SECONDS
+    )

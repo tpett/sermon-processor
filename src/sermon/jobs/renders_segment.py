@@ -126,6 +126,7 @@ class RendersSegment:
                 processing.punch_out_seconds,
                 destination,
                 channel=reads_source_channel(recording.mono_source),
+                **({"removed": processing.removed_spans} if processing.removed_spans else {}),
             )
             artifact = replace(
                 artifact,

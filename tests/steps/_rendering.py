@@ -17,6 +17,7 @@ from collections import namedtuple
 from dataclasses import replace
 from pathlib import Path
 
+from sermon.jobs import renders_kept_audio as kept_chain
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbeResult, ProbesRecording
 from sermon.jobs.renders_mp3 import RendersMp3
 from sermon.jobs.renders_segment import RunsRenderJob
@@ -296,21 +297,32 @@ def clipped_window():
     return CLIPPED_AT, CLIPPED_SECONDS
 
 
-def _renders_or_reuses(source_path, start, end, destination, channel=0):
+def _chain_digest(removed):
+    digests = [hashlib.sha256(Path(chain.__file__).read_bytes()).hexdigest()]
+    if removed:
+        digests.append(hashlib.sha256(Path(kept_chain.__file__).read_bytes()).hexdigest())
+    return digests
+
+
+def _renders_or_reuses(source_path, start, end, destination, channel=0, removed=()):
+    leaving_out = [(span.start_seconds, span.end_seconds) for span in removed]
     key = _digests(
         "mp3",
         _fingerprint(source_path),
         start,
         end,
         channel,
-        hashlib.sha256(Path(chain.__file__).read_bytes()).hexdigest(),
+        *([leaving_out] if leaving_out else []),
+        *_chain_digest(removed),
     )
     held = CACHE / f"render-{key}.mp3"
     measured = CACHE / f"render-{key}.json"
     if held.is_file() and held.stat().st_size and measured.is_file():
         copies(held, destination)
         return json.loads(measured.read_text())
-    found = chain.render(source_path, start, end, destination, channel=channel)
+    found = kept_chain.renders_kept_audio(
+        source_path, start, end, destination, channel=channel, removed=removed
+    )
     if not destination.is_file():
         raise RuntimeError(f"the render chain wrote nothing to {destination}")
     CACHE.mkdir(parents=True, exist_ok=True)
@@ -350,7 +362,7 @@ def renders(store, reuse=True):
         notifies=SendsNotification(store=store),
         renders=_keeps(
             RendersMp3(
-                renders=_renders_or_reuses if reuse else chain.render,
+                renders=_renders_or_reuses if reuse else kept_chain.renders_kept_audio,
                 probes_loudness=loudness,
             ),
             produced,

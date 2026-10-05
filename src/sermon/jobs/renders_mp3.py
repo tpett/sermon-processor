@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from sermon.jobs.renders_kept_audio import renders_kept_audio
 from sermon.pipeline.render import (
     FADE_S,
     LAME_Q,
@@ -11,7 +12,6 @@ from sermon.pipeline.render import (
     TARGET_TP,
     probe_format,
     probe_loudness,
-    render,
 )
 
 PUBLISHED_I = -17.0
@@ -54,6 +54,7 @@ class RenderedAudio:
     achieved_true_peak_dbtp: float | None
     achieved_loudness_range_lu: float | None
     settings: dict
+    input_true_peak_dbtp: float | None = None
 
     def misses(self):
         missed = []
@@ -84,12 +85,13 @@ def reads_loudness(measured, name):
 
 @dataclass(frozen=True)
 class RendersMp3:
-    renders: object = render
+    renders: object = renders_kept_audio
     probes_loudness: object = probe_loudness
     probes_format: object = probe_format
 
-    def __call__(self, source, start, end, destination, channel=0):
-        measured = self.renders(source, start, end, destination, channel=channel)
+    def __call__(self, source, start, end, destination, channel=0, removed=()):
+        leaving_out = {"removed": tuple(removed)} if removed else {}
+        measured = self.renders(source, start, end, destination, channel=channel, **leaving_out)
         if not destination.is_file() or destination.stat().st_size == 0:
             raise RenderProducedNothing(str(destination))
         achieved = self.probes_loudness(destination)
@@ -104,6 +106,7 @@ class RendersMp3:
             sample_rate=int(shape["sr"]),
             kbps=shape["kbps"],
             input_loudness_lufs=reads_loudness(measured, "input_i"),
+            input_true_peak_dbtp=reads_loudness(measured, "input_tp"),
             achieved_loudness_lufs=achieved.get("I"),
             achieved_true_peak_dbtp=achieved.get("Peak"),
             achieved_loudness_range_lu=achieved.get("LRA"),
@@ -116,5 +119,10 @@ class RendersMp3:
                 "sample_rate": shape["sr"],
                 "channels": shape["channels"],
                 "source_channel": channel + 1,
+                **(
+                    {"removed_spans": [[span.start_seconds, span.end_seconds] for span in removed]}
+                    if removed
+                    else {}
+                ),
             },
         )
