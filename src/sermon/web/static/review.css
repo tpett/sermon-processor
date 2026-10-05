@@ -1513,3 +1513,70 @@ details summary {
   font-weight: 400;
   color: var(--muted);
 }
+
+.waveform .removed-marks {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.waveform .removed-marks li,
+.waveform .detailwrap .removed {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  background: repeating-linear-gradient(135deg, var(--warn) 0 2px, transparent 2px 6px);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.waveform .detailwrap .removed.pending {
+  width: 2px;
+  background: var(--warn);
+  opacity: 0.9;
+}
+
+.removals {
+  margin: 12px 0 0;
+}
+
+.removals h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.removals form[data-role="removal"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.removals input[type="text"] {
+  width: 9em;
+  font-family: var(--mono);
+}
+
+.removals .removed-spans {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.removals .removed-spans li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-top: 1px solid var(--rule, #0001);
+}
+
+.removals .removed-spans form {
+  display: inline;
+}

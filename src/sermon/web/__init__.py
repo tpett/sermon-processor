@@ -47,6 +47,14 @@ from sermon.reconciles_bucket import (
     ObjectStoreUnreachable,
     ReconcilesBucket,
 )
+from sermon.jobs.renders_kept_audio import JOIN_MEDIA_TYPE, JoinProducedNothing, encodes_join
+from sermon.jobs.renders_mp3 import reads_source_channel
+from sermon.removes_span import (
+    RemovalStartNotMarked,
+    RemovesSpan,
+    RestoresSpan,
+    kept_pieces,
+)
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.sends_notification import lists_undelivered
@@ -54,6 +62,7 @@ from sermon.reruns_analysis import RerunsAnalysis
 from sermon.shows_recording import (
     NOTICES,
     PLAYHEAD_OUTSIDE_SPAN,
+    PREVIEW_LEAD_SECONDS,
     ShowsRecording,
     formats_precise,
     formats_seconds,
@@ -75,6 +84,7 @@ OBJECT_STORE_UNAVAILABLE = "the object store cannot be reached"
 STREAMED_FALLBACK_TYPE = "application/octet-stream"
 NO_SUCH_RECORDING = ({"error": "no such recording"}, 404)
 NO_SUCH_SEGMENT = ({"error": "no such segment"}, 404)
+JOIN_AUDIO_UNAVAILABLE = "neither the source nor the preview is on this machine"
 
 
 def unavailable(path, entity):
@@ -158,6 +168,8 @@ def creates_app(
     merges = MergesSegments(store=store)
     creates = CreatesSegment(store=store)
     extends = ExtendsSegmentSpan(store=store)
+    removes_span = RemovesSpan(store=store, clock=clock)
+    restores_span = RestoresSpan(store=store, clock=clock)
     lists_notifications = ListsNotifications(store=store)
     marks_seen = MarksNotificationsSeen(store=store, clock=clock)
     sets_preference = SetsNotificationPreference(store=store)
@@ -179,7 +191,7 @@ def creates_app(
             return min(working.punch_out_seconds, working.span_end_seconds)
         return max(working.punch_in_seconds, working.span_start_seconds)
 
-    def returns_to(recording_id, notice, segment_id=None, focus=None):
+    def returns_to(recording_id, notice, segment_id=None, focus=None, removing_from=None):
         return redirect(
             url_for(
                 "html_detail",
@@ -187,6 +199,7 @@ def creates_app(
                 notice=notice,
                 segment=segment_id,
                 focus=focus,
+                removing_from=removing_from,
                 zoom=request.values.get("zoom"),
                 centre=request.values.get("centre"),
                 playhead=request.values.get("playhead"),
@@ -291,6 +304,7 @@ def creates_app(
             auditioning=request.args.get("preview"),
             notice=request.args.get("notice"),
             focused_boundary=focus,
+            removal_from_seconds=request.args.get("removing_from", type=float),
         )
         if view is None:
             return ("", 404)
@@ -727,6 +741,81 @@ def creates_app(
             held = getattr(segment, f"span_{edge}_seconds")
             return held - step if request.form["direction"] == "earlier" else held + step
         raise ValueError("no such span action")
+
+    @app.post("/recordings/<recording_id>/segments/<int:segment_id>/removed-spans")
+    def removed_spans_action(recording_id, segment_id):
+        segment = store.loads(Segment, segment_id)
+        if segment is None or segment.recording_id != recording_id:
+            return ("", 404)
+        focus = request.form.get("focus")
+        action = request.form.get("do")
+        try:
+            if action == "mark-start":
+                started = playhead_of(recording_id, segment_id)
+                return returns_to(recording_id, "removal-started", segment_id, focus, started)
+            if action in {"remove", "mark-end"}:
+                removes_span(
+                    segment,
+                    start_seconds=reads_marked_start(),
+                    end_seconds=(
+                        playhead_of(recording_id, segment_id)
+                        if action == "mark-end"
+                        else reads_timecode(request.form["to"])
+                    ),
+                )
+                return returns_to(recording_id, "span-removed", segment_id, focus)
+            if action == "restore":
+                restores_span(
+                    segment,
+                    start_seconds=float(request.form["from"]),
+                    end_seconds=float(request.form["to"]),
+                )
+                return returns_to(recording_id, "span-restored", segment_id, focus)
+        except BoundaryRejected as refusal:
+            return returns_to(recording_id, str(refusal), segment_id, focus)
+        except (ValueError, KeyError):
+            return returns_to(recording_id, "not-a-timecode", segment_id, focus)
+        return ("", 404)
+
+    def reads_marked_start():
+        marked = request.form.get("from", "").strip()
+        if not marked:
+            raise RemovalStartNotMarked()
+        return reads_timecode(marked)
+
+    @app.get("/api/segments/<int:segment_id>/join")
+    def hears_join(segment_id):
+        segment = store.loads(Segment, segment_id)
+        if segment is None:
+            return NO_SUCH_SEGMENT
+        from_seconds = request.args.get("from", type=float)
+        to_seconds = request.args.get("to", type=float)
+        if from_seconds is None or to_seconds is None:
+            return {"error": "name the removed span by its from and to seconds"}, 400
+        recording = store.loads(Recording, segment.recording_id)
+        heard, channel = audio_for_joins(recording)
+        if heard is None:
+            return {"error": JOIN_AUDIO_UNAVAILABLE}, 404
+        pieces = kept_pieces(
+            max(segment.punch_in_seconds, from_seconds - PREVIEW_LEAD_SECONDS),
+            min(segment.punch_out_seconds, to_seconds + PREVIEW_LEAD_SECONDS),
+            segment.removed_spans,
+        )
+        try:
+            joined = encodes_join(heard, pieces, channel)
+        except JoinProducedNothing as failure:
+            return {"error": str(failure)}, 500
+        return Response(joined, mimetype=JOIN_MEDIA_TYPE)
+
+    def audio_for_joins(recording):
+        source = store.resolves(recording)
+        if source is not None and source.is_file():
+            return source, reads_source_channel(recording.mono_source)
+        previews = store.lists(Artifact, recording_id=recording.recording_id, kind="preview")
+        preview = store.resolves(previews[-1]) if previews else None
+        if preview is not None and preview.is_file():
+            return preview, 0
+        return None, 0
 
     @app.post("/recordings/<recording_id>/segments/<int:segment_id>/boundaries/<boundary>")
     def boundary_action(recording_id, segment_id, boundary):
