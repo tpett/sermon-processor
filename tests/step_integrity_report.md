@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1420 step definitions read from `tests/steps`
+- 1436 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 482 non-deferred scenarios rest on at least one condemned step
-- 9 of 630 expanded scenario tests likewise
+- 9 of 486 non-deferred scenarios rest on at least one condemned step
+- 9 of 634 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 49 Gherkin steps matched more than one definition
-- 255 Gherkin steps matched no definition
+- 243 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -85,10 +85,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py` | 12 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 21 | 0 | sound |
-| `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
+| `tests/steps/processing/artifact_downloads_steps.py` | 24 | 0 | sound |
 | `tests/steps/processing/audio_rendering_steps.py` | 55 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 16 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 88 | 0 | sound |
+| `tests/steps/processing/reprocessing_steps.py` | 23 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 82 | 0 | sound |
 
 ## Condemned outside the six named files
 
@@ -353,29 +354,17 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/processing_orchestration.feature:78 then the source is re-downloaded from the object store first`
 - `processing/processing_orchestration.feature:79 then processing continues normally`
 - `processing/processing_orchestration.feature:96 then a storage alert is raised`
-- `processing/reprocessing.feature:19 then it enters "recut"`
-- `processing/reprocessing.feature:20 then the previously approved boundaries are shown as the starting point`
-- `processing/reprocessing.feature:21 then the existing MP3 remains downloadable until a new one replaces it`
-- `processing/reprocessing.feature:27 then it is processed again`
-- `processing/reprocessing.feature:28 then the new MP3 replaces the previous one`
-- `processing/reprocessing.feature:29 then the previous cut's boundaries are retained in the history`
-- `processing/reprocessing.feature:34 then the original FLAC is unchanged`
-- `processing/reprocessing.feature:35 then it is still downloadable`
-- `processing/reprocessing.feature:41 then the other Segment stays "complete"`
-- `processing/reprocessing.feature:42 then its MP3 is untouched`
-- `processing/reprocessing.feature:48 given the loudness target has been changed in configuration`
-- `processing/reprocessing.feature:49 when an operator re-renders the Segment`
-- `processing/reprocessing.feature:50 then the boundaries are unchanged`
-- `processing/reprocessing.feature:51 then a new MP3 is produced with the new settings`
-- `processing/reprocessing.feature:52 then the render settings used are recorded`
-- `processing/reprocessing.feature:58 when the change is saved`
-- `processing/reprocessing.feature:59 then the MP3 audio is not re-encoded`
-- `processing/reprocessing.feature:60 then the downloadable filename reflects the corrected label`
-- `processing/reprocessing.feature:70 then only the most recent MP3 is stored`
-- `processing/reprocessing.feature:71 then the earlier render is deleted`
-- `processing/reprocessing.feature:76 when I view its history`
-- `processing/reprocessing.feature:77 then I see each set of boundaries with who approved them and when`
-- `processing/reprocessing.feature:78 then I see the loudness and encoding settings used for each render`
-- `processing/reprocessing.feature:79 then any past render could be reproduced from that record and the source`
-- `processing/reprocessing.feature:83 then the interface does not offer to restore an earlier render`
-- `processing/reprocessing.feature:84 then the stored history is what makes adding that later possible`
+- `processing/reprocessing.feature:100 then the downloadable filename reflects the corrected label`
+- `processing/reprocessing.feature:116 when I view its history`
+- `processing/reprocessing.feature:117 then I see each set of boundaries with who approved them and when`
+- `processing/reprocessing.feature:118 then I see the loudness and encoding settings used for each render`
+- `processing/reprocessing.feature:119 then any past render could be reproduced from that record and the source`
+- `processing/reprocessing.feature:123 then the interface does not offer to restore an earlier render`
+- `processing/reprocessing.feature:124 then the stored history is what makes adding that later possible`
+- `processing/reprocessing.feature:88 given the loudness target has been changed in configuration`
+- `processing/reprocessing.feature:89 when an operator re-renders the Segment`
+- `processing/reprocessing.feature:90 then the boundaries are unchanged`
+- `processing/reprocessing.feature:91 then a new MP3 is produced with the new settings`
+- `processing/reprocessing.feature:92 then the render settings used are recorded`
+- `processing/reprocessing.feature:98 when the change is saved`
+- `processing/reprocessing.feature:99 then the MP3 audio is not re-encoded`
