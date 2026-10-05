@@ -19,6 +19,7 @@ from .entities import (
     Notification,
     Proposal,
     Recording,
+    RecordingTitle,
     Reviewer,
     Segment,
     SkippedObject,
@@ -131,6 +132,13 @@ TABLES = {
                     closed={"warning": vocabularies.RECORDING_WARNINGS},
                 ),
             ),
+        ),
+        Table(
+            entity=RecordingTitle,
+            name="recording_title",
+            identity="recording_id",
+            generated=False,
+            references={"recording_id": "recording(recording_id)"},
         ),
         Table(
             entity=Block,

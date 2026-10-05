@@ -36,6 +36,14 @@ class Recording:
 
 
 @dataclass(frozen=True, kw_only=True)
+class RecordingTitle:
+    recording_id: str
+    title: str
+    series: str | None = None
+    edited_by_human: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
 class Block:
     block_id: int | None = None
     recording_id: str
