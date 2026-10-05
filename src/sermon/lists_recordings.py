@@ -11,7 +11,8 @@ from sermon.forces_ingestion import (
     WAITING,
     reads_standing,
 )
-from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment, Store
+from sermon.glossary import ReadsGlossary
+from sermon.store import Block, Job, LogEntry, Proposal, Recording, RecordingTitle, Segment, Store
 
 
 def now():
@@ -24,6 +25,23 @@ INGEST_STATE = "discovered"
 PAGE_SIZE = 50
 
 FAILED_STATES = frozenset({"ingest_failed", "analysis_failed", "processing_failed"})
+
+KIND_TAGS = {
+    "service": "Service",
+    "class": "Class",
+    "special_service": "Special",
+    "meeting": "Meeting",
+    "rehearsal": "Rehearsal",
+    "empty": "Empty",
+}
+
+
+def tags_kind(kind, series, glossary):
+    if series:
+        abbreviated = glossary.abbreviates(series)
+        if abbreviated != series:
+            return abbreviated
+    return KIND_TAGS.get(kind)
 
 
 def reads_failure(store, recording_id, segment_id=None):
@@ -106,6 +124,9 @@ class RecordingRow:
     ingest: IngestView | None = None
     summaries: tuple = ()
     failure: str | None = None
+    title: str | None = None
+    kind: str | None = None
+    tag: str | None = None
 
 
 @dataclass(frozen=True)
@@ -138,9 +159,11 @@ def builds_page(rows, page):
 class ListsRecordings:
     store: Store
     clock: object = now
+    glossary: object = None
 
     def __call__(
-        self, *, include_discarded=False, filter_name=None, classification=None, q=None, page=1
+        self, *, include_discarded=False, filter_name=None, classification=None, q=None, page=1,
+        kind=None,
     ):
         return self.paginates(
             include_discarded=include_discarded,
@@ -148,10 +171,12 @@ class ListsRecordings:
             classification=classification,
             q=q,
             page=page,
+            kind=kind,
         ).rows
 
     def paginates(
-        self, *, include_discarded=False, filter_name=None, classification=None, q=None, page=1
+        self, *, include_discarded=False, filter_name=None, classification=None, q=None, page=1,
+        kind=None,
     ):
         recordings = [
             recording
@@ -164,7 +189,10 @@ class ListsRecordings:
             if any(recording.state == INGEST_STATE for recording in recordings)
             else ()
         )
-        rows = tuple(self._row(recording, queued) for recording in recordings)
+        glossary = self.glossary or ReadsGlossary()()
+        rows = tuple(self._row(recording, queued, glossary) for recording in recordings)
+        if kind:
+            rows = tuple(row for row in rows if row.kind == kind)
         if classification:
             rows = tuple(
                 row for row in rows if any(item[0] == classification for item in row.segments)
@@ -195,13 +223,14 @@ class ListsRecordings:
                 row
                 for row in rows
                 if needle in row.recorded_at.lower()
+                or needle in (row.title or "").lower()
                 or any(needle in label.lower() for label in row.labels)
                 or any(needle in summary.lower() for summary in row.summaries)
                 or any(needle in item[0].lower() for item in row.segments)
             )
         return builds_page(rows, page)
 
-    def _row(self, recording, queued=()):
+    def _row(self, recording, queued=(), glossary=None):
         segments = self.store.lists(Segment, recording_id=recording.recording_id)
         summaries = []
         awaiting = 0
@@ -227,6 +256,7 @@ class ListsRecordings:
         waiting = False
         if recording.waiting_since is not None:
             waiting = (self.clock() - recording.waiting_since).total_seconds() > 86400
+        titled = self.store.loads(RecordingTitle, recording.recording_id)
         return RecordingRow(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -245,4 +275,7 @@ class ListsRecordings:
                 if block.summary
             ),
             failure=next((reason for reason in failing if reason), None),
+            title=titled.title if titled else None,
+            kind=recording.kind,
+            tag=tags_kind(recording.kind, titled.series if titled else None, glossary or ReadsGlossary()()),
         )

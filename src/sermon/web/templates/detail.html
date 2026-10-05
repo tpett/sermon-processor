@@ -4,20 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {% if view.progress %}<meta http-equiv="refresh" content="20">{% endif %}
-  <title>{{ view.recorded_at }}</title>
+  <title>{% if view.title %}{{ view.title }} · {% endif %}{{ view.recorded_at }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
 </head>
 <body>
 <header class="masthead">
   <div>
     <a class="back" href="/">All recordings</a>
-    <h1>{{ view.recorded_at }}</h1>
+    <h1>{% if view.title %}<span data-field="title">{{ view.title }}</span> <span class="when">{{ view.recorded_at }}</span>{% else %}{{ view.recorded_at }}{% endif %}</h1>
     <p class="sub">
+      {% if view.kind_tag %}<span class="tag" data-field="kind">{{ view.kind_tag }}</span>{% endif %}
       <span class="chip">state <span data-field="state">{{ view.state }}</span></span>
       {% if view.progress %}<span class="chip" data-field="progress">{{ view.progress }}</span>{% endif %}
       {% if view.reason %}<span class="chip flag" data-field="reason">{{ view.reason }}</span>{% endif %}
       {% if view.selected_segment_id is not none %}<span class="chip">boundaries <span data-field="boundary-controls">{{ view.boundary_controls }}</span></span>{% endif %}
     </p>
+    <details class="rename">
+      <summary>Rename</summary>
+      <form class="inline" method="post" action="/recordings/{{ view.recording_id }}/actions/retitle">
+        <label>Title <input type="text" name="title" value="{{ view.title or '' }}" data-field="title-input"></label>
+        <button type="submit" data-field="retitle-control">Save title</button>
+      </form>
+    </details>
   </div>
   <p class="sub">
     <span class="eyebrow">source</span>

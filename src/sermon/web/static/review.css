@@ -202,6 +202,13 @@ ul {
   color: var(--accent);
 }
 
+.masthead h1 .when {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .masthead .sub {
   display: flex;
   flex-wrap: wrap;
@@ -1322,6 +1329,28 @@ select {
 .recordings [data-field="row-awaiting"] {
   font-family: var(--mono);
   font-size: 12px;
+  color: var(--muted);
+}
+
+.recordings a.title {
+  font-size: 15px;
+}
+
+.recordings a.when {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.recordings .tag,
+.masthead .tag {
+  padding: 0 6px;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
   color: var(--muted);
 }
 

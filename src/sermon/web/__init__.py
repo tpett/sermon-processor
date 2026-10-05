@@ -33,7 +33,7 @@ from sermon.extends_segment_span import (
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob
 from sermon.lists_notifications import ListsNotifications, MarksNotificationsSeen, SetsNotificationPreference
-from sermon.lists_recordings import ListsRecordings
+from sermon.lists_recordings import KIND_TAGS, ListsRecordings
 from sermon.object_store import UnsatisfiableRange
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import (
@@ -51,6 +51,7 @@ from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.sends_notification import lists_undelivered
 from sermon.reruns_analysis import RerunsAnalysis
+from sermon.retitles_recording import RetitlesRecording
 from sermon.shows_recording import (
     NOTICES,
     PLAYHEAD_OUTSIDE_SPAN,
@@ -152,6 +153,7 @@ def creates_app(
     reopens = ReopensSegment(store=store, clock=clock)
     retries_processing = RetriesProcessing(store=store, clock=clock)
     reruns = RerunsAnalysis(store=store, clock=clock)
+    retitles = RetitlesRecording(store=store, clock=clock)
     adjusts = AdjustsPunchPoint(store=store, clock=clock)
     reverts = RevertsToProposal(store=store, clock=clock)
     splits = SplitsSegment(store=store)
@@ -219,6 +221,7 @@ def creates_app(
             "classification": request.args.get("classification"),
             "q": request.args.get("q"),
             "page": request.args.get("page", type=int) or 1,
+            "kind": request.args.get("kind") or None,
         }
 
     def keeps_the_narrowing(number):
@@ -255,6 +258,8 @@ def creates_app(
             next_url=keeps_the_narrowing(paged.next),
             notice=scan_notice(),
             searched=request.args.get("q"),
+            kinds=KIND_TAGS,
+            chosen_kind=request.args.get("kind") or "",
             unread_notifications=lists_notifications().unread,
         )
 
@@ -599,6 +604,9 @@ def creates_app(
         if action == "restore":
             restores(recording)
             return "restored"
+        if action == "retitle":
+            retitles(recording, request.form.get("title", ""))
+            return "retitled"
         if action == "archive-whole-recording":
             archives(recording)
             return "archived"

@@ -17,8 +17,16 @@
 {% if notice %}<p class="notice" data-field="scan-notice">{{ notice }}</p>{% endif %}
 
 <form class="inline" method="get" action="/" data-role="search">
-  <label>Find a recording by date, classification, label or summary
+  <label>Find a recording by date, title, classification, label or summary
     <input type="search" name="q" value="{{ searched or '' }}">
+  </label>
+  <label>Kind
+    <select name="kind" data-field="kind-filter">
+      <option value="">any</option>
+    {% for value, tag in kinds.items() %}
+      <option value="{{ value }}"{% if value == chosen_kind %} selected{% endif %}>{{ tag }}</option>
+    {% endfor %}
+    </select>
   </label>
   <button type="submit" data-field="search-control">Search</button>
 </form>
@@ -26,8 +34,10 @@
 {% if recordings %}
 <ol class="recordings">
 {% for row in recordings %}
-  <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ row.needs_attention|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}">
-    <a href="/recordings/{{ row.recording_id }}" data-field="recorded-at">{{ row.recorded_at }}</a>
+  <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ row.needs_attention|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}" data-kind="{{ row.kind or '' }}">
+    {% if row.title %}<a class="title" href="/recordings/{{ row.recording_id }}" data-field="title">{{ row.title }}</a>{% endif %}
+    <a{% if row.title %} class="when"{% endif %} href="/recordings/{{ row.recording_id }}" data-field="recorded-at">{{ row.recorded_at }}</a>
+    {% if row.tag %}<span class="tag" data-field="kind">{{ row.tag }}</span>{% endif %}
     <span data-field="duration">{{ row.duration }}</span>
     <span data-field="state">{{ row.state }}</span>
     <span data-field="confidence">{{ row.confidence or "" }}</span>

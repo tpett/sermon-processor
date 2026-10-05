@@ -23,9 +23,11 @@ from sermon.lists_recordings import (
     formats_recorded_at,
     reads_failure,
     reads_ingest,
+    tags_kind,
 )
+from sermon.glossary import ReadsGlossary
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
-from sermon.store import Artifact, Block, Job, Proposal, Recording, Segment, Store
+from sermon.store import Artifact, Block, Job, Proposal, Recording, RecordingTitle, Segment, Store
 from sermon.store import vocabularies
 
 SIZE_UNITS = ("bytes", "KB", "MB", "GB", "TB")
@@ -118,6 +120,8 @@ NOTICES = {
     "discarded": "the Recording is discarded and its source is untouched",
     "discard-needs-confirm": "it contains a published segment; confirm to discard it",
     "restored": "the Recording is restored",
+    "retitled": "the title is saved; analysis will not replace it",
+    "a title cannot be empty": "a title cannot be empty",
     "archived": "the whole Recording is kept as an archive copy",
     "reanalysis-queued": "Analysis will run again and will not overwrite your work",
     "ingest-queued": "the download is queued; the worker will fetch it and run the pipeline",
@@ -510,6 +514,8 @@ class RecordingView:
     analysis_detail: str | None = None
     analysis_completed: str | None = None
     segment_failure: str | None = None
+    title: str | None = None
+    kind_tag: str | None = None
 
 
 @dataclass(frozen=True)
@@ -716,7 +722,16 @@ class ShowsRecording:
             analysis_stage=names_current_stage(stages, current),
             analysis_detail=None if current is None else current.detail,
             analysis_completed=counts_complete(stages),
+            **self._titled(recording),
         )
+
+    def _titled(self, recording):
+        titled = self.store.loads(RecordingTitle, recording.recording_id)
+        series = titled.series if titled else None
+        return {
+            "title": titled.title if titled else None,
+            "kind_tag": tags_kind(recording.kind, series, ReadsGlossary()()),
+        }
 
     def _recording_actions(self, recording):
         offered = RECORDING_ACTIONS.get(recording.state, "Discard").split(", ")
