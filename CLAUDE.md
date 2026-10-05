@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 509 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 514 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 664 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 672 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -362,12 +362,18 @@ as a `machine` pair by `sermon-align` once the output has been rendered.
 `sermon-title` names Recordings that were analysed before the walk had a
 `titling` stage. It reads only what is stored — the Blocks and their summaries,
 the Segments and their labels, the weekday and start time — and sends that text
-to `SERMON_MODEL_ENDPOINT`; no audio, no transcript, no re-analysis. It needs
-only `SERMON_DATA_ROOT` (or `--store`) and the endpoint. By default it names
-only Recordings with no title yet; `--again` re-asks for machine titles too, and
-a reviewer's title is always kept and reported as kept. Labels are suggested
-only for Segments that have none. `--dry-run` prints what it would write and
-writes nothing — run it first, and never straight against production.
+to `SERMON_MODEL_ENDPOINT`; no audio and no re-analysis. It reads the stored
+transcript only to count what was said, so a recording with no music and fewer
+than 20 different utterances is named "Silence or noise" without asking the
+model. It needs only `SERMON_DATA_ROOT` (or `--store`) and the endpoint. It
+prints one line per recording: start, kind, title, any label it suggests, id —
+`2026-09-13 09:00  class  Theological Equipping Class - Stewardship, then Sunday
+Service - Hebrews 12:25-29  label: TEC - Stewardship (lesson)  [recording_…]`.
+By default it names only Recordings with no title yet; `--again` re-asks for
+machine titles too. A Recording a reviewer titled is never touched — not its
+title, kind or labels — and is listed as kept. Labels are suggested only for
+Segments that have none. `--dry-run` prints the same lines and writes nothing;
+the owner previews production with it before any write.
 
 **The names glossary is `src/sermon/names.toml`**, one `ACRONYM = "Full name"`
 line each (`TEC`, `CT` today). A title spells a name out; the list's kind tag
@@ -843,8 +849,27 @@ is unchanged. `A full analysis run` in
 `features/analysis/analysis_orchestration.feature` gained a `titling` row, because
 the walk now ends there; a table row is not a step. Eighty-three steps were added.
 
-Pins are now **36 files / 509 scenarios / 159 rules / 664 collected**, and
-`SPEC_STEPS` is 2157, counted after both branches met.
+After the two branches met (36 files / 509 / 159 / 664, 2157 steps, recounted),
+the owner answered four questions about the titles. On the joined title for a
+class held before the service: "Yes, that's fine. We just need to make sure that
+displays well in the list view." On "TEC - Topic" as the label style: "Yes". On
+meetings and on empty recordings: "If there's a high level identification for a
+Members Meeting like 'resignation' that might be helpful to find a specific one.
+I would like to deemphasize recordings that are mostly silence or noise (no
+identifiable spoken word or music). Show them in the list, but just make them
+obviously unimportant and smaller." In `features/analysis/recording_titles.feature`
+`A members meeting is named by its topic, never by a person`, `A long title
+fits its row at any width` (desktop and phone) and the class-label outline's
+`CT-Islam` row were added, and a Rule `A recording of silence or noise is shown,
+but plainly unimportant` with `Nothing identifiable was said or played` and
+`Silence sits quietly on the list`. A label typed on a Segment not yet approved
+was wiped when analysis ran again, found while building titles; the owner's
+coordinator asked that analysis never overwrite or drop a label a person typed,
+so `A label typed before approval survives analysis` was added. Five scenarios,
+one Rule, eight tests, 21 steps.
+
+Pins are now **36 files / 514 scenarios / 160 rules / 672 collected**, and
+`SPEC_STEPS` is 2178.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 import pytest
 from pytest_bdd import given, parsers, then, when
-from steps import _analysis, _web
+from steps import _analysis, _browser, _web
 from steps._markup import reads_rows, strips_tags
 from steps._remaining_analysis import divides_each
 
@@ -333,3 +333,109 @@ def _(store):
 @then("it reports that the reviewer's title was kept")
 def _(printed):
     assert [line for line in printed if SUNDAY_CLASS in line and "reviewer's title" in line], printed
+
+
+SILENT = "recording_20260913_120452"
+SEGMENT_OF = {"class": "lesson", "sermon": "sermon"}
+
+
+@given("analysis has proposed the class and the sermon")
+def _(store):
+    _analysis.proposes(store, the_class_recording(store))
+    assert {one.classification for one in store.lists(Segment, recording_id=SUNDAY_CLASS)} == {"lesson", "sermon"}
+
+
+@given(parsers.parse('the reviewer typed the label "{label}" for the {which} without approving it'))
+def _(store, label, which):
+    segment = segment_classified(store, SEGMENT_OF[which])
+    answered = _web.opens_app(store).test_client().put(
+        f"/api/segments/{segment.segment_id}/publication", json={"date": "2026-09-13", "label": label}
+    )
+    assert answered.status_code == 200, answered.get_data(as_text=True)
+    assert segment_classified(store, SEGMENT_OF[which]).state == "proposed"
+
+
+@given(parsers.parse('the Recording\'s transcript says only "{said}" again and again, with no music'))
+def _(store, said):
+    recording = the_class_recording(store)
+    spans = [(0.0, 600.0, "other", said)]
+    _analysis.lays_out(store, recording, spans, typed=False)
+    DividesIntoBlocks(store=store, divides=divides_each([(0.0, 600.0, "other", 0.9)]))(recording)
+
+
+@given("another Recording that analysis found to be silence or noise")
+def _(store):
+    recording = store.saves(
+        Recording(
+            recording_id=SILENT,
+            object_key=f"recordings/{SILENT}.flac",
+            state="awaiting_review",
+            started_at=datetime(2026, 9, 13, 12, 4, 52, tzinfo=UTC),
+            started_at_source="key",
+            size_bytes=1,
+            duration_seconds=935.0,
+        )
+    )
+    _analysis.lays_out(store, recording, [(0.0, 935.0, "other", "Thank you.")], typed=False)
+    DividesIntoBlocks(store=store, divides=divides_each([(0.0, 935.0, "other", 0.9)]))(recording)
+    TitlesRecording(store=store, asks=_analysis.refuses_a_model_call)(recording)
+
+
+@when(parsers.parse("I visit the recordings list on a {screen} screen"), target_fixture="measured")
+def _(store, screen):
+    device = {"desktop": _browser.DESKTOP, "phone": _browser.PHONE}[screen]
+    with _browser.opens_page(store, device) as page:
+        page.goto("/")
+        row = page.locator(f'li[data-row="recording"][data-id="{SUNDAY_CLASS}"]')
+        title = row.locator('[data-field="title"]')
+        return {
+            "screen": device["viewport"]["width"],
+            "page": page.evaluate("document.documentElement.scrollWidth"),
+            "row": row.bounding_box(),
+            "title": title.bounding_box(),
+            "title_text": title.inner_text(),
+            "title_clipped": title.evaluate("node => node.scrollWidth > node.clientWidth + 1"),
+            "date": row.locator('[data-field="recorded-at"]').bounding_box(),
+            "date_text": row.locator('[data-field="recorded-at"]').inner_text(),
+        }
+
+
+@then(parsers.parse("the {which}'s label is still \"{label}\""))
+def _(store, which, label):
+    assert segment_classified(store, SEGMENT_OF[which]).label == label
+
+
+@then("the model was not asked to name it")
+def _(naming):
+    assert naming.shown == []
+
+
+@then("the row shows the whole title and the date and time without running off the screen")
+def _(store, measured):
+    screen = measured["screen"]
+    assert measured["page"] <= screen, f"{measured['page']}px of page on a {screen}px screen"
+    assert measured["title_text"] == store.loads(RecordingTitle, SUNDAY_CLASS).title
+    assert not measured["title_clipped"], "the title is cut off"
+    for part in ("row", "title", "date"):
+        box = measured[part]
+        assert box["x"] >= 0 and box["x"] + box["width"] <= screen, (part, box)
+    assert measured["date_text"] == formats_recorded_at(the_class_recording(store).started_at)
+
+
+@then("that row is marked unimportant and shows no state, confidence, tag or awaiting count")
+def _(list_page):
+    row = row_for(list_page, SILENT)
+    assert row.get("quiet") == "true"
+    assert row.get("attention") == "false"
+    assert row.get("title") == "Silence or noise"
+    shown = row["text"]
+    assert "awaiting" not in shown, shown
+    assert shown.count("Silence or noise") == 1, shown
+    assert shown == f"Silence or noise {row['recorded-at']} {row['duration']}", shown
+
+
+@then("the class recording's row is not marked unimportant")
+def _(list_page):
+    row = row_for(list_page, SUNDAY_CLASS)
+    assert row.get("quiet") == "false"
+    assert "state" in row

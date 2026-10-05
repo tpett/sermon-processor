@@ -15,6 +15,15 @@ Feature: Naming what a recording is
   "for the scripture we sub `:` for `.` since some of the platforms we use
   reject `:` in filenames."
 
+  Asked afterwards, the owner settled four more things. A class and a service in
+  one recording may share a joined title — "Yes, that's fine. We just need to
+  make sure that displays well in the list view." "TEC - Topic" is the label
+  style: "Yes". A meeting may carry a high-level topic: "If there's a high level
+  identification for a Members Meeting like 'resignation' that might be helpful
+  to find a specific one." And: "I would like to deemphasize recordings that are
+  mostly silence or noise (no identifiable spoken word or music). Show them in
+  the list, but just make them obviously unimportant and smaller."
+
   The model is shown text and nothing else: the Blocks with their summaries,
   the teaching Segments with any passage already suggested, the weekday and the
   local start time. Never the audio, and never the date. The day and the time
@@ -95,6 +104,26 @@ Feature: Naming what a recording is
         | TEC - Giving | Theological Equipping Class | Giving | TEC - Giving |
         | CT - Islam   | CT                          | Islam  | CT - Islam   |
         | TEC          | TEC                         |        | TEC          |
+        | CT-Islam     | CT                          | islam  | CT - Islam   |
+
+    @happy-path @stated
+    Scenario: A members meeting is named by its topic, never by a person
+      Given the model will name it kind "meeting", title "Church Meeting - Ed's Resignation", series "" and topic "Ed's Resignation"
+      When the Recording is analysed
+      Then the Recording is titled "Members Meeting - Resignation"
+      And the class's suggested label is "Members Meeting - Resignation"
+
+    @edge-case @stated
+    Scenario Outline: A label typed before approval survives analysis
+      Given analysis has proposed the class and the sermon
+      And the reviewer typed the label "<label>" for the <which> without approving it
+      When the Recording is analysed
+      Then the <which>'s label is still "<label>"
+
+      Examples:
+        | which  | label            |
+        | class  | TEC - Generosity |
+        | sermon | Hebrews 12.25-28 |
 
     @happy-path @stated
     Scenario: A passage is written with a colon in the title and a dot in the label
@@ -164,6 +193,38 @@ Feature: Naming what a recording is
       And another Recording that analysis named "Pre-Service Rehearsal" as a "rehearsal"
       When I filter the list by the kind "rehearsal"
       Then the list shows "Pre-Service Rehearsal" and not "Theological Equipping Class - Giving"
+
+    @happy-path @stated
+    Scenario Outline: A long title fits its row at any width
+      Given analysis named the Recording "Theological Equipping Class - Stewardship, then Sunday Service - Hebrews 12:25-29" as a "class" in the series "Theological Equipping Class"
+      When I visit the recordings list on a <screen> screen
+      Then the row shows the whole title and the date and time without running off the screen
+
+      Examples:
+        | screen  |
+        | desktop |
+        | phone   |
+
+  Rule: A recording of silence or noise is shown, but plainly unimportant
+
+    @happy-path @stated
+    Scenario: Nothing identifiable was said or played
+      # Measured over the corpus's 39 transcripts: the three stray triggers say
+      # 1, 1 and 5 different things and hold no music; the next fewest, a
+      # rehearsal, says 154.
+      Given the Recording's transcript says only "Thank you." again and again, with no music
+      And the model will name it kind "service" and title "Sunday Service"
+      When the Recording is analysed
+      Then the Recording kind is "empty"
+      And the Recording is titled "Silence or noise"
+      And the model was not asked to name it
+
+    @happy-path @stated
+    Scenario: Silence sits quietly on the list
+      Given another Recording that analysis found to be silence or noise
+      When I visit the recordings list
+      Then that row is marked unimportant and shows no state, confidence, tag or awaiting count
+      And the class recording's row is not marked unimportant
 
   Rule: Recordings analysed before naming existed can be named afterwards
 
