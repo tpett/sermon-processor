@@ -108,7 +108,7 @@
 <div class="readouts">
   <div class="ro"><b class="mono" data-field="punch-in">{{ view.punch_in_seconds|precise }}</b><small>punch-in</small></div>
   <div class="ro"><b class="mono" data-field="punch-out">{{ view.punch_out_seconds|precise }}</b><small>punch-out</small></div>
-  <div class="ro"><b class="mono" data-field="length">{{ view.length_seconds|precise }}</b><small>length</small></div>
+  <div class="ro"><b class="mono" data-field="length">{{ view.length_seconds|precise }}</b><small>length{% if view.removed %}, {{ view.removed }} removed{% endif %}</small></div>
   <div class="ro{% if view.short_tail %} warn{% endif %}">
     <b class="mono" data-field="gap">{% if view.gap_seconds is none %}nothing follows{% else %}{{ view.gap_seconds|seconds }}{% endif %}</b>
     <small>gap to what follows</small>
@@ -155,6 +155,11 @@
         <div class="dim" data-role="de-emphasised" data-side="cut away" style="left:{{ wave.cut.after_left }}%;width:{{ wave.cut.after_width }}%"></div>
         <div class="cut" data-role="highlighted-cut" data-side="kept" style="left:{{ wave.cut.left }}%;width:{{ wave.cut.width }}%"></div>
         {% endif %}
+        <ol class="removed-marks">
+        {% for mark in wave.removed_marks %}
+          <li data-row="removed-span-mark" data-from-seconds="{{ mark.from_seconds }}" data-to-seconds="{{ mark.to_seconds }}" data-left="{{ mark.left }}" data-width="{{ mark.width }}" style="left:{{ mark.left }}%;width:{{ mark.width }}%" title="removed {{ mark.from_seconds|precise }} – {{ mark.to_seconds|precise }}"></li>
+        {% endfor %}
+        </ol>
         {% if wave.window %}
         <div class="window" data-role="detail-window" data-window-step="{{ wave.window.step }}" data-window-seconds="{{ wave.window.seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" style="left:{{ wave.window.left }}%;width:{{ wave.window.width }}%"></div>
         {% endif %}
@@ -201,6 +206,10 @@
       {% set region_right = [[100.0 * (view.punch_out_seconds - start) / span, 0.0]|max, 100.0]|min %}
       <div class="region" data-role="cut-region" data-from-seconds="{{ view.punch_in_seconds }}" data-to-seconds="{{ view.punch_out_seconds }}" style="left:{{ region_left|round(4) }}%;width:{{ (region_right - region_left)|round(4) }}%"></div>
       {% endif %}
+      {% for mark in wave.removed_marks %}
+      <div class="removed" data-role="removed-span-detail" data-from-seconds="{{ mark.from_seconds }}" data-to-seconds="{{ mark.to_seconds }}"></div>
+      {% endfor %}
+      <div class="removed pending" data-role="removal-pending-mark"{% if view.removal_from %} data-from-seconds="{{ view.removal_from }}"{% else %} hidden{% endif %}></div>
       <div class="playhead" data-role="detail-playhead" data-playhead-seconds="{{ view.playhead_seconds }}" style="left:{{ ([[100.0 * (view.playhead_seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"><button type="button" class="scrub" data-role="scrub-handle" aria-label="Drag the playhead"></button></div>
       {% for boundary in view.boundaries %}
       <button type="button" class="handle {{ 'in' if boundary.field == 'punch-in' else 'out' }}" data-role="handle-{{ boundary.field }}" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}" data-url="{{ boundary.url }}{{ window }}" data-tag="{{ 'IN' if boundary.field == 'punch-in' else 'OUT' }}" style="left:{{ ([[100.0 * (boundary.seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"{% if boundary.seconds < start or boundary.seconds > start + span %} hidden{% endif %} aria-label="Drag the {{ boundary.field }}"></button>
@@ -295,6 +304,42 @@
     {% endif %}
   </div>
 
+  {% if view.selected_segment_id is not none %}
+  <div class="removals" data-role="removed-spans">
+    <h3>Removed from inside the cut{% if view.removed %} <span class="quiet">· <span data-field="length-removed">{{ view.removed }}</span> in all</span>{% endif %}</h3>
+    {% if view.removal_url %}
+    <form method="post" action="{{ view.removal_url }}{{ window }}" data-role="removal">
+      <button type="submit" name="do" value="mark-start" data-field="mark-start-control">Start removal at playhead</button>
+      <label>from <input type="text" name="from" value="{{ view.removal_from or '' }}" placeholder="h:mm:ss.ss" data-field="removal-from"></label>
+      <button type="submit" name="do" value="mark-end" data-field="mark-end-control">End removal at playhead</button>
+      <label>to <input type="text" name="to" value="" placeholder="h:mm:ss.ss" data-field="removal-to"></label>
+      <button type="submit" name="do" value="remove" data-field="remove-span-control">Remove this span</button>
+    </form>
+    {% endif %}
+    {% if view.removed_spans %}
+    <ol class="removed-spans">
+    {% for span in view.removed_spans %}
+      <li data-row="removed-span" data-from-seconds="{{ span.from_seconds }}" data-to-seconds="{{ span.to_seconds }}">
+        <span class="mono" data-field="removed-from">{{ span.from_at }}</span> –
+        <span class="mono" data-field="removed-to">{{ span.to_at }}</span>
+        <span class="quiet" data-field="removed-lasting">{{ span.lasting }}</span>
+        <button type="button" data-role="hear-join" data-url="{{ span.join_url }}">Hear the join</button>
+        {% if view.removal_url %}
+        <form method="post" action="{{ view.removal_url }}{{ window }}">
+          <input type="hidden" name="from" value="{{ span.from_seconds }}">
+          <input type="hidden" name="to" value="{{ span.to_seconds }}">
+          <button type="submit" name="do" value="restore" data-restores="{{ span.from_at }}" data-field="restore-span-control">Put it back</button>
+        </form>
+        {% endif %}
+      </li>
+    {% endfor %}
+    </ol>
+    {% else %}
+    <p class="quiet" data-field="removed-spans-state">Nothing is removed from inside the cut.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if view.preview_ready %}
   {% if view.cut_light %}
   <div class="cutlight" data-role="cut-light"
@@ -351,6 +396,7 @@
   <script src="{{ url_for('static', filename='timecode.js') }}" defer></script>
   <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
   <script src="{{ url_for('static', filename='cutlight.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='removals.js') }}" defer></script>
   {% if wave.available %}<script type="module" src="{{ url_for('static', filename='review.js') }}"></script>{% endif %}
 </section>
 

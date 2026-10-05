@@ -273,53 +273,6 @@ def _(store, state, label):
     )
 
 
-@when("I choose to re-cut the Segment", target_fixture="detail_page")
-def _(store, segment):
-    return _web.posts(store, _web.segment_action(segment, "recut"))
-
-
-@given(parsers.parse('I re-cut and adjusted the punch-out to "{timecode}"'), target_fixture="segment")
-def _(store, segment, timecode):
-    return store.saves(replace(segment, punch_out_seconds=READS(timecode), state="proposed"))
-
-
-@given("I have re-cut and re-approved a Segment twice")
-def _(store, clock):
-    recording = ensure_recording(store)
-    segment = store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state="proposed",
-            span_start_seconds=60.0,
-            span_end_seconds=3300.0,
-            punch_in_seconds=60.0,
-            punch_out_seconds=3300.0,
-            label="Hebrews 12",
-            intent="publish",
-        )
-    )
-    ApprovesSegment(store=store, clock=clock)(segment)
-    store.saves(replace(store.loads(Segment, segment.segment_id), state="proposed"))
-    ApprovesSegment(store=store, clock=clock)(store.loads(Segment, segment.segment_id))
-
-
-@given(parsers.parse('another Segment from the same Recording is "{state}"'))
-def _(store, segment, state):
-    store.saves(
-        Segment(
-            recording_id=segment.recording_id,
-            classification="lesson",
-            state=state,
-            span_start_seconds=60.0,
-            span_end_seconds=3000.0,
-            punch_in_seconds=60.0,
-            punch_out_seconds=3000.0,
-            label="TEC",
-        )
-    )
-
-
 @given(parsers.parse('{count:d} Segments are "complete" under the previous loudness settings'))
 def _(store, count):
     recording = ensure_recording(store, state="reviewed")
@@ -340,11 +293,6 @@ def _(store, count):
 @given("I corrected the label after processing")
 def _(store, segment):
     store.saves(replace(segment, label="corrected"))
-
-
-@given("a Segment has been rendered twice")
-def _(store):
-    ensure_recording(store)
 
 
 @given("a Segment has been cut, re-cut and re-rendered")
@@ -527,11 +475,6 @@ def _(store, segment, label):
         f"/api/segments/{segment.segment_id}/publication",
         json={"date": segment.publication_date.isoformat(), "label": label},
     )
-
-
-@when("I re-cut this Segment", target_fixture="detail_page")
-def _(store, segment):
-    return _web.posts(store, _web.segment_action(segment, "recut"))
 
 
 @then("the Segment records that the source was clipped")

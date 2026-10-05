@@ -46,6 +46,94 @@ before the service) titled as the service only; 2026-06-28 "Church Member
 Meeting" not the owner's "Members Meeting"; 2026-08-16 meeting titled with
 personal detail ("Ed's Resignation…"); 2026-09-06 11:59 "Unknown Recording - Thank
 You Repetitions".
+## Re-cutting a rendered Segment (2026-10-05, branch `tpett/ai/recut`, not merged)
+
+The owner rendered a Segment, then wanted the podium bump removed with the new
+removed spans, but a `complete` Segment offered no action. Asked whether to add
+a Re-cut action for a completed segment, they said "yes build it".
+
+- **Spec**: `processing/reprocessing.feature`'s re-cutting Rule gained four
+  scenarios (take a span out, re-approve under the same label, skip a re-cut,
+  cancel a re-approved render) and `Approving the new cut` gained `And the
+  worker renders it`. Pins 35 / 491 / 153 / 642 / 2074, recorded in CLAUDE.md.
+  Green now: every scenario of that Rule and `A re-render replaces its
+  predecessor`. Still red, not in scope: `Every past render remains
+  reproducible` and `Reproducing a past render is not offered` (no history view
+  on the page) and the `Re-rendering can be triggered without changing
+  boundaries` Rule (operator re-render, rename without re-encode).
+- **Behaviour**: Re-cut on a complete Segment → `recut`, logged with the cut it
+  started from; boundaries and removed spans are editable there
+  (`EDITABLE_STATES` already held `recut`) and lock again on approval. Approve
+  accepts `recut`. The render now writes `<name>.rendering.mp3` and moves it over
+  the published name only on success, then marks earlier renders
+  `superseded_by` the new Artifact (rows kept, with their settings) and deletes
+  their files unless a current render still has that name. No schema change.
+- **Decisions taken conservatively, for the owner to confirm**: a re-cut
+  Segment's old MP3 stays offered in every state until a new render replaces
+  it — skipped included (skipping does not unpublish); Revisit or Cancel
+  processing on such a Segment returns it to `recut`, not `proposed`; a failed
+  re-render leaves the old MP3 in place; the label collision check ignores the
+  Segment's own files and superseded rows of others; re-analysis treats a
+  `recut` Segment as the reviewer's; a re-render raises one render-complete
+  notification, like the first; a re-cut does not move the Recording back to
+  `awaiting_review`. `MergesSegments` already parks an absorbed Segment in
+  `recut` (pre-existing); it has no render, so none of the above touches it.
+- **Verified**: on a scratch store with a synthetic 10-minute source, through
+  the page and `sermon-work --once`: 480.0 s render, Re-cut, remove 0.5 s
+  around a 0 dBFS bump, approve under the same label, old MP3 served
+  byte-identical until the worker ran, then 479.5 s, one file in `published/`,
+  peak at the join -10.1 dB against -11.1 dB elsewhere. Screenshots in the
+  session scratchpad.
+- **Suite**: fast tier 183 failed / 2235 passed against master's 187 / 2212 —
+  five reprocessing scenarios fixed, none newly failing. Slow tier 26 / 49 on
+  both, same failures. Step integrity: 7 condemned before and after. 13 of 13
+  mutations killed.
+
+## Removed spans: cutting pieces out from inside a Segment (2026-10-05, branch `tpett/ai/removespans`, not merged)
+
+The owner asked for it after this week's sermon opened "Good morning", a loud
+podium bump, then the message: "Yes, build it — marking spans by hand is
+enough... We don't need any kind of automation with the detection pipeline
+right now... just being able to do that manually would be good enough." Manual
+only: nothing in analysis proposes one, and the walk, cut placement and the gate
+are unchanged.
+
+- **Spec**: `features/interface/removed_spans.feature` (8 Rules, 15 scenarios)
+  and a Rule in `processing/audio_rendering.feature` (3 scenarios). Pins
+  35 / 487 / 153 / 638 / 2052, recorded in CLAUDE.md with the owner's words.
+  DOMAIN.md: `Segment.removed_spans[]`, `LogEntry.removed_spans[]`.
+- **Store**: two new child tables, `segment_removed_span` and
+  `log_entry_removed_span`, created by `CREATE TABLE IF NOT EXISTS` when the
+  store opens. No existing table changes, so production's database opens as it
+  is. `tests/test_store_opens_an_older_database.py` loads
+  `tests/fixtures/store_at_2e7b55b.sql` (the production-shape seeder run by
+  master's code) and stores and reads spans in it.
+- **Decisions taken conservatively, for the owner to confirm**: overlapping or
+  touching spans are refused, not merged; a boundary move or revert onto or past
+  a removed span is refused ("restore the removed span before moving a boundary
+  onto or past it") rather than trimming or dropping the span; spans are locked
+  by approval like the boundaries (Cancel processing reopens); a Segment holding
+  removed spans is treated by re-analysis as the reviewer's, like a moved
+  boundary; removing a span is not a boundary edit, so it does not change
+  `boundary_source`, the approval rate or what feeds the corpus.
+- **Render** (`jobs/renders_kept_audio.py`, `pipeline/` untouched): with no
+  spans the existing chain runs unchanged; with spans each kept piece is its own
+  accurately-seeked input, faded in and out over the chain's 20 ms, joined, and
+  both loudness passes run over the joined audio. On the 2026-09-27 source, six
+  joins cut between its loudest moments: hard splice sample step median +6.6 dB
+  (max +17.4) over the speech's own 99.9th percentile, i.e. clicks; 20 ms fades
+  median -15.6 dB; a 20 ms crossfade -1.5 dB but mixing two moments. End to end
+  on that source through the page and `RunsRenderJob`: 2422.7142 s expected,
+  2422.7140 s rendered, -17.3 LUFS, -0.9 dBTP, no target missed.
+- **Review page**: a removal form by the transport (start/end at the playhead —
+  the start without a reload — or typed), each span listed with times, length,
+  "Hear the join" (a server-made MP3 of the 5 s either side, from the source,
+  with the render's fades) and "Put it back"; hatched on the overview and the
+  detail pane; length readouts subtract it. Phone width unchanged (390 px, no
+  overflow).
+- **Suite**: fast tier 187 failed / 2212 passed, the same 187 as master
+  (master 187 / 2177). Slow tier 26 failed / 49 passed, the same 26 as master
+  (26 / 45); the four new @slow scenarios pass. Mutations: 14 of 14 killed.
 
 ## Corrections after an adversarial review (2026-10-03)
 

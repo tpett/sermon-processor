@@ -48,14 +48,29 @@ class NoProposalToRevertTo(BoundaryRejected):
         super().__init__("no machine proposal is recorded for this Segment")
 
 
+class BoundaryWouldStrandARemovedSpan(BoundaryRejected):
+    def __init__(self):
+        super().__init__("restore the removed span before moving a boundary onto or past it")
+
+
+def lies_inside(span, punch_in_seconds, punch_out_seconds):
+    return punch_in_seconds < span.start_seconds and span.end_seconds < punch_out_seconds
+
+
+def refuses_stranding(segment, punch_in_seconds, punch_out_seconds):
+    if not all(
+        lies_inside(span, punch_in_seconds, punch_out_seconds) for span in segment.removed_spans
+    ):
+        raise BoundaryWouldStrandARemovedSpan()
+
+
 def reads_nudge_amount(text):
     number, unit = str(text).split()
     return float(number) * NUDGE_UNITS[unit]
 
 
-def warns_about_length(punch_in_seconds, punch_out_seconds):
+def warns_about_length(length):
     shortest, longest = EXPECTED_SPAN_SECONDS
-    length = punch_out_seconds - punch_in_seconds
     if shortest <= length <= longest:
         return None
     return "the length is outside the expected range"
@@ -110,6 +125,7 @@ class AdjustsPunchPoint:
             raise PunchOutBeforePunchIn()
         if punch_out - punch_in < MINIMUM_SPAN_SECONDS:
             raise SelectionTooShort()
+        refuses_stranding(segment, punch_in, punch_out)
         self._remembers_the_proposal(segment)
         adjusted = self.store.saves(
             replace(
@@ -166,6 +182,7 @@ class RevertsToProposal:
         if not proposed:
             raise NoProposalToRevertTo()
         machine = proposed[0]
+        refuses_stranding(segment, machine.punch_in_seconds, machine.punch_out_seconds)
         records_boundary_change(
             self.store,
             self.clock(),

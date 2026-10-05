@@ -57,6 +57,18 @@ function cutRange() {
   return [Number(region.dataset.fromSeconds), Number(region.dataset.toSeconds)];
 }
 
+function removedRanges() {
+  return [...document.querySelectorAll('[data-row="removed-span-mark"]')].map((mark) => [
+    Number(mark.dataset.fromSeconds),
+    Number(mark.dataset.toSeconds),
+  ]);
+}
+
+function shipped(kept, removed, at) {
+  if (!kept || at < kept[0] || at > kept[1]) return false;
+  return !removed.some(([from, to]) => at > from && at < to);
+}
+
 function paint(canvas, held, fromSeconds, throughSeconds) {
   if (!canvas || !held) return;
   const context = canvas.getContext("2d");
@@ -64,6 +76,7 @@ function paint(canvas, held, fromSeconds, throughSeconds) {
   const cool = token("--wave");
   const hot = token("--wave-hot");
   const kept = cutRange();
+  const removed = removedRanges();
   context.clearRect(0, 0, canvas.width, canvas.height);
   const first = Math.max(0, Math.floor(fromSeconds / held.secondsPerBin));
   const last = Math.min(held.lows.length, Math.ceil(throughSeconds / held.secondsPerBin));
@@ -78,7 +91,7 @@ function paint(canvas, held, fromSeconds, throughSeconds) {
       high = Math.max(high, held.highs[bin]);
     }
     const at = fromSeconds + ((throughSeconds - fromSeconds) * column) / canvas.width;
-    context.fillStyle = kept && at >= kept[0] && at <= kept[1] ? hot : cool;
+    context.fillStyle = shipped(kept, removed, at) ? hot : cool;
     const top = middle - (high / held.fullScale) * middle;
     const bottom = middle - (low / held.fullScale) * middle;
     context.fillRect(column, top, 1, Math.max(bottom - top, 1));
@@ -220,8 +233,28 @@ function settles() {
     handle.hidden = at < from || at > from + span;
     handle.style.left = `${acrossWindow(at)}%`;
   });
+  detailPane.querySelectorAll('[data-role="removed-span-detail"]').forEach((mark) => {
+    const opens = acrossWindow(Number(mark.dataset.fromSeconds));
+    mark.style.left = `${opens}%`;
+    mark.style.width = `${acrossWindow(Number(mark.dataset.toSeconds)) - opens}%`;
+  });
+  placesPendingRemoval();
   packsWords();
 }
+
+function placesPendingRemoval() {
+  const mark = detailPane && detailPane.querySelector('[data-role="removal-pending-mark"]');
+  if (!mark || mark.hidden || !mark.dataset.fromSeconds) return;
+  mark.style.left = `${acrossWindow(readsTimecode(mark.dataset.fromSeconds))}%`;
+}
+
+function readsTimecode(text) {
+  return String(text)
+    .split(":")
+    .reduce((total, part) => total * 60 + Number(part), 0);
+}
+
+document.addEventListener("removal:pending", placesPendingRemoval);
 
 function recentres(seconds, at) {
   if (!detailPane) return;
@@ -275,7 +308,7 @@ function showsBoundary(handle, seconds) {
   region.style.width = `${acrossWindow(to) - acrossWindow(from)}%`;
 }
 
-const MOVES_A_BOUNDARY = /\/(boundaries|span)\//;
+const MOVES_A_BOUNDARY = /\/(boundaries\/|span\/|removed-spans$)/;
 
 function liveView() {
   if (!detailPane) return [];

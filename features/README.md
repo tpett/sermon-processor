@@ -31,6 +31,7 @@ Those are the places where the spec is a guess, not a decision.
 | **Recording kind** | What a whole Recording turned out to be. A third vocabulary again, and the one most often confused with the other two. |
 | **Punch-in** | Where a Segment starts, in seconds from the beginning of the source file. |
 | **Punch-out** | Where a Segment ends, in seconds from the beginning of the source file. |
+| **Removed span** | A stretch strictly inside a Segment's punch points that the reviewer has marked to be left out of the output — a podium bump, a long silent prayer, a seminar's break. Only ever marked by hand. |
 | **Proposal** | A Segment's boundaries, its classification, its confidence and the evidence behind it. |
 | **Evidence** | A human-readable reason the machine drew a boundary or chose a classification — a speaker change, a matched phrase, a start time. |
 | **Summary** | A one-line machine description of what a Block or Segment contains, so a reviewer can decide without listening. |

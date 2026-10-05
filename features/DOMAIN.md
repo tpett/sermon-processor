@@ -186,6 +186,7 @@ and what renders.
 | `warnings[]` | `check the opening`, `no clean cut point found at punch-in`, `no clean cut point found at punch-out`, `boundary is not acceptable`, `source was very quiet`. Five named conditions, held the way `Recording.warnings[]` is and for the same reasons (`analysis/punch_in_detection.feature`, `analysis/punch_out_detection.feature`, `analysis/segment_proposal.feature`, `processing/audio_rendering.feature`). |
 | `publication_date` | When the Segment was published, kept for the log — and so for the periods `sermon-approvals` reports over — and never part of the file name: "The publication date is the recording's, kept for the log" and "A publication date never names the file" (`interface/publication_details.feature`); the name takes the Recording's date. Placed at approval from the Recording's start wherever none was recorded, so a published Segment is never in no period. Null while a Segment is still proposed, which is most of its life: it is proposed long before it is published (reasoning, not quoted). |
 | `label` | The other half. Summarization suggests it from the summary; the reviewer can correct it. Null until entered, and null for good on an `archive` Segment, which is named from the date alone. For a sermon the suggestion is the passage, written with a dot (`Hebrews 12.25-29`); for a class it is the class's acronym and topic, "Then the class's suggested label is …" (`TEC - Giving`, `TEC` with no topic) (`analysis/recording_titles.feature`). A suggestion is never written over a label already there ("A label already given is kept"). |
+| `removed_spans[]` | Stretches inside the cut that the published audio leaves out, each a start and an end in seconds from the start of the source, in the order they fall. Marked only by a reviewer — "a removed span is only ever marked by a reviewer. Analysis never proposes, moves or removes one" (`interface/removed_spans.feature`). Each lies strictly between the punch-in and the punch-out, has a length, and overlaps no other; overlapping and touching spans are refused rather than merged. Empty for almost every Segment. The output's length is the distance between the boundaries less these ("the output duration is the approved span less the removed spans", `processing/audio_rendering.feature`). |
 
 **Four of the conditions a scenario flags on a Segment are derivable, and are not
 stored.** `length outside expected range` is the distance between the boundaries,
@@ -201,6 +202,15 @@ is the reason a reviewer is shown. The other three stored values are a false
 start, an invariant that could not be satisfied, and a source quiet enough to
 need saying. `boundary is not acceptable` is the one value the Gherkin describes
 without quoting.
+
+**A removed span is not the Segment's span.** The Segment's own span is the
+outer bound its punch points sit inside; a removed span is a hole inside the
+punch points. The name follows the spec's general use of "span" for a stretch of
+time, as in "spans with at least 250 ms of quiet" (`interface/punch_point_adjustment.feature`).
+Approval locks them with the boundaries, and a boundary is refused rather than
+moved onto or past one, so a removed span is never outside the cut it belongs to
+("restore the removed span before moving a boundary onto or past it",
+`interface/removed_spans.feature`).
 
 **A span is not a second name for the punch points.** A proposed Segment's span
 is detected and normally wider than its cuts (`interface/recording_detail.feature`).
@@ -361,6 +371,7 @@ order, and three tables cannot be ordered by one query.
 | `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
 | `punch_in_seconds`, `punch_out_seconds` | "Each set of boundaries with who approved them and when" (`processing/reprocessing.feature`), a discarded adjustment included. Read with `actor` and `occurred_at`, which are what make it a set of boundaries *with* an approver. |
 | `boundary_source` | Which path produced *this* set — "and that is visible in the processing log" (`analysis/segment_proposal.feature`). The same four values `Segment.boundary_source` takes, recorded per set because the Segment holds only the current one, and attributing a regression to a path means reading the cuts that came from it. |
+| `removed_spans[]` | The Segment's removed spans in force once the entry was made, on the entries that change them (`span_removed`, `span_restored`) and on an approval: "each entry carries the removed spans in force once it was made" and "the approval in the processing log carries the span" (`interface/removed_spans.feature`). Held as a whole set rather than the one span changed for the reason `punch_in_seconds` is: a past render is reproducible only from the complete cut it was made from. |
 
 **Not stored:** `from_state`. The state a transition left is the previous entry's
 `entered_state` for the same subject, and every transition is logged, so storing

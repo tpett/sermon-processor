@@ -9,6 +9,7 @@ from sermon.jobs.renders_mp3 import (
     refuses_unsettled_stereo,
 )
 from sermon.records_publication_details import names_output
+from sermon.recuts_segment import current_renders
 from sermon.raises_notification import TellsProcessingOutcome
 from sermon.store import Artifact, Job, LogEntry, Recording, Segment, Store, layout
 
@@ -19,6 +20,7 @@ def now():
 
 PROCESS_STEPS = ("extract", "normalize", "encode", "name", "publish")
 DIGEST_CHUNK_BYTES = 8 * 1024 * 1024
+STAGED_SUFFIX = ".rendering"
 
 
 def digests(path):
@@ -119,27 +121,49 @@ class RendersSegment:
         )
         destination = self.store.resolves(artifact)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        if self.renders is not None:
-            rendered = self.renders(
-                self.store.resolves(recording),
-                processing.punch_in_seconds,
-                processing.punch_out_seconds,
-                destination,
-                channel=reads_source_channel(recording.mono_source),
-            )
-            artifact = replace(
-                artifact,
-                size_bytes=destination.stat().st_size,
-                checksum=digests(destination),
-                render_settings=rendered.settings,
-                input_loudness_lufs=rendered.input_loudness_lufs,
-                output_loudness_lufs=rendered.achieved_loudness_lufs,
-                output_true_peak_dbtp=rendered.achieved_true_peak_dbtp,
-            )
-        else:
-            destination.write_bytes(b"")
-        self.store.saves(artifact)
+        staged = destination.with_name(f"{destination.stem}{STAGED_SUFFIX}{destination.suffix}")
+        try:
+            if self.renders is not None:
+                rendered = self.renders(
+                    self.store.resolves(recording),
+                    processing.punch_in_seconds,
+                    processing.punch_out_seconds,
+                    staged,
+                    channel=reads_source_channel(recording.mono_source),
+                    **({"removed": processing.removed_spans} if processing.removed_spans else {}),
+                )
+                artifact = replace(
+                    artifact,
+                    size_bytes=staged.stat().st_size,
+                    checksum=digests(staged),
+                    render_settings=rendered.settings,
+                    input_loudness_lufs=rendered.input_loudness_lufs,
+                    output_loudness_lufs=rendered.achieved_loudness_lufs,
+                    output_true_peak_dbtp=rendered.achieved_true_peak_dbtp,
+                )
+            else:
+                staged.write_bytes(b"")
+            staged.replace(destination)
+        finally:
+            staged.unlink(missing_ok=True)
+        self._supersedes_earlier_renders(self.store.saves(artifact))
         return processing, filename
+
+    def _supersedes_earlier_renders(self, current):
+        earlier = [
+            item
+            for item in current_renders(self.store, current)
+            if item.artifact_id != current.artifact_id
+        ]
+        for item in earlier:
+            self.store.saves(replace(item, superseded_by=current.artifact_id))
+        still_published = {
+            item.path for item in self.store.lists(Artifact, kind="rendered_mp3")
+            if item.superseded_by is None
+        }
+        for item in earlier:
+            if item.path not in still_published:
+                self.store.resolves(item).unlink(missing_ok=True)
 
 
 @dataclass(frozen=True)

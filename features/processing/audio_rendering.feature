@@ -52,6 +52,44 @@ Feature: Rendering a segment's audio
       And a short fade-out is applied at the end
       And neither fade is long enough to swallow a spoken word
 
+  Rule: Spans the reviewer removed are left out of the output
+
+    # The reviewer can mark stretches inside a Segment that should not ship — a
+    # podium bump, a long silent prayer, a seminar's break
+    # (interface/removed_spans.feature). The kept pieces are joined in order,
+    # each join made with the same short fade the punch points get. One isolated
+    # peak sits inside the first removed span, so whether it shipped is audible
+    # in the output and measurable in the loudness pass.
+
+    @happy-path
+    Scenario: The output omits each removed span
+      Given the Segment contains one isolated peak 12 dB above the speech level
+      And the reviewer removed the spans from "2:13:20.400" to "2:13:21.000" and from "2:20:00.000" to "2:30:00.000"
+      When the render runs
+      Then the output duration is the approved span less the removed spans, within 2 MP3 frames
+      And the isolated peak is not in the output
+      And the audio after each removed span follows the audio before it
+
+    @happy-path @measured
+    Scenario: Each join fades rather than clicks
+      # A join is two cuts, and an abrupt one at a non-zero sample clicks for the
+      # same reason a punch point would (Q47). Each kept piece fades out over the
+      # last 20 ms before a removed span and back in over the first 20 ms after
+      # it, so the signal passes through silence at the join instead of
+      # stepping.
+      Given the Segment contains one isolated peak 12 dB above the speech level
+      And the reviewer removed the spans from "2:13:20.400" to "2:13:21.000" and from "2:20:00.000" to "2:30:00.000"
+      When the render runs
+      Then the output dips to near silence at each join and is back to speech level within 50 ms
+
+    @happy-path
+    Scenario: Loudness is measured over the audio that ships
+      Given the Segment contains one isolated peak 12 dB above the speech level
+      And the reviewer removed the spans from "2:13:20.400" to "2:13:21.000" and from "2:20:00.000" to "2:30:00.000"
+      When the render runs
+      Then the loudness measurement saw the audio that ships and not the removed spans
+      And the output still meets the loudness and true-peak targets
+
   Rule: Loudness is one operation, not two
 
     @happy-path @measured

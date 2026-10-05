@@ -51,6 +51,8 @@ def links_of(store, notification):
         (f"/recordings/{notification.recording_id}?segment={notification.segment_id}", "Open the Segment"),
     ]
     for artifact in store.lists(Artifact, segment_id=notification.segment_id, kind="rendered_mp3"):
+        if artifact.superseded_by is not None:
+            continue
         links.append((f"/api/artifacts/{artifact.path}", "Download the MP3"))
     return tuple(links)
 

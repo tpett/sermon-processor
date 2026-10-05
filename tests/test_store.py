@@ -19,6 +19,7 @@ from sermon.store import (
     Proposal,
     Recording,
     PathEscapesDataRoot,
+    RemovedSpan,
     Reviewer,
     Segment,
     SkippedObject,
@@ -238,6 +239,10 @@ def populated_segment(recording, block, profile):
         warnings=("check the opening", "source was very quiet"),
         publication_date=date(2026, 9, 13),
         label="Hebrews 12.4-11",
+        removed_spans=(
+            RemovedSpan(start_seconds=63.25, end_seconds=63.9),
+            RemovedSpan(start_seconds=1800.0, end_seconds=2400.0),
+        ),
     )
 
 
@@ -389,6 +394,7 @@ def populated_log_entry(recording, segment, job, proposal, artifact):
         punch_in_seconds=7220.0,
         punch_out_seconds=9812.0,
         boundary_source="human",
+        removed_spans=(RemovedSpan(start_seconds=7221.4, end_seconds=7222.1),),
     )
 
 

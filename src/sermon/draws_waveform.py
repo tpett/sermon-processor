@@ -279,6 +279,14 @@ class CutView:
 
 
 @dataclass(frozen=True)
+class RemovedMarkView:
+    from_seconds: float
+    to_seconds: float
+    left: float
+    width: float
+
+
+@dataclass(frozen=True)
 class WindowView:
     step: str
     centre_seconds: float
@@ -316,6 +324,7 @@ class WaveformView:
     transport_key_except: str
     window: WindowView | None
     cut: CutView | None
+    removed_marks: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -399,6 +408,7 @@ class DrawsWaveform:
             transport_key_except=TRANSPORT_KEY_EXCEPT,
             window=window,
             cut=self._cut(duration, selected),
+            removed_marks=self._removed(duration, selected),
         )
 
     def _sources(self, recording, resolutions):
@@ -648,6 +658,19 @@ class DrawsWaveform:
                 )
             )
         return tuple(steps)
+
+    def _removed(self, duration, selected):
+        if selected is None or duration <= 0:
+            return ()
+        return tuple(
+            RemovedMarkView(
+                from_seconds=span.start_seconds,
+                to_seconds=span.end_seconds,
+                left=round(100.0 * span.start_seconds / duration, 6),
+                width=round(100.0 * (span.end_seconds - span.start_seconds) / duration, 6),
+            )
+            for span in selected.removed_spans
+        )
 
     def _cut(self, duration, selected):
         if selected is None or duration <= 0:

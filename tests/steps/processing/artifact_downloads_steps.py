@@ -238,42 +238,6 @@ def _(store):
     assert store._downloaded.status_code == 200
 
 
-@given(
-    parsers.parse(
-        'a Segment in state "{state}" with punch-in "{punch_in}" and punch-out "{punch_out}"'
-    ),
-    target_fixture="segment",
-)
-def _(store, state, punch_in, punch_out):
-    from sermon.extends_segment_span import ReadsTimecode
-
-    reads = ReadsTimecode()
-    started = datetime(2026, 8, 23, 10, 29, tzinfo=UTC)
-    recording = store.saves(
-        Recording(
-            recording_id="recording_20260823_102900",
-            object_key="recordings/recording_20260823_102900.flac",
-            state="reviewed",
-            started_at=started,
-            started_at_source="key",
-            size_bytes=1,
-        )
-    )
-    return store.saves(
-        Segment(
-            recording_id=recording.recording_id,
-            classification="sermon",
-            state=state,
-            span_start_seconds=reads(punch_in),
-            span_end_seconds=reads(punch_out),
-            punch_in_seconds=reads(punch_in),
-            punch_out_seconds=reads(punch_out),
-            publication_date=date(2026, 8, 23),
-            label="Hebrews 12.4-11",
-        )
-    )
-
-
 @then("the file is streamed")
 def _(store, recorder_bucket):
     recording = store.lists(Recording)[0]

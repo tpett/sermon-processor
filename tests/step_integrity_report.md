@@ -4,15 +4,15 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1425 step definitions read from `tests/steps`
+- 1475 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 482 non-deferred scenarios rest on at least one condemned step
-- 9 of 628 expanded scenario tests likewise
+- 9 of 504 non-deferred scenarios rest on at least one condemned step
+- 9 of 656 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 49 Gherkin steps matched more than one definition
-- 250 Gherkin steps matched no definition
+- 238 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -76,6 +76,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 43 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 39 | 0 | sound |
+| `tests/steps/interface/removed_spans_steps.py` | 27 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 58 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
@@ -85,10 +86,11 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/notifications/notification_steps.py` | 12 | 0 | sound |
 | `tests/steps/operations/health_steps.py` | 17 | 0 | sound |
 | `tests/steps/operations/job_queue_steps.py` | 21 | 0 | sound |
-| `tests/steps/processing/artifact_downloads_steps.py` | 25 | 0 | sound |
-| `tests/steps/processing/audio_rendering_steps.py` | 48 | 0 | sound |
+| `tests/steps/processing/artifact_downloads_steps.py` | 24 | 0 | sound |
+| `tests/steps/processing/audio_rendering_steps.py` | 55 | 0 | sound |
 | `tests/steps/processing/processing_orchestration_steps.py` | 16 | 0 | sound |
-| `tests/steps/remaining_steps.py` (named) | 88 | 0 | sound |
+| `tests/steps/processing/reprocessing_steps.py` | 23 | 0 | sound |
+| `tests/steps/remaining_steps.py` (named) | 82 | 0 | sound |
 
 ## Condemned outside the six named files
 
@@ -325,16 +327,16 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/artifact_downloads.feature:52 then I can read its transcript without downloading anything`
 - `processing/artifact_downloads.feature:53 then the transcript covers the approved span`
 - `processing/artifact_downloads.feature:54 then I can expand to the full Recording transcript`
-- `processing/audio_rendering.feature:110 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
-- `processing/audio_rendering.feature:111 then the settings used are recorded on every rendered Segment`
-- `processing/audio_rendering.feature:112 then changing them is what makes a re-render meaningful`
-- `processing/audio_rendering.feature:155 then bitrate, channel layout and sample rate are configuration, not code`
-- `processing/audio_rendering.feature:156 then changing them is a re-render, never a re-analysis`
-- `processing/audio_rendering.feature:182 given a rendered MP3`
-- `processing/audio_rendering.feature:183 when a reviewer listens to it end to end`
-- `processing/audio_rendering.feature:184 then the speech is intelligible throughout`
-- `processing/audio_rendering.feature:185 then there are no clicks, dropouts or pumping artifacts`
-- `processing/audio_rendering.feature:186 then it sits at a comparable volume to other recent sermons`
+- `processing/audio_rendering.feature:148 then there is one set of loudness settings, not a normalize toggle and a compress toggle`
+- `processing/audio_rendering.feature:149 then the settings used are recorded on every rendered Segment`
+- `processing/audio_rendering.feature:150 then changing them is what makes a re-render meaningful`
+- `processing/audio_rendering.feature:193 then bitrate, channel layout and sample rate are configuration, not code`
+- `processing/audio_rendering.feature:194 then changing them is a re-render, never a re-analysis`
+- `processing/audio_rendering.feature:220 given a rendered MP3`
+- `processing/audio_rendering.feature:221 when a reviewer listens to it end to end`
+- `processing/audio_rendering.feature:222 then the speech is intelligible throughout`
+- `processing/audio_rendering.feature:223 then there are no clicks, dropouts or pumping artifacts`
+- `processing/audio_rendering.feature:224 then it sits at a comparable volume to other recent sermons`
 - `processing/audio_rendering.feature:31 given the probe flagged the Recording "unexpected stereo content"`
 - `processing/audio_rendering.feature:33 then the render does not start automatically`
 - `processing/audio_rendering.feature:34 then the reviewer is asked how the channels should be treated`
@@ -348,29 +350,17 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `processing/processing_orchestration.feature:78 then the source is re-downloaded from the object store first`
 - `processing/processing_orchestration.feature:79 then processing continues normally`
 - `processing/processing_orchestration.feature:96 then a storage alert is raised`
-- `processing/reprocessing.feature:19 then it enters "recut"`
-- `processing/reprocessing.feature:20 then the previously approved boundaries are shown as the starting point`
-- `processing/reprocessing.feature:21 then the existing MP3 remains downloadable until a new one replaces it`
-- `processing/reprocessing.feature:27 then it is processed again`
-- `processing/reprocessing.feature:28 then the new MP3 replaces the previous one`
-- `processing/reprocessing.feature:29 then the previous cut's boundaries are retained in the history`
-- `processing/reprocessing.feature:34 then the original FLAC is unchanged`
-- `processing/reprocessing.feature:35 then it is still downloadable`
-- `processing/reprocessing.feature:41 then the other Segment stays "complete"`
-- `processing/reprocessing.feature:42 then its MP3 is untouched`
-- `processing/reprocessing.feature:48 given the loudness target has been changed in configuration`
-- `processing/reprocessing.feature:49 when an operator re-renders the Segment`
-- `processing/reprocessing.feature:50 then the boundaries are unchanged`
-- `processing/reprocessing.feature:51 then a new MP3 is produced with the new settings`
-- `processing/reprocessing.feature:52 then the render settings used are recorded`
-- `processing/reprocessing.feature:58 when the change is saved`
-- `processing/reprocessing.feature:59 then the MP3 audio is not re-encoded`
-- `processing/reprocessing.feature:60 then the downloadable filename reflects the corrected label`
-- `processing/reprocessing.feature:70 then only the most recent MP3 is stored`
-- `processing/reprocessing.feature:71 then the earlier render is deleted`
-- `processing/reprocessing.feature:76 when I view its history`
-- `processing/reprocessing.feature:77 then I see each set of boundaries with who approved them and when`
-- `processing/reprocessing.feature:78 then I see the loudness and encoding settings used for each render`
-- `processing/reprocessing.feature:79 then any past render could be reproduced from that record and the source`
-- `processing/reprocessing.feature:83 then the interface does not offer to restore an earlier render`
-- `processing/reprocessing.feature:84 then the stored history is what makes adding that later possible`
+- `processing/reprocessing.feature:100 then the downloadable filename reflects the corrected label`
+- `processing/reprocessing.feature:116 when I view its history`
+- `processing/reprocessing.feature:117 then I see each set of boundaries with who approved them and when`
+- `processing/reprocessing.feature:118 then I see the loudness and encoding settings used for each render`
+- `processing/reprocessing.feature:119 then any past render could be reproduced from that record and the source`
+- `processing/reprocessing.feature:123 then the interface does not offer to restore an earlier render`
+- `processing/reprocessing.feature:124 then the stored history is what makes adding that later possible`
+- `processing/reprocessing.feature:88 given the loudness target has been changed in configuration`
+- `processing/reprocessing.feature:89 when an operator re-renders the Segment`
+- `processing/reprocessing.feature:90 then the boundaries are unchanged`
+- `processing/reprocessing.feature:91 then a new MP3 is produced with the new settings`
+- `processing/reprocessing.feature:92 then the render settings used are recorded`
+- `processing/reprocessing.feature:98 when the change is saved`
+- `processing/reprocessing.feature:99 then the MP3 audio is not re-encoded`

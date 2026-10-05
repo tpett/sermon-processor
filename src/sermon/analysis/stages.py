@@ -531,10 +531,11 @@ class ProposesSegments:
 
 
 def _is_the_reviewers(segment):
-    return segment.boundary_source == "human" or segment.state in {
+    return segment.boundary_source == "human" or bool(segment.removed_spans) or segment.state in {
         "complete",
         "approved",
         "skipped",
+        "recut",
     }
 
 
@@ -722,7 +723,7 @@ def _boundaries(store, chooses, recording, segment):
         targets = store.lists(Segment)
     chosen_by_recording = {}
     for item in targets:
-        if item.boundary_source == "human":
+        if item.boundary_source == "human" or item.removed_spans:
             yield item, None, None
             continue
         if item.recording_id not in chosen_by_recording:

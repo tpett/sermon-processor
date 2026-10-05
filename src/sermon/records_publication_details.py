@@ -46,7 +46,9 @@ class RecordsPublicationDetails:
         existing = [
             item
             for item in self.store.lists(Artifact, kind="rendered_mp3")
-            if item.path == path and item.segment_id != segment.segment_id
+            if item.path == path
+            and item.segment_id != segment.segment_id
+            and item.superseded_by is None
         ]
         if existing and not replace_existing:
             raise FilenameCollision(path)

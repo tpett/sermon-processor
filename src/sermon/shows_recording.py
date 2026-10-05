@@ -27,6 +27,8 @@ from sermon.lists_recordings import (
 )
 from sermon.glossary import ReadsGlossary
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
+from sermon.recuts_segment import current_renders, holds_published_render
+from sermon.removes_span import kept_seconds, removed_seconds
 from sermon.store import Artifact, Block, Job, Proposal, Recording, RecordingTitle, Segment, Store
 from sermon.store import vocabularies
 
@@ -90,6 +92,7 @@ SEGMENT_ACTION_PATHS = {
     "Revisit": "reopen",
     "Cancel processing": "reopen",
     "Retry processing": "retry-processing",
+    "Re-cut": "recut",
 }
 
 SEGMENT_ACTIONS = {
@@ -99,7 +102,7 @@ SEGMENT_ACTIONS = {
     "processing": ("Cancel processing",),
     "processing_failed": ("Retry processing",),
     "recut": ("Approve", "Skip"),
-    "complete": (),
+    "complete": ("Re-cut",),
 }
 
 NOTICES = {
@@ -113,6 +116,10 @@ NOTICES = {
     ),
     "skipped": "the Segment is skipped and stays available",
     "reopened": "the Segment has returned to proposed",
+    "recut": (
+        "the Segment is open for re-cutting; its MP3 stays downloadable "
+        "until a new render replaces it"
+    ),
     "processing-retried": "the render is queued again, without re-approving",
     "processing-standing": "a render for this Segment is already queued",
     "adjusted": "the adjustment is saved without approving",
@@ -144,6 +151,9 @@ NOTICES = {
     "a Segment that has already rendered cannot be reopened": (
         "a Segment that has already rendered cannot be reopened"
     ),
+    "only a Segment that has finished rendering can be re-cut": (
+        "only a Segment that has finished rendering can be re-cut"
+    ),
     "it would overlap the neighbouring Segment": "it would overlap the neighbouring Segment",
     "that is not a classification a Segment can have": (
         "that is not a classification a Segment can have"
@@ -153,6 +163,24 @@ NOTICES = {
     ),
     "reclassified": "the Segment is reclassified",
     "span-extended": "the Segment's own span is changed",
+    "span-removed": "the span is left out of the output",
+    "span-restored": "the span is back in the output",
+    "removal-started": "the removal starts at the playhead; play to where it ends and mark it",
+    "a removed span must lie inside the punch-in and punch-out": (
+        "a removed span must lie inside the punch-in and punch-out"
+    ),
+    "a removed span must have a length": "a removed span must have a length",
+    "it overlaps a span already removed": "it overlaps a span already removed",
+    "the removed spans cannot be changed once the Segment is approved": (
+        "the removed spans cannot be changed once the Segment is approved"
+    ),
+    "no such span is removed from this Segment": "no such span is removed from this Segment",
+    "mark where the removal starts first": "mark where the removal starts first",
+    "not-a-timecode": "that is not a timecode",
+    "restore the removed span before moving a boundary onto or past it": (
+        "restore the removed span before moving a boundary onto or past it"
+    ),
+    "the split point falls inside a removed span": "the split point falls inside a removed span",
 }
 
 PLAYHEAD_OUTSIDE_SPAN = "the playhead is outside the Segment"
@@ -286,6 +314,12 @@ def counts_complete(stages):
     return f"{done} of {len(stages)} stages complete"
 
 
+def formats_lasting(seconds):
+    if seconds < 60:
+        return formats_seconds(seconds)
+    return formats_precise(seconds)
+
+
 def artifact_url(path):
     return f"/api/artifacts/{path}"
 
@@ -339,6 +373,16 @@ class SpanEdgeView:
     field: str
     seconds: float
     url: str
+
+
+@dataclass(frozen=True)
+class RemovedSpanView:
+    from_seconds: float
+    to_seconds: float
+    from_at: str
+    to_at: str
+    lasting: str
+    join_url: str
 
 
 @dataclass(frozen=True)
@@ -514,6 +558,10 @@ class RecordingView:
     analysis_detail: str | None = None
     analysis_completed: str | None = None
     segment_failure: str | None = None
+    removed_spans: tuple = ()
+    removed: str | None = None
+    removal_url: str | None = None
+    removal_from: str | None = None
     title: str | None = None
     kind_tag: str | None = None
 
@@ -533,6 +581,7 @@ class ShowsRecording:
         auditioning=None,
         notice=None,
         focused_boundary=None,
+        removal_from_seconds=None,
     ):
         recording = self.store.loads(Recording, recording_id)
         if recording is None:
@@ -654,11 +703,7 @@ class ShowsRecording:
             selected_segment_id=None if selected is None else selected.segment_id,
             punch_in_seconds=None if selected is None else selected.punch_in_seconds,
             punch_out_seconds=None if selected is None else selected.punch_out_seconds,
-            length_seconds=(
-                None
-                if selected is None
-                else selected.punch_out_seconds - selected.punch_in_seconds
-            ),
+            length_seconds=None if selected is None else kept_seconds(selected),
             gap_seconds=gap,
             short_tail=gap is not None and gap < SHORT_TAIL_SECONDS,
             playhead_seconds=playhead_seconds,
@@ -697,9 +742,7 @@ class ShowsRecording:
             proposed_punch_in_seconds=proposal[0],
             proposed_punch_out_seconds=proposal[1],
             length_warning=(
-                None
-                if selected is None
-                else warns_about_length(selected.punch_in_seconds, selected.punch_out_seconds)
+                None if selected is None else warns_about_length(kept_seconds(selected))
             ),
             alternatives=self._alternatives(selected),
             whole_span_note=(
@@ -722,7 +765,43 @@ class ShowsRecording:
             analysis_stage=names_current_stage(stages, current),
             analysis_detail=None if current is None else current.detail,
             analysis_completed=counts_complete(stages),
+            removed_spans=self._removed_spans(selected),
+            removed=(
+                formats_lasting(removed_seconds(selected))
+                if selected is not None and selected.removed_spans
+                else None
+            ),
+            removal_url=self._removal_url(selected),
+            removal_from=(
+                None if removal_from_seconds is None else formats_precise(removal_from_seconds)
+            ),
             **self._titled(recording),
+        )
+
+    def _removed_spans(self, selected):
+        if selected is None:
+            return ()
+        return tuple(
+            RemovedSpanView(
+                from_seconds=span.start_seconds,
+                to_seconds=span.end_seconds,
+                from_at=formats_precise(span.start_seconds),
+                to_at=formats_precise(span.end_seconds),
+                lasting=formats_lasting(span.end_seconds - span.start_seconds),
+                join_url=(
+                    f"/api/segments/{selected.segment_id}/join"
+                    f"?from={span.start_seconds!r}&to={span.end_seconds!r}"
+                ),
+            )
+            for span in selected.removed_spans
+        )
+
+    def _removal_url(self, selected):
+        if selected is None or selected.state not in EDITABLE_STATES:
+            return None
+        return (
+            f"/recordings/{selected.recording_id}/segments/"
+            f"{selected.segment_id}/removed-spans"
         )
 
     def _titled(self, recording):
@@ -844,13 +923,11 @@ class ShowsRecording:
     def _published(self, selected):
         # artifact_downloads.feature offers it only for a finished Segment: a
         # link to a file that is still rendering is worse than no link.
-        if selected is None or selected.state != "complete":
+        if selected is None:
             return None
-        rendered = [
-            item
-            for item in self.store.lists(Artifact, segment_id=selected.segment_id)
-            if item.kind == "rendered_mp3"
-        ]
+        if selected.state != "complete" and not holds_published_render(self.store, selected):
+            return None
+        rendered = current_renders(self.store, selected)
         if not rendered:
             return None
         mp3 = rendered[-1]
@@ -858,7 +935,7 @@ class ShowsRecording:
             url=artifact_url(mp3.path),
             filename=PurePosixPath(mp3.path).name,
             size=formats_size(mp3.size_bytes or 0),
-            length=formats_clock(selected.punch_out_seconds - selected.punch_in_seconds),
+            length=formats_clock(kept_seconds(selected)),
         )
 
     def _cut_light(self, selected, playhead_seconds):
@@ -1034,7 +1111,7 @@ class ShowsRecording:
             classification=segment.classification,
             span=f"{formats_clock(segment.span_start_seconds)} – {formats_clock(segment.span_end_seconds)}",
             boundaries=f"{formats_clock(segment.punch_in_seconds)} – {formats_clock(segment.punch_out_seconds)}",
-            length=formats_clock(segment.punch_out_seconds - segment.punch_in_seconds),
+            length=formats_clock(kept_seconds(segment)),
             confidence=confidence,
             state=segment.state,
             punch_in_seconds=segment.punch_in_seconds,

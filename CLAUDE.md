@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 487 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 509 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 636 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 664 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -784,6 +784,43 @@ diarization and does follow the model's self-reported number, no leading-silence
 flag exists, and the punch-out falls back to the end of the span rather than of
 the seeding Block. Twenty-two steps were added; no scenario or Rule.
 
+On 2026-10-05 the owner asked to cut pieces out from inside a Segment. A
+Segment was one continuous span rendered straight through, and this week's
+sermon opens "Good morning", then a loud bump on the podium, then the message.
+Their words: "Yes, build it — marking spans by hand is enough. This will be
+useful for other things too. Seminars often have large breaks, or there could be
+times when there are long prayer segments with silence that we would want to cut
+out. Having the ability to trim small pieces out of a message is nice. We don't
+need any kind of automation with the detection pipeline right now... just being
+able to do that manually would be good enough."
+
+Nothing in the spec let a Segment be anything but one stretch, so a new file,
+`features/interface/removed_spans.feature`, specifies the removed span: marked
+from the playhead or by typing timecodes, listed with its length and drawn on the
+waveform, restorable, strictly inside the punch points, refused rather than
+merged when it overlaps another, never stranded by a boundary move (the move is
+refused), locked by approval like the boundaries, untouched by analysis, logged,
+and audible as a join before approval. Its eight Rules hold fifteen scenarios
+(twenty-one tests). `features/processing/audio_rendering.feature` gained the Rule
+`Spans the reviewer removed are left out of the output` with three scenarios:
+the output omits each span, each join fades rather than clicks, and the loudness
+pass measures only the audio that ships. That is **one file, eighteen scenarios
+and nine Rules** added; 85 steps.
+
+Later on 2026-10-05 the owner rendered a Segment and then wanted the podium
+bump out of it, but a `complete` Segment offered no action at all. Asked whether
+to add a Re-cut action for a completed segment so the bump could be removed and
+the Segment approved again, they said "yes build it". `processing/reprocessing.feature`
+already specified re-cutting; it said nothing about removed spans, about the
+published name colliding with the Segment's own file, about skipping a re-cut,
+or about cancelling its render. Four scenarios were added to `A completed
+segment can be sent back for re-cutting`: `Re-cutting to take a span out`,
+`Re-approving under the same label is not a name collision`, `Skipping a re-cut
+keeps the MP3 already published` and `Cancelling a re-approved render goes back
+to re-cutting`. `Approving the new cut` gained `And the worker renders it`, the
+action its Then had nothing to observe without, the same kind of When the owner
+approved on 2026-10-03. Four scenarios, no Rule, 22 steps.
+
 On 2026-10-05 the owner asked for the list to say what each recording is,
 because they were inferring it from the date and time: "Pre-Service Rehearsal",
 "Theological Equipping Class - Giving", "Sunday Service - Hebrews 13:1-6". The
@@ -806,8 +843,8 @@ is unchanged. `A full analysis run` in
 `features/analysis/analysis_orchestration.feature` gained a `titling` row, because
 the walk now ends there; a table row is not a step. Eighty-three steps were added.
 
-Pins are now **35 files / 487 scenarios / 150 rules / 636 collected**, and
-`SPEC_STEPS` is 2050.
+Pins are now **36 files / 509 scenarios / 159 rules / 664 collected**, and
+`SPEC_STEPS` is 2157, counted after both branches met.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
