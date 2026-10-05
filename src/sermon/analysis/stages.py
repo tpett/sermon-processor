@@ -535,6 +535,7 @@ def _is_the_reviewers(segment):
         "complete",
         "approved",
         "skipped",
+        "recut",
     }
 
 
