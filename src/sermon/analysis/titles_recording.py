@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import base64
 import re
 from dataclasses import dataclass, replace
 from pathlib import Path
+
+import numpy as np
 
 from sermon.analysis.io import reads_json
 from sermon.analysis.stages import LABEL_LIMIT, LABELLED_BY_PASSAGE
@@ -25,6 +28,8 @@ SILENCE_TITLE = "Silence or noise"
 CLASS_ALONE = "the class held in it"
 MEETING_NAME = "Members Meeting"
 DISTINCT_UTTERANCES_OF_SPEECH = 20
+SOUNDING_DBFS = -30.0
+SOUNDING_SECONDS_OF_CONTENT = 30.0
 POSSESSIVE_NAME = re.compile(r"\b[A-Z][a-z]+['’]s\b")
 MONTHS = (
     "january|february|march|april|may|june|july|august|september|october|november|december"
@@ -100,8 +105,21 @@ def shortened(title):
     return (title[:cut] if cut > 0 else title[:TITLE_LIMIT]).strip(SEPARATORS)
 
 
-def hears_nothing(blocks, doc):
-    """No music and almost nothing said: what a stray trigger or a mic check leaves."""
+def sounding_seconds(peaks):
+    """How long the measured waveform rises above SOUNDING_DBFS; None when it was never measured."""
+    detail = ((peaks or {}).get("resolutions") or {}).get("detail")
+    if not (peaks or {}).get("measured") or not detail:
+        return None
+    level = peaks.get("full_scale", 127) * 10 ** (SOUNDING_DBFS / 20)
+    lows, highs = (np.frombuffer(base64.b64decode(detail[edge]), dtype=np.int8).astype(np.int16) for edge in ("min", "max"))
+    return float((np.maximum(-lows, highs) >= level).sum() * detail["seconds_per_bin"])
+
+
+def hears_nothing(blocks, doc, peaks=None):
+    """Near-silent audio, or no music and almost nothing said: what a stray trigger or a mic check leaves."""
+    sounding = sounding_seconds(peaks)
+    if sounding is not None and sounding < SOUNDING_SECONDS_OF_CONTENT:
+        return True
     if doc is None or any(block.type == "music" for block in blocks):
         return False
     said = {" ".join(one.get("text", "").lower().split()) for one in doc.get("utterances", ())}
@@ -205,7 +223,8 @@ class InfersTitle:
         glossary = self.glossary or ReadsGlossary()()
         blocks = sorted(self.store.lists(Block, recording_id=recording.recording_id), key=lambda one: one.start_seconds)
         segments = sorted(self.store.lists(Segment, recording_id=recording.recording_id), key=lambda one: one.punch_in_seconds)
-        if hears_nothing(blocks, reads_json(self.store, recording, "transcript")):
+        heard = reads_json(self.store, recording, "transcript")
+        if hears_nothing(blocks, heard, reads_json(self.store, recording, "waveform_peaks")):
             return Titling(kind=EMPTY_KIND, title=SILENCE_TITLE)
         describes = DescribesRecording(glossary)
         answer = (self.asks or AsksModelForTitle())(describes(recording, blocks, segments))

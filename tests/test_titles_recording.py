@@ -286,3 +286,35 @@ def test_a_meeting_segment_is_labelled_members_meeting(store):
     with_contents(store, recording)
     TitlesRecording(store=store, asks=answering({"kind": "meeting", "title": "Members Meeting", "topic": "budget"}), glossary=NAMES)(recording)
     assert {one.classification: one.label for one in store.lists(Segment)}["lesson"] == "Members Meeting - Budget"
+
+
+def peaks_of(highs, seconds_per_bin=0.05):
+    import base64
+
+    import numpy as np
+
+    encoded = base64.b64encode(np.asarray(highs, dtype=np.int8).tobytes()).decode()
+    lows = base64.b64encode((-np.asarray(highs, dtype=np.int16)).astype(np.int8).tobytes()).decode()
+    return {"measured": True, "full_scale": 127, "resolutions": {"detail": {"seconds_per_bin": seconds_per_bin, "min": lows, "max": encoded}}}
+
+
+def test_sounding_seconds_counts_the_waveform_above_thirty_below_full_scale():
+    from sermon.analysis.titles_recording import sounding_seconds
+
+    assert sounding_seconds(peaks_of([1] * 100 + [5] * 20 + [4] * 50)) == pytest.approx(1.0)
+    assert sounding_seconds(peaks_of([-128] * 20)) == pytest.approx(1.0)
+    assert sounding_seconds({"measured": False, "resolutions": {}}) is None
+    assert sounding_seconds(None) is None
+
+
+def test_near_silent_audio_is_silence_whatever_the_blocks_say():
+    from sermon.analysis.titles_recording import hears_nothing
+
+    music = [Block(recording_id="r", start_seconds=0.0, end_seconds=600.0, type="music")]
+    said = {"utterances": [{"text": f"line {i}"} for i in range(40)]}
+    pop = [100] * 4 + [1] * 12000
+    assert hears_nothing(music, said, peaks_of(pop))
+    assert hears_nothing(music, said, peaks_of([30] * 599 + [1] * 11000))
+    assert not hears_nothing(music, said, peaks_of([30] * 600 + [1] * 11000))
+    assert not hears_nothing(music, said, peaks_of([60] * 12000))
+

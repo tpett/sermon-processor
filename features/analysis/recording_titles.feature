@@ -267,8 +267,8 @@ Feature: Naming what a recording is
     @happy-path @stated
     Scenario: The board switched off after the service
       # Measured over every recording whose audio is on this machine: the three
-      # stray triggers sound above -30 dBFS for 0.0, 0.3 and 2.1 seconds in all;
-      # the least of the forty real ones, a members meeting, for 828 seconds.
+      # stray triggers sound above -30 dBFS for 0.05, 0.2 and 1.5 seconds in all;
+      # the least of the forty other files, a members meeting, for 701 seconds.
       Given the Recording's audio is one short pop near its start and nothing more for ten minutes
       And its transcript says 22 different short things and blocking called it all music
       And the model will name it kind "service" and title "Sunday Service"
