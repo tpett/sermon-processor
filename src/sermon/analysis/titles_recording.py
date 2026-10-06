@@ -22,6 +22,7 @@ UNKNOWN_KIND = "unknown"
 EMPTY_KIND = "empty"
 MEETING_KIND = "meeting"
 SILENCE_TITLE = "Silence or noise"
+CLASS_ALONE = "the class held in it"
 MEETING_NAME = "Members Meeting"
 DISTINCT_UTTERANCES_OF_SPEECH = 20
 POSSESSIVE_NAME = re.compile(r"\b[A-Z][a-z]+['’]s\b")

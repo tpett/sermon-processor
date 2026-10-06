@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 514 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 519 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 672 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 679 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -868,8 +868,30 @@ coordinator asked that analysis never overwrite or drop a label a person typed,
 so `A label typed before approval survives analysis` was added. Five scenarios,
 one Rule, eight tests, 21 steps.
 
-Pins are now **36 files / 514 scenarios / 160 rules / 672 collected**, and
-`SPEC_STEPS` is 2178.
+Later the same day two titles came out wrong on real recordings. A ten-minute
+recording after the service was named "Sunday Service": "The 10-04 12:29 is
+almost certainly the board being switched off. At about 1.5-2s there's a pop and
+then nothing more for over 10m. A 10-12m recording with one piece of short noise
+at the beginning is almost certainly always this exact case. The board being
+shut off or some other phantom pop triggering a new recording. We should
+deemphasize these and effectively archive them from the view. For this effort,
+just labeling them 'Silence or noise' is fine." Its one Block was music, which
+the silence rule had trusted. And the class-then-service recordings lost the
+class most runs, though the joined title was already agreed. In
+`features/analysis/recording_titles.feature` the silence Rule gained `The board
+switched off after the service` and `Music with nothing said is not silence`; a
+Rule `A class held before the service is named with it` was added with `The
+joined title does not depend on how the model wrote its title` (three rows),
+`The model names only the service, and is asked about the class alone` and `A
+few minutes of teaching before the service is not a class`. The Background
+already holds a class and then a sermon, so four existing Thens now expect the
+joined title (`The kind and the title come from the model's reading of the
+text`, both rows of `The glossary gives both forms`, and both backfill
+scenarios); their Givens and steps are unchanged. Five scenarios, one Rule,
+seven tests, 25 steps.
+
+Pins are now **36 files / 519 scenarios / 161 rules / 679 collected**, and
+`SPEC_STEPS` is 2203.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

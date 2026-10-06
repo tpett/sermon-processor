@@ -4,10 +4,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1485 step definitions read from `tests/steps`
+- 1491 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 509 non-deferred scenarios rest on at least one condemned step
-- 9 of 664 expanded scenario tests likewise
+- 9 of 514 non-deferred scenarios rest on at least one condemned step
+- 9 of 671 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
@@ -55,7 +55,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/analysis/preview_audio_steps.py` | 31 | 0 | sound |
 | `tests/steps/analysis/punch_in_steps.py` | 34 | 0 | sound |
 | `tests/steps/analysis/punch_out_steps.py` | 25 | 0 | sound |
-| `tests/steps/analysis/recording_titles_steps.py` | 45 | 0 | sound |
+| `tests/steps/analysis/recording_titles_steps.py` | 51 | 0 | sound |
 | `tests/steps/analysis/remaining_analysis_steps.py` | 99 | 4 | partly condemned |
 | `tests/steps/analysis/segment_proposal_steps.py` | 47 | 0 | sound |
 | `tests/steps/analysis/summarization_steps.py` | 22 | 0 | sound |

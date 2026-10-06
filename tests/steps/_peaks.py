@@ -60,6 +60,10 @@ def writes_peaks(store, recording):
 
 
 def writes_tone(store, recording, *, amplitude=TONE_AMPLITUDE):
+    return writes_sound(store, recording, f"{amplitude}*sin(2*PI*440*t)")
+
+
+def writes_sound(store, recording, expression):
     seconds = recording.duration_seconds or 0.0
     local_path = f"{recording.recording_id}/source.flac"
     destination = store.resolves(replace(recording, local_path=local_path))
@@ -68,7 +72,7 @@ def writes_tone(store, recording, *, amplitude=TONE_AMPLITUDE):
         [
             "ffmpeg", "-v", "error", "-y",
             "-f", "lavfi",
-            "-i", f"aevalsrc={amplitude}*sin(2*PI*440*t):s={TONE_RATE}:d={seconds}",
+            "-i", f"aevalsrc={expression}:s={TONE_RATE}:d={seconds}",
             "-c:a", "flac", str(destination),
         ],
         check=True,

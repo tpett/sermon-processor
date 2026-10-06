@@ -24,6 +24,17 @@ Feature: Naming what a recording is
   mostly silence or noise (no identifiable spoken word or music). Show them in
   the list, but just make them obviously unimportant and smaller."
 
+  Then, on 2026-10-05, two misses on real recordings. A ten-minute recording
+  made after a service was named "Sunday Service": "The 10-04 12:29 is almost
+  certainly the board being switched off. At about 1.5-2s there's a pop and
+  then nothing more for over 10m. A 10-12m recording with one piece of short
+  noise at the beginning is almost certainly always this exact case. The board
+  being shut off or some other phantom pop triggering a new recording. ... For
+  this effort, just labeling them 'Silence or noise' is fine." And a class held
+  before the service went unnamed about half the time, though the joined title
+  "Theological Equipping Class - <Topic>, then Sunday Service - <Passage>" was
+  already agreed.
+
   The model is shown text and nothing else: the Blocks with their summaries,
   the teaching Segments with any passage already suggested, the weekday and the
   local start time. Never the audio, and never the date. The day and the time
@@ -39,7 +50,7 @@ Feature: Naming what a recording is
       Given the model will name it kind "class", title "TEC - Giving", series "TEC" and topic "Giving"
       When the Recording is analysed
       Then the Recording kind is "class"
-      And the Recording is titled "Theological Equipping Class - Giving"
+      And the Recording is titled "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29"
       And the model was shown "Sunday at 09:00" and the passage "Hebrews 12:25-29"
       And the model was shown no audio and no date
 
@@ -71,6 +82,40 @@ Feature: Naming what a recording is
       And the Recording has no title
       And the failure to name it is in the processing log
 
+  Rule: A class held before the service is named with it
+
+    @happy-path @stated
+    Scenario Outline: The joined title does not depend on how the model wrote its title
+      # Six runs of the model on each of the two stored recordings of this
+      # shape named the service alone every time.
+      Given the model will name it kind "<kind>", title "<said>", series "TEC" and topic "Giving"
+      When the Recording is analysed
+      Then the Recording is titled "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29"
+      And the Recording kind is "class"
+
+      Examples:
+        | kind    | said                                                                         |
+        | class   | Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29 |
+        | class   | TEC - Giving                                                                 |
+        | service | Sunday Service - Hebrews 12.25-29                                            |
+
+    @happy-path @stated
+    Scenario: The model names only the service, and is asked about the class alone
+      Given the model will name it kind "service", title "Sunday Service - Hebrews 12:25-29", series "" and topic ""
+      And asked about the class alone, the model will name its series "TEC" and topic "Giving"
+      When the Recording is analysed
+      Then the Recording is titled "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29"
+      And the class's suggested label is "TEC - Giving"
+
+    @edge-case
+    Scenario: A few minutes of teaching before the service is not a class
+      # The classes in the corpus run 58 to 98 minutes; a lesson Block of two
+      # minutes is a class being announced, not held.
+      Given the class lasted five minutes
+      And the model will name it kind "service", title "Sunday Service - Hebrews 12:25-29", series "TEC" and topic "Giving"
+      When the Recording is analysed
+      Then the Recording is titled "Sunday Service - Hebrews 12:25-29"
+
   Rule: A name is spelled out in a title and abbreviated where space is short
 
     @happy-path @stated
@@ -83,9 +128,9 @@ Feature: Naming what a recording is
       And its row is tagged "<tag>"
 
       Examples:
-        | said         | series               | topic  | title                                | tag |
-        | TEC - Giving | TEC                  | Giving | Theological Equipping Class - Giving | TEC |
-        | CT - Islam   | Culture and Theology | Islam  | Culture and Theology - Islam         | CT  |
+        | said         | series               | topic  | title                                                                        | tag |
+        | TEC - Giving | TEC                  | Giving | Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29 | TEC |
+        | CT - Islam   | Culture and Theology | Islam  | Culture and Theology - Islam, then Sunday Service - Hebrews 12:25-29         | CT  |
 
   Rule: A class is labelled from its name and topic, as a sermon is from its passage
 
@@ -220,6 +265,27 @@ Feature: Naming what a recording is
       And the model was not asked to name it
 
     @happy-path @stated
+    Scenario: The board switched off after the service
+      # Measured over every recording whose audio is on this machine: the three
+      # stray triggers sound above -30 dBFS for 0.0, 0.3 and 2.1 seconds in all;
+      # the least of the forty real ones, a members meeting, for 828 seconds.
+      Given the Recording's audio is one short pop near its start and nothing more for ten minutes
+      And its transcript says 22 different short things and blocking called it all music
+      And the model will name it kind "service" and title "Sunday Service"
+      When the Recording is analysed
+      Then the Recording kind is "empty"
+      And the Recording is titled "Silence or noise"
+      And the model was not asked to name it
+
+    @edge-case
+    Scenario: Music with nothing said is not silence
+      Given the Recording's audio sounds throughout and its transcript says only "Thank you." again and again
+      And blocking called it all music
+      And the model will name it kind "rehearsal" and title "Pre-Service Rehearsal"
+      When the Recording is analysed
+      Then the Recording is titled "Pre-Service Rehearsal"
+
+    @happy-path @stated
     Scenario: Silence sits quietly on the list
       Given another Recording that analysis found to be silence or noise
       When I visit the recordings list
@@ -235,7 +301,7 @@ Feature: Naming what a recording is
       Given the Recording was analysed before recordings were named and its audio is not on this machine
       And the model will name it kind "class", title "TEC - Giving", series "TEC" and topic "Giving"
       When the naming backfill runs as a dry run
-      Then it prints the title "Theological Equipping Class - Giving" and the kind "class" for the Recording
+      Then it prints the title "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29" and the kind "class" for the Recording
       And it prints the suggested label "TEC - Giving" for the class
       And the Recording has no title
       And the class has no label
@@ -245,7 +311,7 @@ Feature: Naming what a recording is
       Given the Recording was analysed before recordings were named and its audio is not on this machine
       And the model will name it kind "class", title "TEC - Giving", series "TEC" and topic "Giving"
       When the naming backfill runs
-      Then the Recording is titled "Theological Equipping Class - Giving"
+      Then the Recording is titled "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29"
       And the Recording kind is "class"
       And the class's suggested label is "TEC - Giving"
 

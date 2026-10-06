@@ -1,14 +1,15 @@
 import re
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
 from pytest_bdd import given, parsers, then, when
-from steps import _analysis, _browser, _web
+from steps import _analysis, _browser, _peaks, _web
 from steps._markup import reads_rows, strips_tags
 from steps._remaining_analysis import divides_each
 
 from sermon.analysis import DividesIntoBlocks
-from sermon.analysis.titles_recording import TitlesRecording
+from sermon.analysis.titles_recording import CLASS_ALONE, TitlesRecording
 from sermon.config import ModelEndpointUnreachable
 from sermon.jobs.analyzes_recording import OPTIONAL_STAGE_FAILED
 from sermon.lists_recordings import formats_recorded_at
@@ -31,6 +32,9 @@ CLASS_THEN_SERMON = (
     (5700.0, 9300.0, "sermon"),
     (9300.0, 11520.0, "music"),
 )
+FIVE_MINUTE_CLASS = ((0.0, 60.0, "music"), (60.0, 360.0, "lesson"), (360.0, 5400.0, "music")) + CLASS_THEN_SERMON[3:]
+TEN_MINUTES = 600.0
+POP_THEN_NOTHING = "if(between(t\\,1.6\\,1.7)\\,0.8*sin(2*PI*180*t)\\,0)"
 SHOWN_NO_DATE = ("2026", "09-13", "13 Sep", "September", "Sep 13")
 H1 = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.S)
 
@@ -42,6 +46,7 @@ class NamesLikeAModel:
         self.answer = answer
         self.otherwise = otherwise
         self.shown = []
+        self.about_the_class = None
 
     def __call__(self, model, prompt, think=False):
         if NAMING not in prompt:
@@ -49,6 +54,8 @@ class NamesLikeAModel:
         self.shown.append(prompt)
         if isinstance(self.answer, Exception):
             raise self.answer
+        if self.about_the_class is not None and CLASS_ALONE in prompt:
+            return dict(self.about_the_class), 0
         return dict(self.answer), 0
 
 
@@ -78,10 +85,10 @@ def answered(kind, title, series=None, topic=None):
     return {"kind": kind, "title": title, "series": series or None, "topic": topic or None}
 
 
-def lays_out_class_then_sermon(store, recording, reading):
+def lays_out_class_then_sermon(store, recording, reading, laid=CLASS_THEN_SERMON):
     spans = [
         (start, end, kind, reading) if kind == "scripture_reading" else (start, end, kind)
-        for start, end, kind in CLASS_THEN_SERMON
+        for start, end, kind in laid
     ]
     _analysis.lays_out(store, recording, spans, typed=False)
     DividesIntoBlocks(store=store, divides=divides_each([(*span[:3], 0.9) for span in spans]))(recording)
@@ -110,6 +117,43 @@ def _(store, passage):
 @given("the sermon has no passage")
 def _(store):
     lays_out_class_then_sermon(store, the_class_recording(store), READINGS[None])
+
+
+@given("the class lasted five minutes")
+def _(store):
+    lays_out_class_then_sermon(store, the_class_recording(store), READINGS["Hebrews 12.25-29"], FIVE_MINUTE_CLASS)
+
+
+@given(parsers.parse('asked about the class alone, the model will name its series "{series}" and topic "{topic}"'))
+def _(naming, series, topic):
+    naming.about_the_class = answered("class", None, series, topic)
+
+
+@given("the Recording's audio is one short pop near its start and nothing more for ten minutes")
+def _(store):
+    recording = store.saves(replace(the_class_recording(store), duration_seconds=TEN_MINUTES))
+    _peaks.writes_sound(store, recording, POP_THEN_NOTHING)
+
+
+@given(parsers.parse("its transcript says {count:d} different short things and blocking called it all music"))
+def _(store, count):
+    recording = the_class_recording(store)
+    step = TEN_MINUTES / count
+    said = [(at * step, at * step + 2.0, "other", f"Thank you, number {at}.") for at in range(count)]
+    _analysis.lays_out(store, recording, said, typed=False)
+    DividesIntoBlocks(store=store, divides=lambda _doc: [])(recording)
+
+
+@given(parsers.parse('the Recording\'s audio sounds throughout and its transcript says only "{said}" again and again'))
+def _(store, said):
+    recording = store.saves(replace(the_class_recording(store), duration_seconds=TEN_MINUTES))
+    _peaks.writes_tone(store, recording)
+    _analysis.lays_out(store, recording, [(0.0, TEN_MINUTES, "other", said)], typed=False)
+
+
+@given("blocking called it all music")
+def _(store):
+    DividesIntoBlocks(store=store, divides=lambda _doc: [])(the_class_recording(store))
 
 
 @given(
