@@ -112,7 +112,7 @@ def shortened(title):
 def sounding_seconds(peaks):
     """How long the measured waveform rises above SOUNDING_DBFS; None when it was never measured."""
     detail = ((peaks or {}).get("resolutions") or {}).get("detail")
-    if not (peaks or {}).get("measured") or not detail:
+    if not detail:
         return None
     level = peaks.get("full_scale", 127) * 10 ** (SOUNDING_DBFS / 20)
     lows, highs = (np.frombuffer(base64.b64decode(detail[edge]), dtype=np.int8).astype(np.int16) for edge in ("min", "max"))
