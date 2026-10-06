@@ -1,3 +1,47 @@
+## Titles: silence by the audio, and the class named with its service (2026-10-05, tpett/ai/titlerules)
+
+Off master fbd65ac. Unmerged, undeployed, not run against production.
+
+- **Silence or noise now rests on the audio.** Production's 2026-10-04 12:29
+  (board switched off: one pop, then ten minutes of nothing) was titled
+  "Sunday Service" because its one Block was music, which the transcript rule
+  trusted. Now a recording whose stored waveform peaks rise above -30 dBFS for
+  under 30 s in all is `empty` / "Silence or noise", whatever the Blocks say
+  and without asking the model. The peaks are stored before titling and are
+  read by `sermon-title` too. Measured on every audio file on this machine
+  (incoming/ and ~/Desktop/Sermons, read-only): the three stray triggers sound
+  for 0.05, 0.2 and 1.5 s; the quietest real file, the 2026-06-28 members
+  meeting, for 701 s; the 08-30 band rehearsal 999 s; every service over
+  2,100 s. The transcript rule (no music Block, fewer than 20 different
+  utterances) still applies when peaks are missing or loud. The owner's
+  "effectively archive them from the view" is not built, as asked.
+- **Class then service is composed in code.** A lesson/seminar Segment of 20
+  minutes or more before a sermon gives "<class> - <topic>, then Sunday
+  Service - <passage>" (kind `class`): class name spelled out from the
+  glossary, topic from the model, passage from the sermon's suggested label.
+  When the model's answer names neither series nor topic (it did so on 12 of
+  12 runs on 2026-09-13 and 2026-04-05 before this change), it is asked about
+  the class alone (`prompts/titles_class.v1.md`, the class's Blocks, weekday,
+  time, glossary). After: 18 of 18 runs across 2026-09-13, 2026-04-05 and
+  2026-08-02 joined, identical within each recording: "... - Giving",
+  "... - Forgiveness", "... - Theology of speech". A topic but no series gives
+  "Class - <topic>"; neither keeps the model's title; a non-Sunday start says
+  "Service". 2026-08-02 used to be titled as the class alone and is now
+  joined too.
+- **Spec**: recording_titles.feature +2 silence scenarios, +1 Rule (3
+  scenarios, 5 tests) for the joined title; four existing Thens on the
+  class-then-sermon Background now expect the joined title. Pins 36 / 519 /
+  161 / 679, 2203 steps, recorded in CLAUDE.md. Step integrity unchanged (7
+  condemned, none new). 17 of 18 mutations killed; the survivor was a
+  redundant check, now removed. Fast suite (with `SERMON_SPIKE_DATA`) 180
+  failed / 2325 passed / 8 skipped against master fbd65ac's 180 / 2309 / 9:
+  the same 180 failures, 15 new tests passing.
+- **Production**: `sermon-title` skips titled recordings; the owner would need
+  `--again` (or the recording ids) to rename 2026-10-04 12:29 and the
+  class-then-service recordings. Not run.
+- One all-corpus run also titled the 2026-08-30 rehearsal "Sunday Service"
+  (model variance in the general prompt; untouched here).
+
 ## Titles: the owner's answers built (2026-10-05, tpett/ai/titles)
 
 Master 0f3e6be (removed spans, re-cut) merged in; pins recounted, now 36 / 514 /
