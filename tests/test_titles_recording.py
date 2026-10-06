@@ -191,7 +191,9 @@ def test_a_suggested_label_writes_a_verse_with_a_dot(store):
     with_contents(store, recording, taught="A class working through Romans 8:1-11")
     TitlesRecording(store=store, asks=answering({"kind": "class", "title": "TEC - Romans 8:1-11", "series": "TEC", "topic": "Romans 8:1-11"}), glossary=NAMES)(recording)
     assert {one.classification: one.label for one in store.lists(Segment)}["lesson"] == "TEC - Romans 8.1-11"
-    assert store.loads(RecordingTitle, recording.recording_id).title == "Theological Equipping Class - Romans 8:1-11"
+    assert store.loads(RecordingTitle, recording.recording_id).title == (
+        "Theological Equipping Class - Romans 8:1-11, then Sunday Service - Hebrews 12:25-29"
+    )
 
 
 def test_a_passage_the_model_was_not_shown_is_dropped_from_title_and_topic(store):
@@ -202,7 +204,7 @@ def test_a_passage_the_model_was_not_shown_is_dropped_from_title_and_topic(store
         asks=answering({"kind": "service", "title": "Sunday Service - Hebrews 13:1-6", "series": "TEC", "topic": "Romans 8"}),
         glossary=NAMES,
     )(recording)
-    assert titled.title == "Sunday Service"
+    assert titled.title == "Theological Equipping Class, then Sunday Service"
     assert titled.topic is None
 
 
@@ -318,3 +320,88 @@ def test_near_silent_audio_is_silence_whatever_the_blocks_say():
     assert not hears_nothing(music, said, peaks_of([30] * 600 + [1] * 11000))
     assert not hears_nothing(music, said, peaks_of([60] * 12000))
 
+
+def class_and_sermon(store, recording, lesson_minutes, at=60.0):
+    end = at + lesson_minutes * 60.0
+    for classification, start, stop, label in (("lesson", at, end, None), ("sermon", 5400.0, 8400.0, "Hebrews 12.25-29")):
+        store.saves(
+            Segment(
+                recording_id=recording.recording_id,
+                classification=classification,
+                state="proposed",
+                span_start_seconds=start,
+                span_end_seconds=stop,
+                punch_in_seconds=start,
+                punch_out_seconds=stop,
+                label=label,
+            )
+        )
+
+
+@pytest.mark.parametrize(("minutes", "joined"), [(19.9, False), (20.0, True)])
+def test_a_class_joins_the_title_from_twenty_minutes(store, minutes, joined):
+    recording = recorded(store)
+    class_and_sermon(store, recording, minutes)
+    titled = InfersTitle(
+        store=store,
+        asks=answering({"kind": "service", "title": "Sunday Service - Hebrews 12:25-29", "series": "TEC", "topic": "Giving"}),
+        glossary=NAMES,
+    )(recording)
+    expected = "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29"
+    assert (titled.title == expected) is joined
+
+
+def test_a_class_after_the_sermon_is_not_joined(store):
+    recording = recorded(store)
+    class_and_sermon(store, recording, 50, at=9000.0)
+    titled = InfersTitle(
+        store=store,
+        asks=answering({"kind": "service", "title": "Sunday Service - Hebrews 12:25-29", "series": "TEC", "topic": "Giving"}),
+        glossary=NAMES,
+    )(recording)
+    assert titled.title == "Sunday Service - Hebrews 12:25-29"
+
+
+def test_the_class_alone_is_asked_about_without_the_date_and_with_its_own_blocks(store):
+    recording = recorded(store)
+    with_contents(store, recording)
+    prompts = []
+
+    def asks(prompt):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            return {"kind": "service", "title": "Sunday Service - Hebrews 12:25-29", "series": None, "topic": None}
+        return {"series": "TEC", "topic": "giving"}
+
+    titled = InfersTitle(store=store, asks=asks, glossary=NAMES)(recording)
+    assert titled.title == "Theological Equipping Class - Giving, then Sunday Service - Hebrews 12:25-29"
+    assert (titled.kind, titled.series, titled.topic) == ("class", "Theological Equipping Class", "Giving")
+    asked = prompts[1]
+    assert "the class held in it" in asked and "A class on giving as worship" in asked
+    assert "0:00:00–0:55:00  lesson" in asked and "1:30:00–3:00:00  sermon" not in asked
+    assert "Sunday at 09:00" in asked and "Hebrews 12:25-29" in asked
+    assert "2026" not in asked and "September" not in asked
+
+
+def test_a_class_the_model_cannot_name_leaves_the_models_title(store):
+    recording = recorded(store)
+    with_contents(store, recording)
+    service = {"kind": "service", "title": "Sunday Service - Hebrews 12:25-29", "series": None, "topic": None}
+    assert InfersTitle(store=store, asks=answering(service), glossary=NAMES)(recording).title == "Sunday Service - Hebrews 12:25-29"
+
+    def unreachable(prompt):
+        if "the class held in it" in prompt:
+            raise TitleNotInferred("down")
+        return service
+
+    assert InfersTitle(store=store, asks=unreachable, glossary=NAMES)(recording).title == "Sunday Service - Hebrews 12:25-29"
+
+
+def test_a_class_with_a_topic_and_no_series_and_a_service_on_another_day(store):
+    recording = recorded(store, at=datetime(2026, 9, 12, 9, 0, tzinfo=UTC))
+    with_contents(store, recording, label=None)
+    titled = InfersTitle(
+        store=store, asks=answering({"kind": "class", "title": "Forgiveness", "series": None, "topic": "forgiveness"}), glossary=NAMES
+    )(recording)
+    assert titled.title == "Class - Forgiveness, then Service"
+    assert titled.series is None

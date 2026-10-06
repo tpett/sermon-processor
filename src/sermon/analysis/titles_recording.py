@@ -17,6 +17,7 @@ from sermon.store.vocabularies import RECORDING_KINDS
 
 TITLER = "qwen3.6:35b-mlx"
 TITLE_TEMPLATE = Path(__file__).with_name("prompts") / "titles.v1.md"
+CLASS_TEMPLATE = Path(__file__).with_name("prompts") / "titles_class.v1.md"
 TITLE_LIMIT = 120
 SUMMARY_SHOWN = 160
 NAMED_BY_CLASS = frozenset({"lesson", "seminar"})
@@ -30,6 +31,9 @@ MEETING_NAME = "Members Meeting"
 DISTINCT_UTTERANCES_OF_SPEECH = 20
 SOUNDING_DBFS = -30.0
 SOUNDING_SECONDS_OF_CONTENT = 30.0
+CLASS_MIN_SECONDS = 20 * 60.0
+CLASS_NAME = "Class"
+CLASS_KIND = "class"
 POSSESSIVE_NAME = re.compile(r"\b[A-Z][a-z]+['’]s\b")
 MONTHS = (
     "january|february|march|april|may|june|july|august|september|october|november|december"
@@ -191,6 +195,47 @@ class DescribesRecording:
         return "\n".join(f"{acronym} = {name}" for acronym, name in self.glossary.names.items()) or "(none)"
 
 
+def class_before_sermon(segments):
+    """The class and the sermon of a recording that holds a class of some length before its service."""
+    classes = [
+        one
+        for one in segments
+        if one.classification in NAMED_BY_CLASS and one.punch_out_seconds - one.punch_in_seconds >= CLASS_MIN_SECONDS
+    ]
+    sermons = [one for one in segments if one.classification in LABELLED_BY_PASSAGE]
+    if classes and sermons and classes[0].punch_in_seconds < sermons[0].punch_in_seconds:
+        return classes[0], sermons[0]
+    return None
+
+
+def service_named(recording, sermon):
+    service = "Sunday Service" if recording.started_at.strftime("%A") == "Sunday" else "Service"
+    return f"{service} - {spoken_passage(sermon.label)}" if sermon.label else service
+
+
+@dataclass(frozen=True)
+class DescribesClass:
+    """The class alone, for a model that named only the service: its Blocks, the weekday and time, the glossary."""
+
+    glossary: object
+
+    def __call__(self, recording, blocks, taught, sermon, template=None):
+        template = CLASS_TEMPLATE.read_text() if template is None else template
+        within = [
+            one
+            for one in blocks
+            if one.end_seconds > taught.punch_in_seconds and one.start_seconds < taught.punch_out_seconds
+        ]
+        describes = DescribesRecording(self.glossary)
+        return (
+            template.replace("{blocks}", describes._blocks(within))
+            .replace("{weekday}", recording.started_at.strftime("%A"))
+            .replace("{start_time}", recording.started_at.strftime("%H:%M"))
+            .replace("{passage}", f", preaching on {spoken_passage(sermon.label)}" if sermon.label else "")
+            .replace("{glossary}", describes._names())
+        )
+
+
 @dataclass(frozen=True)
 class AsksModelForTitle:
     model: str = TITLER
@@ -233,16 +278,43 @@ class InfersTitle:
         kind = (_text(answer, "kind") or "").lower()
         kind = kind if kind in RECORDING_KINDS else UNKNOWN_KIND
         shown = describes.evidence(blocks, segments)
-        topic = _text(answer, "topic")
-        topic = capitalised(topic and without_names(keeps_passages_shown(topic, shown)))
+        topic = self._topic(answer, shown)
         if kind == EMPTY_KIND:
             return Titling(kind=kind, title=SILENCE_TITLE)
         if kind == MEETING_KIND:
             return Titling(kind=kind, title=named_meeting(topic), topic=topic)
+        held = class_before_sermon(segments)
+        joined = held and self._joined(recording, blocks, held, answer, glossary, shown)
+        if joined:
+            return joined
         return Titling(
             kind=kind,
             title=self._titled(_text(answer, "title"), glossary, segments, shown),
             series=_text(answer, "series") and glossary.spells_out(_text(answer, "series")),
+            topic=topic,
+        )
+
+    def _topic(self, answer, shown):
+        topic = _text(answer, "topic")
+        return capitalised(topic and without_names(keeps_passages_shown(topic, shown)))
+
+    def _joined(self, recording, blocks, held, answer, glossary, shown):
+        taught, sermon = held
+        if not (_text(answer, "series") or _text(answer, "topic")):
+            try:
+                answer = (self.asks or AsksModelForTitle())(DescribesClass(glossary)(recording, blocks, taught, sermon))
+            except TitleNotInferred:
+                return None
+            answer = answer if isinstance(answer, dict) else {}
+        series = _text(answer, "series") and glossary.spells_out(_text(answer, "series"))
+        topic = self._topic(answer, shown)
+        if not (series or topic):
+            return None
+        named = " - ".join(part for part in (series or CLASS_NAME, topic) if part)
+        return Titling(
+            kind=CLASS_KIND,
+            title=f"{named}, then {service_named(recording, sermon)}",
+            series=series,
             topic=topic,
         )
 

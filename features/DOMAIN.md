@@ -122,7 +122,13 @@ What a Recording is called: "Pre-Service Rehearsal", "Theological Equipping
 Class - Giving", "Sunday Service - Hebrews 13:1-6" (`analysis/recording_titles.feature`).
 One per Recording at most, absent until analysis or a reviewer names it, and the
 list falls back to the date and time alone without one ("A recording nobody has
-named").
+named"). A Recording holding a class and then a sermon is titled
+"<class> - <topic>, then Sunday Service - <passage>" whatever form the model
+gave its title ("The joined title does not depend on how the model wrote its
+title"), the model being asked about the class alone when it named only the
+service ("The model names only the service, and is asked about the class
+alone"); a few minutes of teaching before the service does not count ("A few
+minutes of teaching before the service is not a class").
 
 | Field | Why it exists |
 | --- | --- |
