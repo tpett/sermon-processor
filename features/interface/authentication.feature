@@ -29,7 +29,10 @@ Feature: Access control
   (approving, skipping, adjusting a cut) is protected from another site by that
   memory not being sent along with a request another site causes, rather than by a
   token in each form. The sign-in and sign-out forms are additionally refused
-  when they are submitted from another site.
+  when they are submitted from another site. The memory is only ever sent over a
+  secure connection, whatever the request or a proxy claims about its own: both
+  ways in are secure connections in use, and a scheme guessed from what a client
+  can send is not something to rest that on.
 
   Sign-in is a deployment setting. Where it is not configured, which is every
   scenario that does not begin by saying sign-in is required, the tailnet is the

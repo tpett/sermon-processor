@@ -18,9 +18,10 @@ Off master ee8645d. Unmerged, undeployed, not run behind Caddy or Cloudflare.
   a Segment takes an actor and logs a `state_change` entry carrying it, which fixes
   `The reviewer identity is a seam, not a constant`; the processing log gains an
   entry per skip.
-- Pins 36 / 577 / 170 / 759, 2451 steps. The fast suite fails the same 179 as
+- Pins 36 / 572 / 170 / 754, 2434 steps. The fast suite fails the same 179 as
   master minus that one, none new.
-- Not exercised: Caddy's `X-Forwarded-Proto`/`X-Forwarded-For` as sent by the real
+- The cookie is always `Secure` (the `X-Forwarded-Proto` inference was removed after a
+  live login came back without it). Not exercised: Caddy's `X-Forwarded-For` as sent by the real
   proxy, a browser's handling of the cookie, a real Access token, and the
   container's `docker exec -it sermon-user`.
 

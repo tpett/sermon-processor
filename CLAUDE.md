@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 577 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 572 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 759 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 754 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -211,11 +211,15 @@ come through Cloudflare has no password and cannot sign in on the tailnet until
 the owner gives them one.
 
 *The cookie.* `sermon_session` is a Flask signed cookie: host-only (no `Domain`),
-`HttpOnly`, `SameSite=Lax`, `Path=/`, thirty days sliding, and `Secure` when the
-request was HTTPS or, on the tailnet host only, when the proxy said so in
-`X-Forwarded-Proto` (Caddy terminates TLS). Its secret is `SERMON_SECRET_KEY` or
-the 0600 `session_secret` file under the data root, made on first start with
-Access on. `SameSite=Lax` is what protects the state-changing review forms: a
+`Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, thirty days sliding. `Secure` is
+unconditional rather than inferred: both ways in are HTTPS in production (Caddy
+terminates TLS on the tailnet host, Cloudflare on the public one), and the only
+way to infer the scheme behind a proxy is a forwarded header the client can
+send, which a live login proved unreliable besides. So a plain-HTTP deployment
+or `curl` cannot keep a sign-in; reach the service over HTTPS. The
+`SESSION_COOKIE_SECURE` setting also covers the cookie that ends a sign-in. Its
+secret is `SERMON_SECRET_KEY` or the 0600 `session_secret` file under the data
+root, made on first start with Access on. `SameSite=Lax` is what protects the state-changing review forms: a
 request another site causes does not carry the cookie, so it is refused as
 unsigned. There is no per-form token. `/login` and `/logout` additionally refuse a
 submission whose `Origin` is not this host or whose `Sec-Fetch-Site` is not
@@ -973,15 +977,22 @@ there. The tailnet host stopped being open: `interface/authentication.feature`
 now has a Rule where a person signs in with an email address and a password, one
 about saying nothing a stranger could use, one about the owner making people, one
 saying a password sign-in is good on the tailnet host and nowhere else, one for the
-webhook answering to its bearer token alone, and one about the cookie. Forty-two
-scenarios (fifty-four tests) and a hundred and ninety-four steps were added, and
+webhook answering to its bearer token alone, and one about the cookie. Thirty-seven
+scenarios (forty-nine tests) and a hundred and seventy-seven steps were added, and
 the Rule saying the tailnet host needs no sign-in was replaced. `DOMAIN.md` gained
 `Credential`. `SkipsSegment` now takes an actor and writes the log entry that
 carries it, which is what the pre-existing failure `The reviewer identity is a
 seam, not a constant` was waiting for.
 
-Pins are now **36 files / 577 scenarios / 170 rules / 759 collected**, and
-`SPEC_STEPS` is 2451.
+A live login over HTTPS then came back without `Secure`, because the first
+version inferred the scheme from `X-Forwarded-Proto`. That inference was removed
+and the cookie is always `Secure`; the three scenarios that pinned it (secure
+connection, plain connection, a claimed secure connection) became one, `The
+cookie always carries Secure, HttpOnly, SameSite=Lax and no Domain`, which also
+absorbed the three that stated the other attributes one at a time.
+
+Pins are now **36 files / 572 scenarios / 170 rules / 754 collected**, and
+`SPEC_STEPS` is 2434.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find
