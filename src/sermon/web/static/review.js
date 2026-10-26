@@ -439,9 +439,6 @@ document.addEventListener("preview:ended", () => {
 
 draws();
 
-const scheme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
-if (scheme && scheme.addEventListener) scheme.addEventListener("change", draws);
-
 const words = document.querySelector(".waveform .words");
 const LANES = [8, 25, 42];
 

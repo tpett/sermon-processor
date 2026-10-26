@@ -1,3 +1,10 @@
+## UI redesign 1/6: dark theme, page shell and the closed Details panel (2026-10-26, sp-j5is)
+
+- `review.css` is one dark theme on the brief's tokens (`--bg`, `--panel`, `--raised`, `--line`, `--text`, `--muted`, `--accent`, `--warn`, `--bad`); the light tokens and the `prefers-color-scheme` / `data-theme` switching are gone, and `review.js` no longer redraws on a scheme change. `--wave` is the cut-away colour and `--wave-hot` the kept colour the canvases read.
+- The detail page is a header bar, the service order rail (the Blocks, the Segment's Block marked `data-selected`), the centre (the existing editor, restyled) and the right column (`.supporting`: this Segment's actions and boundaries).
+- `<details data-role="recording-details">` holds the closed Details panel, opened by `data-role="open-details" data-warnings="N"`. Its five `data-details-section` accordions are `why`, `analysis`, `transcript`, `source` and `actions`; the recording warning sits at its head. `details.js` closes it on the close button, the scrim and Escape.
+- Not yet: the Review | Edit split, the hero card and seam cards, Preview the cut, the list redesign and the viewer role (parts 2 to 6).
+
 ## Review-first redesign and the viewer role, specified (2026-10-26, tpett/ai/ui-redesign-spec)
 
 Off master 6dfdbe5. Spec only, uncommitted, for the owner to review; nothing is
