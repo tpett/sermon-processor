@@ -19,6 +19,7 @@ from .entities import (
     SkippedObject,
     SpeakerMatch,
     SpeakerProfile,
+    User,
 )
 from .store import DATABASE_NAME, StoredSchemaDiffers, Store, UnstorableValue, opens_store
 from .stored_paths import PathEscapesDataRoot, ResolvesStoredPath
@@ -50,5 +51,6 @@ __all__ = [
     "Store",
     "StoredSchemaDiffers",
     "UnstorableValue",
+    "User",
     "opens_store",
 ]

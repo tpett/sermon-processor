@@ -4,7 +4,7 @@ from typing import get_type_hints, Literal, Optional
 
 import pytest
 
-from sermon.store import Block, LogEntry, Notification, Reviewer, SpeakerProfile, schema
+from sermon.store import Block, LogEntry, Notification, Reviewer, SpeakerProfile, User, schema
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -93,3 +93,16 @@ def test_the_reviewer_is_identified_by_the_actor_seam():
 def test_a_notification_recipient_is_not_a_foreign_key_to_a_reviewer():
     assert "reviewer" not in schema.TABLES[Notification].references.get("recipient", "")
     assert "REFERENCES reviewer" not in schema.table_ddl(schema.TABLES[Notification])
+
+
+def test_a_user_is_identified_by_the_email_the_sign_in_vouched_for():
+    table = schema.TABLES[User]
+    assert table.identity == "email"
+    assert table.generated is False
+    assert table.references == {}
+    assert "email TEXT NOT NULL PRIMARY KEY" in schema.table_ddl(table)
+
+
+def test_a_log_entry_actor_is_not_a_foreign_key_to_a_user():
+    assert "actor" not in schema.TABLES[LogEntry].references
+    assert "REFERENCES user" not in schema.table_ddl(schema.TABLES[LogEntry])

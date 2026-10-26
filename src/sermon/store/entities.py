@@ -180,6 +180,12 @@ class Reviewer:
 
 
 @dataclass(frozen=True, kw_only=True)
+class User:
+    email: str
+    first_seen_at: datetime
+
+
+@dataclass(frozen=True, kw_only=True)
 class Notification:
     notification_id: int | None = None
     recording_id: str | None = None

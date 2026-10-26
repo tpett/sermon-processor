@@ -28,6 +28,7 @@ from sermon.store import (
     Store,
     StoredSchemaDiffers,
     UnstorableValue,
+    User,
     opens_store,
     vocabularies,
 )
@@ -46,6 +47,7 @@ IDENTITIES = {
     "discovery": "discovery_id",
     "corpus_pair": "corpus_pair_id",
     "reviewer": "actor",
+    "user": "email",
 }
 
 ENTITY_TYPES = {
@@ -62,6 +64,7 @@ ENTITY_TYPES = {
     "discovery": Discovery,
     "corpus_pair": CorpusPair,
     "reviewer": Reviewer,
+    "user": User,
 }
 
 CLOSED_COLUMNS = [
@@ -503,6 +506,7 @@ def graph(store):
         "discovery": store.saves(received_webhook()),
         "corpus_pair": store.saves(labelled_corpus_pair(recording, classification="lesson")),
         "reviewer": store.saves(configured_reviewer()),
+        "user": store.saves(User(email="pastor@reformation.example", first_seen_at=datetime(2026, 10, 26, 9, 0, tzinfo=UTC))),
     }
 
 
@@ -554,6 +558,7 @@ def test_the_remaining_entities_round_trip_with_only_their_required_fields(store
         "speaker_profile": store.saves(minimal_speaker_profile()),
         "corpus_pair": store.saves(machine_cut_corpus_pair(recording)),
         "reviewer": store.saves(Reviewer(actor="reviewer")),
+        "user": store.saves(User(email="pastor@reformation.example", first_seen_at=datetime(2026, 10, 26, 9, 0, tzinfo=UTC))),
     }
     assert {name: reloaded(store, saved, name) for name, saved in minimal.items()} == minimal
 

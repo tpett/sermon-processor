@@ -26,6 +26,7 @@ from .entities import (
     SkippedObject,
     SpeakerMatch,
     SpeakerProfile,
+    User,
 )
 
 COLUMN_TYPES = {
@@ -285,6 +286,12 @@ TABLES = {
             entity=Reviewer,
             name="reviewer",
             identity="actor",
+            generated=False,
+        ),
+        Table(
+            entity=User,
+            name="user",
+            identity="email",
             generated=False,
         ),
         Table(
