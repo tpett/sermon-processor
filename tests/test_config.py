@@ -13,6 +13,7 @@ from sermon.config import (
     TAILNET_HOST,
     VARIABLES,
     NOTIFICATION_CHANNEL,
+    SECRET_KEY,
     WEBHOOK_TOKEN,
     CloudflareAccess,
     Configuration,
@@ -367,3 +368,29 @@ def test_a_tailnet_host_that_is_not_a_bare_host_name_is_refused(host):
 
 def test_a_single_label_tailnet_host_is_a_host_name():
     assert configured(**ACCESS_ON, **{TAILNET_HOST: "sermon-processor"}).access.tailnet_host == "sermon-processor"
+
+
+SECRET_KEY_VALUE = "9d3b7c0e5a1f48c2b6e0d4a8f7c13e52a9b4d6f08e1c7a3b5d2f9e6c4a8b0d71"
+
+
+def test_the_session_secret_is_read_as_a_credential_and_is_optional():
+    assert configured().secret_key is None
+    assert configured(**{SECRET_KEY: ""}).secret_key is None
+    assert configured(**{SECRET_KEY: SECRET_KEY_VALUE}).secret_key == Credential(SECRET_KEY_VALUE)
+    assert SECRET_KEY not in VARIABLES
+
+
+def test_a_session_secret_too_short_to_sign_with_is_refused_without_being_printed():
+    with pytest.raises(UnusableConfiguration) as refused:
+        configured(**{SECRET_KEY: "hunter2hunter2"})
+    assert SECRET_KEY in str(refused.value) and "hunter2" not in str(refused.value)
+
+
+def test_a_session_secret_that_would_print_itself_is_refused():
+    with pytest.raises(UnusableConfiguration):
+        Configuration(
+            data_root=Path("/srv/sermons"),
+            object_store=object_store(),
+            model_endpoint=MODEL_ENDPOINT,
+            secret_key=SECRET_KEY_VALUE,
+        )
