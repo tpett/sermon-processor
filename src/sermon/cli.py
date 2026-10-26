@@ -101,6 +101,7 @@ from sermon.store import (
     opens_store,
 )
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
+from sermon.verifies_access_token import FetchesAccessKeys, HoldsAccessKeys, VerifiesAccessToken
 from sermon.web import creates_app
 from waitress import serve
 
@@ -619,9 +620,31 @@ def works(settings=None, arguments=None, prints=print, sleeps=time.sleep,
         store.close()
 
 
-def serves(settings=None, lists_objects=None, runs=starts, prints=print, builds_client=None):
+def verifies_access_from(configuration, fetches_keys=None):
+    if configuration.access is None:
+        return None
+    return VerifiesAccessToken(
+        access=configuration.access,
+        keys=HoldsAccessKeys(
+            fetches=fetches_keys or FetchesAccessKeys(url=configuration.access.keys_url)
+        ),
+    )
+
+
+def serves(
+    settings=None,
+    lists_objects=None,
+    runs=starts,
+    prints=print,
+    builds_client=None,
+    fetches_access_keys=None,
+):
     settings = resolves_settings() if settings is None else settings
-    opened = opens_or_reports(settings, lists_objects, prints)
+    try:
+        opened = opens_or_reports(settings, lists_objects, prints)
+    except UnusableConfiguration as refused:
+        prints(str(refused))
+        return 1
     if opened is None:
         return 1
     configuration, store, lists_objects = opened
@@ -630,6 +653,7 @@ def serves(settings=None, lists_objects=None, runs=starts, prints=print, builds_
         lists_objects=lists_objects,
         streams_object=streams_from(configuration, builds_client),
         webhook_token=configuration.webhook_token,
+        verifies_access=verifies_access_from(configuration, fetches_access_keys),
     )
     app.config["BIND_HOST"] = settings.get(BIND_HOST, app.config["BIND_HOST"])
     runs(app, app.config["BIND_HOST"], int(settings.get(PORT, DEFAULT_PORT)))

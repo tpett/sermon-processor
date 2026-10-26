@@ -885,3 +885,68 @@ def test_deriving_over_a_transcript_the_corpus_already_holds_is_refused(tmp_path
     ) == 1
     assert "never overwritten" in str(printed)
     assert held.read_text() == "the frozen baseline"
+
+
+ACCESS_SETTINGS = {
+    "SERMON_ACCESS_TEAM_DOMAIN": "reformation.cloudflareaccess.com",
+    "SERMON_ACCESS_AUD": "32eafc7626e974616f467e2d9e1ba0a3f3c1c5e0b2e9c2b8c1fd6d8e0d2d4a7b",
+    "SERMON_TAILNET_HOST": "sermon-processor.home.tpett.me",
+}
+
+
+def serves_behind_access(tmp_path, **overrides):
+    from signs_access_tokens import public_jwk, published_keys
+
+    asked = []
+
+    def fetches_keys():
+        asked.append("keys")
+        return published_keys(public_jwk())
+
+    runs = RecordsServer()
+    serves(
+        settings=settings_file(tmp_path, **{**ACCESS_SETTINGS, **overrides}),
+        lists_objects=bucket_holding().lists,
+        runs=runs,
+        fetches_access_keys=fetches_keys,
+    )
+    return runs, asked
+
+
+def test_a_served_app_with_access_configured_refuses_a_request_with_no_sign_in(tmp_path):
+    runs, _ = serves_behind_access(tmp_path)
+    refused = runs.app.test_client().get("/", headers={"Host": "sermon.example.org"})
+    assert refused.status_code == 401
+
+
+def test_a_served_app_with_access_configured_serves_a_valid_sign_in_and_names_it(tmp_path):
+    from signs_access_tokens import EMAIL, signed
+
+    runs, asked = serves_behind_access(tmp_path)
+    served = runs.app.test_client().get(
+        "/", headers={"Host": "sermon.example.org", "Cf-Access-Jwt-Assertion": signed()}
+    )
+    assert served.status_code == 200
+    assert EMAIL in served.get_data(as_text=True)
+    assert asked == ["keys"]
+
+
+def test_a_served_app_with_access_configured_serves_its_tailnet_host_without_one(tmp_path):
+    runs, asked = serves_behind_access(tmp_path)
+    served = runs.app.test_client().get("/", headers={"Host": ACCESS_SETTINGS["SERMON_TAILNET_HOST"]})
+    assert served.status_code == 200
+    assert asked == []
+
+
+def test_serving_with_only_half_of_access_configured_refuses_to_start_and_says_why(tmp_path):
+    runs = RecordsServer()
+    prints = RecordsLines()
+    outcome = serves(
+        settings=settings_file(tmp_path, SERMON_ACCESS_TEAM_DOMAIN="reformation.cloudflareaccess.com"),
+        lists_objects=bucket_holding().lists,
+        runs=runs,
+        prints=prints,
+    )
+    assert outcome == 1
+    assert runs.app is None
+    assert "SERMON_ACCESS_AUD" in str(prints)
