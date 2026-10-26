@@ -959,3 +959,8 @@ def _(store, segment):
         for step in NAMED_ZOOM_STEPS
     }
     assert readings == {formats_precise(SCRUBBED)}
+
+
+@given("I am editing the cut", target_fixture="editor_query")
+def _(segment):
+    return {"segment": segment.segment_id, "mode": "edit"}

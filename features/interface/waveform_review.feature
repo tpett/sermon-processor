@@ -35,6 +35,12 @@ Feature: Reviewing the waveform
   one a reviewer would otherwise have to infer from pixels, and it is exactly
   what the tail rule and the 250 ms clearance are about.
 
+  **All of this is the editor.** A Segment opens ready to review, with the whole
+  recording, the preview of the cut and a card for each seam, and none of the
+  controls below; they are one switch away (`segment_review.feature`, "Reviewing
+  comes first, and editing is one switch away"). So every scenario here begins
+  in the editor.
+
   One thing the exercise produced that deliberately does **not** appear here: it
   showed each boundary's distance from the known human cut. That was an
   instrument for judging the machine, and it has no counterpart in use — in
@@ -47,6 +53,7 @@ Feature: Reviewing the waveform
     And a Recording in state "awaiting_review" with waveform peak data
     And it is 3:12:00 long and contains 2 Segments
     And I have selected the Segment whose punch-in is "2:00:20" and punch-out is "2:43:32"
+    And I am editing the cut
 
   Rule: The waveform shows the whole recording and everything found in it
 
@@ -163,6 +170,9 @@ Feature: Reviewing the waveform
     @happy-path
     Scenario: Auditioning the whole cut
       # Q26 — more useful now: sampling is how I tell one Segment from another.
+      # With nothing removed from inside the cut it has two seams; each removed
+      # span adds a join between them (removed_spans.feature, "I can hear the
+      # cut as it stands before I approve it").
       When I choose to preview the cut
       Then I hear the last 5 seconds before the punch-in joined to the first 5 seconds after it
       And then the last 5 seconds before the punch-out joined to the first 5 seconds after it
@@ -175,7 +185,7 @@ Feature: Reviewing the waveform
       And only the region being played is fetched
       And playback begins within 2 seconds of pressing play
 
-  Rule: The overview and the detail view are both present, and linked
+  Rule: While editing, the overview and the detail view are both present, and linked
 
     @happy-path
     Scenario: The overview never moves

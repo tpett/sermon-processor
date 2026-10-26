@@ -49,3 +49,19 @@ def clicks_at_seconds(page, selector, seconds):
         box["x"] + box["width"] * (seconds - start) / across,
         box["y"] + box["height"] / 2,
     )
+
+
+def x_at_seconds(pane, seconds):
+    start = float(pane.get_attribute("data-window-start-seconds"))
+    across = float(pane.get_attribute("data-window-seconds"))
+    box = pane.bounding_box()
+    return box["x"] + box["width"] * (seconds - start) / across, box["y"] + box["height"] / 2
+
+
+def drags_between_seconds(page, selector, start_seconds, end_seconds):
+    """A real press, move and release across a pane, from one instant to another."""
+    pane = page.locator(selector)
+    page.mouse.move(*x_at_seconds(pane, start_seconds))
+    page.mouse.down()
+    page.mouse.move(*x_at_seconds(pane, end_seconds), steps=8)
+    page.mouse.up()

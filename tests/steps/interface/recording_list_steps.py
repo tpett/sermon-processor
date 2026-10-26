@@ -442,3 +442,38 @@ def _(store, day):
 def _(store, detail_page):
     assert reads_field(detail_page, "object-key")
     assert reads_field(detail_page, "state")
+
+
+@then("each row says its state in words:")
+def _(list_page, datatable):
+    rows = reads_rows(list_page, "recording")
+    said = {recorded_at: finds_row(rows, recorded_at)["state"] for recorded_at, _ in datatable[1:]}
+    wanted = {recorded_at: state for recorded_at, state in datatable[1:]}
+    assert said == wanted, said
+
+
+@then(parsers.parse('"{first}" and "{second}" are offered for review above the rest of the list'))
+def _(list_page, first, second):
+    waiting = reads_rows(list_page, "awaiting")
+    assert [row["recorded-at"] for row in waiting] == [first, second], waiting
+    assert list_page.index('data-row="awaiting"') < list_page.index('data-row="recording"')
+
+
+@then("each offers a control that opens it for review")
+def _(list_page):
+    waiting = reads_rows(list_page, "awaiting")
+    assert waiting
+    for row in waiting:
+        recording_id, _ = recording_id_from(row["recorded-at"])
+        assert row.get("review-control") == "Review", row
+        assert any(link.startswith(f"/recordings/{recording_id}") for link in row["links"]), row
+
+
+@then(
+    "the recordings are grouped by the week they were recorded in, newest week first:"
+)
+def _(list_page, datatable):
+    weeks = re.findall(r'data-week-heading="([0-9-]+)"', list_page)
+    rows = reads_rows(list_page, "recording")
+    grouped = [(week, sum(1 for row in rows if row.get("week-ending") == week)) for week in weeks]
+    assert grouped == [(week, int(count)) for week, count in datatable[1:]], grouped

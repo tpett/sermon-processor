@@ -26,7 +26,11 @@ Feature: The recordings list
       Then I see 5 recordings
       And each row shows the recording date and time
       And each row shows the source duration
-      And each row shows the current state
+      And each row says its state in words:
+        | recorded_at         | state           |
+        | 2026-08-23 10:29 AM | Awaiting review |
+        | 2026-08-09 10:29 AM | Published       |
+        | 2026-08-02 10:30 AM | Analysis failed |
       And each row summarises the Segments found inside it by classification
       And each row shows the confidence of its most publishable Segment
 
@@ -57,10 +61,30 @@ Feature: The recordings list
       And it is still visible in the list
       # Q36 — this is how practice stops costing a click every week.
 
+    @happy-path @stated
+    Scenario: What is waiting for me comes first
+      # The redesign the owner asked for on 2026-10-26: "the important things
+      # kind of get lost." What needs reviewing is the reason to open the list.
+      When I visit the recordings list
+      Then "2026-08-23 10:29 AM" and "2026-08-16 09:00 AM" are offered for review above the rest of the list
+      And each offers a control that opens it for review
+
     @happy-path
     Scenario: The newest recording is first
       When I visit the recordings list
       Then the recordings are ordered by recording date, newest first
+
+    @happy-path
+    Scenario: The list is grouped by week
+      # A week runs Monday to Sunday, so the Sunday service closes its week and
+      # a midweek meeting sits with the Sunday after it.
+      When I visit the recordings list
+      Then the recordings are grouped by the week they were recorded in, newest week first:
+        | week ending | recordings |
+        | 2026-08-23  | 1          |
+        | 2026-08-16  | 2          |
+        | 2026-08-09  | 1          |
+        | 2026-08-02  | 1          |
 
     @happy-path
     Scenario: Opening a recording

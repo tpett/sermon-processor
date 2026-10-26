@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 572 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 592 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 754 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 781 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -991,8 +991,61 @@ connection, plain connection, a claimed secure connection) became one, `The
 cookie always carries Secure, HttpOnly, SameSite=Lax and no Domain`, which also
 absorbed the three that stated the other attributes one at a time.
 
-Pins are now **36 files / 572 scenarios / 170 rules / 754 collected**, and
-`SPEC_STEPS` is 2434.
+Still on 2026-10-26 the owner asked for a design pass on the review screen:
+"The current version of the UI for this app is pretty busy and distracts from
+the main things: audio editing, approval, viewing the service order, and things
+like that. There's lots of other metadata that's nice but too prominent in the
+UI, and the important things kind of get lost. I would like to run a design pass
+on this through Claude Design and see if we can do a major cleanup and apply some
+nice polish to this application." They chose a dark, audio-tool feel. On the
+workflow: "My most common workflow when I come in here is that I hit Preview the
+whole cut. That's the button I hit first. If everything looks good, I hit Approve
+and Render. Otherwise, I'm going to dive into the other things. We can almost
+hide all the editing stuff unless I need to edit, and I can switch to editing
+mode." On the punch buttons: "I would like to de-emphasize the punch-in-here and
+punch-out-here buttons. I don't use that very often at all." On removal: "What is
+the intended workflow when somebody hits Mark Removal? Could we make it so you
+drag over an area on the waveform to create a selection, and then click a Remove
+button? It creates a removal that can be removed or reverted if you want." On
+previewing while editing: "In editing mode, it would still be good to be able to
+preview the cuts before marking editing as done, so you do not have to jump back
+into the editor if it's not quite right." And on a second kind of person: "This
+would actually function really well because I would like to have a read-only
+mode for this as well, where a user can only download and view recordings and
+can't actually make edits. If we design for both now, that makes it easy: they
+just don't get the edit button." Asked what someone signing in for the first time
+may do, they chose "View only until promoted", by a command on the server.
+
+`interface/segment_review.feature` gained the Rule `Reviewing comes first, and
+editing is one switch away` (six scenarios): a Segment opens ready to review,
+with the whole recording, the preview of the cut and a card per seam, and none of
+the editing controls; a switch opens the editor, an address can ask for it, the
+cut can be heard from inside it, finishing returns to the review, and the service
+order sits beside the cut either way. In the three-click Rule, `Preview in,
+preview out, approve` became `Preview the cut, then approve`, `The two previews
+are the primary controls` became `Previewing the whole cut is the primary
+control`, and a hard cut opens in the editor. The phone scenarios preview the
+whole cut and finish editing before approving. `waveform_review.feature`'s
+Background now says the reviewer is editing, since every control in it belongs to
+the editor, and its overview/detail Rule says so. `removed_spans.feature` gained
+`Removing a span selected on the waveform`, and its hearing Rule became `I can
+hear the cut as it stands before I approve it`, with three scenarios saying the
+preview plays every join of the current cut, follows a boundary just moved, and
+offers each seam on its own. `Punching a boundary in from beside the waveform`
+keeps its control but sets it back. `recording_detail.feature` puts the source,
+the evidence, the stages, the transcript and the recording-level actions behind
+one closed control that shows when there is a warning (one scenario).
+`recording_list.feature` says each state in words and adds `What is waiting for
+me comes first` and `The list is grouped by week`. `authentication.feature`
+gained the Rule `A person may look until the owner makes them a reviewer` (six
+scenarios, thirteen tests) and `Without a sign-in, the person at the browser can
+review`; the three scenarios where a signed-in person approves or skips now say
+that person is a reviewer. `DOMAIN.md` gained `User.role`. The dark theme is not
+in the spec: nothing a scenario could observe about it is behaviour. Twenty
+scenarios, two Rules, twenty-seven tests and ninety-nine steps were added.
+
+Pins are now **36 files / 592 scenarios / 172 rules / 781 collected**, and
+`SPEC_STEPS` is 2533.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

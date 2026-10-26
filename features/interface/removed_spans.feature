@@ -20,7 +20,12 @@ Feature: Removing spans from inside a segment
 
   A removed span runs from a fraction of a second to many minutes, so it is
   marked the two ways a boundary is: from the playhead, when the ear found it, or
-  by typing timecodes, when the reviewer already knows the numbers.
+  by typing timecodes, when the reviewer already knows the numbers. And, while
+  editing, by the way the eye finds it: "Could we make it so you drag over an
+  area on the waveform to create a selection, and then click a Remove button? It
+  creates a removal that can be removed or reverted if you want." -- the owner,
+  2026-10-26. A selection is not yet a removal; Remove makes it one, and putting
+  a span back is restoring it.
 
   Background:
     Given I am on the tailnet
@@ -57,6 +62,16 @@ Feature: Removing spans from inside a segment
       And I remove the span from "2:10:00.000" to "2:25:30.000"
       Then 2 spans are listed as removed, in the order they fall
       And the segment length reads "0:27:41.30"
+
+    @happy-path @stated
+    Scenario: Removing a span selected on the waveform
+      Given I am editing the cut
+      When I drag across the detail view from "2:00:21.400" to "2:00:22.100"
+      Then the selection reads "0.70 s" and offers to remove it
+      And no span is listed as removed
+      And neither boundary has moved
+      When I remove the selection
+      Then the span from "2:00:21.400" to "2:00:22.100" is listed as removed, lasting "0.70 s"
 
   Rule: A removed span can be put back
 
@@ -176,7 +191,43 @@ Feature: Removing spans from inside a segment
       When I approve the Segment
       Then the approval in the processing log carries the span from "2:00:21.400" to "2:00:22.100"
 
-  Rule: I can hear a join before I approve it
+  Rule: I can hear the cut as it stands before I approve it
+
+    # "In editing mode, it would still be good to be able to preview the cuts
+    # before marking editing as done" -- the owner, 2026-10-26. The preview is of
+    # the cut as it stands, so it follows every edit the moment it is made.
+
+    @happy-path @stated
+    Scenario: Previewing the cut plays each join in turn
+      Given the seekable preview has been rendered
+      And I have removed the span from "2:10:00.000" to "2:25:30.000"
+      When I choose to preview the cut
+      Then the preview of the cut plays, in order:
+        | seam    | the 5 seconds before | joined to the 5 seconds after |
+        | opening | 2:00:20.000          | 2:00:20.000                   |
+        | join    | 2:10:00.000          | 2:25:30.000                   |
+        | ending  | 2:43:32.000          | 2:43:32.000                   |
+
+    @happy-path @stated
+    Scenario: Previewing the cut follows a boundary I have just moved
+      Given the seekable preview has been rendered
+      And I have adjusted the punch-in to "2:00:16.500"
+      When I choose to preview the cut
+      Then the preview of the cut plays, in order:
+        | seam    | the 5 seconds before | joined to the 5 seconds after |
+        | opening | 2:00:16.500          | 2:00:16.500                   |
+        | ending  | 2:43:32.000          | 2:43:32.000                   |
+
+    @happy-path @stated
+    Scenario: Each seam can be heard on its own
+      Given the seekable preview has been rendered
+      And I have removed the span from "2:10:00.000" to "2:25:30.000"
+      When I open a proposed Segment
+      Then each seam of the cut can be heard on its own, in order:
+        | seam    | the 5 seconds before | joined to the 5 seconds after |
+        | opening | 2:00:20.000          | 2:00:20.000                   |
+        | join    | 2:10:00.000          | 2:25:30.000                   |
+        | ending  | 2:43:32.000          | 2:43:32.000                   |
 
     @happy-path @slow
     Scenario: Hearing a join as it will sound

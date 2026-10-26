@@ -41,7 +41,7 @@ SpeakerProfile ──N:M──▶ Segment (the Segments that enrolled the voice)
 SkippedObject                   (an object the reconciliation scan did not ingest)
 Discovery                       (a webhook received or a scan run, and what it found)
 Reviewer                        (the actor seam; whether they receive notifications)
-User                            (a person Cloudflare Access vouched for or the owner added; the name an action is recorded under)
+User                            (a person Cloudflare Access vouched for or the owner added; the name an action is recorded under, and a viewer or a reviewer)
 Credential                      (the salted hash of the password a User signs in with on the tailnet host)
 ```
 
@@ -366,14 +366,15 @@ vouched for them, or the owner added them with a password for the tailnet host.
 Created the first time either happens and found again on every later one, so a
 person is remembered once however often they sign in, and however they do
 ("A person is remembered once, however often they sign in", "The same person is
-one person however they signed in", `interface/authentication.feature`). Nothing
-here is attributed, permitted or refused by role: the record exists so an action
-can name who took it, and so a later rule can say who may.
+one person however they signed in", `interface/authentication.feature`). The
+record exists so an action can name who took it, and so the service can say who
+may change anything ("A person may look until the owner makes them a reviewer").
 
 | Field | Why it exists |
 | --- | --- |
 | `email` | The address inside the verified sign-in or the one the owner typed, lower-cased and trimmed — never one the request announced about itself ("A claimed email address is not a sign-in"). Identity, so there is one `User` per address. It is also what `LogEntry.actor` holds for an action that person took ("An approval records the person who made it", "An approval on the tailnet host records the person who signed in there"). |
 | `first_seen_at` | When that address first signed in or was added. Kept on every later sign-in. An instant, so it is refused without an offset. |
+| `role` | One of two: `viewer` or `reviewer`. Every `User` starts as a `viewer`, whether Access vouched for them or the owner added them ("A person signing in for the first time can only look", "A person the owner adds can only look until made a reviewer"), and becomes a `reviewer` only by the owner's command on the server ("The owner makes a person a reviewer"). A `viewer` is offered the preview and the downloads and nothing that changes a Recording, and every change they ask for is refused ("A viewer sees the cut and nothing that would change it", "A change a viewer asks for is refused", "A viewer can download what is finished"). Where no sign-in is configured there is no `User` and no role: whoever is at the browser reviews, as the `Reviewer` actor ("Without a sign-in, the person at the browser can review"). |
 
 **Nobody acts as nobody.** Every request to a service with sign-in required carries
 a real `User`: through Cloudflare Access it is the address in the verified token,

@@ -12,11 +12,23 @@ Feature: The recording detail view
       | lesson         | 0:00:00 – 1:05:20 | 0:04:10 – 1:03:55 | high       |
       | sermon         | 1:28:40 – 3:12:00 | 2:00:20 – 2:43:32 | high       |
 
-  Rule: The detail view explains the recording
+  Rule: The detail view leads with the cut, and explains the recording when asked
+
+    # "There's lots of other metadata that's nice but too prominent in the UI,
+    # and the important things kind of get lost." -- the owner, 2026-10-26. What
+    # the page leads with is the cut, its approval and the service order
+    # (segment_review.feature); the rest is behind one control.
+
+    @happy-path @stated
+    Scenario: The recording's details are closed until I open them
+      When I open the Recording detail view
+      Then the recording's details are closed
+      And why the cut was proposed, the analysis stages, the transcript, the source details and the recording-level actions are inside them
 
     @happy-path @measured
     Scenario: Viewing technical and source metadata
       When I open the Recording detail view
+      And I open the recording's details
       Then I see:
         | field              | value                                     |
         | Recorded at        | 2026-08-16 09:00 AM                       |
@@ -32,6 +44,7 @@ Feature: The recording detail view
       When I open the Recording detail view
       Then I see the clipping warning
       And it explains that this originates at the recorder and cannot be repaired here
+      And the control that opens the recording's details shows there is a warning
 
     @happy-path
     Scenario: Viewing the segments
@@ -70,6 +83,7 @@ Feature: The recording detail view
     Scenario Outline: Recording-level actions
       Given the Recording is in state "<state>"
       When I open the Recording detail view
+      And I open the recording's details
       Then the available recording-level actions are "<actions>"
 
       Examples:

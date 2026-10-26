@@ -106,31 +106,92 @@ Feature: Reviewing the segments in a recording
 
   Rule: The ordinary week is three clicks
 
-    @happy-path @measured
-    Scenario: Preview in, preview out, approve
+    @happy-path @measured @stated
+    Scenario: Preview the cut, then approve
       # Q75 — this is the workflow the whole system is aiming at: "if we can get
       # this to work 80% of the time, then it is just: hit play to preview the
       # punch-in, hit play to preview the punch-out, approve, and we are done."
+      #
+      # The two auditions became one: "My most common workflow when I come in
+      # here is that I hit Preview the whole cut. That's the button I hit first.
+      # If everything looks good, I hit Approve and Render." -- the owner,
+      # 2026-10-26. The preview plays every seam of the cut in turn.
       Given a Segment classified "sermon" whose cuts are both graded "easy"
-      When I preview the punch-in
-      And I preview the punch-out
+      When I choose to preview the cut
       And I approve
       Then the Segment is queued for processing
       And I did not have to open the waveform editor
 
-    @happy-path
-    Scenario: The two previews are the primary controls
+    @happy-path @stated
+    Scenario: Previewing the whole cut is the primary control
       When I open a proposed Segment
-      Then previewing the punch-in and previewing the punch-out are the most prominent actions
+      Then previewing the whole cut is the most prominent action
       And approving is available without any further step
       And boundary editing is available but not required
 
     @happy-path
     Scenario: A hard cut interrupts the three-click path
       Given a Segment whose punch-in is graded "hard"
-      When I open it
+      When I open a proposed Segment
       Then I am told the punch-in needs checking and why
+      And the page is ready to edit the cut
       And the waveform editor is opened ready for the adjustment
+
+  Rule: Reviewing comes first, and editing is one switch away
+
+    # "We can almost hide all the editing stuff unless I need to edit, and I can
+    # switch to editing mode." -- the owner, 2026-10-26, after "The current
+    # version of the UI for this app is pretty busy and distracts from the main
+    # things: audio editing, approval, viewing the service order, and things like
+    # that." A seam is a place the published audio jumps: the punch-in, the join
+    # across each removed span, and the punch-out.
+
+    @happy-path @stated
+    Scenario: A Segment opens ready to review
+      When I open a proposed Segment
+      Then the page is ready to review the cut
+      And the whole recording is shown with the Segment marked on it
+      And each seam of the cut has a card with the words either side and a control to hear just that seam
+      And the detail waveform, zoom, nudges, boundary timecodes and removal marking are not offered
+
+    @happy-path @stated
+    Scenario: Switching to editing
+      When I open a proposed Segment
+      And I switch to editing the cut
+      Then the page is ready to edit the cut
+      And the detail waveform, zoom, nudges, boundary timecodes and removal marking are offered
+      And approving waits until I am done editing
+
+    @happy-path
+    Scenario: Editing can be asked for by address
+      # A reload mid-edit, or a link to the editor at a zoom, lands in the editor
+      # rather than back at the review.
+      When I open a proposed Segment's editor by its address
+      Then the page is ready to edit the cut
+
+    @happy-path @stated
+    Scenario: The cut can be heard without leaving the editor
+      # "In editing mode, it would still be good to be able to preview the cuts
+      # before marking editing as done, so you do not have to jump back into the
+      # editor if it's not quite right." -- the owner, 2026-10-26.
+      When I open a proposed Segment
+      And I switch to editing the cut
+      Then previewing the whole cut and hearing each seam are offered beside the editor
+
+    @happy-path
+    Scenario: Finishing editing returns to the review
+      When I open a proposed Segment
+      And I switch to editing the cut
+      And I finish editing
+      Then the page is ready to review the cut
+      And approving is available without any further step
+
+    @happy-path @stated
+    Scenario: The service order sits beside the cut while reviewing and while editing
+      When I open a proposed Segment
+      Then the service order is shown beside the cut
+      When I switch to editing the cut
+      Then the service order is shown beside the cut
 
   Rule: The reviewer can tell segments apart without listening much
 
@@ -252,9 +313,9 @@ Feature: Reviewing the segments in a recording
       And a Segment whose cuts are both graded "easy"
       When I open the notification
       Then I can read the summary
-      And I can preview the punch-in and the punch-out
+      And I can preview the whole cut
       And I can approve
-      And the whole flow works without a waveform
+      And the whole flow works without opening the editor
 
     @happy-path @stated
     Scenario: A segment needing real editing can be edited on a phone
@@ -267,11 +328,14 @@ Feature: Reviewing the segments in a recording
       When I open it
       Then the waveform and the nudge controls are offered
       And the page fits the phone's width without scrolling sideways
-      And I can still skip it, or approve it as-is if I choose to
+      When I finish editing
+      Then I can still skip it, or approve it as-is if I choose to
 
     @happy-path
     Scenario: Desktop carries the full editor
       Given I am using a desktop browser
+      When I open a proposed Segment
+      And I switch to editing the cut
       Then the waveform, zooming, word alignment and nudge controls are all available
 
     @happy-path

@@ -6,9 +6,9 @@ from pytest_bdd import given, parsers, then, when
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.store import Job, Proposal, Recording, Segment
-from steps import _progress, _web
+from steps import _browser, _progress, _web
 from sermon.web import creates_app
-from steps._markup import reads_field, reads_pairs, reads_rows
+from steps._markup import reads_field, reads_pairs, reads_role, reads_rows
 
 READS = ReadsTimecode()
 RECORDER_LAG_SECONDS = 4
@@ -257,3 +257,60 @@ def _(store, detail_page):
     assert [row["action-control"] for row in drawn] == ["Create segment by hand"]
     recording = store.lists(Recording)[0]
     assert f"/recordings/{recording.recording_id}/actions/create-segment" in detail_page
+
+
+DETAILS_SECTIONS = ("why", "analysis", "transcript", "source", "actions")
+
+
+def opens_in_browser(store):
+    recording = store.lists(Recording)[0]
+    return _browser.opens_page(store), f"/recordings/{recording.recording_id}"
+
+
+@then("the recording's details are closed")
+def _(store):
+    opening, address = opens_in_browser(store)
+    with opening as page:
+        page.goto(address)
+        assert page.locator('[data-role="open-details"]').is_visible(), "nothing offers the details"
+        for section in DETAILS_SECTIONS:
+            shown = page.locator(f'[data-details-section="{section}"]')
+            assert shown.count() == 1, f"no {section} section in the details"
+            assert not shown.is_visible(), f"the {section} section shows before the details are opened"
+
+
+@then(
+    "why the cut was proposed, the analysis stages, the transcript, the source details "
+    "and the recording-level actions are inside them"
+)
+def _(store):
+    opening, address = opens_in_browser(store)
+    with opening as page:
+        page.goto(address)
+        details = page.locator('[data-role="recording-details"]')
+        assert details.count() == 1, "the page has no recording details"
+        inside = [
+            section
+            for section in DETAILS_SECTIONS
+            if details.locator(f'[data-details-section="{section}"]').count() == 1
+        ]
+        assert inside == list(DETAILS_SECTIONS), inside
+
+
+@when("I open the recording's details", target_fixture="detail_page")
+def _(store):
+    opening, address = opens_in_browser(store)
+    with opening as page:
+        page.goto(address)
+        control = page.locator('[data-role="open-details"]')
+        assert control.count() == 1, "nothing offers the details"
+        control.click()
+        page.locator('[data-details-section="source"]').wait_for(state="visible", timeout=5000)
+        return page.content()
+
+
+@then("the control that opens the recording's details shows there is a warning")
+def _(detail_page):
+    control = reads_role(detail_page, "open-details")
+    assert control is not None, "nothing offers the details"
+    assert control.get("warnings") == "1", control

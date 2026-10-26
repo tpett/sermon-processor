@@ -4,14 +4,14 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1568 step definitions read from `tests/steps`
+- 1612 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 567 non-deferred scenarios rest on at least one condemned step
-- 9 of 746 expanded scenario tests likewise
+- 9 of 587 non-deferred scenarios rest on at least one condemned step
+- 9 of 773 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
-- 49 Gherkin steps matched more than one definition
+- 50 Gherkin steps matched more than one definition
 - 238 Gherkin steps matched no definition
 
 ## Faults by kind
@@ -66,19 +66,19 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/ingestion/s3_reconciliation_steps.py` | 38 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 39 | 0 | sound |
 | `tests/steps/interface/approval_steps.py` | 50 | 0 | sound |
-| `tests/steps/interface/authentication_steps.py` | 85 | 0 | sound |
+| `tests/steps/interface/authentication_steps.py` | 99 | 0 | sound |
 | `tests/steps/interface/cut_light_steps.py` | 4 | 0 | sound |
 | `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
-| `tests/steps/interface/playback_steps.py` | 10 | 0 | sound |
+| `tests/steps/interface/playback_steps.py` | 11 | 0 | sound |
 | `tests/steps/interface/proposal_display_steps.py` | 1 | 0 | sound |
 | `tests/steps/interface/publication_details_steps.py` | 18 | 0 | sound |
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
-| `tests/steps/interface/punch_point_adjustment_steps.py` | 43 | 0 | sound |
-| `tests/steps/interface/recording_detail_steps.py` | 25 | 0 | sound |
-| `tests/steps/interface/recording_list_steps.py` | 39 | 0 | sound |
-| `tests/steps/interface/removed_spans_steps.py` | 27 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 58 | 0 | sound |
-| `tests/steps/interface/waveform_steps.py` | 103 | 0 | sound |
+| `tests/steps/interface/punch_point_adjustment_steps.py` | 45 | 0 | sound |
+| `tests/steps/interface/recording_detail_steps.py` | 29 | 0 | sound |
+| `tests/steps/interface/recording_list_steps.py` | 43 | 0 | sound |
+| `tests/steps/interface/removed_spans_steps.py` | 32 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 71 | 0 | sound |
+| `tests/steps/interface/waveform_steps.py` | 104 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
 | `tests/steps/notifications/analysis_notification_steps.py` | 24 | 0 | sound |
@@ -246,53 +246,53 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/publication_details.feature:83 then the two output files do not collide`
 - `interface/publication_details.feature:91 then the output file is named from the recording date`
 - `interface/publication_details.feature:92 then I am not prompted for anything else`
-- `interface/punch_point_adjustment.feature:129 then the punch-in moves to the nearest silence gap boundary`
-- `interface/punch_point_adjustment.feature:130 then the amount it moved is shown`
-- `interface/punch_point_adjustment.feature:146 then I am warned that the cut is too close to the audio`
-- `interface/punch_point_adjustment.feature:147 then I am offered the nearest point with a 250 ms margin`
-- `interface/punch_point_adjustment.feature:148 then I can override the warning if I mean it`
-- `interface/punch_point_adjustment.feature:160 given the teaching begins with "good morning"`
-- `interface/punch_point_adjustment.feature:162 then the punch-in lands immediately before "good morning"`
-- `interface/recording_detail.feature:62 when I expand the processing log`
-- `interface/recording_detail.feature:63 then I see each state transition with its timestamp`
-- `interface/recording_detail.feature:64 then I see each job attempt, including retries and failures`
-- `interface/recording_detail.feature:65 then I see who performed each human action, against which Segment`
-- `interface/segment_review.feature:155 when I press Preview on a Segment`
-- `interface/segment_review.feature:156 then playback starts at the cue excerpt of its seeding Block`
-- `interface/segment_review.feature:157 then I can tell whether this is the message I meant to publish`
-- `interface/segment_review.feature:175 then the Segment most likely to be the sermon is expanded by default`
-- `interface/segment_review.feature:176 then the others are collapsed but visible`
-- `interface/segment_review.feature:197 then I am told which enrolled voice is teaching, and how confidently`
-- `interface/segment_review.feature:198 then an unrecognised voice is shown as "not a known voice"`
-- `interface/segment_review.feature:202 given a Segment whose teaching voice matches no enrolled profile`
-- `interface/segment_review.feature:203 given its intent is "publish"`
-- `interface/segment_review.feature:205 then I am asked to confirm that this recording may be distributed`
-- `interface/segment_review.feature:206 then the confirmation is recorded with the approval`
-- `interface/segment_review.feature:215 when I confirm or correct who was preaching`
-- `interface/segment_review.feature:216 then that Segment strengthens or creates that speaker's profile`
-- `interface/segment_review.feature:217 then no separate enrolment session is ever required`
-- `interface/segment_review.feature:238 given a Recording in "awaiting_review" containing 0 Segments`
-- `interface/segment_review.feature:240 then I am told nothing was detected`
-- `interface/segment_review.feature:241 then I can create a Segment by hand`
-- `interface/segment_review.feature:242 then I can discard the Recording in one action`
-- `interface/segment_review.feature:252 given a Segment whose cuts are both graded "easy"`
-- `interface/segment_review.feature:253 when I open the notification`
-- `interface/segment_review.feature:254 then I can read the summary`
-- `interface/segment_review.feature:255 then I can preview the punch-in and the punch-out`
-- `interface/segment_review.feature:256 then I can approve`
-- `interface/segment_review.feature:257 then the whole flow works without a waveform`
-- `interface/segment_review.feature:275 then the waveform, zooming, word alignment and nudge controls are all available`
-- `interface/segment_review.feature:280 when a Segment is complete`
-- `interface/segment_review.feature:281 then I can download the MP3`
+- `interface/punch_point_adjustment.feature:139 then the punch-in moves to the nearest silence gap boundary`
+- `interface/punch_point_adjustment.feature:140 then the amount it moved is shown`
+- `interface/punch_point_adjustment.feature:156 then I am warned that the cut is too close to the audio`
+- `interface/punch_point_adjustment.feature:157 then I am offered the nearest point with a 250 ms margin`
+- `interface/punch_point_adjustment.feature:158 then I can override the warning if I mean it`
+- `interface/punch_point_adjustment.feature:170 given the teaching begins with "good morning"`
+- `interface/punch_point_adjustment.feature:172 then the punch-in lands immediately before "good morning"`
+- `interface/recording_detail.feature:75 when I expand the processing log`
+- `interface/recording_detail.feature:76 then I see each state transition with its timestamp`
+- `interface/recording_detail.feature:77 then I see each job attempt, including retries and failures`
+- `interface/recording_detail.feature:78 then I see who performed each human action, against which Segment`
+- `interface/segment_review.feature:216 when I press Preview on a Segment`
+- `interface/segment_review.feature:217 then playback starts at the cue excerpt of its seeding Block`
+- `interface/segment_review.feature:218 then I can tell whether this is the message I meant to publish`
+- `interface/segment_review.feature:236 then the Segment most likely to be the sermon is expanded by default`
+- `interface/segment_review.feature:237 then the others are collapsed but visible`
+- `interface/segment_review.feature:258 then I am told which enrolled voice is teaching, and how confidently`
+- `interface/segment_review.feature:259 then an unrecognised voice is shown as "not a known voice"`
+- `interface/segment_review.feature:263 given a Segment whose teaching voice matches no enrolled profile`
+- `interface/segment_review.feature:264 given its intent is "publish"`
+- `interface/segment_review.feature:266 then I am asked to confirm that this recording may be distributed`
+- `interface/segment_review.feature:267 then the confirmation is recorded with the approval`
+- `interface/segment_review.feature:276 when I confirm or correct who was preaching`
+- `interface/segment_review.feature:277 then that Segment strengthens or creates that speaker's profile`
+- `interface/segment_review.feature:278 then no separate enrolment session is ever required`
+- `interface/segment_review.feature:299 given a Recording in "awaiting_review" containing 0 Segments`
+- `interface/segment_review.feature:301 then I am told nothing was detected`
+- `interface/segment_review.feature:302 then I can create a Segment by hand`
+- `interface/segment_review.feature:303 then I can discard the Recording in one action`
+- `interface/segment_review.feature:313 given a Segment whose cuts are both graded "easy"`
+- `interface/segment_review.feature:314 when I open the notification`
+- `interface/segment_review.feature:315 then I can read the summary`
+- `interface/segment_review.feature:316 then I can preview the whole cut`
+- `interface/segment_review.feature:317 then I can approve`
+- `interface/segment_review.feature:318 then the whole flow works without opening the editor`
+- `interface/segment_review.feature:339 then the waveform, zooming, word alignment and nudge controls are all available`
+- `interface/segment_review.feature:344 when a Segment is complete`
+- `interface/segment_review.feature:345 then I can download the MP3`
 - `interface/segment_review.feature:94 given Segment 1 was skipped on "2026-08-16"`
 - `interface/segment_review.feature:95 when I open the Recording on "2026-11-04" and approve Segment 1`
 - `interface/segment_review.feature:96 then it is processed using its stored boundaries`
 - `interface/segment_review.feature:97 then Analysis does not need to run again`
 - `interface/segment_review.feature:98 then the resulting MP3 is identical to what it would have been in August`
-- `interface/waveform_review.feature:329 given the configured model endpoint does not answer`
-- `interface/waveform_review.feature:330 then reviewing, adjusting and approving continue to work`
-- `interface/waveform_review.feature:331 then only the actions that need a model are shown as unavailable`
-- `interface/waveform_review.feature:332 then the reason names the endpoint rather than blaming the Recording`
+- `interface/waveform_review.feature:339 given the configured model endpoint does not answer`
+- `interface/waveform_review.feature:340 then reviewing, adjusting and approving continue to work`
+- `interface/waveform_review.feature:341 then only the actions that need a model are shown as unavailable`
+- `interface/waveform_review.feature:342 then the reason names the endpoint rather than blaming the Recording`
 - `notifications/approval_notifications.feature:46 then delivering a Notification is separate from creating one`
 - `notifications/approval_notifications.feature:47 then adding or changing a channel does not change when Notifications are raised`
 - `notifications/approval_notifications.feature:48 then the same Notification can be delivered by more than one channel`

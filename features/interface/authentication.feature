@@ -34,6 +34,14 @@ Feature: Access control
   ways in are secure connections in use, and a scheme guessed from what a client
   can send is not something to rest that on.
 
+  Settled 2026-10-26, a third time: who is signed in also decides what they may
+  do. "I would like to have a read-only mode for this as well, where a user can
+  only download and view recordings and can't actually make edits. If we design
+  for both now, that makes it easy: they just don't get the edit button." Asked
+  what a person signing in for the first time may do, the owner chose "View only
+  until promoted": everyone is a viewer until the owner makes them a reviewer
+  with a command on the server.
+
   Sign-in is a deployment setting. Where it is not configured, which is every
   scenario that does not begin by saying sign-in is required, the tailnet is the
   whole perimeter and nothing is in the way.
@@ -473,6 +481,7 @@ Feature: Access control
     @stated
     Scenario: An approval records the person who made it
       Given sign-in is required
+      And "pastor@reformation.example" is a reviewer
       When "pastor@reformation.example" approves a Segment from outside the tailnet
       Then the approval is recorded against "pastor@reformation.example"
 
@@ -480,6 +489,7 @@ Feature: Access control
     Scenario: An approval on the tailnet host records the person who signed in there
       Given sign-in is required
       And "pastor@reformation.example" has the password "correct horse battery"
+      And "pastor@reformation.example" is a reviewer
       And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
       When I approve a Segment on the tailnet host
       Then the approval is recorded against "pastor@reformation.example"
@@ -488,6 +498,7 @@ Feature: Access control
     Scenario: A Segment skipped on the tailnet host records the person who signed in there
       Given sign-in is required
       And "pastor@reformation.example" has the password "correct horse battery"
+      And "pastor@reformation.example" is a reviewer
       And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
       When I skip a Segment on the tailnet host
       Then the skip is recorded against "pastor@reformation.example"
@@ -505,7 +516,81 @@ Feature: Access control
       When I present a valid sign-in for "pastor@reformation.example" from outside the tailnet
       Then the page does not offer to sign out
 
+  Rule: A person may look until the owner makes them a reviewer
+
+    @stated
+    Scenario: A person signing in for the first time can only look
+      Given sign-in is required
+      When I present a valid sign-in for "visitor@reformation.example" from outside the tailnet
+      Then the page says I can look but not change anything
+
+    @stated
+    Scenario: A person the owner adds can only look until made a reviewer
+      Given sign-in is required
+      When the owner adds "elder@reformation.example" with the password "an elder's passphrase"
+      And I sign in on the tailnet host as "elder@reformation.example" with "an elder's passphrase"
+      Then the page says I can look but not change anything
+
+    @stated
+    Scenario: The owner makes a person a reviewer
+      Given sign-in is required
+      And "elder@reformation.example" has the password "an elder's passphrase"
+      When the owner makes "elder@reformation.example" a reviewer
+      And I sign in on the tailnet host as "elder@reformation.example" with "an elder's passphrase"
+      And I approve a Segment on the tailnet host
+      Then the owner is told "elder@reformation.example" is now a reviewer
+      And the approval is recorded against "elder@reformation.example"
+
+    @stated
+    Scenario: A viewer sees the cut and nothing that would change it
+      Given sign-in is required
+      And the seekable preview has been rendered
+      And "visitor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "visitor@reformation.example" with "correct horse battery"
+      When I open a proposed Segment on the tailnet host
+      Then the page offers the preview of the cut and each of its seams
+      And the page offers no switch to editing, no approval, no skip and no recording-level action
+
+    @stated
+    Scenario: A viewer can download what is finished
+      Given sign-in is required
+      And a Segment in state "complete" from a Recording dated "2026-08-23"
+      And "visitor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "visitor@reformation.example" with "correct horse battery"
+      When I open the finished Segment on the tailnet host
+      Then the page offers its MP3 and the original recording to download
+      And the MP3 it offers is served to me
+
+    @stated
+    Scenario Outline: A change a viewer asks for is refused
+      # Hiding the controls is the courtesy; refusing the request is the rule.
+      Given sign-in is required
+      And "visitor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "visitor@reformation.example" with "correct horse battery"
+      When I ask to <change> on the tailnet host
+      Then I am refused because I can only look
+      And nothing about the Recording has changed
+
+      Examples:
+        | change                    |
+        | approve a Segment         |
+        | skip a Segment            |
+        | move the punch-in         |
+        | remove a span             |
+        | reclassify a Segment      |
+        | rename the Recording      |
+        | discard the Recording     |
+        | re-run analysis           |
+
   Rule: Without a sign-in configured, the network is the boundary
+
+    @happy-path
+    Scenario: Without a sign-in, the person at the browser can review
+      # Nobody is identified, so nobody can be a viewer; actions are still
+      # recorded as "reviewer" (the next Rule).
+      Given I am on the tailnet
+      When I open a proposed Segment
+      Then the page offers a switch to editing and the approval
 
     @happy-path
     Scenario Outline: Every page is reachable without signing in

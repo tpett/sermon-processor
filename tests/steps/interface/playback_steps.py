@@ -115,3 +115,10 @@ def _(store, segment):
     positions = [page.find(f'data-role="preview-{which}"') for which in ("punch-in", "punch-out")]
     assert min(positions) > 0
     assert max(positions) < page.find('data-row="action"')
+
+
+@given("the seekable preview has been rendered")
+def _(store, recording):
+    from steps import _audio
+
+    _audio.registers_preview(store, recording)

@@ -824,3 +824,149 @@ def _(page_response):
 def _(page_response):
     page = page_response.get_data(as_text=True)
     assert 'data-field="sign-out"' not in page and "/logout" not in page
+
+
+VIEW_ONLY = "View only"
+
+
+def asks_as_viewer(sign_in, segment):
+    recording_path = f"/recordings/{segment.recording_id}"
+    segment_path = f"{recording_path}/segments/{segment.segment_id}"
+    return {
+        "approve a Segment": (f"{segment_path}/approve", {}),
+        "skip a Segment": (f"{segment_path}/skip", {}),
+        "move the punch-in": (f"{segment_path}/boundaries/punch-in", {"do": "set", "timecode": "2:00:30.000"}),
+        "remove a span": (
+            f"{segment_path}/removed-spans",
+            {"do": "remove", "from": "2:01:00.000", "to": "2:01:01.000"},
+        ),
+        "reclassify a Segment": (f"{segment_path}/classify", {"classification": "lesson"}),
+        "rename the Recording": (f"{recording_path}/actions/retitle", {"title": "Renamed by a viewer"}),
+        "discard the Recording": (f"{recording_path}/actions/discard", {"confirm": "yes"}),
+        "re-run analysis": (f"{recording_path}/actions/re-run-analysis", {}),
+    }
+
+
+def holds_everything(store):
+    from sermon.store import Job, Segment
+
+    return (
+        repr(store.lists(Recording)),
+        repr(store.lists(Segment)),
+        repr(store.lists(LogEntry)),
+        repr(store.lists(Job)),
+    )
+
+
+def offers_mp3(store, segment):
+    return f"/api/artifacts/{store.lists(Artifact, segment_id=segment.segment_id, kind='rendered_mp3')[0].path}"
+
+
+@given(parsers.parse('"{email}" is a reviewer'))
+def _(tmp_path, sign_in, email):
+    SignsInUser(store=sign_in.store, clock=sign_in.now)(email)
+    made = owner_runs(tmp_path, ["promote", email], None)
+    assert made["outcome"] == 0, made["said"]
+
+
+@when(parsers.parse('the owner makes "{email}" a reviewer'), target_fixture="owner_says")
+def _(tmp_path, sign_in, email):
+    return owner_runs(tmp_path, ["promote", email], None)
+
+
+@then(parsers.parse('the owner is told "{email}" is now a reviewer'))
+def _(owner_says, email):
+    assert owner_says["outcome"] == 0, owner_says["said"]
+    assert f"{email} is now a reviewer" in owner_says["said"], owner_says["said"]
+
+
+@then("the page says I can look but not change anything")
+def _(page_response):
+    from steps._markup import reads_field
+
+    assert page_response.status_code == 200, page_response.status_code
+    said = reads_field(page_response.get_data(as_text=True), "access")
+    assert said == VIEW_ONLY, f"the page says {said!r} about what I may do"
+
+
+@when("I open a proposed Segment on the tailnet host", target_fixture="page_response")
+def _(sign_in, segment):
+    assert segment.state == "proposed", segment.state
+    return sign_in.client().get(
+        f"/recordings/{segment.recording_id}?segment={segment.segment_id}",
+        headers={"Host": TAILNET_HOST, **BROWSER},
+    )
+
+
+@then("the page offers the preview of the cut and each of its seams")
+def _(page_response):
+    from steps._markup import reads_role, reads_rows
+
+    page = page_response.get_data(as_text=True)
+    assert page_response.status_code == 200, page_response.status_code
+    assert reads_role(page, "preview-cut") is not None, "the page offers no preview of the cut"
+    seams = reads_rows(page, "seam")
+    assert seams and all(seam.get("hear-seam-control") for seam in seams), seams
+
+
+@then("the page offers no switch to editing, no approval, no skip and no recording-level action")
+def _(page_response):
+    from steps._markup import reads_rows
+
+    page = page_response.get_data(as_text=True)
+    assert page_response.status_code == 200, page_response.status_code
+    assert 'data-role="edit-the-cut"' not in page, "a viewer is offered the switch to editing"
+    assert reads_rows(page, "segment-action") == [], reads_rows(page, "segment-action")
+    assert reads_rows(page, "action") == [], reads_rows(page, "action")
+    assert re.search(r'<form\b[^>]*method="post"[^>]*action="/recordings/', page) is None
+
+
+@when("I open the finished Segment on the tailnet host", target_fixture="page_response")
+def _(sign_in, segment):
+    return sign_in.client().get(
+        f"/recordings/{segment.recording_id}?segment={segment.segment_id}",
+        headers={"Host": TAILNET_HOST, **BROWSER},
+    )
+
+
+@then("the page offers its MP3 and the original recording to download")
+def _(store, segment, page_response):
+    from steps._markup import reads_field, reads_links
+
+    page = page_response.get_data(as_text=True)
+    assert page_response.status_code == 200, page_response.status_code
+    assert reads_field(page, "mp3-download")
+    assert offers_mp3(store, segment) in reads_links(page)
+    assert reads_field(page, "source-download")
+
+
+@then("the MP3 it offers is served to me")
+def _(store, sign_in, segment):
+    served = sign_in.client().get(offers_mp3(store, segment), headers={"Host": TAILNET_HOST})
+    assert served.status_code == 200, served.status_code
+    assert served.data == b"mp3-stub-bytes"
+
+
+@when(parsers.parse("I ask to {change} on the tailnet host"), target_fixture="page_response")
+def _(store, sign_in, segment, change):
+    path, form = asks_as_viewer(sign_in, segment)[change]
+    sign_in.held_before = holds_everything(store)
+    return sign_in.client().post(path, data=form, headers=tailnet(**BROWSER))
+
+
+@then("I am refused because I can only look")
+def _(page_response):
+    assert page_response.status_code == 403, page_response.status_code
+
+
+@then("nothing about the Recording has changed")
+def _(store, sign_in):
+    assert holds_everything(store) == sign_in.held_before
+
+
+@then("the page offers a switch to editing and the approval")
+def _(detail_page):
+    from steps._markup import reads_rows
+
+    assert 'data-role="edit-the-cut"' in detail_page, "the page offers no switch to editing"
+    assert "Approve" in [row["action"] for row in reads_rows(detail_page, "segment-action")]

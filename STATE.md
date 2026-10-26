@@ -1,3 +1,32 @@
+## Review-first redesign and the viewer role, specified (2026-10-26, tpett/ai/ui-redesign-spec)
+
+Off master 6dfdbe5. Spec only, uncommitted, for the owner to review; nothing is
+implemented.
+
+- A Segment opens in review: the whole recording, "Preview the cut" (every seam,
+  current cut, removed spans included), a card per seam, approve and skip. The
+  editor (detail waveform, zoom, nudges, timecodes, removal marking, set-back
+  punch controls, drag-to-select then Remove) is one switch away, opens directly
+  for a hard punch-in or an address with `mode=edit`, previews the cut itself, and
+  "Done editing" returns to review, which is where approval is offered.
+- Source, evidence, stages, transcript and recording-level actions sit behind
+  one closed details control that shows a warning count. The list leads with
+  what awaits review, groups by week (Monday to Sunday), and says each state in
+  words.
+- `User.role`: `viewer` until the owner runs a promote command (the step
+  definitions assume `sermon-user promote <email>`); a viewer sees the preview and
+  the downloads, every change they post is refused 403. Without sign-in nothing
+  changes. The three existing approve/skip attribution scenarios now promote
+  their person first, so they are red until the role exists.
+- Pins 36 / 592 / 172 / 781, 2533 steps. Theme is deliberately not specified.
+  The step definitions pin a markup contract implementers may revise:
+  `data-role="cut-view" data-mode`, `edit-the-cut` / `done-editing` links,
+  `data-row="seam"` cards, `preview-cut data-seams="before:after,..."`,
+  `recording-details` / `open-details data-warnings` / `data-details-section`,
+  `data-row="awaiting"`, `data-week-heading` / `data-week-ending`,
+  `data-field="access"` reading "View only", `data-emphasis` on punch rows and
+  the preview.
+
 ## Password sign-in on the tailnet host (2026-10-26, tpett/ai/tailnet-login)
 
 Off master ee8645d. Unmerged, undeployed, not run behind Caddy or Cloudflare.

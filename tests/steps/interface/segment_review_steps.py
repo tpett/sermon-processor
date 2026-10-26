@@ -1,4 +1,5 @@
 import re
+from html import unescape
 from dataclasses import replace
 from datetime import UTC, datetime
 
@@ -611,3 +612,119 @@ def _(store, segment, device):
             assert control.is_visible(), f"{action} is not offered on this device"
             box = control.bounding_box()
             assert box["x"] >= 0 and box["x"] + box["width"] <= device["viewport"]["width"], box
+
+
+EDITING_CONTROLS = {
+    "the detail waveform": 'data-role="detail"',
+    "zoom": 'data-role="zoom"',
+    "nudges": 'data-field="nudge-control"',
+    "boundary timecodes": 'data-row="boundary"',
+    "removal marking": 'data-role="removal"',
+}
+
+
+def reads_mode(page):
+    view = reads_role(page, "cut-view")
+    assert view is not None, "the page marks no cut view as reviewing or editing"
+    return view.get("mode")
+
+
+def follows(store, page, role):
+    control = re.search(rf'<a\b[^>]*data-role="{role}"[^>]*>', page)
+    assert control, f"the page offers no {role} control"
+    href = re.search(r'href="([^"]*)"', control.group(0))
+    assert href, f"the {role} control leads nowhere"
+    return creates_app(store=store).test_client().get(unescape(href.group(1))).get_data(as_text=True)
+
+
+def opens_editor(store, segment):
+    return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id, mode="edit")
+
+
+@then("previewing the whole cut is the most prominent action")
+def _(detail_page):
+    preview = reads_role(detail_page, "preview-cut")
+    assert preview is not None, "the page offers no preview of the whole cut"
+    assert preview.get("emphasis") == "primary", preview
+    approving = 'data-field="action-control">Approve'
+    assert detail_page.index('data-role="preview-cut"') < detail_page.index(approving)
+
+
+@then("the page is ready to review the cut")
+def _(detail_page):
+    assert reads_mode(detail_page) == "review"
+
+
+@then("the page is ready to edit the cut")
+def _(detail_page):
+    assert reads_mode(detail_page) == "edit"
+
+
+@then("the whole recording is shown with the Segment marked on it")
+def _(detail_page):
+    assert 'data-role="overview-canvas"' in detail_page
+    assert 'data-role="highlighted-cut"' in detail_page
+
+
+@then(
+    "each seam of the cut has a card with the words either side and a control to hear just that seam"
+)
+def _(detail_page):
+    seams = reads_rows(detail_page, "seam")
+    assert [seam["seam"] for seam in seams] == ["opening", "ending"], seams
+    for seam in seams:
+        assert seam.get("words-before") and seam.get("words-after"), seam
+        assert seam.get("hear-seam-control"), seam
+
+
+@then("the detail waveform, zoom, nudges, boundary timecodes and removal marking are not offered")
+def _(detail_page):
+    offered = [name for name, mark in EDITING_CONTROLS.items() if mark in detail_page]
+    assert offered == [], f"offered while reviewing: {offered}"
+
+
+@then("the detail waveform, zoom, nudges, boundary timecodes and removal marking are offered")
+def _(detail_page):
+    missing = [name for name, mark in EDITING_CONTROLS.items() if mark not in detail_page]
+    assert missing == [], f"missing while editing: {missing}"
+
+
+@when("I switch to editing the cut", target_fixture="detail_page")
+def _(store, detail_page):
+    return follows(store, detail_page, "edit-the-cut")
+
+
+@when("I finish editing", target_fixture="detail_page")
+def _(store, segment):
+    return follows(store, opens_editor(store, segment), "done-editing")
+
+
+@when("I open a proposed Segment's editor by its address", target_fixture="detail_page")
+def _(store, segment):
+    assert segment.state == "proposed", segment.state
+    return opens_editor(store, segment)
+
+
+@then("approving waits until I am done editing")
+def _(detail_page):
+    offered = [row["action"] for row in reads_rows(detail_page, "segment-action")]
+    assert "Approve" not in offered, offered
+    assert 'data-role="done-editing"' in detail_page
+
+
+@then("previewing the whole cut and hearing each seam are offered beside the editor")
+def _(detail_page):
+    assert 'data-role="detail"' in detail_page
+    assert reads_role(detail_page, "preview-cut") is not None
+    seams = reads_rows(detail_page, "seam")
+    assert seams and all(seam.get("hear-seam-control") for seam in seams), seams
+
+
+@then("the service order is shown beside the cut")
+def _(store, recording, detail_page):
+    assert reads_role(detail_page, "cut-view") is not None
+    order = detail_page.split('data-role="service-order"', 1)
+    assert len(order) == 2, "the page shows no service order"
+    shown = [row["block-type"] for row in reads_rows(order[1], "block")]
+    stored = sorted(store.lists(Block, recording_id=recording.recording_id), key=lambda b: b.start_seconds)
+    assert shown == [block.type for block in stored]

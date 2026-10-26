@@ -3,13 +3,14 @@ from html import unescape
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.pipeline.render import probe_format
 from sermon.shows_recording import formats_precise
 from sermon.store import LogEntry, Recording, Segment, layout
-from steps import _analysis, _forms, _rendering, _web
+from steps import _analysis, _browser, _forms, _rendering, _web
 from steps._markup import reads_field, reads_role, reads_rows
 
 READS = ReadsTimecode()
@@ -270,3 +271,67 @@ def _(store, recording, join):
     source = store.resolves(store.loads(Recording, recording.recording_id))
     loud = _rendering.peak_db(source, *_rendering.isolated_peak_window())
     assert _rendering.peak_db(join["path"]) <= loud - PEAK_MARGIN_DB
+
+
+SEAM_COLUMNS = ("seam", "the 5 seconds before", "joined to the 5 seconds after")
+
+
+@pytest.fixture
+def editor(store):
+    with _browser.opens_page(store) as page:
+        yield page
+
+
+def wanted_seams(datatable):
+    assert tuple(datatable[0]) == SEAM_COLUMNS, datatable[0]
+    return [(seam, READS(before), READS(after)) for seam, before, after in datatable[1:]]
+
+
+@when(
+    parsers.parse('I drag across the detail view from "{start}" to "{end}"'),
+    target_fixture="detail_page",
+)
+def _(store, segment, editor, editor_query, start, end):
+    middle = (READS(start) + READS(end)) / 2
+    editor.goto(
+        f"/recordings/{segment.recording_id}?segment={editor_query['segment']}"
+        f"&mode={editor_query['mode']}&zoom=three+seconds&centre={middle}"
+    )
+    _browser.drags_between_seconds(editor, '[data-role="detail"]', READS(start), READS(end))
+    return editor.content()
+
+
+@then(parsers.parse('the selection reads "{lasting}" and offers to remove it'))
+def _(editor, lasting):
+    shown = editor.locator('[data-field="selection-length"]')
+    assert shown.count() == 1, "the page shows no selection"
+    assert shown.inner_text().strip() == lasting
+    assert editor.locator('[data-role="remove-selection"]').is_visible()
+
+
+@when("I remove the selection", target_fixture="detail_page")
+def _(editor):
+    with editor.expect_navigation():
+        editor.locator('[data-role="remove-selection"]').click()
+    return editor.content()
+
+
+@then("the preview of the cut plays, in order:")
+def _(store, segment, datatable):
+    page = opens(store, segment)
+    preview = reads_role(page, "preview-cut")
+    assert preview is not None, "the page offers no preview of the cut"
+    joins = [pair.split(":") for pair in (preview.get("seams") or "").split(",") if pair]
+    played = [(float(before), float(after)) for before, after in joins]
+    assert played == [(before, after) for _, before, after in wanted_seams(datatable)], played
+
+
+@then("each seam of the cut can be heard on its own, in order:")
+def _(detail_page, datatable):
+    seams = reads_rows(detail_page, "seam")
+    offered = [
+        (seam["seam"], float(seam["before-seconds"]), float(seam["after-seconds"]))
+        for seam in seams
+        if seam.get("hear-seam-control")
+    ]
+    assert offered == wanted_seams(datatable), seams

@@ -1,4 +1,6 @@
+import re
 from dataclasses import replace
+from html import unescape
 from datetime import UTC, datetime
 
 import pytest
@@ -11,6 +13,7 @@ from sermon.analysis.io import writes_json
 from sermon.store import Block, LogEntry, Proposal, Recording, Segment, opens_store
 from steps._markup import reads_field, reads_rows
 from steps._peaks import writes_peaks, writes_utterances
+from sermon.web import creates_app
 from steps import _browser, _web
 from steps._interface_honesty import holds
 
@@ -486,3 +489,19 @@ def _(detail_page):
         for row in rows
     ]
     assert all(beside < at < lower for at in placed)
+
+
+@then("the punch controls are set back rather than offered as primary actions")
+def _(detail_page):
+    rows = reads_rows(detail_page, "punch-point")
+    assert [row["boundary"] for row in rows] == ["punch-in", "punch-out"]
+    assert all(row.get("emphasis") == "secondary" for row in rows), rows
+
+
+@then("I can still switch to editing and trim it if I want to")
+def _(store, segment):
+    page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    switch = re.search(r'<a\b[^>]*data-role="edit-the-cut"[^>]*href="([^"]*)"', page)
+    assert switch, "the page offers no switch to editing"
+    editing = creates_app(store=store).test_client().get(unescape(switch.group(1))).get_data(as_text=True)
+    assert [row["boundary"] for row in reads_rows(editing, "boundary")] == ["punch-in", "punch-out"]

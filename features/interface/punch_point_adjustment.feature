@@ -29,6 +29,10 @@ Feature: Adjusting a segment's punch points
   moves the punch-in or the punch-out will not trust any of it, and the failure is
   silent — the wrong boundary moves by 50 ms and nothing says so.
 
+  Every control here belongs to the editor, which a Segment opens without; the
+  reviewer switches to it (`segment_review.feature`, "Reviewing comes first, and
+  editing is one switch away").
+
   Nothing here is destructive. An adjustment saves itself without being approved
   and survives a reload, the machine's proposal stays available to return to, and
   a later re-analysis offers its new proposal beside the reviewer's work rather
@@ -106,16 +110,22 @@ Feature: Adjusting a segment's punch points
       And I set the punch-in to the current playhead position
       Then the punch-in becomes "2:00:18.400"
 
-    @happy-path
+    @happy-path @stated
     Scenario: Punching a boundary in from beside the waveform
       # Asked for directly: a "quick punch-in/out button available by the
       # waveform (not burried in a lower card)". The behaviour is the playhead
       # one above; what was missing is that reaching it meant leaving the
       # waveform, and the ear that found the moment is already there.
+      #
+      # Then, once it was there: "I would like to de-emphasize the
+      # punch-in-here and punch-out-here buttons. I don't use that very often at
+      # all." -- the owner, 2026-10-26. So it stays beside the waveform and
+      # stops competing with the preview.
       When I play to "2:00:18.400"
       And I punch the punch-in in from beside the waveform
       Then the punch-in becomes "2:00:18.400"
       And a punch control for each boundary sits beside the waveform rather than in a lower card
+      And the punch controls are set back rather than offered as primary actions
 
     @happy-path
     Scenario: Setting a boundary from the transcript
@@ -270,4 +280,4 @@ Feature: Adjusting a segment's punch points
       When I open it
       Then the boundary controls are collapsed
       And I am told the whole span will be kept
-      And I can still expand the controls and trim it if I want to
+      And I can still switch to editing and trim it if I want to
