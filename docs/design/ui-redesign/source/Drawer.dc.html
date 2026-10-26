@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recording details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--bg:#0d0f12;--panel:#14171b;--raised:#1b1f24;--line:#262b31;--line2:#343a42;--text:#e7e9ec;--muted:#9aa3ad;--accent:#5cc8e0;--warn:#f0b450;--bad:#ef7b78;--mono:'JetBrains Mono',ui-monospace,monospace;box-sizing:border-box;width:100%;min-height:960px;height:100%;overflow:auto;background:var(--panel);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;border-left:1px solid var(--line)">
+
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 14px 20px;border-bottom:1px solid var(--line)">
+    <h2 style="margin:0;font-size:15px;font-weight:600;flex:1">Details</h2>
+    <button type="button" onClick="{{ close }}" aria-label="Close details" style="width:36px;height:36px;border-radius:8px;border:0;background:transparent;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+
+  <div style="margin:16px 20px 4px;padding:10px 12px;border-radius:8px;background:rgba(240,180,80,0.10);font-size:13px;color:#f6d29a">
+    <strong style="color:var(--warn)">Source clipping detected.</strong> This comes from the recorder and can’t be repaired here.
+  </div>
+
+  <div style="padding:8px 0">
+    <sc-for list="{{ sections }}" as="s" hint-placeholder-count="6">
+      <section style="border-bottom:1px solid var(--line)">
+        <button type="button" onClick="{{ s.toggle }}" aria-expanded="{{s.expanded}}" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 20px;min-height:52px;border:0;background:transparent;color:var(--text);text-align:left;font:inherit;cursor:pointer">
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:14px;font-weight:600">{{s.title}}</span>
+            <span style="display:block;font-size:12px;color:var(--muted)">{{s.summary}}</span>
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted);transform:{{s.rot}}"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{ s.isWhy }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:12px">
+            <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+              <sc-for list="{{ why }}" as="w" hint-placeholder-count="4">
+                <div style="padding:8px 10px;border-radius:8px;background:var(--bg)">
+                  <dt style="font-size:11px;color:var(--muted)">{{w.k}}</dt>
+                  <dd style="margin:0;font-size:13px;font-weight:600">{{w.v}}</dd>
+                </div>
+              </sc-for>
+            </dl>
+            <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ evidence }}" as="e" hint-placeholder-count="3">
+                <li style="display:grid;grid-template-columns:72px 1fr;gap:8px;font-size:13px">
+                  <button type="button" style="border:0;background:none;padding:0;text-align:left;font-family:var(--mono);font-size:12px;color:var(--accent);cursor:pointer">{{e.at}}</button>
+                  <span>{{e.text}}</span>
+                </li>
+              </sc-for>
+            </ol>
+            <div style="font-size:12px;color:var(--muted)">Other punch-in candidates:
+              <button type="button" style="margin-left:4px;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);background:var(--raised);color:var(--text);font-family:var(--mono);font-size:12px;cursor:pointer">1:02:12.9</button>
+              <button type="button" style="margin-left:4px;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);background:var(--raised);color:var(--text);font-family:var(--mono);font-size:12px;cursor:pointer">1:02:36.4</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s.isAnalysis }}" hint-placeholder-val="{{ false }}">
+          <ol style="list-style:none;margin:0;padding:0 20px 16px;display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ stages }}" as="g" hint-placeholder-count="9">
+              <li style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
+                <span>{{g.name}}</span><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">{{g.took}}</span>
+              </li>
+            </sc-for>
+          </ol>
+        </sc-if>
+        <sc-if value="{{ s.isTranscript }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <p style="margin:0"><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">1:02:15 </span>Good morning. If you have your Bibles, turn with me to Hebrews thirteen. We’re going to look at verses seven and eight…</p>
+            <button type="button" style="align-self:flex-start;border:0;background:none;padding:0;color:var(--accent);font-size:13px;cursor:pointer">Show the whole recording’s transcript</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s.isSource }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 20px 16px">
+            <dl style="margin:0;display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:13px">
+              <sc-for list="{{ source }}" as="r" hint-placeholder-count="5">
+                <dt style="color:var(--muted)">{{r.k}}</dt><dd style="margin:0;font-family:var(--mono);font-size:12px;overflow-wrap:anywhere">{{r.v}}</dd>
+              </sc-for>
+            </dl>
+            <a href="#" style="display:inline-block;margin-top:10px;color:var(--accent);font-size:13px">Download the original</a>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s.isActions }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 20px 16px;display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ actions }}" as="a" hint-placeholder-count="6">
+              <button type="button" style="min-height:36px;padding:0 12px;border-radius:8px;border:1px solid {{a.ring}};background:transparent;color:{{a.fg}};font-size:13px;cursor:pointer">{{a.label}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"onClose":{"editor":null},"viewer":{"editor":"boolean","default":false},"$preview":{"width":440,"height":960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: 0 };
+  }
+  renderVals() {
+    const defs = [
+      ['why', 'Why this cut', 'Classification high · punch-in moderate'],
+      ['analysis', 'Analysis', 'Complete · 9 stages · 14 min 37 s'],
+      ['transcript', 'Transcript', 'This segment and the whole recording'],
+      ['source', 'Source', 'FLAC · 48 kHz · stereo · 1.41 GB'],
+      ['actions', 'Recording actions', 'Re-run, create, split, merge, archive, discard'],
+    ].filter((d) => !(this.props.viewer && d[0] === 'actions'));
+    const sections = defs.map((d, i) => {
+      const on = this.state.open === i;
+      return {
+        title: d[1], summary: d[2], expanded: String(on), rot: on ? 'rotate(180deg)' : 'none',
+        isWhy: on && d[0] === 'why', isAnalysis: on && d[0] === 'analysis', isTranscript: on && d[0] === 'transcript',
+        isSource: on && d[0] === 'source', isActions: on && d[0] === 'actions',
+        toggle: () => this.setState({ open: on ? -1 : i })
+      };
+    });
+    return {
+      sections,
+      close: this.props.onClose ?? (() => {}),
+      why: [
+        { k: 'Classification', v: 'High' }, { k: 'Boundaries', v: 'Medium' },
+        { k: 'Punch-in', v: 'Moderate' }, { k: 'Punch-out', v: 'Easy' }
+      ],
+      evidence: [
+        { at: '1:02:15.0', text: 'First word after 2.4 s without speech' },
+        { at: '1:02:15.0', text: 'Speaker changes from the worship leader' },
+        { at: '1:44:36.5', text: '“Let’s pray” closes the message' }
+      ],
+      stages: [
+        { name: 'Transcription', took: '8m 41s' }, { name: 'Diarization', took: '3m 10s' },
+        { name: 'Waveform', took: '9s' }, { name: 'Blocking', took: '2s' },
+        { name: 'Classification', took: '41s' }, { name: 'Summarization', took: '52s' },
+        { name: 'Proposal and refinement', took: '1s' }, { name: 'Preview', took: '6s' },
+        { name: 'Titling', took: '4s' }
+      ],
+      source: [
+        { k: 'Recorded at', v: '2026-10-26 09:00:12' }, { k: 'Duration', v: '2:14:06' },
+        { k: 'File size', v: '1.41 GB' }, { k: 'Format', v: 'FLAC · 48 kHz · 2 ch' },
+        { k: 'Object key', v: 'recordings/recording_20261026_090012.flac' }
+      ],
+      actions: [
+        { label: 'Re-run analysis', ring: 'var(--line2)', fg: 'var(--text)' },
+        { label: 'Create a segment', ring: 'var(--line2)', fg: 'var(--text)' },
+        { label: 'Split', ring: 'var(--line2)', fg: 'var(--text)' },
+        { label: 'Merge', ring: 'var(--line2)', fg: 'var(--text)' },
+        { label: 'Archive whole recording', ring: 'var(--line2)', fg: 'var(--text)' },
+        { label: 'Discard recording', ring: 'rgba(239,123,120,0.5)', fg: 'var(--bad)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recordings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0d0f12}
+a{color:#7fd6ea}a:hover{color:#b5ecf7}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="--bg:#0d0f12;--panel:#14171b;--raised:#1b1f24;--line:#262b31;--line2:#343a42;--text:#e7e9ec;--muted:#9aa3ad;--accent:#5cc8e0;--accent-ink:#06222a;--warn:#f0b450;--bad:#ef7b78;--mono:'JetBrains Mono',ui-monospace,monospace;min-height:980px;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45">
+
+  <header style="display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap">
+    <h1 style="margin:0;font-size:17px;font-weight:600;flex:1">Recordings</h1>
+    <button type="button" style="display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:transparent;font-size:13px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+      Scan the bucket
+    </button>
+    <a href="#" aria-label="Notifications, 2 unread" style="position:relative;width:36px;height:36px;border-radius:8px;border:1px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;color:var(--text)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 01-3.4 0"></path></svg>
+      <span style="position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">2</span>
+    </a>
+    <button type="button" aria-label="Signed in" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);background:var(--raised);display:inline-flex;align-items:center;justify-content:center;color:var(--muted)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+    </button>
+  </header>
+
+  <main style="max-width:1080px;margin:0 auto;padding:28px 24px 48px;display:flex;flex-direction:column;gap:28px">
+
+    <section aria-label="Needs your review" style="display:flex;flex-direction:column;gap:10px">
+      <h2 style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Needs your review</h2>
+      <a href="Main.dc.html" style="display:flex;align-items:center;gap:20px;padding:18px 20px;border-radius:12px;background:var(--panel);border:1px solid var(--line2);color:var(--text);text-decoration:none;flex-wrap:wrap">
+        <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Sunday Service - Hebrews 13:7-8</div>
+            <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">Sun 26 Oct · 09:00 · 2:14:06</div>
+          </div>
+          <div style="position:relative;display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px">
+            <sc-for list="{{ bands }}" as="b" hint-placeholder-count="12">
+              <div style="width:{{b.width}};background:{{b.color}};opacity:{{b.op}}"></div>
+            </sc-for>
+          </div>
+          <div style="font-size:13px;color:var(--muted)"><span style="color:#7fb08c;font-weight:600">Sermon</span> proposed · 1:02:14 – 1:44:38 · 42:23</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:700">
+          Review
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </span>
+      </a>
+    </section>
+
+    <section aria-label="All recordings" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div role="group" aria-label="Kind" style="display:inline-flex;padding:3px;border-radius:8px;background:var(--panel);border:1px solid var(--line);flex-wrap:wrap">
+          <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="5">
+            <button type="button" onClick="{{ k.pick }}" aria-pressed="{{k.on}}" style="min-height:32px;padding:0 12px;border:0;border-radius:6px;background:{{k.bg}};color:{{k.fg}};font-size:13px;font-weight:500">{{k.label}}</button>
+          </sc-for>
+        </div>
+        <div style="flex:1"></div>
+        <label style="position:relative;flex:0 1 260px">
+          <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Find a recording</span>
+          <input type="search" placeholder="Find a recording" style="box-sizing:border-box;width:100%;min-height:36px;padding:0 12px 0 34px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa3ad" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position:absolute;left:12px;top:11px"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        </label>
+      </div>
+
+      <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column">
+          <h3 style="margin:8px 0 6px;font-size:12px;font-weight:600;color:var(--muted)">{{w.label}}</h3>
+          <ol style="list-style:none;margin:0;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--panel);overflow:hidden">
+            <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">
+              <li style="border-top:1px solid {{r.sep}}">
+                <sc-if value="{{ r.quiet }}" hint-placeholder-val="{{ false }}">
+                  <a href="#" style="display:flex;align-items:center;gap:16px;padding:6px 16px;color:var(--muted);text-decoration:none;font-size:12px;opacity:0.75">
+                    <span style="width:92px;font-family:var(--mono)">{{r.day}} {{r.time}}</span>
+                    <span style="flex:1">Silence or noise</span>
+                    <span style="font-family:var(--mono)">{{r.dur}}</span>
+                  </a>
+                </sc-if>
+                <sc-if value="{{ r.loud }}" hint-placeholder-val="{{ true }}">
+                  <a href="#" style="display:flex;align-items:center;gap:16px;padding:12px 16px;min-height:44px;color:var(--text);text-decoration:none;flex-wrap:wrap">
+                    <span style="width:92px;display:flex;flex-direction:column;font-family:var(--mono);font-size:12px">
+                      <span>{{r.day}}</span><span style="color:var(--muted)">{{r.time}}</span>
+                    </span>
+                    <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
+                      <span style="display:flex;align-items:center;gap:8px;min-width:0">
+                        <span style="font-size:14px;font-weight:{{r.weight}};color:{{r.titleColor}};overflow-wrap:anywhere">{{r.title}}</span>
+                        <span style="flex:none;padding:1px 6px;border-radius:4px;border:1px solid var(--line2);font-family:var(--mono);font-size:11px;color:var(--muted)">{{r.tag}}</span>
+                      </span>
+                      <span style="display:flex;gap:6px;flex-wrap:wrap">
+                        <sc-for list="{{ r.segs }}" as="s" hint-placeholder-count="1">
+                          <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:6px;height:6px;border-radius:2px;background:{{s.color}}"></span>{{s.label}}</span>
+                        </sc-for>
+                      </span>
+                    </span>
+                    <span style="width:64px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted)">{{r.dur}}</span>
+                    <span style="width:150px;display:inline-flex;align-items:center;gap:7px;font-size:13px;color:{{r.stColor}}">
+                      <span style="width:7px;height:7px;border-radius:50%;background:{{r.stColor}}"></span>{{r.status}}
+                    </span>
+                  </a>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ol>
+        </div>
+      </sc-for>
+
+      <nav aria-label="Pages" style="display:flex;justify-content:center;gap:16px;font-size:13px;color:var(--muted);padding-top:6px">
+        <span>Page 1 of 4</span><a href="#">Older recordings</a>
+      </nav>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 0 };
+  }
+  renderVals() {
+    const C = { sermon: '#7fb08c', lesson: '#7fb08c', meeting: '#c9b37a', music: '#a796c4', prayer: '#7fa3c4', scripture: '#d9a860', communion: '#c081a0', announcements: '#8a857c', other: '#7c766d' };
+    const TOTAL = 8046;
+    const raw = [[0, 'other'], [760, 'music'], [1085, 'announcements'], [1470, 'music'], [2470, 'prayer'], [2815, 'scripture'], [3140, 'music'], [3734.5, 'sermon'], [6278, 'prayer'], [6430, 'communion'], [7125, 'music'], [7710, 'other']];
+    const bands = raw.map((b, i) => {
+      const end = i + 1 < raw.length ? raw[i + 1][0] : TOTAL;
+      return { width: ((end - b[0]) / TOTAL * 100).toFixed(2) + '%', color: C[b[1]], op: b[1] === 'sermon' ? 1 : 0.45 };
+    });
+    const ST = {
+      review: ['Awaiting review', 'var(--warn)'], analysing: ['Analysing · 62%', 'var(--accent)'],
+      published: ['Published', 'var(--muted)'], archived: ['Archived', 'var(--muted)'],
+      nothing: ['Nothing to publish', 'var(--muted)'], failed: ['Ingest failed', 'var(--bad)']
+    };
+    const row = (day, time, title, tag, dur, st, segs, quiet) => ({
+      day, time, title, tag, dur, quiet: !!quiet, loud: !quiet, segs: segs || [],
+      status: ST[st] ? ST[st][0] : '', stColor: ST[st] ? ST[st][1] : 'var(--muted)',
+      weight: st === 'review' || st === 'failed' ? 600 : 500,
+      titleColor: title.startsWith('Untitled') ? 'var(--muted)' : 'var(--text)'
+    });
+    const weeks = [
+      { label: 'This week', rows: [
+        row('Sun 26', '18:02', 'Untitled recording', '—', '1:31:44', 'analysing'),
+        row('Sun 26', '12:29', '', '', '10:42', '', null, true),
+        row('Sun 26', '09:00', 'Sunday Service - Hebrews 13:7-8', 'Service', '2:14:06', 'review', [{ color: C.sermon, label: 'Sermon · proposed' }]),
+        row('Sun 26', '08:15', 'Pre-Service Rehearsal', 'Rehearsal', '41:20', 'nothing')
+      ] },
+      { label: 'Week of 19 Oct', rows: [
+        row('Sun 19', '12:31', '', '', '11:05', '', null, true),
+        row('Sun 19', '09:00', 'Theological Equipping Class - Giving, then Sunday Service - Hebrews 13:1-6', 'TEC', '3:02:18', 'published', [{ color: C.lesson, label: 'TEC - Giving (lesson)' }, { color: C.sermon, label: 'Hebrews 13.1-6' }]),
+        row('Wed 15', '19:00', 'Members Meeting - Budget', 'Meeting', '1:12:40', 'archived', [{ color: C.meeting, label: 'Meeting · archived' }])
+      ] },
+      { label: 'Week of 12 Oct', rows: [
+        row('Sun 12', '10:58', 'Culture and Theology - Islam', 'CT', '58:12', 'published', [{ color: C.lesson, label: 'CT-Islam' }]),
+        row('Sun 12', '09:00', 'Sunday Service - Hebrews 12:25-29', 'Service', '2:09:51', 'published', [{ color: C.sermon, label: 'Hebrews 12.25-29' }]),
+        row('Sun 5', '09:00', 'Untitled recording', '—', '—', 'failed')
+      ] }
+    ];
+    weeks.forEach((w) => w.rows.forEach((r, i) => { r.sep = i === 0 ? 'transparent' : 'var(--line)'; }));
+    const kl = ['All', 'Services', 'Classes', 'Meetings', 'Rehearsals'];
+    const kinds = kl.map((label, i) => ({ label, on: String(this.state.kind === i), bg: this.state.kind === i ? 'var(--raised)' : 'transparent', fg: this.state.kind === i ? 'var(--text)' : 'var(--muted)', pick: () => this.setState({ kind: i }) }));
+    return { bands, weeks, kinds };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review a recording</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0d0f12}
+a{color:#7fd6ea}a:hover{color:#b5ecf7}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="--bg:#0d0f12;--panel:#14171b;--raised:#1b1f24;--line:#262b31;--line2:#343a42;--text:#e7e9ec;--muted:#9aa3ad;--accent:{{accent}};--accent-ink:#06222a;--warn:#f0b450;--mono:'JetBrains Mono',ui-monospace,monospace;position:relative;min-height:960px;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45">
+
+  <header style="display:flex;align-items:center;gap:16px;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap">
+    <a href="List.dc.html" style="display:flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;min-height:44px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+      Recordings
+    </a>
+    <div style="width:1px;height:28px;background:var(--line)"></div>
+    <div style="flex:1 1 320px;min-width:0">
+      <h1 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sunday Service - Hebrews 13:7-8</h1>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">Sun 26 Oct 2026 · 09:00 · 2:14:06</div>
+    </div>
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:{{status.bg}};color:{{status.fg}};font-size:12px;font-weight:600">
+      <span style="width:6px;height:6px;border-radius:50%;background:{{status.fg}}"></span>{{status.label}}
+    </span>
+    <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}">
+      <div role="radiogroup" aria-label="Mode" style="display:inline-flex;padding:3px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
+        <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+          <button type="button" role="radio" aria-checked="{{m.on}}" onClick="{{ m.pick }}" style="display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border:0;border-radius:6px;background:{{m.bg}};color:{{m.fg}};font-size:13px;font-weight:500">{{m.label}}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ viewer }}" hint-placeholder-val="{{ false }}">
+      <span style="padding:4px 10px;border-radius:999px;border:1px solid var(--line2);font-size:12px;color:var(--muted)">View only</span>
+    </sc-if>
+    <button type="button" onClick="{{ toggleDetails }}" style="display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:{{detailsBg}};font-size:13px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path></svg>
+      Details
+      <span style="min-width:18px;height:18px;border-radius:9px;background:rgba(240,180,80,0.18);color:var(--warn);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span>
+    </button>
+    <button type="button" aria-label="Signed in" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);background:var(--raised);display:inline-flex;align-items:center;justify-content:center;color:var(--muted)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+    </button>
+  </header>
+
+  <div style="flex:1;display:flex;flex-wrap:wrap;align-items:stretch">
+
+    <nav aria-label="Service order" style="flex:0 1 264px;min-width:240px;border-right:1px solid var(--line);background:var(--panel);padding:16px 0">
+      <h2 style="margin:0 16px 10px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Service order</h2>
+      <ol style="list-style:none;margin:0;padding:0">
+        <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="12">
+          <li style="margin:0">
+            <button type="button" style="width:100%;display:grid;grid-template-columns:4px 56px 1fr;gap:10px;align-items:start;text-align:left;padding:8px 16px;min-height:44px;border:0;background:{{b.bg}};border-left:2px solid {{b.edge}}">
+              <span style="width:4px;height:30px;border-radius:2px;background:{{b.color}}"></span>
+              <span style="font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:1px">{{b.at}}</span>
+              <span style="min-width:0">
+                <span style="display:block;font-size:13px;font-weight:{{b.weight}};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{b.name}}</span>
+                <span style="display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{b.note}}</span>
+              </span>
+            </button>
+          </li>
+        </sc-for>
+      </ol>
+    </nav>
+
+    <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px;padding:20px">
+
+      <section aria-label="Whole recording" style="display:flex;flex-direction:column;gap:6px">
+        <div style="position:relative;height:14px;font-family:var(--mono);font-size:11px;color:var(--muted)">
+          <sc-for list="{{ overviewTicks }}" as="t" hint-placeholder-count="9">
+            <span style="position:absolute;left:{{t.left}};transform:translateX(-50%)">{{t.label}}</span>
+          </sc-for>
+        </div>
+        <div style="position:relative;height:{{overviewH}};border-radius:6px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+          <div style="position:absolute;inset:6px 0;display:flex;align-items:center;gap:1px">
+            <sc-for list="{{ overview }}" as="b" hint-placeholder-count="240">
+              <div style="flex:1 1 0;min-width:1px;height:{{b.h}};background:{{b.c}};border-radius:1px"></div>
+            </sc-for>
+          </div>
+          <div style="position:absolute;top:0;bottom:0;left:{{seg.left}};width:{{seg.width}};border-left:2px solid var(--accent);border-right:2px solid var(--accent);background:rgba(92,200,224,0.08)"></div>
+          <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:0;bottom:0;left:{{seg.window}};width:6px;margin-left:-3px;border:1px solid #ffffff;border-radius:2px"></div>
+          </sc-if>
+        </div>
+        <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;gap:1px">
+          <sc-for list="{{ bands }}" as="b" hint-placeholder-count="12">
+            <div title="{{b.name}}" style="width:{{b.width}};background:{{b.color}}"></div>
+          </sc-for>
+        </div>
+      </section>
+
+      <sc-if value="{{ reviewing }}" hint-placeholder-val="{{ true }}">
+        <section aria-label="The cut" style="display:flex;flex-direction:column;gap:18px;padding:22px;border-radius:12px;background:var(--panel);border:1px solid var(--line)">
+          <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div style="flex:1 1 300px;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+                <span style="width:8px;height:8px;border-radius:2px;background:#7fb08c"></span>Sermon
+              </div>
+              <h2 style="margin:2px 0 4px;font-size:24px;font-weight:600;letter-spacing:-0.02em">Hebrews 13.7-8</h2>
+              <div style="font-family:var(--mono);font-size:13px;color:var(--muted)">1:02:14.5 → 1:44:38.0 · 42:22.7 · {{removedNote}}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="display:flex;align-items:center;gap:10px;min-width:150px">
+                <span aria-hidden="true" style="width:12px;height:12px;border-radius:50%;background:{{lamp.c}};box-shadow:{{lamp.glow}}"></span>
+                <span style="font-size:12px;color:var(--muted)">{{lamp.text}}</span>
+              </div>
+              <button type="button" onClick="{{ togglePreview }}" style="display:inline-flex;align-items:center;gap:10px;min-height:52px;padding:0 22px 0 18px;border-radius:26px;border:0;background:var(--text);color:var(--bg);font-size:15px;font-weight:700">
+                <sc-if value="{{ previewing }}" hint-placeholder-val="{{ false }}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+                </sc-if>
+                <sc-if value="{{ notPreviewing }}" hint-placeholder-val="{{ true }}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>
+                </sc-if>
+                Preview the cut
+              </button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+            <sc-for list="{{ seams }}" as="s" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:var(--bg);border:1px solid {{s.ring}}">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:13px;font-weight:600;flex:1">{{s.name}}</span>
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--muted)">{{s.at}}</span>
+                </div>
+                <div style="position:relative;height:56px">
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;gap:1px">
+                    <sc-for list="{{ s.bars }}" as="b" hint-placeholder-count="60">
+                      <div style="flex:1 1 0;min-width:1px;height:{{b.h}};background:{{b.c}};border-radius:1px"></div>
+                    </sc-for>
+                  </div>
+                  <div style="position:absolute;top:-2px;bottom:-2px;left:50%;width:2px;margin-left:-1px;background:{{s.line}}"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+                  <span style="color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl">{{s.before}}</span>
+                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{s.after}}</span>
+                </div>
+                <button type="button" style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:6px;border:1px solid var(--line2);background:transparent;font-size:12px">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>
+                  {{s.hear}}
+                </button>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:12px;padding-top:4px;border-top:1px solid var(--line);flex-wrap:wrap">
+              <span style="font-size:13px;color:var(--muted);flex:1;padding-top:12px">Something off? Adjust the punch points or remove a span.</span>
+              <button type="button" onClick="{{ toEdit }}" style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:8px;border:1px solid var(--line2);background:transparent;font-size:13px;font-weight:600">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path></svg>
+                Edit the cut
+              </button>
+            </div>
+          </sc-if>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+        <section aria-label="Detail editor" style="display:flex;flex-direction:column;border-radius:10px;background:var(--panel);border:1px solid var(--line);overflow:hidden">
+          <div style="position:relative;height:16px;margin:10px 0 0;font-family:var(--mono);font-size:11px;color:var(--muted)">
+            <sc-for list="{{ detailTicks }}" as="t" hint-placeholder-count="6">
+              <span style="position:absolute;left:{{t.left}};transform:translateX(-50%)">{{t.label}}</span>
+            </sc-for>
+          </div>
+          <div style="position:relative;height:240px;margin-top:6px;cursor:text">
+            <div style="position:absolute;top:0;bottom:0;left:0;width:{{cut.inLeft}};background:rgba(0,0,0,0.35)"></div>
+            <sc-for list="{{ removedMarks }}" as="r" hint-placeholder-count="1">
+              <div style="position:absolute;top:0;bottom:0;left:{{r.left}};width:{{r.width}};background:repeating-linear-gradient(135deg,rgba(240,180,80,0.16) 0 6px,rgba(240,180,80,0.04) 6px 12px);border-left:1px dashed var(--warn);border-right:1px dashed var(--warn)"></div>
+            </sc-for>
+            <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;top:0;bottom:0;left:{{sel.left}};width:{{sel.width}};background:rgba(92,200,224,0.20);border-left:2px solid var(--accent);border-right:2px solid var(--accent)"></div>
+            </sc-if>
+            <div style="position:absolute;inset:28px 0 16px;display:flex;align-items:center;gap:1px">
+              <sc-for list="{{ detail }}" as="b" hint-placeholder-count="200">
+                <div style="flex:1 1 0;min-width:1px;height:{{b.h}};background:{{b.c}};border-radius:1px"></div>
+              </sc-for>
+            </div>
+            <div style="position:absolute;top:0;bottom:0;left:{{cut.inLeft}};width:2px;margin-left:-1px;background:var(--accent)"></div>
+            <div style="position:absolute;top:0;left:{{cut.inLeft}};padding:3px 8px;border-radius:0 4px 4px 0;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;font-family:var(--mono)">IN 1:02:14.50</div>
+            <sc-for list="{{ removedMarks }}" as="r" hint-placeholder-count="1">
+              <button type="button" onClick="{{ r.putBack }}" style="position:absolute;bottom:4px;left:{{r.left}};margin-left:-4px;min-height:24px;padding:0 8px;border-radius:12px;border:1px solid rgba(240,180,80,0.5);background:#2a2216;color:var(--warn);font-size:11px;white-space:nowrap">{{r.len}} removed · Put back</button>
+            </sc-for>
+            <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;top:6px;left:{{sel.left}};transform:translateX(-35%);display:flex;align-items:center;gap:2px;padding:3px;border-radius:8px;background:#0b0d10;border:1px solid var(--line2);box-shadow:0 6px 18px rgba(0,0,0,0.5);white-space:nowrap">
+                <span style="padding:0 8px;font-family:var(--mono);font-size:12px;color:var(--muted)">{{sel.len}}</span>
+                <button type="button" aria-label="Play selection" style="width:30px;height:30px;border:0;border-radius:6px;background:transparent;display:inline-flex;align-items:center;justify-content:center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>
+                </button>
+                <button type="button" onClick="{{ removeSel }}" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:0;border-radius:6px;background:var(--warn);color:#2a1a00;font-size:12px;font-weight:700">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"></path></svg>
+                  Remove
+                </button>
+                <button type="button" onClick="{{ clearSel }}" aria-label="Clear selection" style="width:30px;height:30px;border:0;border-radius:6px;background:transparent;color:var(--muted);display:inline-flex;align-items:center;justify-content:center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </button>
+              </div>
+            </sc-if>
+            <div style="position:absolute;top:0;bottom:0;left:{{cut.playLeft}};width:1px;background:#ffffff"></div>
+            <div style="position:absolute;top:-2px;left:{{cut.playLeft}};width:10px;height:10px;margin-left:-5px;background:#ffffff;clip-path:polygon(0 0,100% 0,50% 100%)"></div>
+          </div>
+          <div style="position:relative;height:40px;border-top:1px solid var(--line);background:var(--bg)">
+            <span style="position:absolute;top:10px;left:2%;font-size:12px;color:var(--muted);font-style:italic">music</span>
+            <sc-for list="{{ phrases }}" as="p" hint-placeholder-count="3">
+              <button type="button" style="position:absolute;top:7px;left:{{p.left}};width:{{p.width}};height:26px;padding:0 6px;border:0;border-radius:4px;background:var(--raised);font-size:12px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{p.text}}</button>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid var(--line);flex-wrap:wrap">
+            <button type="button" onClick="{{ togglePlay }}" aria-label="{{playLabel}}" style="width:44px;height:44px;border-radius:50%;border:0;background:var(--text);color:var(--bg);display:inline-flex;align-items:center;justify-content:center">
+              <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+              </sc-if>
+              <sc-if value="{{ paused }}" hint-placeholder-val="{{ true }}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>
+              </sc-if>
+            </button>
+            <div style="font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:-0.02em;min-width:130px">1:02:13.80</div>
+            <div role="group" aria-label="Zoom" style="display:inline-flex;padding:3px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
+              <sc-for list="{{ zooms }}" as="z" hint-placeholder-count="4">
+                <button type="button" onClick="{{ z.pick }}" aria-pressed="{{z.on}}" style="min-height:32px;padding:0 10px;border:0;border-radius:6px;background:{{z.bg}};color:{{z.fg}};font-size:12px;font-weight:500">{{z.label}}</button>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <span style="font-size:12px;color:var(--muted)">At playhead:</span>
+            <button type="button" style="min-height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:3px">set in</button>
+            <button type="button" style="min-height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:3px">set out</button>
+          </div>
+        </section>
+
+        <section aria-label="Preview while editing" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);flex-wrap:wrap">
+          <button type="button" onClick="{{ togglePreview }}" style="display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 16px 0 12px;border-radius:20px;border:0;background:var(--text);color:var(--bg);font-size:13px;font-weight:700">
+            <sc-if value="{{ previewing }}" hint-placeholder-val="{{ false }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+            </sc-if>
+            <sc-if value="{{ notPreviewing }}" hint-placeholder-val="{{ true }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>
+            </sc-if>
+            Preview the cut
+          </button>
+          <span aria-hidden="true" style="width:10px;height:10px;border-radius:50%;background:{{lamp.c}};box-shadow:{{lamp.glow}}"></span>
+          <span style="font-size:12px;color:var(--muted);min-width:150px">{{lamp.text}}</span>
+          <div style="flex:1"></div>
+          <span style="font-size:12px;color:var(--muted)">Hear one:</span>
+          <sc-for list="{{ seams }}" as="s" hint-placeholder-count="3">
+            <button type="button" aria-label="{{s.hear}}" style="display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:16px;border:1px solid {{s.ring}};background:transparent;font-size:12px">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l12 7-12 7z"></path></svg>
+              {{s.name}}
+            </button>
+          </sc-for>
+        </section>
+
+        <p style="margin:0;font-size:12px;color:var(--muted);line-height:2">
+          Drag across the waveform to select ·
+          <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">⌫</kbd> remove selection ·
+          <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">Space</kbd> play ·
+          <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">=</kbd> <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">−</kbd> zoom ·
+          <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">\</kbd> fit ·
+          <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">,</kbd> <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">.</kbd> scrub ·
+          <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">←</kbd> <kbd style="font-family:var(--mono);padding:1px 5px;border:1px solid var(--line2);border-radius:4px">→</kbd> nudge
+        </p>
+      </sc-if>
+    </main>
+
+    <aside aria-label="This segment" style="flex:1 0 320px;max-width:360px;border-left:1px solid var(--line);background:var(--panel);padding:20px;display:flex;flex-direction:column;gap:18px">
+
+      <sc-if value="{{ reviewerReview }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px;flex:1">
+          <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:rgba(240,180,80,0.10);color:#f6d29a;font-size:13px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>
+            <span><strong style="color:var(--warn)">Check the opening.</strong> Listen to the first seam before approving.</span>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">
+            Publication label
+            <input type="text" value="Hebrews 13.7-8" style="min-height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:var(--bg);font-size:14px;font-weight:400">
+          </label>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div role="radiogroup" aria-label="Intent" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:3px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
+              <sc-for list="{{ intents }}" as="i" hint-placeholder-count="2">
+                <button type="button" role="radio" aria-checked="{{i.on}}" onClick="{{ i.pick }}" style="min-height:36px;border:0;border-radius:6px;background:{{i.bg}};color:{{i.fg}};font-size:13px;font-weight:500">{{i.label}}</button>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">2026-10-26 - Hebrews 13.7-8.mp3</div>
+          </div>
+          <div style="flex:1"></div>
+          <button type="button" style="min-height:52px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+            Approve and render
+          </button>
+          <button type="button" style="min-height:44px;border-radius:10px;border:1px solid var(--line2);background:transparent;font-size:14px;color:var(--muted)">Skip this segment</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:18px;flex:1">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:10px;height:10px;border-radius:3px;background:#7fb08c"></span>
+            <h2 style="margin:0;font-size:15px;font-weight:600">Editing the sermon</h2>
+            <div style="flex:1"></div>
+            <label>
+              <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Classification</span>
+              <select style="min-height:32px;border-radius:6px;border:1px solid var(--line2);background:var(--raised);padding:0 6px;font-size:12px">
+                <option>Sermon</option><option>Lesson</option><option>Seminar</option><option>Meeting</option>
+              </select>
+            </label>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+            <sc-for list="{{ points }}" as="p" hint-placeholder-count="2">
+              <div style="padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid {{p.ring}}">
+                <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">{{p.name}}</div>
+                <div style="font-family:var(--mono);font-size:17px;font-weight:500;margin:2px 0 8px">{{p.at}}</div>
+                <div style="display:flex;gap:4px">
+                  <button type="button" aria-label="Nudge earlier" style="flex:1;min-height:32px;border-radius:6px;border:1px solid var(--line2);background:var(--raised);font-family:var(--mono);font-size:12px">−0.1</button>
+                  <button type="button" aria-label="Nudge later" style="flex:1;min-height:32px;border-radius:6px;border:1px solid var(--line2);background:var(--raised);font-family:var(--mono);font-size:12px">+0.1</button>
+                  <button type="button" aria-label="Go to it" style="width:32px;min-height:32px;border-radius:6px;border:1px solid var(--line2);background:var(--raised);display:inline-flex;align-items:center;justify-content:center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:-8px">
+            <span>Machine proposal unchanged</span>
+            <button type="button" style="border:0;background:none;padding:0;color:var(--muted);font-size:12px;text-decoration:underline">Revert</button>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+              <h3 style="margin:0;font-size:13px;font-weight:600">Removed from inside</h3>
+              <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">{{removedTotal}}</span>
+            </div>
+            <sc-if value="{{ hasRemoved }}" hint-placeholder-val="{{ true }}">
+              <ul style="list-style:none;margin:0;padding:0;border-radius:8px;border:1px solid var(--line)">
+                <sc-for list="{{ removedMarks }}" as="r" hint-placeholder-count="1">
+                  <li style="display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-top:1px solid {{r.sep}}">
+                    <span style="font-family:var(--mono);font-size:12px;flex:1">{{r.span}}</span>
+                    <button type="button" style="min-height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--accent);font-size:12px">Hear join</button>
+                    <button type="button" onClick="{{ r.putBack }}" style="min-height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px">Put back</button>
+                  </li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{ noRemoved }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;font-size:12px;color:var(--muted)">Nothing removed. Drag across the waveform to select a span.</p>
+            </sc-if>
+          </div>
+
+          <div style="flex:1"></div>
+          <p style="margin:0;font-size:12px;color:var(--muted)">Changes save as you make them, and the preview always plays the current cut.</p>
+          <button type="button" onClick="{{ toReview }}" style="min-height:48px;border-radius:10px;border:0;background:var(--text);color:var(--bg);font-size:15px;font-weight:700">Done editing</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ viewer }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px;flex:1">
+          <h2 style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Published</h2>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:16px;font-weight:600">Hebrews 13.7-8</div>
+            <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere">2026-10-26 - Hebrews 13.7-8.mp3</div>
+          </div>
+          <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <div style="padding:8px 10px;border-radius:8px;background:var(--bg)"><dt style="font-size:11px;color:var(--muted)">Length</dt><dd style="margin:0;font-family:var(--mono);font-size:13px">42:22.7</dd></div>
+            <div style="padding:8px 10px;border-radius:8px;background:var(--bg)"><dt style="font-size:11px;color:var(--muted)">Size</dt><dd style="margin:0;font-family:var(--mono);font-size:13px">38.9 MB</dd></div>
+          </dl>
+          <div style="flex:1"></div>
+          <a href="#" style="min-height:52px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>
+            Download MP3
+          </a>
+          <a href="#" style="text-align:center;font-size:13px;color:var(--muted)">Download the original recording</a>
+        </div>
+      </sc-if>
+    </aside>
+  </div>
+
+  <sc-if value="{{ detailsOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:57px 0 0 0;background:rgba(0,0,0,0.45);display:flex;justify-content:flex-end">
+      <div style="width:440px;max-width:100%;height:100%;box-shadow:-20px 0 40px rgba(0,0,0,0.4)">
+        <dc-import name="Drawer" on-close="{{ toggleDetails }}" viewer="{{ viewer }}" hint-size="440px,100%"></dc-import>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#5cc8e0","options":["#5cc8e0","#f0b450","#9b8cf0","#e8e8e8"]},"role":{"editor":"enum","options":["reviewer","viewer"],"default":"reviewer"},"startMode":{"editor":"enum","options":["review","edit"],"default":"review"},"detailsOpen":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: null, zoom: 2, intent: 0, playing: false, previewing: false, details: null,
+      removed: [[3741.2, 3742.0]], sel: [3745.25, 3746.0] };
+  }
+  renderVals() {
+    const n = (i) => { const x = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return x - Math.floor(x); };
+    const pct = (v) => (v * 100).toFixed(3) + '%';
+    const TOTAL = 8046, IN = 3734.5, OUT = 6278.0;
+    const C = { sermon: '#7fb08c', music: '#a796c4', prayer: '#7fa3c4', scripture: '#d9a860', communion: '#c081a0', announcements: '#8a857c', other: '#7c766d' };
+    const raw = [
+      [0, 'other', 'Rehearsal', 'Band and sound check'], [760, 'music', 'Prelude', 'Instrumental'],
+      [1085, 'announcements', 'Announcements', 'Welcome and notices'], [1470, 'music', 'Congregational singing', 'Three songs'],
+      [2470, 'prayer', 'Prayer', 'Pastoral prayer'], [2815, 'scripture', 'Scripture reading', 'Hebrews 13:1-8'],
+      [3140, 'music', 'Singing', 'One song'], [IN, 'sermon', 'Sermon', 'Hebrews 13:7-8'],
+      [OUT, 'prayer', 'Prayer', 'Response'], [6430, 'communion', 'Communion', 'Table and distribution'],
+      [7125, 'music', 'Closing song', 'One song'], [7710, 'other', 'Benediction', 'Dismissal']
+    ];
+    const fmt = (s) => { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = Math.floor(s % 60); return h + ':' + String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0'); };
+    const fmtT = (s) => fmt(s) + '.' + Math.round((s % 1) * 10);
+    const viewer = this.props.role === 'viewer';
+    const mode = viewer ? 'review' : (this.state.mode ?? this.props.startMode ?? 'review');
+    const editing = mode === 'edit';
+    const removed = this.state.removed;
+    const isRemoved = (t) => removed.some((r) => t >= r[0] && t <= r[1]);
+    const blocks = raw.map((b) => {
+      const seg = b[1] === 'sermon';
+      return { at: fmt(b[0]), name: b[2], note: seg ? (viewer ? 'Published' : 'Segment · proposed') : b[3], color: C[b[1]], bg: seg ? 'rgba(92,200,224,0.08)' : 'transparent', edge: seg ? 'var(--accent)' : 'transparent', weight: seg ? 600 : 500 };
+    });
+    const bands = raw.map((b, i) => { const end = i + 1 < raw.length ? raw[i + 1][0] : TOTAL; return { name: b[2], color: C[b[1]], width: pct((end - b[0]) / TOTAL) }; });
+    const amp = { music: 0.75, sermon: 0.5, prayer: 0.35, scripture: 0.45, communion: 0.3, announcements: 0.45, other: 0.25 };
+    const typeAt = (t) => { let k = 'other'; raw.forEach((b) => { if (t >= b[0]) k = b[1]; }); return k; };
+    const overview = Array.from({ length: 240 }, (_, i) => {
+      const t = (i + 0.5) / 240 * TOTAL; const a = amp[typeAt(t)] * (0.55 + 0.45 * n(i));
+      return { h: Math.max(4, a * 100).toFixed(0) + '%', c: t >= IN && t <= OUT ? '#c9d3dc' : '#4a525c' };
+    });
+    const ampAt = (t, i) => {
+      if (t < 3732.6) return (0.55 + 0.35 * n(i + 7)) * (t > 3730 ? (3732.6 - t) / 2.6 : 1);
+      if (t < 3735.0) return 0.03 + 0.02 * n(i);
+      if (t >= 3741.2 && t <= 3742.0) return 0.95;
+      if (t >= 3745.25 && t <= 3746.0) return 0.7 + 0.2 * n(i);
+      if (t > 6276.4 && t < 6279.6) return 0.03 + 0.02 * n(i);
+      const g = Math.abs(Math.sin((t - 3735) * 2.7)) * Math.abs(Math.sin((t - 3735) * 0.9 + 0.4));
+      return 0.06 + 0.75 * g * (0.6 + 0.4 * n(i + 3));
+    };
+    const bars = (w0, wl, count, cutAt) => Array.from({ length: count }, (_, i) => {
+      const t = w0 + (i + 0.5) / count * wl; const a = ampAt(t, i);
+      const kept = t >= IN && t <= OUT && !isRemoved(t);
+      return { h: Math.max(3, a * 100).toFixed(0) + '%', c: isRemoved(t) && t >= IN ? '#6b5530' : (kept ? '#d6dee6' : '#4a525c') };
+    });
+    const W0 = 3718, WL = 30;
+    const at = (t) => pct((t - W0) / WL);
+    const detail = bars(W0, WL, 200);
+    const removedMarks = removed.map((r, i) => ({
+      left: at(r[0]), width: pct((r[1] - r[0]) / WL), len: (r[1] - r[0]).toFixed(1) + ' s',
+      span: fmtT(r[0]) + ' – ' + fmtT(r[1]), sep: i === 0 ? 'transparent' : 'var(--line)',
+      putBack: () => this.setState({ removed: removed.filter((_, j) => j !== i) })
+    }));
+    const removedSum = removed.reduce((s, r) => s + r[1] - r[0], 0);
+    const sel = this.state.sel;
+    const seams = [
+      { name: 'Opening', at: '1:02:14.5', bars: bars(3729.5, 10, 60), before: 'music', after: 'Good morning. If you have your Bibles…', hear: 'Hear the opening', ring: 'rgba(240,180,80,0.45)', line: 'var(--accent)' },
+      ...removed.map((r) => ({ name: 'Removal · ' + (r[1] - r[0]).toFixed(1) + ' s', at: fmtT(r[0]), bars: bars(r[0] - 5, 10 + (r[1] - r[0]), 60), before: '…to Hebrews thirteen.', after: 'We’re going to look at…', hear: 'Hear the join', ring: 'var(--line)', line: 'var(--warn)' })),
+      { name: 'Ending', at: '1:44:38.0', bars: bars(6273, 10, 60), before: '…in Jesus’ name. Amen.', after: '(prayer response)', hear: 'Hear the ending', ring: 'var(--line)', line: 'var(--accent)' }
+    ];
+    const pick = (list, cur, key) => list.map((label, i) => ({ label, on: String(cur === i), bg: cur === i ? 'var(--raised)' : 'transparent', fg: cur === i ? 'var(--text)' : 'var(--muted)', pick: () => this.setState({ [key]: i }) }));
+    const modes = ['Review', 'Edit'].map((label) => { const on = (label === 'Edit') === editing; return { label, on: String(on), bg: on ? 'var(--raised)' : 'transparent', fg: on ? 'var(--text)' : 'var(--muted)', pick: () => this.setState({ mode: label === 'Edit' ? 'edit' : 'review' }) }; });
+    const open = this.state.details === null ? !!this.props.detailsOpen : this.state.details;
+    const pv = this.state.previewing;
+    return {
+      accent: this.props.accent ?? '#5cc8e0',
+      viewer, canEdit: !viewer, editing, reviewing: !editing, reviewerReview: !viewer && !editing,
+      status: viewer ? { label: 'Published', fg: 'var(--muted)', bg: 'var(--raised)' } : { label: 'Awaiting review', fg: 'var(--warn)', bg: 'rgba(240,180,80,0.12)' },
+      modes, overviewH: editing ? '56px' : '72px',
+      blocks, bands, overview, detail, seams, removedMarks,
+      removedNote: removed.length ? removedSum.toFixed(1) + ' s removed' : 'nothing removed',
+      removedTotal: removedSum.toFixed(1) + ' s', hasRemoved: removed.length > 0, noRemoved: removed.length === 0,
+      hasSel: !!sel, sel: sel ? { left: at(sel[0]), width: pct((sel[1] - sel[0]) / WL), len: (sel[1] - sel[0]).toFixed(2) + ' s' } : { left: '0%', width: '0%', len: '' },
+      removeSel: () => sel && this.setState({ removed: [...removed, sel].sort((a, b) => a[0] - b[0]), sel: null }),
+      clearSel: () => this.setState({ sel: null }),
+      detailTicks: [3720, 3725, 3730, 3735, 3740, 3745].map((t) => ({ left: at(t), label: '1:02:' + String(t - 3720).padStart(2, '0') })),
+      phrases: [[3735.0, 3736.0, 'Good morning.'], [3737.6, 3741.0, 'If you have your Bibles, turn with me to Hebrews thirteen.'], [3742.6, 3745.0, 'We’re going to look at verses seven and eight.']].map((p) => ({ left: at(p[0]), width: pct((p[1] - p[0]) / WL), text: p[2] })),
+      overviewTicks: [0, 900, 1800, 2700, 3600, 4500, 5400, 6300, 7200].map((s) => ({ left: pct(Math.max(0.012, s / TOTAL)), label: fmt(s).slice(0, 4) })),
+      zooms: pick(['Whole', 'Minutes', '30 s', '3 s'], this.state.zoom, 'zoom'),
+      intents: pick(['Publish', 'Archive'], this.state.intent, 'intent'),
+      seg: { left: pct(IN / TOTAL), width: pct((OUT - IN) / TOTAL), window: pct((W0 + 15) / TOTAL) },
+      cut: { inLeft: at(IN), playLeft: at(3733.8) },
+      points: [{ name: 'Punch in', at: '1:02:14.50', ring: 'var(--accent)' }, { name: 'Punch out', at: '1:44:38.00', ring: 'var(--line)' }],
+      previewing: pv, notPreviewing: !pv,
+      lamp: pv ? { c: '#f0b450', glow: '0 0 0 4px rgba(240,180,80,0.15),0 0 14px rgba(240,180,80,0.6)', text: 'Opening · cut in 0.7 s' } : { c: '#3a4048', glow: 'none', text: 'Plays each seam, 5 s either side' },
+      togglePreview: () => this.setState({ previewing: !pv }),
+      playing: this.state.playing, paused: !this.state.playing, playLabel: this.state.playing ? 'Pause' : 'Play',
+      togglePlay: () => this.setState({ playing: !this.state.playing }),
+      toEdit: () => this.setState({ mode: 'edit' }), toReview: () => this.setState({ mode: 'review' }),
+      detailsOpen: open, detailsBg: open ? 'var(--raised)' : 'transparent',
+      toggleDetails: () => this.setState({ details: !open })
+    };
+  }
+}
+</script>
+</body>
+</html>
