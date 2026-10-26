@@ -117,6 +117,8 @@ class VerifiesAccessToken:
             raise
 
     def identifies(self, token):
+        if not token:
+            raise AccessRefused("no token was presented")
         try:
             header = jwt.get_unverified_header(token)
         except (jwt.PyJWTError, TypeError, AttributeError) as unreadable:
