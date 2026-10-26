@@ -14,6 +14,8 @@ OBJECT_STORE_ACCESS_KEY_ID = "SERMON_OBJECT_STORE_ACCESS_KEY_ID"
 OBJECT_STORE_SECRET_ACCESS_KEY = "SERMON_OBJECT_STORE_SECRET_ACCESS_KEY"
 MODEL_ENDPOINT = "SERMON_MODEL_ENDPOINT"
 WEBHOOK_TOKEN = "SERMON_WEBHOOK_TOKEN"
+SECRET_KEY = "SERMON_SECRET_KEY"
+SECRET_KEY_MINIMUM_LENGTH = 32
 NOTIFICATION_CHANNEL = "SERMON_NOTIFICATION_CHANNEL"
 SLACK_WEBHOOK_URL = "SERMON_SLACK_WEBHOOK_URL"
 APP_URL = "SERMON_APP_URL"
@@ -186,6 +188,7 @@ class Configuration:
     slack_webhook: Credential | None = None
     app_url: str | None = None
     access: CloudflareAccess | None = None
+    secret_key: Credential | None = None
 
     def __post_init__(self):
         if not isinstance(self.data_root, Path):
@@ -199,6 +202,13 @@ class Configuration:
         refuses_a_non_http_endpoint(MODEL_ENDPOINT, self.model_endpoint)
         if self.webhook_token is not None:
             refuses_a_bare_credential(WEBHOOK_TOKEN, self.webhook_token)
+        if self.secret_key is not None:
+            refuses_a_bare_credential(SECRET_KEY, self.secret_key)
+            if len(self.secret_key.reveals()) < SECRET_KEY_MINIMUM_LENGTH:
+                raise UnusableConfiguration(
+                    f"{SECRET_KEY} is shorter than {SECRET_KEY_MINIMUM_LENGTH} characters, "
+                    f"too short to sign a sign-in with"
+                )
         if self.notification_channel not in NOTIFICATION_CHANNELS:
             raise UnusableConfiguration(
                 f"{NOTIFICATION_CHANNEL} is {self.notification_channel!r}; no such channel is built; "
@@ -231,6 +241,7 @@ class ReadsConfiguration:
             slack_webhook=Credential(hook) if (hook := self.environment.get(SLACK_WEBHOOK_URL)) else None,
             app_url=self.environment.get(APP_URL) or None,
             access=reads_access(self.environment),
+            secret_key=Credential(secret) if (secret := self.environment.get(SECRET_KEY)) else None,
         )
 
 
