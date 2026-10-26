@@ -14,9 +14,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SPEC_ROOT = PROJECT_ROOT / "features"
 SPEC_MODULE = "tests/test_spec.py"
 STEP_MODULE = "steps.discovery_steps"
-SPEC_SHAPE = "spec OK — 36 files, 519 scenarios, 161 rules"
-SPEC_TESTS = 679
-SPEC_STEPS = 2203
+SPEC_SHAPE = "spec OK — 36 files, 535 scenarios, 165 rules"
+SPEC_TESTS = 705
+SPEC_STEPS = 2257
 DEFERRED_TESTS = 8
 SUMMARY_LINE = re.compile(
     r"^[= ]*(?:no tests ran|\d+ [a-z]+).* in \d+\.\d+s(?: \(\d+:\d\d:\d\d\))?[= ]*$"

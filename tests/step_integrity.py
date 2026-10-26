@@ -21,7 +21,7 @@ REPORT_PATH = Path(__file__).parent / "step_integrity_report.md"
 REGENERATION = ".venv/bin/python tests/step_integrity.py"
 
 PERMITTED_EMPTY_GIVENS = {
-    "I am on the tailnet": "the deployment runs NoAuth, so there is no session to establish",
+    "I am on the tailnet": "sign-in is off unless a scenario turns it on, so there is no session to establish",
     "I am using a desktop browser": "one layout is served; no client capability is negotiated",
     "the Recorder reaches it over the tailnet": "reachability is the ambient condition of every test",
     'it contains a bucket "{name}"': (
