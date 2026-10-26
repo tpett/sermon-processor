@@ -1,3 +1,29 @@
+## Password sign-in on the tailnet host (2026-10-26, tpett/ai/tailnet-login)
+
+Off master ee8645d. Unmerged, undeployed, not run behind Caddy or Cloudflare.
+
+- With Access on, the tailnet host is no longer open. Host equal to
+  `SERMON_TAILNET_HOST` with neither Cloudflare header needs a `sermon_session`
+  cookie from `/login` (email and password); a browser is redirected there, any
+  other client gets a 401. Exempt: `/login`, `/static/review.css` and
+  `POST /api/webhooks/recordings` (bearer token alone). A request through
+  Cloudflare never uses the cookie, and the public host still needs the Access
+  token however many cookies it carries. Configuration and the cookie's
+  attributes: `CLAUDE.md`.
+- One person, one `User`, keyed by the lower-cased address, whichever way they
+  came in. The password hash is a `Credential` row (a table of its own, so no
+  existing database is refused). `sermon-user add|set-password|list` makes them
+  from the server; there is no sign-up and no reset.
+- Every human action now records a real `User.email` when sign-in is on. Skipping
+  a Segment takes an actor and logs a `state_change` entry carrying it, which fixes
+  `The reviewer identity is a seam, not a constant`; the processing log gains an
+  entry per skip.
+- Pins 36 / 577 / 170 / 759, 2451 steps. The fast suite fails the same 179 as
+  master minus that one, none new.
+- Not exercised: Caddy's `X-Forwarded-Proto`/`X-Forwarded-For` as sent by the real
+  proxy, a browser's handling of the cookie, a real Access token, and the
+  container's `docker exec -it sermon-user`.
+
 ## Sign-in through Cloudflare Access (2026-10-26, tpett/ai/access-sso)
 
 Off master 51372e7. Unmerged, undeployed, not run against Cloudflare.

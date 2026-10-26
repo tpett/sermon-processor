@@ -41,12 +41,13 @@ SpeakerProfile ──N:M──▶ Segment (the Segments that enrolled the voice)
 SkippedObject                   (an object the reconciliation scan did not ingest)
 Discovery                       (a webhook received or a scan run, and what it found)
 Reviewer                        (the actor seam; whether they receive notifications)
-User                            (a person Cloudflare Access vouched for; the name an action is recorded under)
+User                            (a person Cloudflare Access vouched for or the owner added; the name an action is recorded under)
+Credential                      (the salted hash of the password a User signs in with on the tailnet host)
 ```
 
-Six nouns the reviewer names, plus nine the system needs: `Job`,
+Six nouns the reviewer names, plus ten the system needs: `Job`,
 `Notification`, `LogEntry`, `SpeakerProfile`, `SkippedObject`, `Discovery`,
-`CorpusPair`, `Reviewer` and `User`. The sixth is `RecordingTitle`.
+`CorpusPair`, `Reviewer`, `User` and `Credential`. The sixth is `RecordingTitle`.
 
 ---
 
@@ -339,9 +340,10 @@ than when it is created.
 
 ## Reviewer
 
-The actor the system notifies. There is one, and it is what a request on the
-tailnet host is recorded as, since nobody there is identified
-(`interface/authentication.feature`). The identity is the actor seam, not a
+The actor the system notifies. There is one, and it is what an action is recorded
+as when no sign-in is configured, since nobody is identified then
+(`interface/authentication.feature`). Notifications are still addressed to it
+whoever is signed in. The identity is the actor seam, not a
 generated key: a signed-in person changes who the actor is and does not change
 what is recorded against it. It is not itself a person the system stores — `User`
 and `SpeakerProfile` are.
@@ -359,22 +361,51 @@ just not sent.
 
 ## User
 
-A person Cloudflare Access vouched for. Created the first time a valid sign-in
-names their email address and found again on every later one, so a person is
-remembered once however often they sign in ("A person is remembered once, however
-often they sign in", `interface/authentication.feature`). Nothing here is
-attributed, permitted or refused by role: the record exists so an action can name
-who took it, and so a later rule can say who may.
+A person the system knows by their email address: either Cloudflare Access
+vouched for them, or the owner added them with a password for the tailnet host.
+Created the first time either happens and found again on every later one, so a
+person is remembered once however often they sign in, and however they do
+("A person is remembered once, however often they sign in", "The same person is
+one person however they signed in", `interface/authentication.feature`). Nothing
+here is attributed, permitted or refused by role: the record exists so an action
+can name who took it, and so a later rule can say who may.
 
 | Field | Why it exists |
 | --- | --- |
-| `email` | The address inside the verified sign-in, lower-cased — never one the request announced about itself ("A claimed email address is not a sign-in"). Identity, so there is one `User` per address. It is also what `LogEntry.actor` holds for an action that person took ("An approval records the person who made it"). |
-| `first_seen_at` | When that address first signed in. Kept on every later sign-in. An instant, so it is refused without an offset. |
+| `email` | The address inside the verified sign-in or the one the owner typed, lower-cased and trimmed — never one the request announced about itself ("A claimed email address is not a sign-in"). Identity, so there is one `User` per address. It is also what `LogEntry.actor` holds for an action that person took ("An approval records the person who made it", "An approval on the tailnet host records the person who signed in there"). |
+| `first_seen_at` | When that address first signed in or was added. Kept on every later sign-in. An instant, so it is refused without an offset. |
 
-**Nobody on the tailnet host is a `User`.** A request there carries no sign-in and
-is recorded as the `Reviewer` actor ("An approval on the tailnet host is still the
-reviewer's"). Who is on the tailnet is not yet established, and nothing here
-guesses.
+**Nobody acts as nobody.** Every request to a service with sign-in required carries
+a real `User`: through Cloudflare Access it is the address in the verified token,
+and on the tailnet host it is the address that signed in with a password ("On the
+tailnet host a person signs in with an email address and a password"). Only a
+service with no sign-in configured still records the `Reviewer` actor, because
+there the tailnet is the whole perimeter and nothing says who is asking
+("An approval records what happened, not who did it").
+
+---
+
+## Credential
+
+The proof a `User` can offer on the tailnet host: the password they were given,
+kept as a salted hash and as nothing else
+("A password is kept only as a salted hash"). A `User` with no `Credential` — everyone who has only ever come through
+Cloudflare — cannot sign in there ("A person who has only ever come through
+Cloudflare has no password to sign in with"). Nobody makes their own: the owner
+adds a person and sets or changes a password from the command line
+("The owner adds a person with a password"), and changing one ends every sign-in
+made with the old one ("Changing a password ends the sign-ins made with the old
+one").
+
+| Field | Why it exists |
+| --- | --- |
+| `email` | Whose it is, and the identity: one `Credential` per `User`, a second replaces the first. A reference to `User`, so a password cannot exist for someone the system does not know. |
+| `password_hash` | A salted scrypt hash, in the form `scrypt:<n>:<r>:<p>$<salt>$<digest>`, so the cost and the salt travel with the hash and the cost can be raised without a migration. Two people with one password hold different values ("the system holds a different record of each"). Never the password, never shown, never logged. |
+
+**Why not a column on `User`.** A column added to a table that already holds rows
+makes every existing database refuse to open, since nothing here migrates one. A
+table of its own is created when the store is opened, as `User` and `Reviewer`
+were, and an absent row is simply a person with no password.
 
 ---
 
@@ -395,7 +426,7 @@ order, and three tables cannot be ordered by one query.
 | `kind` | What happened. Deliberately not a closed set: the scenarios log transitions, attempts, approvals, adjustments and reverts and declare a vocabulary for none of them — `Notification.kind` is open for the same reason. |
 | `occurred_at` | "Each state transition **with its timestamp**". The log's order, so entries are ordered on it rather than on the identity, which only breaks a tie. An instant, not a local reading: two entries written in different offsets still order against each other, so a moment without one is refused rather than stored. |
 | `correlation_id` | "I can correlate an entry to the application logs". Required on every entry: an identifier that may be absent is the same as no identifier. |
-| `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` and `Reviewer.actor` name: `"reviewer"` on the tailnet host, and a signed-in person's `User.email` otherwise (`interface/authentication.feature`). Not a foreign key to `User`: a machine entry has none, and an entry written before sign-in names `"reviewer"`, which is no `User`. |
+| `actor` | "Who performed each human action". Null on a machine entry, which is what tells the two apart. The same actor seam `Notification.recipient` and `Reviewer.actor` name: a signed-in person's `User.email` whenever sign-in is required, on the tailnet host as much as outside it, and `"reviewer"` only where no sign-in is configured (`interface/authentication.feature`). Skipping a Segment writes an entry carrying it like the other review actions ("The reviewer identity is a seam, not a constant"). Not a foreign key to `User`: a machine entry has none, and an entry written before sign-in names `"reviewer"`, which is no `User`. |
 | `entered_state` | "Each state transition with its timestamp". One of the Recording's ten states or the Segment's seven; the two sets are disjoint, so one column holds either and `segment_id` says whose. |
 | `duration_seconds`, `error` | "Every job attempt with its timestamp, duration and error". `error` is null on an attempt that succeeded. |
 | `punch_in_seconds`, `punch_out_seconds` | "Each set of boundaries with who approved them and when" (`processing/reprocessing.feature`), a discarded adjustment included. Read with `actor` and `occurred_at`, which are what make it a set of boundaries *with* an approver. |

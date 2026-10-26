@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 535 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 577 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 705 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 759 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -135,6 +135,9 @@ variable already set in the environment wins over the file.
 .venv/bin/sermon-align recording_20260927_095721 "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.mp3" \
     --source "~/Desktop/Sermons/2026-09-27 - Hebrews 13.7-8.flac"
 .venv/bin/sermon-title --dry-run             # name recordings analysed before titles existed
+.venv/bin/sermon-user add pastor@example.org  # make a person who may sign in on the tailnet host; prompts for the password
+.venv/bin/sermon-user set-password pastor@example.org
+.venv/bin/sermon-user list                    # who, first seen, and whether they have a password
 ```
 
 **Configuration.** Every variable is read from the environment or `.env`; only
@@ -156,7 +159,8 @@ the first six are required.
 | `SERMON_PROMPTS_ROOT` | the classifier's prompts |
 | `SERMON_BIND_HOST` / `SERMON_PORT` | where `sermon-serve` listens |
 | `SERMON_ACCESS_TEAM_DOMAIN` / `SERMON_ACCESS_AUD` | Cloudflare Access sign-in: both set requires a valid `Cf-Access-Jwt-Assertion` on every request, neither leaves the app open, exactly one refuses to start |
-| `SERMON_TAILNET_HOST` | with Access on, the one Host (e.g. `sermon-processor.home.tpett.me`) that needs no sign-in, unless the request carries `Cf-Ray` or `Cf-Connecting-Ip`; unset exempts nothing |
+| `SERMON_TAILNET_HOST` | with Access on, the one Host (e.g. `sermon-processor.home.tpett.me`) that signs in by email and password instead of the Access token, unless the request carries `Cf-Ray` or `Cf-Connecting-Ip`; unset means no host takes a password sign-in |
+| `SERMON_SECRET_KEY` | optional, at least 32 characters; signs the tailnet sign-in cookie. Unset, one is made once and kept 0600 as `session_secret` under the data root, so a restart keeps people signed in |
 
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
 the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
@@ -165,18 +169,61 @@ the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
 Trust (Settings > Custom Pages, or the host of the login page, e.g.
 `myteam.cloudflareaccess.com`); `SERMON_ACCESS_AUD` is the Application Audience
 (AUD) tag on the application's Overview tab (Access > Applications > the app).
-The token is checked here, not trusted from the proxy: RS256 only, signature
-against `https://<team domain>/cdn-cgi/access/certs` (cached an hour, fetched
-again for an unknown key id at most once a minute), `aud`, `iss`, `exp`/`nbf`
-and an `email` claim. Without a valid one a request gets a plain 401, or a 503
-when Cloudflare's keys cannot be fetched at all. The only exemption is the
-tailnet host, and only for a request with neither Cloudflare header: Access
-cannot reach a 700 MB FLAC over its proxy, and the Recorder's webhook, which
-still answers to `SERMON_WEBHOOK_TOKEN`, posts there. `IdentifiesRequester` is
-the one place that turns a request into a verified email or nothing; nobody on
-the tailnet is identified yet, so those requests are recorded as `reviewer`.
-There is no health route exempt: `/api/health` needs a sign-in like the rest, and
-nothing probes it.
+Every request carries a real identity, one of two ways, and `IdentifiesRequester`
+is the one place that turns a request into a verified email or a refusal.
+
+*Outside the tailnet* the Access token is checked here, not trusted from the
+proxy: RS256 only, signature against `https://<team domain>/cdn-cgi/access/certs`
+(cached an hour, fetched again for an unknown key id at most once a minute),
+`aud`, `iss`, `exp`/`nbf` and an `email` claim. Without a valid one a request gets
+a plain 401, or a 503 when Cloudflare's keys cannot be fetched at all. A session
+cookie is never looked at there.
+
+*On the tailnet host* (Host equals `SERMON_TAILNET_HOST` and neither `Cf-Ray` nor
+`Cf-Connecting-Ip` is present, so a request that came through Cloudflare never
+qualifies) a person signs in at `/login` with an email address and a password the
+owner gave them, and the same `User` row, keyed by the lower-cased address, is the
+person Access vouches for. A browser without a sign-in is sent to `/login?next=`;
+anything that does not ask for a page, and everything under `/api/`, gets a 401.
+Only `/login`, `/static/review.css` (the sign-in page's one stylesheet) and
+`POST /api/webhooks/recordings` need no sign-in there; the webhook still answers
+to `SERMON_WEBHOOK_TOKEN` alone, because the Recorder has no cookie. Access
+cannot carry a 700 MB FLAC over its proxy, which is why the tailnet host exists.
+There is no health route exempt: `/api/health` needs a sign-in like the rest.
+
+With neither Access variable set nothing is enforced, there is no `/login`, and
+actions are recorded as `reviewer`.
+
+*Making people.* There is no sign-up and no reset page: the owner runs
+`sermon-user` on the server, which prompts for the password with `getpass` (twice,
+never as an argument, never printed) and keeps a salted scrypt hash in the
+`credential` table:
+
+```bash
+ssh nas docker exec -it sermon-processor sermon-user add pastor@example.org
+ssh nas docker exec -it sermon-processor sermon-user set-password pastor@example.org
+ssh nas docker exec sermon-processor sermon-user list
+```
+
+`-it` matters: without a terminal `getpass` cannot turn echo off. Changing a
+password signs out every browser that used the old one. A person who has only
+come through Cloudflare has no password and cannot sign in on the tailnet until
+the owner gives them one.
+
+*The cookie.* `sermon_session` is a Flask signed cookie: host-only (no `Domain`),
+`HttpOnly`, `SameSite=Lax`, `Path=/`, thirty days sliding, and `Secure` when the
+request was HTTPS or, on the tailnet host only, when the proxy said so in
+`X-Forwarded-Proto` (Caddy terminates TLS). Its secret is `SERMON_SECRET_KEY` or
+the 0600 `session_secret` file under the data root, made on first start with
+Access on. `SameSite=Lax` is what protects the state-changing review forms: a
+request another site causes does not carry the cookie, so it is refused as
+unsigned. There is no per-form token. `/login` and `/logout` additionally refuse a
+submission whose `Origin` is not this host or whose `Sec-Fetch-Site` is not
+`same-origin`, because a cross-site login would otherwise plant an attacker's
+session. Wrong passwords are slowed per email (5 free, then 30 s doubling to
+15 min) and per client address (20 free, the last `X-Forwarded-For` entry or the
+peer); an unknown address costs a hash check like a wrong password and gets the
+same answer. The throttle is in memory and resets on restart.
 
 `sermon-work` is the only thing that runs queued work. Nothing else drains the
 queue — not the server, not any other command — so without it a webhook's
@@ -919,8 +966,22 @@ and who is signed in is shown, remembered and recorded. Its three old Rules
 stayed and say what holds when sign-in is not configured. `DOMAIN.md` gained
 `User`. Fifty-four steps were added.
 
-Pins are now **36 files / 535 scenarios / 165 rules / 705 collected**, and
-`SPEC_STEPS` is 2257.
+On 2026-10-26, later the same day, the owner asked that every web request carry a
+real identity so that who took an action is always a person the system knows,
+tailnet side included, and said attribution rather than security is the point
+there. The tailnet host stopped being open: `interface/authentication.feature`
+now has a Rule where a person signs in with an email address and a password, one
+about saying nothing a stranger could use, one about the owner making people, one
+saying a password sign-in is good on the tailnet host and nowhere else, one for the
+webhook answering to its bearer token alone, and one about the cookie. Forty-two
+scenarios (fifty-four tests) and a hundred and ninety-four steps were added, and
+the Rule saying the tailnet host needs no sign-in was replaced. `DOMAIN.md` gained
+`Credential`. `SkipsSegment` now takes an actor and writes the log entry that
+carries it, which is what the pre-existing failure `The reviewer identity is a
+seam, not a constant` was waiting for.
+
+Pins are now **36 files / 577 scenarios / 170 rules / 759 collected**, and
+`SPEC_STEPS` is 2451.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

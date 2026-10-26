@@ -517,8 +517,9 @@ def _(sign_in, email, password, how):
     target_fixture="page_response",
 )
 def _(store, sign_in, page):
-    sign_in.first_asked = page
-    return gets(sign_in.client(), store, page, Host=TAILNET_HOST, **BROWSER)
+    asked = gets(sign_in.client(), store, page, Host=TAILNET_HOST, **BROWSER)
+    sign_in.first_asked = asked.request.path
+    return asked
 
 
 @when(
@@ -741,9 +742,8 @@ def _(sign_in, page_response):
 
 
 @then("I am taken to the page I first asked for")
-def _(store, sign_in, page_response):
-    expected = gets(sign_in.client(), store, sign_in.first_asked, Host=TAILNET_HOST).request.path
-    assert urlsplit(sign_in.posted.headers["Location"]).path == expected
+def _(sign_in, page_response):
+    assert urlsplit(sign_in.posted.headers["Location"]).path == sign_in.first_asked
     assert page_response.status_code == 200
 
 

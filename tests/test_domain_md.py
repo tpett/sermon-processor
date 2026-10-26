@@ -107,9 +107,9 @@ def test_glance_includes_the_reviewer():
 
 def test_the_reviewer_is_counted_among_the_system_nouns():
     intro = glance_intro()
-    assert "plus nine the system needs" in intro
+    assert "plus ten the system needs" in intro
     assert "`Reviewer`" in intro
-    assert "plus eight the system needs" not in intro
+    assert "plus nine the system needs" not in intro
 
 
 def test_the_user_is_counted_among_the_system_nouns_and_drawn_without_a_foreign_key():
@@ -128,6 +128,25 @@ def test_a_user_is_the_verified_address_and_the_actor_is_not_a_reference_to_it()
     actor = why("LogEntry", "actor").lower()
     assert "not a foreign key" in actor
     assert "tailnet" in section("User").lower()
+
+
+def test_the_tailnet_host_no_longer_records_the_reviewer_and_says_who_does():
+    actor = why("LogEntry", "actor")
+    assert "whenever sign-in is required" in actor
+    assert "on the tailnet host as much as outside it" in actor
+    assert "Nobody on the tailnet host is a `User`" not in section("User")
+    assert "no sign-in is configured" in section("Reviewer")
+
+
+def test_a_credential_is_a_salted_hash_for_a_user_and_never_a_column_on_one():
+    assert "`Credential`" in glance_intro()
+    held = why("Credential", "password_hash").lower()
+    assert "salted" in held and "never the password" in held
+    assert "reference to `user`" in why("Credential", "email").lower()
+    stated = section("Credential")
+    assert "Why not a column on `User`" in stated
+    assert "cannot sign in" in stated
+    assert "A password is kept only as a salted hash" in stated
 
 
 def test_opting_out_is_modelled_on_the_reviewer_not_the_notification():
