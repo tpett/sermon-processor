@@ -126,25 +126,30 @@ def test_the_session_cookie_is_host_only_http_only_lax_and_for_the_whole_site(cl
 
 
 @pytest.mark.parametrize(
-    "headers, secure",
+    "headers",
     [
-        ({}, False),
-        ({"X-Forwarded-Proto": "https"}, True),
-        ({"X-Forwarded-Proto": "HTTPS"}, True),
-        ({"X-Forwarded-Proto": "https, http"}, True),
-        ({"X-Forwarded-Proto": "http"}, False),
+        {},
+        {"X-Forwarded-Proto": "https"},
+        {"X-Forwarded-Proto": "http"},
+        {"X-Forwarded-Proto": "http, https"},
     ],
 )
-def test_the_cookie_is_secure_when_the_proxy_says_the_request_was_https(client, headers, secure):
+def test_the_cookie_is_secure_whatever_the_request_or_the_proxy_says_about_its_scheme(client, headers):
     parts = [part.strip().lower() for part in cookie_of(signs_in(client, **headers)).split(";")]
-    assert ("secure" in parts) is secure
+    assert "secure" in parts
 
 
-def test_the_cookie_is_secure_when_the_request_itself_was_https(client):
+def test_the_cookie_is_secure_over_https_too(client):
     answered = client.post(
         "/login", data={"email": EMAIL, "password": PASSWORD}, base_url=f"https://{TAILNET}"
     )
     assert "secure" in [part.strip().lower() for part in cookie_of(answered).split(";")]
+
+
+def test_the_cookie_that_ends_a_sign_in_is_secure_too(client):
+    signs_in(client)
+    cleared = cookie_of(client.post("/logout", headers={"Host": TAILNET}))
+    assert "secure" in [part.strip().lower() for part in cleared.split(";")]
 
 
 def test_a_cookie_made_with_another_key_is_not_a_sign_in(store):

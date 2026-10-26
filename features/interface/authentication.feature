@@ -431,46 +431,14 @@ Feature: Access control
   Rule: The sign-in is remembered as narrowly as a browser allows
 
     @edge-case
-    Scenario: The browser keeps the sign-in for the tailnet host alone
+    Scenario: The cookie always carries Secure, HttpOnly, SameSite=Lax and no Domain
       Given sign-in is required
       And "pastor@reformation.example" has the password "correct horse battery"
       When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
       Then the browser is told to keep the sign-in for the tailnet host alone
-
-    @edge-case
-    Scenario: The sign-in is not sent with a request another site causes
-      Given sign-in is required
-      And "pastor@reformation.example" has the password "correct horse battery"
-      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
-      Then the browser is told not to send the sign-in with a request another site causes
-
-    @edge-case
-    Scenario: A page's scripts cannot read the sign-in
-      Given sign-in is required
-      And "pastor@reformation.example" has the password "correct horse battery"
-      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
-      Then the browser is told to keep the sign-in from a page's scripts
-
-    @edge-case
-    Scenario: Over a secure connection the browser is told to send the sign-in only over one
-      Given sign-in is required
-      And "pastor@reformation.example" has the password "correct horse battery"
-      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery" over a secure connection
-      Then the browser is told to send the sign-in only over a secure connection
-
-    @edge-case
-    Scenario: Over a plain connection the sign-in is not made unusable
-      Given sign-in is required
-      And "pastor@reformation.example" has the password "correct horse battery"
-      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
-      Then the browser is not told to send the sign-in only over a secure connection
-
-    @edge-case
-    Scenario: A claim of a secure connection from outside the tailnet gives a sign-in nothing
-      Given sign-in is required
-      When I ask for "the recordings list" from outside the tailnet claiming a secure connection
-      Then I am refused
-      And no sign-in is remembered
+      And the browser is told not to send the sign-in with a request another site causes
+      And the browser is told to keep the sign-in from a page's scripts
+      And the browser is told to send the sign-in only over a secure connection
 
   Rule: Naming only one half of the sign-in check is a mistake the service will not start with
 
