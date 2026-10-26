@@ -8,6 +8,7 @@ import pytest
 from sermon.analysis.io import writes_json
 from sermon.analysis.proposes_from_transcript import ASR_CONFIG
 from sermon.cli import (
+    manages_users,
     ENVIRONMENT_FILE,
     analyzes,
     derives_corpus,
@@ -931,11 +932,59 @@ def test_a_served_app_with_access_configured_serves_a_valid_sign_in_and_names_it
     assert asked == ["keys"]
 
 
-def test_a_served_app_with_access_configured_serves_its_tailnet_host_without_one(tmp_path):
+def test_a_served_app_with_access_configured_asks_its_tailnet_host_for_a_password_sign_in(tmp_path):
     runs, asked = serves_behind_access(tmp_path)
-    served = runs.app.test_client().get("/", headers={"Host": ACCESS_SETTINGS["SERMON_TAILNET_HOST"]})
-    assert served.status_code == 200
+    refused = runs.app.test_client().get("/", headers={"Host": ACCESS_SETTINGS["SERMON_TAILNET_HOST"]})
+    assert refused.status_code == 401
     assert asked == []
+
+
+def sessions_in(tmp_path):
+    return tmp_path / "data" / "session_secret"
+
+
+def test_serving_behind_access_keeps_a_session_secret_under_the_data_root_for_owner_alone(tmp_path):
+    import stat
+
+    runs, _ = serves_behind_access(tmp_path)
+    kept = sessions_in(tmp_path)
+    assert runs.app.secret_key == kept.read_text()
+    assert stat.S_IMODE(kept.stat().st_mode) == 0o600
+
+
+def test_serving_without_access_makes_no_session_secret(tmp_path):
+    runs = RecordsServer()
+    serves(settings=settings_file(tmp_path), lists_objects=bucket_holding().lists, runs=runs)
+    assert not sessions_in(tmp_path).exists()
+
+
+def test_a_session_secret_set_in_the_environment_is_used_and_not_written_down(tmp_path):
+    secret = "9d3b7c0e5a1f48c2b6e0d4a8f7c13e52a9b4d6f08e1c7a3b5d2f9e6c4a8b0d71"
+    runs, _ = serves_behind_access(tmp_path, SERMON_SECRET_KEY=secret)
+    assert runs.app.secret_key == secret
+    assert not sessions_in(tmp_path).exists()
+
+
+def test_a_person_signed_in_on_the_served_tailnet_host_stays_signed_in_across_a_restart(tmp_path):
+    host = ACCESS_SETTINGS["SERMON_TAILNET_HOST"]
+    settings = settings_file(tmp_path, **ACCESS_SETTINGS)
+    said = RecordsLines()
+    assert manages_users(
+        settings=settings, arguments=["add", "pastor@reformation.example"], prints=said,
+        asks=lambda prompt: "correct horse battery",
+    ) == 0
+    first, _ = serves_behind_access(tmp_path)
+    client = first.app.test_client()
+    signed_in = client.post(
+        "/login", data={"email": "pastor@reformation.example", "password": "correct horse battery"},
+        headers={"Host": host},
+    )
+    assert signed_in.status_code == 303
+    cookie = client.get_cookie("sermon_session", domain=host)
+    second, _ = serves_behind_access(tmp_path)
+    again = second.app.test_client()
+    again.set_cookie("sermon_session", cookie.value, domain=host)
+    assert again.get("/", headers={"Host": host}).status_code == 200
 
 
 def test_serving_with_only_half_of_access_configured_refuses_to_start_and_says_why(tmp_path):

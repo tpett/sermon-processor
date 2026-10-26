@@ -1,6 +1,6 @@
 import dataclasses
 from datetime import UTC, datetime
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -153,7 +153,8 @@ def test_a_cookie_made_with_another_key_is_not_a_sign_in(store):
     forged = other.get_cookie("sermon_session", domain=TAILNET)
     assert forged is not None
     kept = app_for(store).test_client()
-    answered = kept.get("/", headers={"Host": TAILNET, "Cookie": f"sermon_session={forged.value}", **BROWSER})
+    kept.set_cookie("sermon_session", forged.value, domain=TAILNET)
+    answered = kept.get("/", headers={"Host": TAILNET, **BROWSER})
     assert answered.status_code == 303 and urlsplit(answered.headers["Location"]).path == "/login"
 
 
@@ -162,7 +163,8 @@ def test_a_restart_with_the_same_secret_keeps_people_signed_in(store):
     signs_in(first)
     cookie = first.get_cookie("sermon_session", domain=TAILNET)
     second = app_for(store).test_client()
-    answered = second.get("/", headers={"Host": TAILNET, "Cookie": f"sermon_session={cookie.value}"})
+    second.set_cookie("sermon_session", cookie.value, domain=TAILNET)
+    answered = second.get("/", headers={"Host": TAILNET})
     assert answered.status_code == 200
 
 
@@ -208,7 +210,8 @@ def test_someone_already_signed_in_who_asks_for_the_sign_in_page_is_taken_on(cli
 def test_a_browser_is_sent_back_to_the_page_with_its_query(client):
     answered = client.get("/?q=hebrews&page=2", headers={"Host": TAILNET, **BROWSER})
     assert answered.status_code == 303
-    assert answered.headers["Location"] == "/login?next=%2F%3Fq%3Dhebrews%26page%3D2"
+    reached = urlsplit(answered.headers["Location"])
+    assert reached.path == "/login" and parse_qs(reached.query) == {"next": ["/?q=hebrews&page=2"]}
     assert answered.get_data() == b""
 
 

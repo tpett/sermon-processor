@@ -433,6 +433,11 @@ def remembers_cookie(sign_in, response):
         sign_in.cookie = set_cookie.split(";", 1)[0]
 
 
+def carries_sign_in(sign_in, host):
+    name, value = sign_in.cookie.split("=", 1)
+    sign_in.client().set_cookie(name, value, domain=host)
+
+
 def follows_locally(sign_in, response):
     location = response.headers.get("Location", "")
     reached = urlsplit(location)
@@ -608,7 +613,8 @@ def _(sign_in, minutes):
     target_fixture="page_response",
 )
 def _(store, sign_in, page):
-    return gets(sign_in.client(), store, page, Host=PUBLIC_HOST, Cookie=sign_in.cookie)
+    carries_sign_in(sign_in, PUBLIC_HOST)
+    return gets(sign_in.client(), store, page, Host=PUBLIC_HOST)
 
 
 @when(
@@ -618,11 +624,11 @@ def _(store, sign_in, page):
     target_fixture="page_response",
 )
 def _(store, sign_in, email):
+    carries_sign_in(sign_in, PUBLIC_HOST)
     return gets(
         sign_in.client(),
         store,
         "the recordings list",
-        Cookie=sign_in.cookie,
         **presents(sign_in, signed(claims(email=email))),
     )
 
@@ -635,14 +641,7 @@ def _(store, sign_in, email):
 )
 def _(store, sign_in, page, mark):
     name, value = EDGE_MARKS[mark]
-    return gets(
-        sign_in.client(),
-        store,
-        page,
-        Host=TAILNET_HOST,
-        Cookie=sign_in.cookie,
-        **{name: value},
-    )
+    return gets(sign_in.client(), store, page, Host=TAILNET_HOST, **{name: value})
 
 
 @when(

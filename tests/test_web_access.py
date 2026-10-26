@@ -76,6 +76,10 @@ def enforcing(store, tailnet_host=TAILNET, fetches=lambda: published_keys(public
     return creates_app(store=store, verifies_access=verifies, webhook_token=Credential(BEARER))
 
 
+def app_for_sign_in(store):
+    return enforcing(store)
+
+
 @pytest.fixture
 def app(store):
     return enforcing(store)
@@ -163,9 +167,45 @@ def test_a_valid_token_is_served_on_every_route_it_may_reach(app, client, record
         assert answered.status_code != 401, (method, path)
 
 
-def test_the_tailnet_host_needs_no_token(client, recording):
-    served = client.get("/", headers=on(TAILNET))
-    assert served.status_code == 200
+SIGN_IN_PATHS = {("GET", "/login"), ("POST", "/login")}
+SIGN_IN_ASSET = ("GET", "/static/review.css")
+BEARER_ONLY = ("POST", "/api/webhooks/recordings")
+
+
+def refused_for_want_of_a_sign_in(answered):
+    return answered.status_code == 401 and answered.get_data(as_text=True) == "sign-in required\n"
+
+
+def test_every_route_on_the_tailnet_host_needs_a_password_sign_in_but_the_ones_that_cannot(app, client, recording, segment):
+    exempt = SIGN_IN_PATHS | {BEARER_ONLY}
+    for method, path in every_route(app):
+        answered = client.open(path, method=method, headers=on(TAILNET))
+        if (method, path) in exempt:
+            assert not refused_for_want_of_a_sign_in(answered), (method, path)
+        else:
+            assert refused_for_want_of_a_sign_in(answered), (method, path, answered.status_code)
+
+
+def test_only_the_stylesheet_the_sign_in_page_links_is_open_among_the_static_files(client):
+    assert client.get("/static/review.css", headers=on(TAILNET)).status_code == 200
+    assert refused_for_want_of_a_sign_in(client.get("/static/review.js", headers=on(TAILNET)))
+
+
+def test_the_tailnet_host_sends_a_browser_to_the_sign_in_page(client, recording):
+    sent = client.get("/", headers=on(TAILNET, Accept="text/html"))
+    assert sent.status_code == 303 and sent.headers["Location"].startswith("/login")
+
+
+def test_a_valid_token_alone_does_not_open_the_tailnet_host(client, recording):
+    assert client.get("/", headers=on(TAILNET, **signed_in())).status_code == 401
+
+
+def test_the_webhook_is_not_sent_to_the_sign_in_page_even_for_a_browser(client):
+    asked = client.post(
+        "/api/webhooks/recordings", json=WEBHOOK, headers=on(TAILNET, Accept="text/html")
+    )
+    assert asked.status_code == 401 and "Location" not in asked.headers
+    assert "bearer" in asked.get_data(as_text=True)
 
 
 @pytest.mark.parametrize("edge", [{"Cf-Ray": "8a1b-ORD"}, {"Cf-Connecting-Ip": "203.0.113.9"}])
@@ -253,11 +293,16 @@ def test_a_hostile_email_is_escaped_in_the_header(client):
 
 
 @pytest.mark.parametrize("host", [TAILNET, PUBLIC])
-def test_nobody_is_named_on_the_tailnet_or_with_enforcement_off(store, recording, host):
+def test_nobody_is_named_with_enforcement_off(store, recording, host):
     page = creates_app(store=store).test_client().get("/", headers=on(host)).get_data(as_text=True)
     assert shown_as_signed_in(page) is None
-    tailnet = enforcing(store).test_client().get("/", headers=on(TAILNET)).get_data(as_text=True)
-    assert shown_as_signed_in(tailnet) is None
+
+
+def test_enforcement_off_offers_no_sign_out_and_no_sign_in_page(store, recording):
+    client = creates_app(store=store).test_client()
+    assert "/logout" not in client.get("/", headers=on(TAILNET)).get_data(as_text=True)
+    assert client.get("/login", headers=on(TAILNET)).status_code == 404
+    assert client.post("/logout", headers=on(TAILNET)).status_code == 404
 
 
 def test_a_user_is_created_once_however_often_they_sign_in(client, store, recording):
@@ -272,7 +317,7 @@ def test_a_token_that_is_refused_creates_no_user(client, store):
     assert store.lists(User) == []
 
 
-def test_the_tailnet_creates_no_user(client, store, recording):
+def test_a_tailnet_request_with_no_sign_in_creates_no_user(client, store, recording):
     client.get("/", headers=on(TAILNET))
     assert store.lists(User) == []
 
@@ -297,10 +342,22 @@ def test_the_api_approval_is_recorded_against_their_email_too(client, store, seg
     assert actors(store) == {EMAIL}
 
 
-def test_an_approval_from_the_tailnet_is_still_the_reviewer(client, store, segment):
+def test_an_approval_from_the_tailnet_with_no_sign_in_is_refused_and_recorded_against_nobody(client, store, segment):
     store.saves(dataclasses.replace(segment, intent="archive"))
+    refused = client.post(f"/api/segments/{segment.segment_id}/approve", headers=on(TAILNET))
+    assert refused.status_code == 401
+    assert actors(store) == set()
+
+
+def test_an_approval_from_the_tailnet_after_a_password_sign_in_is_recorded_against_their_email(store, segment):
+    from sermon.sets_password import SetsPassword
+
+    SetsPassword(store=store)(EMAIL, "correct horse battery")
+    store.saves(dataclasses.replace(segment, intent="archive"))
+    client = app_for_sign_in(store).test_client()
+    client.post("/login", data={"email": EMAIL, "password": "correct horse battery"}, headers=on(TAILNET))
     client.post(f"/api/segments/{segment.segment_id}/approve", headers=on(TAILNET))
-    assert actors(store) == {"reviewer"}
+    assert actors(store) == {EMAIL}
 
 
 def test_two_people_are_each_recorded_against_their_own_email(client, store, segment, recording):
