@@ -2,7 +2,7 @@ import dataclasses
 import html
 import re
 from datetime import UTC, datetime, timedelta
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 
 from pytest_bdd import given, parsers, then, when
 

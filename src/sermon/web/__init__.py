@@ -308,10 +308,12 @@ def creates_app(
                 reads_client_address(request),
             )
         except LoginThrottled as held:
+            log.warning("held off a sign-in attempt from %s", reads_client_address(request))
             return shows_sign_in(
                 429, SIGN_IN_HELD_OFF, destination, **{"Retry-After": str(held.seconds)}
             )
         except LoginRefused:
+            log.warning("refused a sign-in attempt from %s", reads_client_address(request))
             return shows_sign_in(401, SIGN_IN_REFUSED, destination)
         session.clear()
         session[SESSION_KEY] = entered.remembered()

@@ -3,7 +3,6 @@ import sqlite3
 from datetime import UTC, datetime
 from unittest import mock
 
-import pytest
 from werkzeug.security import check_password_hash
 
 from sermon.cli import manages_users

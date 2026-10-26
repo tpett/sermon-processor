@@ -1887,7 +1887,10 @@ def sets_password_for(store, command, email, asks, prints):
         prints(f"{named} is not a user yet; use: sermon-user add {named}")
         return 1
     SetsPassword(store=store)(named, asks_twice_for_password(named, asks))
-    prints(f"{'gave' if held else 'added'} {named} {'a' if command == 'add' else 'a new'} password")
+    if command == "set-password":
+        prints(f"set a new password for {named}")
+    else:
+        prints(f"gave {named} a password" if held else f"added {named} with a password")
     return 0
 
 
