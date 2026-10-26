@@ -4,7 +4,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1612 step definitions read from `tests/steps`
+- 1619 step definitions read from `tests/steps`
 - 7 condemned
 - 9 of 587 non-deferred scenarios rest on at least one condemned step
 - 9 of 773 expanded scenario tests likewise
@@ -12,7 +12,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
 - 50 Gherkin steps matched more than one definition
-- 238 Gherkin steps matched no definition
+- 231 Gherkin steps matched no definition
 
 ## Faults by kind
 
@@ -77,7 +77,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/recording_detail_steps.py` | 29 | 0 | sound |
 | `tests/steps/interface/recording_list_steps.py` | 43 | 0 | sound |
 | `tests/steps/interface/removed_spans_steps.py` | 32 | 0 | sound |
-| `tests/steps/interface/segment_review_steps.py` | 71 | 0 | sound |
+| `tests/steps/interface/segment_review_steps.py` | 78 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 104 | 0 | sound |
 | `tests/steps/last_fourteen.py` (named) | 10 | 0 | sound |
 | `tests/steps/nested/discovery_steps.py` | 1 | 0 | sound |
@@ -275,13 +275,6 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 - `interface/segment_review.feature:301 then I am told nothing was detected`
 - `interface/segment_review.feature:302 then I can create a Segment by hand`
 - `interface/segment_review.feature:303 then I can discard the Recording in one action`
-- `interface/segment_review.feature:313 given a Segment whose cuts are both graded "easy"`
-- `interface/segment_review.feature:314 when I open the notification`
-- `interface/segment_review.feature:315 then I can read the summary`
-- `interface/segment_review.feature:316 then I can preview the whole cut`
-- `interface/segment_review.feature:317 then I can approve`
-- `interface/segment_review.feature:318 then the whole flow works without opening the editor`
-- `interface/segment_review.feature:339 then the waveform, zooming, word alignment and nudge controls are all available`
 - `interface/segment_review.feature:344 when a Segment is complete`
 - `interface/segment_review.feature:345 then I can download the MP3`
 - `interface/segment_review.feature:94 given Segment 1 was skipped on "2026-08-16"`
