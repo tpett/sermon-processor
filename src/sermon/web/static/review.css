@@ -2068,3 +2068,330 @@ details summary {
 .removals .removed-spans form {
   display: inline;
 }
+
+/* ---- review and edit modes ------------------------------------------ */
+
+.mode-switch {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.mode-switch .mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 14px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mode-switch .mode.on {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.cutview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hero {
+  background: var(--bg);
+  gap: 14px;
+}
+
+.hero-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero-id {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.hero-id .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--band, var(--type-other));
+}
+
+.hero-label {
+  margin: 4px 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.hero-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hero-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+button.preview {
+  min-height: 52px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+button.preview:hover {
+  background: #fff;
+}
+
+.seams {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seams li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.seams li[data-flagged="true"] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.seam-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.seam-head .mono {
+  color: var(--muted);
+}
+
+.seam-wave {
+  height: 56px;
+  background: linear-gradient(var(--accent), var(--accent)) center / 1px 100% no-repeat;
+}
+
+.seams li[data-seam="join"] .seam-wave {
+  background-image: linear-gradient(var(--warn), var(--warn));
+}
+
+.seam-words {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.seam-words .before {
+  color: var(--muted);
+  text-align: right;
+}
+
+button.hear {
+  align-self: flex-start;
+  font-size: 12px;
+}
+
+.hero-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+a.button,
+a.edit-link,
+a.done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.done {
+  position: sticky;
+  bottom: 8px;
+  min-height: 52px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 15px;
+}
+
+.callout {
+  padding: 10px 12px;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+button.ghost {
+  background: none;
+  border-color: var(--line2);
+  color: var(--muted);
+}
+
+.supporting .actions button.primary {
+  width: 100%;
+  min-height: 52px;
+  font-size: 15px;
+}
+
+.supporting .actions .row button.ghost {
+  width: 100%;
+}
+
+details.reclassify > summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+[data-mode="edit"] .waveform .shape {
+  height: 56px;
+}
+
+[data-mode="edit"] .hero {
+  padding: 10px 14px;
+  gap: 8px;
+}
+
+[data-mode="edit"] .hero-head {
+  justify-content: flex-start;
+}
+
+[data-mode="edit"] button.preview {
+  min-height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+[data-mode="edit"] .seams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-mode="edit"] .seams::before {
+  content: "Hear one:";
+  color: var(--muted);
+  font-size: 12px;
+}
+
+[data-mode="edit"] .seams li {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+[data-mode="edit"] .seams .seam-head,
+[data-mode="edit"] .seams .seam-wave,
+[data-mode="edit"] .seams .seam-words {
+  display: none;
+}
+
+[data-mode="edit"] button.hear {
+  min-height: 32px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+[data-mode="edit"] .transport .punch li[data-emphasis="secondary"] button {
+  min-height: 24px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .mode-switch .mode,
+  a.button,
+  a.edit-link,
+  a.done,
+  button.hear,
+  button.preview,
+  details.reclassify > summary,
+  [data-mode="edit"] button.hear,
+  [data-mode="edit"] .transport .punch li[data-emphasis="secondary"] button {
+    min-height: 44px;
+  }
+
+  button.preview {
+    width: 100%;
+  }
+
+  .hero-act {
+    width: 100%;
+  }
+
+  .hero-label {
+    font-size: 20px;
+  }
+
+  .seams {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-mode="edit"] button.preview {
+    width: auto;
+  }
+}
