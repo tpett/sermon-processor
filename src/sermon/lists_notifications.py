@@ -101,7 +101,7 @@ class MarksNotificationsSeen:
     store: Store
     clock: object = now
 
-    def __call__(self, page):
+    def __call__(self, page, *, actor=REVIEWER):
         for view in page.notifications:
             if not view.unread:
                 continue
@@ -113,7 +113,7 @@ class MarksNotificationsSeen:
                     kind=SEEN,
                     occurred_at=self.clock(),
                     correlation_id=correlates(notification),
-                    actor=REVIEWER,
+                    actor=actor,
                 )
             )
 

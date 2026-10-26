@@ -39,7 +39,7 @@ class ApprovesSegment:
     clock: object = now
     adds_to_corpus: object | None = None
 
-    def __call__(self, segment):
+    def __call__(self, segment, *, actor="reviewer"):
         if segment.state not in {"proposed", "skipped", "recut"}:
             raise SegmentNotReady(segment.state)
         if segment.intent == "publish" and not segment.label:
@@ -62,7 +62,7 @@ class ApprovesSegment:
                 kind="state_change",
                 occurred_at=occurred,
                 correlation_id=f"approve:{approved.segment_id}",
-                actor="reviewer",
+                actor=actor,
                 entered_state="approved",
                 punch_in_seconds=approved.punch_in_seconds,
                 punch_out_seconds=approved.punch_out_seconds,

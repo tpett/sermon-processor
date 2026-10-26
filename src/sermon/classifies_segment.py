@@ -29,7 +29,7 @@ class ClassifiesSegment:
     store: Store
     clock: object = now
 
-    def __call__(self, segment, classification):
+    def __call__(self, segment, classification, *, actor="reviewer"):
         if classification not in SEGMENT_CLASSIFICATIONS:
             raise ClassificationRejected(
                 "that is not a classification a Segment can have"
@@ -48,7 +48,7 @@ class ClassifiesSegment:
                 kind="classification_change",
                 occurred_at=self.clock(),
                 correlation_id=f"classify:{segment.segment_id}",
-                actor="reviewer",
+                actor=actor,
             )
         )
         return classified

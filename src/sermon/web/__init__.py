@@ -1,11 +1,12 @@
 import json
+import logging
 import os
 import shutil
 from dataclasses import asdict, replace
 from datetime import date
 from pathlib import Path, PurePosixPath
 
-from flask import Flask, Response, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, g, redirect, render_template, request, send_file, url_for
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.adjusts_punch_point import (
@@ -31,10 +32,12 @@ from sermon.extends_segment_span import (
     SpanWouldOverlapNeighbour,
 )
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
+from sermon.identifies_requester import IdentifiesRequester
 from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob
 from sermon.lists_notifications import ListsNotifications, MarksNotificationsSeen, SetsNotificationPreference
 from sermon.lists_recordings import KIND_TAGS, ListsRecordings
 from sermon.object_store import UnsatisfiableRange
+from sermon.raises_notification import REVIEWER
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
 from sermon.records_publication_details import (
     FilenameCollision,
@@ -59,6 +62,7 @@ from sermon.recuts_segment import RecutsSegment, SegmentNotComplete
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.sends_notification import lists_undelivered
+from sermon.signs_in_user import SignsInUser
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.retitles_recording import RetitlesRecording
 from sermon.shows_recording import (
@@ -73,10 +77,14 @@ from sermon.skips_segment import SkipsSegment
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.splits_segment import NothingToMerge
 from sermon.store import Artifact, Discovery, Job, Recording, Segment, layout
+from sermon.verifies_access_token import AccessKeysUnavailable, AccessRefused
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 
 
+log = logging.getLogger("sermon.access")
 AUTHORIZATION = "Authorization"
+SIGN_IN_REQUIRED = "sign-in required\n"
+SIGN_IN_UNAVAILABLE = "sign-in cannot be checked right now\n"
 BOUNDARIES = ("punch-in", "punch-out")
 INLINE_KINDS = frozenset({"preview"})
 ARTIFACT_UNAVAILABLE = "the artifact is unavailable"
@@ -136,7 +144,13 @@ def answers_with(streamed, filename):
 
 
 def creates_app(
-    *, store, clock=now, lists_objects=None, streams_object=None, webhook_token=None
+    *,
+    store,
+    clock=now,
+    lists_objects=None,
+    streams_object=None,
+    webhook_token=None,
+    verifies_access=None,
 ):
     web_dir = Path(__file__).parent
     app = Flask(
@@ -151,6 +165,8 @@ def creates_app(
     app.jinja_env.globals["notices"] = NOTICES
     accepts = AcceptsRecordingWebhook(store=store, clock=clock)
     authorizes = AuthorizesWebhook(token=webhook_token)
+    identifies = IdentifiesRequester(verifies=verifies_access)
+    signs_in = SignsInUser(store=store, clock=clock)
     lists = ListsRecordings(store=store, clock=clock)
     shows = ShowsRecording(store=store)
     approves = ApprovesSegment(store=store, clock=clock)
@@ -178,6 +194,25 @@ def creates_app(
     marks_seen = MarksNotificationsSeen(store=store, clock=clock)
     sets_preference = SetsNotificationPreference(store=store)
     playheads = {}
+
+    @app.before_request
+    def requires_sign_in():
+        try:
+            requester = identifies(request.host, request.headers)
+        except AccessRefused:
+            return Response(SIGN_IN_REQUIRED, status=401, mimetype="text/plain")
+        except AccessKeysUnavailable as unavailable:
+            log.error("sign-in cannot be checked: %s", unavailable)
+            return Response(SIGN_IN_UNAVAILABLE, status=503, mimetype="text/plain")
+        g.signed_in_as = requester.email
+        g.actor = signs_in(requester.email).email if requester.email else REVIEWER
+
+    @app.context_processor
+    def names_who_is_signed_in():
+        return {"signed_in_as": g.get("signed_in_as")}
+
+    def actor():
+        return g.actor
 
     def playhead_of(recording_id, segment_id=None, focus=None):
         carried = request.values.get("playhead", type=float)
@@ -281,7 +316,7 @@ def creates_app(
     @app.get("/notifications")
     def notifications():
         listed = lists_notifications()
-        marks_seen(listed)
+        marks_seen(listed, actor=actor())
         return render_template("notifications.html", page=listed)
 
     @app.post("/notifications/preference")
@@ -560,7 +595,7 @@ def creates_app(
         if segment is None:
             return NO_SUCH_SEGMENT
         try:
-            approved = approves(segment)
+            approved = approves(segment, actor=actor())
         except PublicationLabelRequired as error:
             return {"error": str(error), "prompt": "label"}, 409
         except SegmentNotReady as error:
@@ -573,7 +608,7 @@ def creates_app(
         recording = store.loads(Recording, recording_id)
         if recording is None:
             return NO_SUCH_RECORDING
-        discarded = discards(recording, reason=body.get("reason"))
+        discarded = discards(recording, reason=body.get("reason"), actor=actor())
         return {"recording_id": discarded.recording_id, "state": discarded.state}
 
     @app.post("/api/recordings/<recording_id>/restore")
@@ -581,7 +616,7 @@ def creates_app(
         recording = store.loads(Recording, recording_id)
         if recording is None:
             return NO_SUCH_RECORDING
-        restored = restores(recording)
+        restored = restores(recording, actor=actor())
         return {"recording_id": restored.recording_id, "state": restored.state}
 
     @app.post("/api/segments/<int:segment_id>/skip")
@@ -613,15 +648,16 @@ def creates_app(
                     recording,
                     reason=request.form.get("reason") or None,
                     confirm=request.form.get("confirm") == "yes",
+                    actor=actor(),
                 )
             except PublishedSegmentExists:
                 return "discard-needs-confirm"
             return "discarded"
         if action == "restore":
-            restores(recording)
+            restores(recording, actor=actor())
             return "restored"
         if action == "retitle":
-            retitles(recording, request.form.get("title", ""))
+            retitles(recording, request.form.get("title", ""), actor=actor())
             return "retitled"
         if action == "archive-whole-recording":
             archives(recording)
@@ -629,7 +665,7 @@ def creates_app(
         if action in {INGEST_ACTION, "retry-ingestion"}:
             return f"ingest-{forces(recording).outcome}"
         if action in {"re-run-analysis", "retry-analysis"}:
-            reruns(recording)
+            reruns(recording, actor=actor())
             return "reanalysis-queued"
         if action == "create-segment":
             creates(
@@ -694,25 +730,25 @@ def creates_app(
 
     def performs_segment_action(segment, action):
         if action == "approve":
-            approves(chosen_intent(segment))
+            approves(chosen_intent(segment), actor=actor())
             return "approved"
         if action == "skip":
             skips(segment)
             return "skipped"
         if action == "reopen":
-            reopens(segment)
+            reopens(segment, actor=actor())
             return "reopened"
         if action == "recut":
-            recuts(segment)
+            recuts(segment, actor=actor())
             return "recut"
         if action == "retry-processing":
             _, queued = retries_processing(segment)
             return "processing-retried" if queued else "processing-standing"
         if action == "revert":
-            reverts(segment)
+            reverts(segment, actor=actor())
             return "reverted"
         if action == "classify":
-            classifies(segment, request.form.get("classification", ""))
+            classifies(segment, request.form.get("classification", ""), actor=actor())
             return "reclassified"
         return None
 
@@ -779,6 +815,7 @@ def creates_app(
                         if action == "mark-end"
                         else reads_timecode(request.form["to"])
                     ),
+                    actor=actor(),
                 )
                 return returns_to(recording_id, "span-removed", segment_id, focus)
             if action == "restore":
@@ -786,6 +823,7 @@ def creates_app(
                     segment,
                     start_seconds=float(request.form["from"]),
                     end_seconds=float(request.form["to"]),
+                    actor=actor(),
                 )
                 return returns_to(recording_id, "span-restored", segment_id, focus)
         except BoundaryRejected as refusal:
@@ -850,9 +888,13 @@ def creates_app(
         if action == "focus":
             return "focused"
         if action == "revert":
-            reverts(segment)
+            reverts(segment, actor=actor())
             return "reverted"
-        adjusts(segment, **{f"{boundary.replace('-', '_')}_seconds": offered(segment, boundary, action)})
+        adjusts(
+            segment,
+            actor=actor(),
+            **{f"{boundary.replace('-', '_')}_seconds": offered(segment, boundary, action)},
+        )
         return "adjusted"
 
     def offered(segment, boundary, action):

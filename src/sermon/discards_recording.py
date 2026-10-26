@@ -52,7 +52,7 @@ class RestoresRecording:
     store: Store
     clock: object = now
 
-    def __call__(self, recording):
+    def __call__(self, recording, *, actor="reviewer"):
         previous = "discovered"
         before = None
         for entry in self.store.lists(LogEntry, recording_id=recording.recording_id):
@@ -68,7 +68,7 @@ class RestoresRecording:
                 kind="state_change",
                 occurred_at=self.clock(),
                 correlation_id=f"restore:{recording.recording_id}",
-                actor="reviewer",
+                actor=actor,
                 entered_state=previous,
             )
         )

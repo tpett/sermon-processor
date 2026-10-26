@@ -24,7 +24,7 @@ class RetitlesRecording:
     store: Store
     clock: object = now
 
-    def __call__(self, recording, title):
+    def __call__(self, recording, title, *, actor="reviewer"):
         written = " ".join((title or "").split())[:TITLE_LIMIT]
         if not written:
             raise TitleRejected(EMPTY_TITLE)
@@ -43,7 +43,7 @@ class RetitlesRecording:
                 kind="title_change",
                 occurred_at=self.clock(),
                 correlation_id=f"retitle:{recording.recording_id}",
-                actor="reviewer",
+                actor=actor,
             )
         )
         return titled
