@@ -65,17 +65,17 @@ def _(detail_page, timecode):
 
 @when("I focus the punch-in", target_fixture="detail_page")
 def _(store, segment):
-    return _web.posts(store, _web.boundary_action(segment, "punch-in"), do="focus")
+    return _web.posts(store, _web.boundary_action(segment, "punch-in"), do="focus", mode="edit")
 
 
 @given("the punch-in has focus", target_fixture="detail_page")
 def _(store, segment):
-    return _web.posts(store, _web.boundary_action(segment, "punch-in"), do="focus")
+    return _web.posts(store, _web.boundary_action(segment, "punch-in"), do="focus", mode="edit")
 
 
 @when("I move focus to the punch-out", target_fixture="detail_page")
 def _(store, segment):
-    return _web.posts(store, _web.boundary_action(segment, "punch-out"), do="focus")
+    return _web.posts(store, _web.boundary_action(segment, "punch-out"), do="focus", mode="edit")
 
 
 @then("the punch-in is visibly marked as the one the keyboard will move")
@@ -98,6 +98,7 @@ def _(store, segment):
         store,
         segment.recording_id,
         segment=segment.segment_id,
+        mode="edit",
         focus="punch-in",
         zoom="three seconds",
     )
@@ -119,7 +120,7 @@ def _(detail_page):
 
 @then("the available nudge steps are shown alongside the boundary")
 def _(store, segment):
-    detail_page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    detail_page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id, mode="edit")
     assert reads_field(detail_page, "nudge-steps") == ", ".join(NUDGE_STEPS)
     offered = {
         f"{direction} {step}"
@@ -131,5 +132,5 @@ def _(store, segment):
 
 @then("they read as 50 ms, 0.1 s, 1 s and 10 s")
 def _(store, segment):
-    detail_page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
+    detail_page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id, mode="edit")
     assert reads_field(detail_page, "nudge-steps") == "50 ms, 0.1 s, 1 s, 10 s"

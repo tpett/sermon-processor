@@ -56,7 +56,7 @@ def test_a_punch_in_just_before_its_span_does_not_open_the_page_with_dead_punch_
     page = (
         creates_app(store=store)
         .test_client()
-        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}")
+        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}&mode=edit")
         .get_data(as_text=True)
     )
     assert "disabled" not in page.split('data-role="punch"')[1].split("</ol>")[0]
@@ -67,7 +67,7 @@ def test_the_punch_controls_carry_the_span_the_client_judges_them_against(store,
     page = (
         creates_app(store=store)
         .test_client()
-        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}")
+        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}&mode=edit")
         .get_data(as_text=True)
     )
     punch = reads_role(page, "punch")
@@ -252,7 +252,7 @@ def test_the_page_rounds_a_timecode_before_carrying_it(store, recording):
     with _browser.opens_page(store) as page:
         page.goto(
             f"/recordings/{recording.recording_id}?segment={segment.segment_id}"
-            "&zoom=three+seconds&centre=3899.9&playhead=3899.899"
+            "&mode=edit&zoom=three+seconds&centre=3899.9&playhead=3899.899"
         )
         page.locator("body").click(position={"x": 5, "y": 5})
         page.keyboard.press(".")
