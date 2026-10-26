@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 519 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 535 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 679 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 705 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -155,9 +155,28 @@ the first six are required.
 | `SERMON_DIARIZATION_MODELS` | the sherpa-onnx models; unset means analysis runs without speaker evidence |
 | `SERMON_PROMPTS_ROOT` | the classifier's prompts |
 | `SERMON_BIND_HOST` / `SERMON_PORT` | where `sermon-serve` listens |
+| `SERMON_ACCESS_TEAM_DOMAIN` / `SERMON_ACCESS_AUD` | Cloudflare Access sign-in: both set requires a valid `Cf-Access-Jwt-Assertion` on every request, neither leaves the app open, exactly one refuses to start |
+| `SERMON_TAILNET_HOST` | with Access on, the one Host (e.g. `sermon-processor.home.tpett.me`) that needs no sign-in, unless the request carries `Cf-Ray` or `Cf-Connecting-Ip`; unset exempts nothing |
 
 `sermon-reconcile` lists the bucket and downloads nothing. `sermon-serve` binds
 the tailnet address by default; `SERMON_BIND_HOST=127.0.0.1` reaches it locally.
+
+**Sign-in.** `SERMON_ACCESS_TEAM_DOMAIN` is the team domain in Cloudflare Zero
+Trust (Settings > Custom Pages, or the host of the login page, e.g.
+`myteam.cloudflareaccess.com`); `SERMON_ACCESS_AUD` is the Application Audience
+(AUD) tag on the application's Overview tab (Access > Applications > the app).
+The token is checked here, not trusted from the proxy: RS256 only, signature
+against `https://<team domain>/cdn-cgi/access/certs` (cached an hour, fetched
+again for an unknown key id at most once a minute), `aud`, `iss`, `exp`/`nbf`
+and an `email` claim. Without a valid one a request gets a plain 401, or a 503
+when Cloudflare's keys cannot be fetched at all. The only exemption is the
+tailnet host, and only for a request with neither Cloudflare header: Access
+cannot reach a 700 MB FLAC over its proxy, and the Recorder's webhook, which
+still answers to `SERMON_WEBHOOK_TOKEN`, posts there. `IdentifiesRequester` is
+the one place that turns a request into a verified email or nothing; nobody on
+the tailnet is identified yet, so those requests are recorded as `reviewer`.
+There is no health route exempt: `/api/health` needs a sign-in like the rest, and
+nothing probes it.
 
 `sermon-work` is the only thing that runs queued work. Nothing else drains the
 queue — not the server, not any other command — so without it a webhook's
@@ -890,8 +909,18 @@ text`, both rows of `The glossary gives both forms`, and both backfill
 scenarios); their Givens and steps are unchanged. Five scenarios, one Rule,
 seven tests, 25 steps.
 
-Pins are now **36 files / 519 scenarios / 161 rules / 679 collected**, and
-`SPEC_STEPS` is 2203.
+On 2026-10-26 the owner put the service on the public internet behind Cloudflare
+Access, which `interface/authentication.feature` had ruled out ("We can start
+with NoAuth"), and kept the tailnet host open because the recordings cannot be
+carried through Cloudflare. That feature gained four Rules and sixteen scenarios
+(twenty-six tests): a request from outside the tailnet needs a valid sign-in,
+the tailnet host is the one exemption, a half-configured check refuses to start,
+and who is signed in is shown, remembered and recorded. Its three old Rules
+stayed and say what holds when sign-in is not configured. `DOMAIN.md` gained
+`User`. Fifty-four steps were added.
+
+Pins are now **36 files / 535 scenarios / 165 rules / 705 collected**, and
+`SPEC_STEPS` is 2257.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

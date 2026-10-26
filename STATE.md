@@ -1,3 +1,20 @@
+## Sign-in through Cloudflare Access (2026-10-26, tpett/ai/access-sso)
+
+Off master 51372e7. Unmerged, undeployed, not run against Cloudflare.
+
+- The app validates `Cf-Access-Jwt-Assertion` itself when `SERMON_ACCESS_TEAM_DOMAIN`
+  and `SERMON_ACCESS_AUD` are both set; neither leaves it open; one is a startup
+  refusal. `SERMON_TAILNET_HOST` exempts that Host, but not a request carrying
+  `Cf-Ray` or `Cf-Connecting-Ip`. Configuration: `CLAUDE.md`.
+- A verified email becomes a `User` (found or created) and the actor on
+  approve, retitle, classify, discard, restore, reopen, re-cut, revert, boundary
+  and span edits, re-run and seen-notifications (not skip, which records none). A tailnet request has no email
+  and is still `reviewer`.
+- Pins 36 / 535 / 165 / 705, 2257 steps. The fast suite fails the same 180 as
+  master, none new. `The reviewer identity is a seam, not a constant` is one of
+  them: `SkipsSegment` records no actor today, and giving it one adds a log
+  entry per skip, which nobody asked for.
+
 ## Titles: silence by the audio, and the class named with its service (2026-10-05, tpett/ai/titlerules)
 
 Off master fbd65ac. Unmerged, undeployed, not run against production.
