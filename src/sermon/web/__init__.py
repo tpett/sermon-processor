@@ -624,7 +624,7 @@ def creates_app(
         segment = store.loads(Segment, segment_id)
         if segment is None:
             return NO_SUCH_SEGMENT
-        skipped = skips(segment)
+        skipped = skips(segment, actor=actor())
         return asdict(shows(skipped.recording_id))
 
     @app.post("/recordings/<recording_id>/actions/<action>")
@@ -733,7 +733,7 @@ def creates_app(
             approves(chosen_intent(segment), actor=actor())
             return "approved"
         if action == "skip":
-            skips(segment)
+            skips(segment, actor=actor())
             return "skipped"
         if action == "reopen":
             reopens(segment, actor=actor())
