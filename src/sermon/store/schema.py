@@ -12,6 +12,7 @@ from .entities import (
     Candidate,
     ChannelLevel,
     CorpusPair,
+    Credential,
     Discovery,
     Evidence,
     Job,
@@ -293,6 +294,13 @@ TABLES = {
             name="user",
             identity="email",
             generated=False,
+        ),
+        Table(
+            entity=Credential,
+            name="credential",
+            identity="email",
+            generated=False,
+            references={"email": "user(email)"},
         ),
         Table(
             entity=Notification,

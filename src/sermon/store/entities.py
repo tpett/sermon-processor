@@ -186,6 +186,12 @@ class User:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Credential:
+    email: str
+    password_hash: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class Notification:
     notification_id: int | None = None
     recording_id: str | None = None
