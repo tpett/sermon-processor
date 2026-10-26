@@ -12,7 +12,7 @@ from sermon.adjusts_punch_point import (
 from sermon.analysis.io import reads_json
 from sermon.analysis.attributes_speakers import AttributesSpeakers
 from sermon.analysis.progress import reads_stage_progress, reads_transcription_progress
-from sermon.draws_waveform import DrawsWaveform, WaveformView
+from sermon.draws_waveform import DrawsWaveform, WaveformView, words_across
 from sermon.extends_segment_span import SPAN_STEPS
 from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.lists_recordings import (
@@ -197,6 +197,7 @@ PROCESSING_STEP = {
 # features/interface/waveform_review.feature, "Auditioning a boundary":
 # playback starts 5 seconds before the boundary and stops 5 seconds after it.
 PREVIEW_LEAD_SECONDS = 5.0
+SEAM_WORDS = 8
 PREVIEW_UNAVAILABLE = (
     "The seekable preview has not been rendered, so there is nothing to play yet. "
     "The waveform, the transcript and the boundary controls are unaffected."
@@ -386,6 +387,25 @@ class RemovedSpanView:
 
 
 @dataclass(frozen=True)
+class SeamView:
+    seam: str
+    heading: str
+    at: str
+    before_seconds: float
+    after_seconds: float
+    before_kept: bool
+    after_kept: bool
+    words_before: str
+    words_after: str
+    hear: str
+    kind: str
+    start_seconds: float | None
+    end_seconds: float | None
+    join_url: str | None
+    flagged: bool
+
+
+@dataclass(frozen=True)
 class BoundaryView:
     field: str
     seconds: float
@@ -564,6 +584,7 @@ class RecordingView:
     removal_from: str | None = None
     title: str | None = None
     kind_tag: str | None = None
+    seams: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -775,8 +796,95 @@ class ShowsRecording:
             removal_from=(
                 None if removal_from_seconds is None else formats_precise(removal_from_seconds)
             ),
+            seams=self._seams(selected, transcript, duration_seconds, proposal_view),
             **self._titled(recording),
         )
+
+    def _seams(self, selected, transcript, duration_seconds, proposal_view):
+        if selected is None:
+            return ()
+        checked = (
+            set()
+            if proposal_view is None
+            else {check.point for check in proposal_view.needs_checking}
+        )
+
+        def said(before, after):
+            spoken_before = words_across(transcript, before - PREVIEW_LEAD_SECONDS, PREVIEW_LEAD_SECONDS)
+            spoken_after = words_across(transcript, after, PREVIEW_LEAD_SECONDS)
+            return (
+                " ".join(word.text for word in spoken_before[-SEAM_WORDS:]),
+                " ".join(word.text for word in spoken_after[:SEAM_WORDS]),
+            )
+
+        seams = []
+        before, after = said(selected.punch_in_seconds, selected.punch_in_seconds)
+        window = bounds_window(selected.punch_in_seconds, duration_seconds)
+        seams.append(
+            SeamView(
+                seam="opening",
+                heading="Opening",
+                at=formats_precise(selected.punch_in_seconds),
+                before_seconds=selected.punch_in_seconds,
+                after_seconds=selected.punch_in_seconds,
+                before_kept=False,
+                after_kept=True,
+                words_before=before,
+                words_after=after,
+                hear="Hear the opening",
+                kind="punch-in",
+                start_seconds=window[0],
+                end_seconds=window[1],
+                join_url=None,
+                flagged="punch-in" in checked,
+            )
+        )
+        for span, view in sorted(
+            zip(selected.removed_spans, self._removed_spans(selected)),
+            key=lambda pair: pair[0].start_seconds,
+        ):
+            before, after = said(span.start_seconds, span.end_seconds)
+            seams.append(
+                SeamView(
+                    seam="join",
+                    heading=f"Removal · {view.lasting}",
+                    at=f"{view.from_at} – {view.to_at}",
+                    before_seconds=span.start_seconds,
+                    after_seconds=span.end_seconds,
+                    before_kept=True,
+                    after_kept=True,
+                    words_before=before,
+                    words_after=after,
+                    hear="Hear the join",
+                    kind="join",
+                    start_seconds=None,
+                    end_seconds=None,
+                    join_url=view.join_url,
+                    flagged=False,
+                )
+            )
+        before, after = said(selected.punch_out_seconds, selected.punch_out_seconds)
+        window = bounds_window(selected.punch_out_seconds, duration_seconds)
+        seams.append(
+            SeamView(
+                seam="ending",
+                heading="Ending",
+                at=formats_precise(selected.punch_out_seconds),
+                before_seconds=selected.punch_out_seconds,
+                after_seconds=selected.punch_out_seconds,
+                before_kept=True,
+                after_kept=False,
+                words_before=before,
+                words_after=after,
+                hear="Hear the ending",
+                kind="punch-out",
+                start_seconds=window[0],
+                end_seconds=window[1],
+                join_url=None,
+                flagged="punch-out" in checked,
+            )
+        )
+        return tuple(seams)
 
     def _removed_spans(self, selected):
         if selected is None:

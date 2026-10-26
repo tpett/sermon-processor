@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
 </head>
 <body class="detail">
+{% set edit_url = url_for('html_detail', recording_id=view.recording_id, segment=view.selected_segment_id, mode='edit') %}
+{% set review_url = url_for('html_detail', recording_id=view.recording_id, segment=view.selected_segment_id, mode='review') %}
 <header class="bar">
   <a class="back" href="/">Recordings</a>
   <div class="title">
@@ -19,6 +21,15 @@
     <span class="pill" data-state="{{ view.state }}"><span data-field="state">{{ view.state }}</span></span>
     {% if view.progress %}<span class="chip" data-field="progress">{{ view.progress }}</span>{% endif %}
     {% if view.reason %}<span class="chip flag" data-field="reason">{{ view.reason }}</span>{% endif %}
+    {% if view.selected_segment_id is not none and view.boundary_controls in ("editable", "collapsed") %}
+    <div class="mode-switch" role="group" aria-label="Review or edit">
+      {% if editing %}
+      <a class="mode" data-role="review-the-cut" href="{{ review_url }}">Review</a><span class="mode on" aria-current="true">Edit</span>
+      {% else %}
+      <span class="mode on" aria-current="true">Review</span><a class="mode" data-role="edit-the-cut" href="{{ edit_url }}">Edit</a>
+      {% endif %}
+    </div>
+    {% endif %}
     <details class="details" data-role="recording-details">
       <summary class="open-details" data-role="open-details" data-warnings="{{ view.warnings|length }}">Details{% if view.warnings %} <span class="count">{{ view.warnings|length }}</span>{% endif %}</summary>
       <div class="scrim">
@@ -180,7 +191,7 @@
 </header>
 
 <div class="shell">
-<nav class="rail" aria-label="Service order">
+<nav class="rail" data-role="service-order" aria-label="Service order">
   <section class="blocks">
     <h2>Service order</h2>
     {% set drawable = view.recording_actions | selectattr("name", "in", ["Create segment", "Create segment by hand"]) | list | first %}
@@ -284,7 +295,12 @@
 <section class="waveform" id="waveform">
   <div class="stage" data-role="listen" data-recording="{{ view.recording_id }}">
   {% set wave = view.waveform %}
-  {% set window = ("?zoom=" ~ (wave.window.step|urlencode) ~ "&centre=" ~ wave.window.centre_seconds) if wave.window else "" %}
+  {% set carried = "&mode=edit" if editing else "" %}
+  {% set window = ("?zoom=" ~ (wave.window.step|urlencode) ~ "&centre=" ~ wave.window.centre_seconds ~ carried) if wave.window else ("?mode=edit" if editing else "") %}
+  <div class="cutview" data-role="cut-view" data-mode="{{ 'edit' if editing else 'review' }}"{% if view.punch_in_seconds is not none %} data-punch-in-seconds="{{ view.punch_in_seconds }}" data-punch-out-seconds="{{ view.punch_out_seconds }}"{% endif %}>
+  {% if view.notice %}
+  <p class="notice" data-field="action-notice">{{ view.notice }}</p>
+  {% endif %}
   {% if wave.available %}
   <div class="panel">
     <span class="eyebrow">Whole recording — click to play from there · playhead <span data-field="playhead">{{ view.playhead_seconds|precise }}</span></span>
@@ -311,7 +327,7 @@
           <li data-row="removed-span-mark" data-from-seconds="{{ mark.from_seconds }}" data-to-seconds="{{ mark.to_seconds }}" data-left="{{ mark.left }}" data-width="{{ mark.width }}" style="left:{{ mark.left }}%;width:{{ mark.width }}%" title="removed {{ mark.from_seconds|precise }} – {{ mark.to_seconds|precise }}"></li>
         {% endfor %}
         </ol>
-        {% if wave.window %}
+        {% if editing and wave.window %}
         <div class="window" data-role="detail-window" data-window-step="{{ wave.window.step }}" data-window-seconds="{{ wave.window.seconds }}" data-window-centre-seconds="{{ wave.window.centre_seconds }}" data-window-start-seconds="{{ wave.window.start_seconds }}" style="left:{{ wave.window.left }}%;width:{{ wave.window.width }}%"></div>
         {% endif %}
         <div class="playhead" data-role="waveform-playhead" data-playhead-seconds="{{ wave.playhead.seconds }}"{% if wave.playhead.against %} data-against-boundary="{{ wave.playhead.against }}" data-playhead-offset-seconds="{{ wave.playhead.offset_seconds }}" data-playhead-offset="{{ wave.playhead.offset }}"{% endif %} style="left:{{ wave.playhead.left }}%"></div>
@@ -345,7 +361,7 @@
     </div>
     {% endif %}
   </div>
-  {% if wave.window %}
+  {% if editing and wave.window %}
   {% set start = wave.window.start_seconds %}
   {% set span = wave.window.seconds %}
   <div class="panel">
@@ -381,18 +397,16 @@
   </div>
   {% endif %}
   {% endif %}
+  {% if editing %}
   <div class="transport">
-    {% if view.notice %}
-    <p class="notice" data-field="action-notice">{{ view.notice }}</p>
-    {% endif %}
     {% if view.boundary_controls == "editable" %}
     {% set reach = view.span_edges | map(attribute="seconds") | list %}
     <ol class="punch" data-role="punch"{% if reach %} data-span-start-seconds="{{ reach[0] }}" data-span-end-seconds="{{ reach[1] }}"{% endif %} data-unavailable-reason="{{ playhead_outside_span }}">
     {% for boundary in view.boundaries %}
-      <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}">
+      <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}" data-emphasis="secondary">
         <form method="post" action="{{ boundary.url }}{{ window }}">
           <input type="hidden" name="do" value="playhead">
-          <button type="submit" class="primary" data-role="punch-from-playhead"{% if view.punch_unavailable %} disabled title="{{ view.punch_unavailable }}"{% endif %} data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
+          <button type="submit" data-role="punch-from-playhead"{% if view.punch_unavailable %} disabled title="{{ view.punch_unavailable }}"{% endif %} data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
         </form>
       </li>
     {% endfor %}
@@ -426,16 +440,8 @@
     </div>
     {% endif %}
     {% endif %}
-    {% if view.preview_ready %}
-    {% for window in view.preview_windows %}
-    <button type="button" class="primary" data-role="preview-{{ window.kind }}" data-kind="{{ window.kind }}" data-at="{{ window.at_seconds }}" data-start="{{ window.start_seconds }}" data-end="{{ window.end_seconds }}">{{ window.label }}</button>
-    {% endfor %}
-    {% if view.preview_windows %}
-    <button type="button" data-role="preview-cut" data-kind="cut" data-in-start="{{ view.preview_windows[0].start_seconds }}" data-in-end="{{ view.preview_windows[0].end_seconds }}" data-out-start="{{ view.preview_windows[1].start_seconds }}" data-out-end="{{ view.preview_windows[1].end_seconds }}">Preview the cut</button>
-    {% endif %}
-    {% endif %}
     <span class="spacer"></span>
-    {% if wave.available %}
+    {% if editing and wave.available %}
     <p class="keys">
       <span class="mono" data-field="zoom-keys">{{ wave.zoom_in_keys }} to zoom in, {{ wave.zoom_out_keys }} to zoom out</span>
       <span><span class="mono" data-field="zoom-fit-key">{{ wave.zoom_fit_key }}</span> fits the whole recording</span>
@@ -445,7 +451,7 @@
     <ol class="zoom-steps" data-role="zoom" data-zoom-in-keys="{{ wave.zoom_in_keys }}" data-zoom-out-keys="{{ wave.zoom_out_keys }}" data-zoom-fit-key="{{ wave.zoom_fit_key }}">
     {% for step in wave.zoom_steps %}
       <li data-row="zoom-step" title="{{ step.purpose }} — 100 ms is {{ step.precision }}, {{ step.verdict }}; words in view: {{ step.words_in_view }}" data-zoom-index="{{ step.index }}" data-zoom-step="{{ step.step }}" data-zoom-purpose="{{ step.purpose }}" data-zoom-window-seconds="{{ step.window_seconds }}" data-zoom-precision="{{ step.precision }}" data-zoom-verdict="{{ step.verdict }}" data-zoom-places-the-cut="{{ 'true' if step.places_the_cut else 'false' }}" data-zoom-words="{{ step.words_in_view }}"{% if step.selected %} data-selected="true"{% endif %}>
-        <a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}zoom={{ step.step|urlencode }}&amp;centre={{ wave.window.centre_seconds if wave.window else 0 }}" data-field="zoom-step-name">{{ step.step }}</a>
+        <a href="/recordings/{{ view.recording_id }}?{% if view.selected_segment_id is not none %}segment={{ view.selected_segment_id }}&amp;{% endif %}zoom={{ step.step|urlencode }}&amp;centre={{ wave.window.centre_seconds if wave.window else 0 }}&amp;mode=edit" data-field="zoom-step-name">{{ step.step }}</a>
         <span data-field="zoom-step-purpose">{{ step.purpose }}</span>
         <span data-field="zoom-step-precision">100 ms is {{ step.precision }}, {{ step.verdict }}</span>
         <span data-field="zoom-step-words">words in view: {{ step.words_in_view }}</span>
@@ -454,11 +460,76 @@
     </ol>
     {% endif %}
   </div>
+  {% endif %}
 
   {% if view.selected_segment_id is not none %}
+  <section class="hero" data-role="cut-hero">
+    <div class="hero-head">
+      {% if not editing %}
+      <div class="hero-id">
+        <span class="eyebrow"><i class="swatch" style="--band:var(--type-{{ view.classification }}, var(--type-other))"></i>{{ view.classification|replace("_", " ") }}</span>
+        <p class="hero-label">{{ view.label or ("The " ~ (view.classification|replace("_", " "))) }}</p>
+        <p class="mono hero-meta">{{ view.punch_in_seconds|precise }} → {{ view.punch_out_seconds|precise }} · {{ view.length_seconds|precise }}{% if view.removed %} · {{ view.removed }} removed{% endif %}</p>
+      </div>
+      {% endif %}
+      <div class="hero-act">
+        {% if view.preview_ready %}
+        {% if view.cut_light %}
+        <div class="cutlight" data-role="cut-light"
+             data-boundary="{{ view.cut_light.boundary }}"
+             data-at="{{ view.cut_light.at_seconds }}"
+             data-tolerance="{{ view.cut_light.tolerance_seconds }}"
+             data-discards="{{ view.cut_light.discards }}"
+             data-keeps="{{ view.cut_light.keeps }}"
+             data-state="{{ view.cut_light.state }}"
+             data-side="{{ view.cut_light.side }}">
+          <span class="lamp" data-role="cut-lamp" aria-hidden="true"></span>
+          <span class="cutlight-text">
+            <strong data-field="cut-light-boundary">{{ view.cut_light.boundary }}</strong>
+            <span data-field="cut-light-at">{{ view.cut_light.at }}</span>
+          </span>
+          <span class="cutlight-sides">
+            <span data-field="cut-light-discards">{{ view.cut_light.discards }} is discarded</span>
+            <span data-field="cut-light-keeps">{{ view.cut_light.keeps }} is kept</span>
+          </span>
+          <span class="cutlight-readout">
+            <span class="big" data-field="cut-light-offset">{{ view.cut_light.offset }}</span>
+            <span data-field="cut-light-state">{{ view.cut_light.state }}</span>
+            <span data-field="cut-light-side">{{ view.cut_light.side }}</span>
+          </span>
+        </div>
+        {% endif %}
+        {% if view.preview_windows %}
+        <button type="button" class="preview" data-role="preview-cut" data-kind="cut" data-emphasis="primary" data-seams="{% for seam in view.seams %}{{ seam.before_seconds }}:{{ seam.after_seconds }}{% if not loop.last %},{% endif %}{% endfor %}" data-in-start="{{ view.preview_windows[0].start_seconds }}" data-in-end="{{ view.preview_windows[0].end_seconds }}" data-out-start="{{ view.preview_windows[1].start_seconds }}" data-out-end="{{ view.preview_windows[1].end_seconds }}">Preview the cut</button>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    <ol class="seams">
+    {% for seam in view.seams %}
+      <li data-row="seam" data-seam="{{ seam.seam }}" data-before-seconds="{{ seam.before_seconds }}" data-after-seconds="{{ seam.after_seconds }}"{% if seam.flagged %} data-flagged="true"{% endif %}>
+        <div class="seam-head"><strong>{{ seam.heading }}</strong> <span class="mono">{{ seam.at }}</span></div>
+        <canvas class="seam-wave" data-role="seam-wave" data-kind="{{ seam.kind }}" data-before="{{ seam.before_seconds }}" data-after="{{ seam.after_seconds }}" data-before-kept="{{ 'true' if seam.before_kept else 'false' }}" data-after-kept="{{ 'true' if seam.after_kept else 'false' }}" width="320" height="56" aria-hidden="true"></canvas>
+        <p class="seam-words"><span class="before" data-field="words-before">{{ seam.words_before or "no words here" }}</span> <span class="after" data-field="words-after">{{ seam.words_after or "no words here" }}</span></p>
+        {% if view.preview_ready %}
+        {% if seam.kind == "join" %}
+        <button type="button" class="hear" data-role="hear-join" data-url="{{ seam.join_url }}" data-field="hear-seam-control">{{ seam.hear }}</button>
+        {% else %}
+        <button type="button" class="hear" data-role="preview-{{ seam.kind }}" data-kind="{{ seam.kind }}" data-at="{{ seam.before_seconds }}" data-start="{{ seam.start_seconds }}" data-end="{{ seam.end_seconds }}" data-field="hear-seam-control">{{ seam.hear }}</button>
+        {% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}
+    </ol>
+    {% if not editing and view.boundary_controls in ("editable", "collapsed") %}
+    <p class="hero-foot">Something off? Adjust the punch points or remove a span. <a class="button" data-role="edit-the-cut" href="{{ edit_url }}">Edit the cut</a></p>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% if view.selected_segment_id is not none and (editing or view.removed_spans) %}
   <div class="removals" data-role="removed-spans">
     <h3>Removed from inside the cut{% if view.removed %} <span class="quiet">· <span data-field="length-removed">{{ view.removed }}</span> in all</span>{% endif %}</h3>
-    {% if view.removal_url %}
+    {% if editing and view.removal_url %}
     <form method="post" action="{{ view.removal_url }}{{ window }}" data-role="removal">
       <button type="submit" name="do" value="mark-start" data-field="mark-start-control">Start removal at playhead</button>
       <label>from <input type="text" name="from" value="{{ view.removal_from or '' }}" placeholder="h:mm:ss.ss" data-field="removal-from"></label>
@@ -475,7 +546,7 @@
         <span class="mono" data-field="removed-to">{{ span.to_at }}</span>
         <span class="quiet" data-field="removed-lasting">{{ span.lasting }}</span>
         <button type="button" data-role="hear-join" data-url="{{ span.join_url }}">Hear the join</button>
-        {% if view.removal_url %}
+        {% if editing and view.removal_url %}
         <form method="post" action="{{ view.removal_url }}{{ window }}">
           <input type="hidden" name="from" value="{{ span.from_seconds }}">
           <input type="hidden" name="to" value="{{ span.to_seconds }}">
@@ -492,31 +563,6 @@
   {% endif %}
 
   {% if view.preview_ready %}
-  {% if view.cut_light %}
-  <div class="cutlight" data-role="cut-light"
-       data-boundary="{{ view.cut_light.boundary }}"
-       data-at="{{ view.cut_light.at_seconds }}"
-       data-tolerance="{{ view.cut_light.tolerance_seconds }}"
-       data-discards="{{ view.cut_light.discards }}"
-       data-keeps="{{ view.cut_light.keeps }}"
-       data-state="{{ view.cut_light.state }}"
-       data-side="{{ view.cut_light.side }}">
-    <span class="lamp" data-role="cut-lamp" aria-hidden="true"></span>
-    <span class="cutlight-text">
-      <strong data-field="cut-light-boundary">{{ view.cut_light.boundary }}</strong>
-      <span data-field="cut-light-at">{{ view.cut_light.at }}</span>
-    </span>
-    <span class="cutlight-sides">
-      <span data-field="cut-light-discards">{{ view.cut_light.discards }} is discarded</span>
-      <span data-field="cut-light-keeps">{{ view.cut_light.keeps }} is kept</span>
-    </span>
-    <span class="cutlight-readout">
-      <span class="big" data-field="cut-light-offset">{{ view.cut_light.offset }}</span>
-      <span data-field="cut-light-state">{{ view.cut_light.state }}</span>
-      <span data-field="cut-light-side">{{ view.cut_light.side }}</span>
-    </span>
-  </div>
-  {% endif %}
   <div class="nowplaying">
     <audio id="preview-audio" controls preload="metadata" data-role="preview-audio" data-duration="{{ view.preview_duration_seconds or view.duration_seconds }}">
       <source src="{{ view.preview_url }}" type="{{ view.preview_media_type }}">
@@ -544,6 +590,7 @@
   <p class="quiet">Playhead <span data-field="playhead">{{ view.playhead_seconds|precise }}</span></p>
   {% endif %}
   </div>
+  </div>
   <script src="{{ url_for('static', filename='timecode.js') }}" defer></script>
   <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
   <script src="{{ url_for('static', filename='cutlight.js') }}" defer></script>
@@ -555,27 +602,36 @@
 
 <div class="supporting">
 <section class="actions">
-  <h2>This Segment</h2>
+  <h2>{% if editing %}Editing the {{ view.classification|replace("_", " ") }}{% else %}This Segment{% endif %}</h2>
   {% if view.selected_segment_id is none %}
   <p data-field="segment-actions-state">No Segment is selected, so no Segment action is offered</p>
   {% else %}
+  {% if not editing and view.proposal is not none and view.proposal.needs_checking %}
+  {% set checked = view.proposal.needs_checking[0] %}
+  <p class="callout" data-role="check-callout"><strong>Check the {{ "opening" if checked.point == "punch-in" else "ending" }}.</strong> It is graded {{ checked.grade }} to place; listen to it, or edit the cut.</p>
+  {% endif %}
   <p class="quiet">Boundaries <span data-field="boundary-controls">{{ view.boundary_controls }}</span></p>
   <p class="quiet">Classified <span data-field="classification">{{ view.classification }}</span>
      of <span data-field="classification-choices">{{ view.classification_choices|join(", ") }}</span></p>
   {% if view.classify_url %}
-  <form method="post" action="{{ view.classify_url }}">
-    <label>Reclassify as
-      <select name="classification">
-      {% for choice in view.classification_choices %}
-        <option value="{{ choice }}"{% if choice == view.classification %} selected{% endif %}>{{ choice }}</option>
-      {% endfor %}
-      </select>
-    </label>
-    <button type="submit" data-field="classify-control">Reclassify</button>
-  </form>
+  <details class="reclassify"{% if editing %} open{% endif %}>
+    <summary>Reclassify</summary>
+    <form method="post" action="{{ view.classify_url }}">
+      <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
+      <label>Reclassify as
+        <select name="classification">
+        {% for choice in view.classification_choices %}
+          <option value="{{ choice }}"{% if choice == view.classification %} selected{% endif %}>{{ choice }}</option>
+        {% endfor %}
+        </select>
+      </label>
+      <button type="submit" data-field="classify-control">Reclassify</button>
+    </form>
+  </details>
   {% else %}
   <p class="quiet" data-field="classify-state">this Segment can no longer be reclassified</p>
   {% endif %}
+  {% if not editing %}
   <p class="quiet">Intent <span data-field="intent">{{ view.intent }}</span>
      of <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span>,
      publication label <span data-field="label">{{ view.label or "none entered" }}</span></p>
@@ -584,6 +640,7 @@
     <li data-row="segment-action" data-action="{{ action.name }}" data-segment="{{ view.selected_segment_id }}">
       {% if action.name == "Approve" %}
       <form method="post" action="{{ action.url }}">
+        <input type="hidden" name="mode" value="review">
         <label>Intent
           <select name="intent">
           {% for choice in view.intent_choices %}
@@ -593,26 +650,36 @@
         </label>
         <label>Publication label <input type="text" name="label" value="{{ view.label or '' }}"></label>
         {% if view.notice == notices["label-collides"] %}<label><input type="checkbox" name="replace" value="yes" data-field="replace-control"> replace the file already published under this name</label>{% endif %}
-        <button type="submit" class="primary" data-field="action-control">Approve</button>
+        <button type="submit" class="primary" data-field="action-control">Approve and render</button>
       </form>
       {% else %}
       <form method="post" action="{{ action.url }}">
-        <button type="submit" data-field="action-control">{{ action.name }}</button>
+        <input type="hidden" name="mode" value="review">
+        <button type="submit" class="{{ 'ghost' if action.name == 'Skip' else '' }}" data-field="action-control">{{ action.name }}</button>
       </form>
       {% endif %}
     </li>
   {% endfor %}
   </ul>
+  {% endif %}
 
   <h3>Boundaries</h3>
   {% if view.boundary_controls == "read-only" %}
   <p data-field="processing-step">{{ view.processing_step }}</p>
   <p data-field="processing-progress">{{ view.processing_progress }}</p>
   {% if view.segment_failure %}<p class="flag" data-field="segment-failure">{{ view.segment_failure }}</p>{% endif %}
+  {% elif not editing %}
+  <p class="quiet">The cut runs from {{ view.punch_in_seconds|precise }} to {{ view.punch_out_seconds|precise }}.</p>
+  {% if view.whole_span_note %}
+  <p data-field="whole-span-note">{{ view.whole_span_note }}</p>
+  {% endif %}
+  {% if view.length_warning %}
+  <p class="warn" data-field="length-warning">{{ view.length_warning }}</p>
+  {% endif %}
   {% else %}
   {% if view.whole_span_note %}
   <p data-field="whole-span-note">{{ view.whole_span_note }}</p>
-  <details><summary data-field="expand-boundaries">Trim it anyway</summary>
+  <details open><summary data-field="expand-boundaries">Trim it anyway</summary>
   {% endif %}
   <p class="quiet" data-field="focus-state">{% if view.focused_boundary %}the keyboard will move the {{ view.focused_boundary }}{% else %}no boundary has focus, so the keyboard will move nothing{% endif %}</p>
   <p class="quiet">steps <span class="mono" data-field="nudge-steps">{{ view.nudge_steps|join(", ") }}</span></p>
@@ -677,9 +744,13 @@
   </details>
   {% endif %}
   {% endif %}
+  {% if editing %}
+  <a class="done" data-role="done-editing" href="{{ review_url }}">Done editing</a>
+  {% elif view.boundary_controls in ("editable", "collapsed") %}
+  <a class="edit-link" data-role="edit-the-cut" href="{{ edit_url }}">Edit the cut</a>
+  {% endif %}
   {% endif %}
 </section>
-</div>
 </div>
 <script src="{{ url_for('static', filename='details.js') }}" defer></script>
 </body>
