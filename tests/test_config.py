@@ -8,9 +8,12 @@ from pathlib import Path
 import pytest
 
 from sermon.config import (
+    ACCESS_AUDIENCE,
+    ACCESS_TEAM_DOMAIN,
     VARIABLES,
     NOTIFICATION_CHANNEL,
     WEBHOOK_TOKEN,
+    CloudflareAccess,
     Configuration,
     Credential,
     MissingConfiguration,
@@ -275,3 +278,54 @@ def test_notifications_default_to_in_app_only():
 def test_a_notification_channel_nothing_implements_is_refused():
     with pytest.raises(UnusableConfiguration, match="in-app"):
         configured(**{NOTIFICATION_CHANNEL: "email"})
+
+
+TEAM_DOMAIN = "reformation.cloudflareaccess.com"
+AUDIENCE = "32eafc7626e974616f467e2d9e1ba0a3f3c1c5e0b2e9c2b8c1fd6d8e0d2d4a7b"
+
+
+def test_cloudflare_access_is_off_unless_configured():
+    assert configured().access is None
+    assert configured(**{ACCESS_TEAM_DOMAIN: "", ACCESS_AUDIENCE: ""}).access is None
+
+
+def test_cloudflare_access_is_neither_required_variable_of_a_deployment():
+    assert ACCESS_TEAM_DOMAIN not in VARIABLES
+    assert ACCESS_AUDIENCE not in VARIABLES
+
+
+def test_both_access_variables_turn_enforcement_on():
+    access = configured(**{ACCESS_TEAM_DOMAIN: TEAM_DOMAIN, ACCESS_AUDIENCE: AUDIENCE}).access
+    assert access == CloudflareAccess(team_domain=TEAM_DOMAIN, audience=AUDIENCE)
+    assert access.issuer == f"https://{TEAM_DOMAIN}"
+    assert access.keys_url == f"https://{TEAM_DOMAIN}/cdn-cgi/access/certs"
+
+
+@pytest.mark.parametrize(
+    ("set_alone", "missing"),
+    [
+        ({ACCESS_TEAM_DOMAIN: TEAM_DOMAIN}, ACCESS_AUDIENCE),
+        ({ACCESS_AUDIENCE: AUDIENCE}, ACCESS_TEAM_DOMAIN),
+    ],
+)
+def test_one_access_variable_without_the_other_is_refused_by_name(set_alone, missing):
+    with pytest.raises(UnusableConfiguration) as refused:
+        configured(**set_alone)
+    assert missing in str(refused.value)
+    assert next(iter(set_alone)) in str(refused.value)
+
+
+@pytest.mark.parametrize(
+    "team_domain",
+    [
+        f"https://{TEAM_DOMAIN}",
+        f"{TEAM_DOMAIN}/cdn-cgi/access/certs",
+        f"{TEAM_DOMAIN}:8443",
+        "reformation cloudflareaccess.com",
+        "cloudflareaccess",
+    ],
+)
+def test_a_team_domain_that_is_not_a_bare_host_is_refused(team_domain):
+    with pytest.raises(UnusableConfiguration) as refused:
+        configured(**{ACCESS_TEAM_DOMAIN: team_domain, ACCESS_AUDIENCE: AUDIENCE})
+    assert ACCESS_TEAM_DOMAIN in str(refused.value)

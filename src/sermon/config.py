@@ -17,6 +17,8 @@ WEBHOOK_TOKEN = "SERMON_WEBHOOK_TOKEN"
 NOTIFICATION_CHANNEL = "SERMON_NOTIFICATION_CHANNEL"
 SLACK_WEBHOOK_URL = "SERMON_SLACK_WEBHOOK_URL"
 APP_URL = "SERMON_APP_URL"
+ACCESS_TEAM_DOMAIN = "SERMON_ACCESS_TEAM_DOMAIN"
+ACCESS_AUDIENCE = "SERMON_ACCESS_AUD"
 IN_APP = "in-app"
 SLACK = "slack"
 NOTIFICATION_CHANNELS = (IN_APP, SLACK)
@@ -111,6 +113,50 @@ class ObjectStore:
 
 
 @dataclass(frozen=True)
+class CloudflareAccess:
+    team_domain: str
+    audience: str
+
+    def __post_init__(self):
+        labels = self.team_domain.split(".")
+        if len(labels) < 2 or not all(
+            label and label.replace("-", "").isalnum() and label.isascii() for label in labels
+        ):
+            raise UnusableConfiguration(
+                f"{ACCESS_TEAM_DOMAIN} is {self.team_domain!r}, which is not a bare host name "
+                f"like myteam.cloudflareaccess.com"
+            )
+        if not self.audience.strip():
+            raise UnusableConfiguration(f"{ACCESS_AUDIENCE} is empty")
+
+    @property
+    def issuer(self):
+        return f"https://{self.team_domain}"
+
+    @property
+    def keys_url(self):
+        return f"{self.issuer}/cdn-cgi/access/certs"
+
+
+def reads_access(environment):
+    team_domain = environment.get(ACCESS_TEAM_DOMAIN)
+    audience = environment.get(ACCESS_AUDIENCE)
+    if not team_domain and not audience:
+        return None
+    if not audience:
+        raise UnusableConfiguration(
+            f"{ACCESS_TEAM_DOMAIN} is set but nothing sets {ACCESS_AUDIENCE}; "
+            f"set both to require Cloudflare Access, or neither"
+        )
+    if not team_domain:
+        raise UnusableConfiguration(
+            f"{ACCESS_AUDIENCE} is set but nothing sets {ACCESS_TEAM_DOMAIN}; "
+            f"set both to require Cloudflare Access, or neither"
+        )
+    return CloudflareAccess(team_domain=team_domain, audience=audience)
+
+
+@dataclass(frozen=True)
 class Configuration:
     data_root: Path
     object_store: ObjectStore
@@ -119,6 +165,7 @@ class Configuration:
     notification_channel: str = IN_APP
     slack_webhook: Credential | None = None
     app_url: str | None = None
+    access: CloudflareAccess | None = None
 
     def __post_init__(self):
         if not isinstance(self.data_root, Path):
@@ -163,6 +210,7 @@ class ReadsConfiguration:
             notification_channel=self.environment.get(NOTIFICATION_CHANNEL) or IN_APP,
             slack_webhook=Credential(hook) if (hook := self.environment.get(SLACK_WEBHOOK_URL)) else None,
             app_url=self.environment.get(APP_URL) or None,
+            access=reads_access(self.environment),
         )
 
 
