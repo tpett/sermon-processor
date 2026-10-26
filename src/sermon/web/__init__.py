@@ -1,12 +1,13 @@
 import json
 import logging
 import os
+import secrets
 import shutil
 from dataclasses import asdict, replace
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path, PurePosixPath
 
-from flask import Flask, Response, g, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, abort, g, redirect, render_template, request, send_file, session, url_for
 
 from sermon.accepts_recording_webhook import AcceptsRecordingWebhook, now
 from sermon.adjusts_punch_point import (
@@ -32,7 +33,7 @@ from sermon.extends_segment_span import (
     SpanWouldOverlapNeighbour,
 )
 from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
-from sermon.identifies_requester import IdentifiesRequester
+from sermon.identifies_requester import IdentifiesRequester, LoginRequired
 from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob
 from sermon.lists_notifications import ListsNotifications, MarksNotificationsSeen, SetsNotificationPreference
 from sermon.lists_recordings import KIND_TAGS, ListsRecordings
@@ -62,6 +63,7 @@ from sermon.recuts_segment import RecutsSegment, SegmentNotComplete
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.sends_notification import lists_undelivered
+from sermon.logs_in_user import LoginRefused, LoginThrottled, LogsInUser, RecognisesLogin
 from sermon.signs_in_user import SignsInUser
 from sermon.reruns_analysis import RerunsAnalysis
 from sermon.retitles_recording import RetitlesRecording
@@ -77,14 +79,33 @@ from sermon.skips_segment import SkipsSegment
 from sermon.splits_segment import CreatesSegment, MergesSegments, SplitsSegment
 from sermon.splits_segment import NothingToMerge
 from sermon.store import Artifact, Discovery, Job, Recording, Segment, layout
+from sermon.throttles_logins import ThrottlesLogins
 from sermon.verifies_access_token import AccessKeysUnavailable, AccessRefused
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
+from sermon.web.signs_in_by_password import (
+    SIGN_IN_PATH,
+    SessionsForTailnet,
+    comes_from_another_site,
+    reads_client_address,
+    reads_safe_destination,
+)
 
 
 log = logging.getLogger("sermon.access")
 AUTHORIZATION = "Authorization"
 SIGN_IN_REQUIRED = "sign-in required\n"
 SIGN_IN_UNAVAILABLE = "sign-in cannot be checked right now\n"
+SIGN_IN_REFUSED = "The email address or password is not right."
+SIGN_IN_HELD_OFF = "Too many attempts. Please try again in a little while."
+FORM_FROM_ANOTHER_SITE = "the form was submitted from another site\n"
+SESSION_COOKIE = "sermon_session"
+SESSION_LIFETIME = timedelta(days=30)
+SESSION_KEY = "login"
+SIGN_IN_ASSETS = frozenset({"review.css"})
+WEBHOOK_ENDPOINT = "recordings_webhook"
+SIGN_IN_ENDPOINT = "sign_in_page"
+SIGN_IN_ENDPOINTS = frozenset({SIGN_IN_ENDPOINT, "signs_in_by_password"})
+HTML = "text/html"
 BOUNDARIES = ("punch-in", "punch-out")
 INLINE_KINDS = frozenset({"preview"})
 ARTIFACT_UNAVAILABLE = "the artifact is unavailable"
@@ -151,6 +172,7 @@ def creates_app(
     streams_object=None,
     webhook_token=None,
     verifies_access=None,
+    secret_key=None,
 ):
     web_dir = Path(__file__).parent
     app = Flask(
@@ -159,6 +181,16 @@ def creates_app(
         static_folder=str(web_dir / "static"),
     )
     app.config["BIND_HOST"] = os.environ.get("SERMON_BIND_HOST", "100.64.0.1")
+    app.secret_key = secret_key or secrets.token_hex(32)
+    app.session_interface = SessionsForTailnet()
+    app.config.update(
+        SESSION_COOKIE_NAME=SESSION_COOKIE,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_DOMAIN=None,
+        SESSION_COOKIE_PATH="/",
+        PERMANENT_SESSION_LIFETIME=SESSION_LIFETIME,
+    )
     app.add_template_filter(formats_precise, "precise")
     app.add_template_filter(formats_seconds, "seconds")
     app.jinja_env.globals["playhead_outside_span"] = PLAYHEAD_OUTSIDE_SPAN
@@ -167,6 +199,8 @@ def creates_app(
     authorizes = AuthorizesWebhook(token=webhook_token)
     identifies = IdentifiesRequester(verifies=verifies_access)
     signs_in = SignsInUser(store=store, clock=clock)
+    recognises = RecognisesLogin(store=store)
+    logs_in = LogsInUser(store=store, throttle=ThrottlesLogins(clock=clock))
     lists = ListsRecordings(store=store, clock=clock)
     shows = ShowsRecording(store=store)
     approves = ApprovesSegment(store=store, clock=clock)
@@ -195,24 +229,103 @@ def creates_app(
     sets_preference = SetsNotificationPreference(store=store)
     playheads = {}
 
+    def needs_a_login():
+        if request.endpoint in SIGN_IN_ENDPOINTS or request.endpoint == WEBHOOK_ENDPOINT:
+            return False
+        if request.endpoint == "static":
+            return (request.view_args or {}).get("filename") not in SIGN_IN_ASSETS
+        return True
+
+    def asks_for_a_page():
+        if request.path.startswith("/api/"):
+            return False
+        return any(mimetype == HTML for mimetype, _ in request.accept_mimetypes)
+
+    def sends_to_sign_in():
+        if not asks_for_a_page():
+            return Response(SIGN_IN_REQUIRED, status=401, mimetype="text/plain")
+        target = url_for(SIGN_IN_ENDPOINT)
+        if request.method in {"GET", "HEAD"}:
+            target = url_for(SIGN_IN_ENDPOINT, next=request.full_path.removesuffix("?"))
+        return Response(status=303, headers={"Location": target})
+
     @app.before_request
     def requires_sign_in():
         try:
-            requester = identifies(request.host, request.headers)
+            requester = identifies(
+                request.host,
+                request.headers,
+                login=lambda: recognises(session.get(SESSION_KEY)),
+                needs_login=needs_a_login(),
+            )
         except AccessRefused:
             return Response(SIGN_IN_REQUIRED, status=401, mimetype="text/plain")
         except AccessKeysUnavailable as unavailable:
             log.error("sign-in cannot be checked: %s", unavailable)
             return Response(SIGN_IN_UNAVAILABLE, status=503, mimetype="text/plain")
+        except LoginRequired:
+            return sends_to_sign_in()
+        g.on_tailnet = requester.on_tailnet
+        g.by_login = requester.by_login
         g.signed_in_as = requester.email
-        g.actor = signs_in(requester.email).email if requester.email else REVIEWER
+        if requester.email:
+            g.actor = signs_in(requester.email).email
+        else:
+            g.actor = None if verifies_access else REVIEWER
 
     @app.context_processor
     def names_who_is_signed_in():
-        return {"signed_in_as": g.get("signed_in_as")}
+        return {"signed_in_as": g.get("signed_in_as"), "can_sign_out": g.get("by_login", False)}
 
     def actor():
+        assert g.actor, "an action was taken by a request nobody signed in"
         return g.actor
+
+    def shows_sign_in(status, message=None, destination=None, **headers):
+        page = render_template("login.html", message=message, destination=destination)
+        return Response(page, status=status, mimetype=HTML, headers=headers)
+
+    @app.get(SIGN_IN_PATH, endpoint=SIGN_IN_ENDPOINT)
+    def sign_in_page():
+        if not g.on_tailnet:
+            abort(404)
+        destination = reads_safe_destination(request.args.get("next"))
+        if recognises(session.get(SESSION_KEY)):
+            return redirect(destination, code=303)
+        return shows_sign_in(200, destination=destination)
+
+    @app.post(SIGN_IN_PATH)
+    def signs_in_by_password():
+        if not g.on_tailnet:
+            abort(404)
+        if comes_from_another_site(request):
+            return Response(FORM_FROM_ANOTHER_SITE, status=403, mimetype="text/plain")
+        destination = reads_safe_destination(request.form.get("next"))
+        try:
+            entered = logs_in(
+                request.form.get("email", "")[:320],
+                request.form.get("password", ""),
+                reads_client_address(request),
+            )
+        except LoginThrottled as held:
+            return shows_sign_in(
+                429, SIGN_IN_HELD_OFF, destination, **{"Retry-After": str(held.seconds)}
+            )
+        except LoginRefused:
+            return shows_sign_in(401, SIGN_IN_REFUSED, destination)
+        session.clear()
+        session[SESSION_KEY] = entered.remembered()
+        session.permanent = True
+        return redirect(destination, code=303)
+
+    @app.post("/logout")
+    def signs_out():
+        if not g.by_login:
+            abort(404)
+        if comes_from_another_site(request):
+            return Response(FORM_FROM_ANOTHER_SITE, status=403, mimetype="text/plain")
+        session.clear()
+        return redirect(url_for(SIGN_IN_ENDPOINT), code=303)
 
     def playhead_of(recording_id, segment_id=None, focus=None):
         carried = request.values.get("playhead", type=float)

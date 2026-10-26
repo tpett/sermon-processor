@@ -1,1 +1,2 @@
-{% if signed_in_as %}<p class="signed-in">Signed in as <span data-field="signed-in-as">{{ signed_in_as }}</span></p>{% endif %}
+{% if signed_in_as %}<p class="signed-in">Signed in as <span data-field="signed-in-as">{{ signed_in_as }}</span>{% if can_sign_out %}
+<form class="inline" method="post" action="/logout" data-field="sign-out"><button type="submit" data-field="sign-out-control">Sign out</button></form>{% endif %}</p>{% endif %}

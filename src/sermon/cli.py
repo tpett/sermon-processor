@@ -53,6 +53,7 @@ from sermon.jobs.analyzes_recording import RunsAnalyzeJob
 from sermon.jobs.downloads_recording import DownloadsRecording, RunsDownloadJob
 from sermon.jobs.enqueues_job import EnqueuesJob
 from sermon.jobs.probes_recording import MeasuresRecordingAudio, ProbesRecording
+from sermon.keeps_session_secret import KeepsSessionSecret
 from sermon.jobs.recovers_interrupted_jobs import RecoversInterruptedJobs
 from sermon.jobs.runs_queued_jobs import RunsQueuedJobs
 from sermon.jobs.renders_mp3 import ChannelsNeedReview, RendersMp3
@@ -635,6 +636,12 @@ def verifies_access_from(configuration, fetches_keys=None):
     )
 
 
+def keeps_secret_from(configuration):
+    if configuration.access is None:
+        return None
+    return KeepsSessionSecret(data_root=configuration.data_root, named=configuration.secret_key)()
+
+
 def serves(
     settings=None,
     lists_objects=None,
@@ -658,6 +665,7 @@ def serves(
         streams_object=streams_from(configuration, builds_client),
         webhook_token=configuration.webhook_token,
         verifies_access=verifies_access_from(configuration, fetches_access_keys),
+        secret_key=keeps_secret_from(configuration),
     )
     app.config["BIND_HOST"] = settings.get(BIND_HOST, app.config["BIND_HOST"])
     runs(app, app.config["BIND_HOST"], int(settings.get(PORT, DEFAULT_PORT)))

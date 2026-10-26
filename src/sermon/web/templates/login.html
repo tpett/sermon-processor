@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
+</head>
+<body>
+<h1>Sign in</h1>
+{% if message %}<p class="notice" data-field="sign-in-message" role="alert">{{ message }}</p>{% endif %}
+<form method="post" action="/login" data-role="sign-in">
+  <label>Email address
+    <input type="email" name="email" autocomplete="username" autofocus required>
+  </label>
+  <label>Password
+    <input type="password" name="password" autocomplete="current-password" required>
+  </label>
+  <input type="hidden" name="next" value="{{ destination or '/' }}">
+  <button type="submit" data-field="sign-in-control">Sign in</button>
+</form>
+</body>
+</html>
