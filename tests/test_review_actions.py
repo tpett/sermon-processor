@@ -395,3 +395,35 @@ def test_the_typed_form_still_creates_a_segment_without_a_classification(data_ro
     assert [
         (one.punch_in_seconds, one.punch_out_seconds, one.classification) for one in stored
     ] == [(1200.0, 3900.0, "sermon")]
+
+
+def test_the_rail_marks_only_the_block_of_the_selected_segments_classification(store, client, recording):
+    for start, end, block_type in ((200.0, 500.0, "scripture_reading"), (300.0, 900.0, "sermon")):
+        store.saves(
+            Block(
+                recording_id=RECORDING_ID,
+                start_seconds=start,
+                end_seconds=end,
+                type=block_type,
+                summary=f"the {block_type}",
+            )
+        )
+    chosen = store.saves(
+        Segment(
+            recording_id=RECORDING_ID,
+            classification="sermon",
+            state="proposed",
+            span_start_seconds=300.0,
+            span_end_seconds=900.0,
+            punch_in_seconds=400.0,
+            punch_out_seconds=800.0,
+            boundary_source="model",
+        )
+    )
+    page = client.get(f"/recordings/{RECORDING_ID}?segment={chosen.segment_id}").get_data(as_text=True)
+    rows = reads_rows(page, "block")
+    assert [(row["block-type"], row.get("selected")) for row in rows] == [
+        ("scripture_reading", None),
+        ("sermon", "true"),
+    ]
+    assert page.count("Segment · proposed") == 1
