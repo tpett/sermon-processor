@@ -12,18 +12,28 @@ Feature: Access control
   the request on with a signed statement of who they are. The service checks that
   statement itself rather than trusting where the request came from. The
   recordings are too large to be carried through Cloudflare, so the tailnet host
-  stays open: a request for it that did not come through Cloudflare needs no
-  sign-in, and neither does the Recorder's webhook, which reaches the service
-  there and answers to its bearer token alone.
+  stays off Cloudflare, and the Recorder's webhook, which reaches the service
+  there, answers to its bearer token alone.
+
+  Settled 2026-10-26, later the same day, changing the tailnet host: it is no
+  longer open. Every request to the service carries a real identity, so that who
+  took an action is always a person the system knows. On the tailnet host a person
+  signs in with an email address and a password the owner gave them, and is the
+  same person as the one Cloudflare Access vouches for under that address: one
+  record, found by the lower-cased address. What is wanted there is attribution,
+  not a stronger perimeter, so the sign-in is kept simple: no self-service
+  sign-up, no password reset, and the owner makes people and sets their
+  passwords from the command line on the server.
+
+  The sign-in is remembered by the browser. A form that changes something
+  (approving, skipping, adjusting a cut) is protected from another site by that
+  memory not being sent along with a request another site causes, rather than by a
+  token in each form. The sign-in and sign-out forms are additionally refused
+  when they are submitted from another site.
 
   Sign-in is a deployment setting. Where it is not configured, which is every
-  scenario outside the first four Rules, the tailnet is the whole perimeter and
-  nothing is in the way.
-
-  What the tailnet side still costs, stated plainly so it is a choice and not an
-  oversight: a request on the tailnet host is not attributed to a person, and an
-  artifact link works for anyone who can reach that host. Who is on the tailnet
-  is not yet established.
+  scenario that does not begin by saying sign-in is required, the tailnet is the
+  whole perimeter and nothing is in the way.
 
   Rule: With sign-in required, a request from outside the tailnet needs a valid one
 
@@ -78,14 +88,280 @@ Feature: Access control
       Then I am told sign-in cannot be checked right now
       And nothing of the page is shown
 
-  Rule: The tailnet host is the one place that needs no sign-in
+    @edge-case
+    Scenario: A sign-in remembered from the tailnet host is not a sign-in from outside it
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I ask for "the recordings list" from outside the tailnet carrying that sign-in
+      Then I am refused
+
+    @edge-case
+    Scenario: A valid Cloudflare sign-in outranks a remembered password sign-in
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I present a valid sign-in for "elder@reformation.example" from outside the tailnet carrying that sign-in
+      Then the page names "elder@reformation.example" as signed in
+
+  Rule: On the tailnet host a person signs in with an email address and a password
 
     @stated
-    Scenario: A request on the tailnet host is served without a sign-in
+    Scenario Outline: A page on the tailnet host sends a browser that has not signed in to the sign-in page
       Given sign-in is required
-      When I ask for "the recordings list" on the tailnet host
-      Then the recordings list is served
+      When I ask for "<page>" on the tailnet host in a browser without signing in
+      Then I am sent to the sign-in page
+      And nothing of the page is shown
+
+      Examples:
+        | page                    |
+        | the recordings list     |
+        | a recording detail view |
+        | the notifications page  |
+
+    @edge-case
+    Scenario Outline: A request that is not from a browser is refused rather than sent to the sign-in page
+      Given sign-in is required
+      When I ask for "<page>" on the tailnet host without signing in
+      Then I am refused
+      And nothing of the page is shown
+
+      Examples:
+        | page                   |
+        | the system health view |
+        | an artifact download   |
+        | the recordings list    |
+
+    @edge-case
+    Scenario: A change submitted from a browser that has not signed in is sent to the sign-in page
+      Given sign-in is required
+      When a browser that has not signed in approves a Segment on the tailnet host
+      Then I am sent to the sign-in page
+      And no approval is recorded
+
+    @edge-case
+    Scenario: A change from a client that has not signed in is refused
+      Given sign-in is required
+      When someone approves a Segment on the tailnet host
+      Then I am refused
+      And no approval is recorded
+
+    @stated
+    Scenario: The sign-in page can be reached without signing in
+      Given sign-in is required
+      When I ask for "the sign-in page" on the tailnet host without signing in
+      Then the sign-in page is shown
+
+    @edge-case
+    Scenario: The sign-in page's own styling can be reached without signing in
+      Given sign-in is required
+      When I ask for "the sign-in page's styling" on the tailnet host without signing in
+      Then the styling is served
+
+    @stated
+    Scenario: The right email address and password sign a person in
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then I am taken to the recordings list
+      And the page names "pastor@reformation.example" as signed in
+
+    @edge-case
+    Scenario: The email address is matched without regard to case
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "  Pastor@Reformation.Example " with "correct horse battery"
+      Then I am taken to the recordings list
+      And the page names "pastor@reformation.example" as signed in
+
+    @stated
+    Scenario Outline: A person who has signed in is served every page
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I ask for "<page>" on the tailnet host
+      Then I see the page
+      And I am not asked to sign in
+
+      Examples:
+        | page                    |
+        | the recordings list     |
+        | a recording detail view |
+        | the notifications page  |
+        | the system health view  |
+
+    @stated
+    Scenario: A person who was sent to sign in is returned to the page they asked for
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I ask for "a recording detail view" on the tailnet host in a browser without signing in
+      And I sign in as "pastor@reformation.example" with "correct horse battery" on the sign-in page I was sent to
+      Then I am taken to the page I first asked for
+
+    @edge-case
+    Scenario Outline: A sign-in cannot send a person to another site
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery" asking to be taken to "<destination>"
+      Then I am taken to the recordings list
+
+      Examples:
+        | destination            |
+        | https://evil.example/  |
+        | //evil.example/        |
+        | data:text/html,hello   |
+
+    @stated
+    Scenario: Signing out ends the sign-in
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I sign out
+      And I ask for "the recordings list" on the tailnet host in a browser
+      Then I am sent to the sign-in page
+
+    @edge-case
+    Scenario: A sign-in attempt that came through Cloudflare is refused
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery" having come through Cloudflare
+      Then I am refused
+
+  Rule: A person is told nothing a stranger could use about who has an account
+
+    @edge-case
+    Scenario Outline: A wrong password and an unknown address are answered alike
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "<email>" with "<password>"
+      Then the sign-in page is shown again
+      And it says only that the email address or password is not right
       And nobody is named as signed in
+
+      Examples:
+        | email                      | password              |
+        | pastor@reformation.example | not the password      |
+        | nobody@reformation.example | not the password      |
+        | nobody@reformation.example | correct horse battery |
+
+    @edge-case
+    Scenario: The two answers cannot be told apart
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "not the password"
+      And I sign in on the tailnet host as "nobody@reformation.example" with "not the password"
+      Then the two answers are identical
+
+    @edge-case
+    Scenario: A person who has only ever come through Cloudflare has no password to sign in with
+      Given sign-in is required
+      And "elder@reformation.example" has only signed in through Cloudflare
+      When I sign in on the tailnet host as "elder@reformation.example" with "anything at all"
+      Then the sign-in page is shown again
+      And nobody is named as signed in
+
+    @edge-case
+    Scenario: A blank password is refused
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with ""
+      Then the sign-in page is shown again
+
+    @edge-case
+    Scenario: Repeated wrong passwords hold a person off for a while, even for the right one
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When someone gives a wrong password for "pastor@reformation.example" 5 times on the tailnet host
+      And I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then I am told to wait before trying again
+      And nobody is named as signed in
+
+    @edge-case
+    Scenario: The wait ends
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When someone gives a wrong password for "pastor@reformation.example" 5 times on the tailnet host
+      And 2 minutes pass
+      And I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then I am taken to the recordings list
+
+    @edge-case
+    Scenario: One machine trying many addresses is held off though no address was tried often
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When someone tries 20 different email addresses from one machine on the tailnet host
+      And I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then I am told to wait before trying again
+
+    @edge-case
+    Scenario: A sign-in submitted from another site is refused
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When a page on another site submits "pastor@reformation.example" with "correct horse battery" to the tailnet host's sign-in
+      Then the submission is refused
+      When I ask for "the recordings list" on the tailnet host in a browser
+      Then I am sent to the sign-in page
+
+    @edge-case
+    Scenario: A sign-out submitted from another site is refused
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When a page on another site asks to sign me out
+      Then the submission is refused
+      When I ask for "the recordings list" on the tailnet host in a browser
+      Then I see the page
+
+  Rule: A person can sign in on the tailnet host only with a password the owner gave them
+
+    @stated
+    Scenario: The owner adds a person with a password
+      Given sign-in is required
+      When the owner adds "elder@reformation.example" with the password "an elder's passphrase"
+      And I sign in on the tailnet host as "elder@reformation.example" with "an elder's passphrase"
+      Then I am taken to the recordings list
+      And the page names "elder@reformation.example" as signed in
+
+    @stated
+    Scenario: The owner changes a password and the old one stops working
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When the owner gives "pastor@reformation.example" the new password "a brand new passphrase"
+      And I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the sign-in page is shown again
+
+    @stated
+    Scenario: Changing a password ends the sign-ins made with the old one
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When the owner gives "pastor@reformation.example" the new password "a brand new passphrase"
+      And I ask for "the recordings list" on the tailnet host in a browser
+      Then I am sent to the sign-in page
+
+    @edge-case
+    Scenario: A password too short to be worth having is not accepted
+      Given sign-in is required
+      When the owner tries to add "elder@reformation.example" with the password "short"
+      Then the owner is told the password is too short
+      And the system knows no one
+
+    @stated
+    Scenario: A password is kept only as a salted hash
+      Given sign-in is required
+      And "pastor@reformation.example" and "elder@reformation.example" have both been given the password "correct horse battery"
+      Then the system holds a different record of each
+      And neither record contains the password
+
+    @stated
+    Scenario: The same person is one person however they signed in
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I present a valid sign-in for "pastor@reformation.example" from outside the tailnet
+      And I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the system knows one person with that address
+
+  Rule: A password sign-in is good on the tailnet host and nowhere else
 
     @edge-case
     Scenario Outline: The tailnet host's name arriving through Cloudflare is not the tailnet
@@ -98,6 +374,41 @@ Feature: Access control
         | request identifier             |
         | record of the sender's address |
 
+    @edge-case
+    Scenario Outline: A password sign-in is not honoured when the request came through Cloudflare
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I ask for "the recordings list" on the tailnet host, carrying that sign-in, having come through Cloudflare, shown by its <mark>
+      Then I am refused
+
+      Examples:
+        | mark                           |
+        | request identifier             |
+        | record of the sender's address |
+
+    @edge-case
+    Scenario: With no tailnet host named, no password sign-in is taken
+      Given sign-in is required
+      And no tailnet host is named
+      When I ask for "the recordings list" on the host the tailnet host would have been
+      Then I am refused
+
+    @edge-case
+    Scenario: With no tailnet host named, there is no sign-in page
+      Given sign-in is required
+      And no tailnet host is named
+      When I ask for "the sign-in page" on the host the tailnet host would have been
+      Then I am refused
+
+    @edge-case
+    Scenario: The sign-in page is not offered from outside the tailnet
+      Given sign-in is required
+      When I ask for "the sign-in page" from outside the tailnet without signing in
+      Then I am refused
+
+  Rule: The Recorder's webhook answers to its bearer token alone
+
     @stated
     Scenario: The Recorder's webhook needs only its bearer token on the tailnet host
       Given sign-in is required
@@ -109,6 +420,7 @@ Feature: Access control
       Given sign-in is required
       When the Recorder sends a webhook on the tailnet host without its bearer token
       Then the webhook is refused as unauthenticated
+      And I am not sent to the sign-in page
 
     @edge-case
     Scenario: A webhook from outside the tailnet needs a sign-in as well
@@ -116,12 +428,49 @@ Feature: Access control
       When the Recorder sends a webhook from outside the tailnet with its bearer token and no sign-in
       Then I am refused
 
+  Rule: The sign-in is remembered as narrowly as a browser allows
+
     @edge-case
-    Scenario: With no tailnet host named, nothing is exempt
+    Scenario: The browser keeps the sign-in for the tailnet host alone
       Given sign-in is required
-      And no tailnet host is named
-      When I ask for "the recordings list" on the host the tailnet host would have been
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the browser is told to keep the sign-in for the tailnet host alone
+
+    @edge-case
+    Scenario: The sign-in is not sent with a request another site causes
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the browser is told not to send the sign-in with a request another site causes
+
+    @edge-case
+    Scenario: A page's scripts cannot read the sign-in
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the browser is told to keep the sign-in from a page's scripts
+
+    @edge-case
+    Scenario: Over a secure connection the browser is told to send the sign-in only over one
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery" over a secure connection
+      Then the browser is told to send the sign-in only over a secure connection
+
+    @edge-case
+    Scenario: Over a plain connection the sign-in is not made unusable
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the browser is not told to send the sign-in only over a secure connection
+
+    @edge-case
+    Scenario: A claim of a secure connection from outside the tailnet gives a sign-in nothing
+      Given sign-in is required
+      When I ask for "the recordings list" from outside the tailnet claiming a secure connection
       Then I am refused
+      And no sign-in is remembered
 
   Rule: Naming only one half of the sign-in check is a mistake the service will not start with
 
@@ -157,11 +506,33 @@ Feature: Access control
       Then the approval is recorded against "pastor@reformation.example"
 
     @stated
-    Scenario: An approval on the tailnet host is still the reviewer's
+    Scenario: An approval on the tailnet host records the person who signed in there
       Given sign-in is required
-      When someone approves a Segment on the tailnet host
-      Then the approval is recorded against "reviewer"
-      And the system knows no one
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I approve a Segment on the tailnet host
+      Then the approval is recorded against "pastor@reformation.example"
+
+    @stated
+    Scenario: A Segment skipped on the tailnet host records the person who signed in there
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      When I skip a Segment on the tailnet host
+      Then the skip is recorded against "pastor@reformation.example"
+
+    @stated
+    Scenario: A person signed in with a password can sign out
+      Given sign-in is required
+      And "pastor@reformation.example" has the password "correct horse battery"
+      When I sign in on the tailnet host as "pastor@reformation.example" with "correct horse battery"
+      Then the page offers to sign out
+
+    @edge-case
+    Scenario: A person signed in through Cloudflare is not offered a sign-out the service cannot honour
+      Given sign-in is required
+      When I present a valid sign-in for "pastor@reformation.example" from outside the tailnet
+      Then the page does not offer to sign out
 
   Rule: Without a sign-in configured, the network is the boundary
 
@@ -178,6 +549,11 @@ Feature: Access control
         | a recording detail view |
         | an artifact download    |
         | the system health view  |
+
+    @edge-case
+    Scenario: There is no sign-in page to reach
+      When I visit "the sign-in page"
+      Then there is no such page
 
     @happy-path
     Scenario: The service does not listen on the public internet
