@@ -10,6 +10,7 @@ import pytest
 from sermon.config import (
     ACCESS_AUDIENCE,
     ACCESS_TEAM_DOMAIN,
+    TAILNET_HOST,
     VARIABLES,
     NOTIFICATION_CHANNEL,
     WEBHOOK_TOKEN,
@@ -329,3 +330,40 @@ def test_a_team_domain_that_is_not_a_bare_host_is_refused(team_domain):
     with pytest.raises(UnusableConfiguration) as refused:
         configured(**{ACCESS_TEAM_DOMAIN: team_domain, ACCESS_AUDIENCE: AUDIENCE})
     assert ACCESS_TEAM_DOMAIN in str(refused.value)
+
+
+TAILNET = "sermon-processor.home.tpett.me"
+ACCESS_ON = {ACCESS_TEAM_DOMAIN: TEAM_DOMAIN, ACCESS_AUDIENCE: AUDIENCE}
+
+
+def test_no_tailnet_host_means_no_request_is_exempt():
+    assert configured(**ACCESS_ON).access.tailnet_host is None
+    assert configured(**ACCESS_ON, **{TAILNET_HOST: ""}).access.tailnet_host is None
+
+
+def test_the_tailnet_host_is_read_beside_the_two_access_variables():
+    access = configured(**ACCESS_ON, **{TAILNET_HOST: TAILNET}).access
+    assert access.tailnet_host == TAILNET
+    assert TAILNET_HOST not in VARIABLES
+
+
+def test_a_tailnet_host_is_compared_in_lower_case():
+    assert configured(**ACCESS_ON, **{TAILNET_HOST: "Sermon-Processor.Home.Tpett.Me"}).access.tailnet_host == TAILNET
+
+
+def test_a_tailnet_host_with_access_off_exempts_nothing_because_nothing_is_enforced():
+    assert configured(**{TAILNET_HOST: TAILNET}).access is None
+
+
+@pytest.mark.parametrize(
+    "host",
+    [f"https://{TAILNET}", f"{TAILNET}/", f"{TAILNET}/api", f"{TAILNET}:8000", "sermon processor", "-bad-.home"],
+)
+def test_a_tailnet_host_that_is_not_a_bare_host_name_is_refused(host):
+    with pytest.raises(UnusableConfiguration) as refused:
+        configured(**ACCESS_ON, **{TAILNET_HOST: host})
+    assert TAILNET_HOST in str(refused.value)
+
+
+def test_a_single_label_tailnet_host_is_a_host_name():
+    assert configured(**ACCESS_ON, **{TAILNET_HOST: "sermon-processor"}).access.tailnet_host == "sermon-processor"

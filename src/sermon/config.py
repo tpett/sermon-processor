@@ -19,6 +19,7 @@ SLACK_WEBHOOK_URL = "SERMON_SLACK_WEBHOOK_URL"
 APP_URL = "SERMON_APP_URL"
 ACCESS_TEAM_DOMAIN = "SERMON_ACCESS_TEAM_DOMAIN"
 ACCESS_AUDIENCE = "SERMON_ACCESS_AUD"
+TAILNET_HOST = "SERMON_TAILNET_HOST"
 IN_APP = "in-app"
 SLACK = "slack"
 NOTIFICATION_CHANNELS = (IN_APP, SLACK)
@@ -112,22 +113,36 @@ class ObjectStore:
         refuses_a_bare_credential(OBJECT_STORE_SECRET_ACCESS_KEY, self.secret_access_key)
 
 
+def refuses_a_name_that_is_not_a_bare_host(name, value, example, labels_needed=1):
+    labels = value.split(".")
+    if len(labels) < labels_needed or not all(
+        label.isascii()
+        and label.replace("-", "").isalnum()
+        and not label.startswith("-")
+        and not label.endswith("-")
+        for label in labels
+    ):
+        raise UnusableConfiguration(
+            f"{name} is {value!r}, which is not a bare host name like {example}"
+        )
+
+
 @dataclass(frozen=True)
 class CloudflareAccess:
     team_domain: str
     audience: str
+    tailnet_host: str | None = None
 
     def __post_init__(self):
-        labels = self.team_domain.split(".")
-        if len(labels) < 2 or not all(
-            label and label.replace("-", "").isalnum() and label.isascii() for label in labels
-        ):
-            raise UnusableConfiguration(
-                f"{ACCESS_TEAM_DOMAIN} is {self.team_domain!r}, which is not a bare host name "
-                f"like myteam.cloudflareaccess.com"
-            )
+        refuses_a_name_that_is_not_a_bare_host(
+            ACCESS_TEAM_DOMAIN, self.team_domain, "myteam.cloudflareaccess.com", labels_needed=2
+        )
         if not self.audience.strip():
             raise UnusableConfiguration(f"{ACCESS_AUDIENCE} is empty")
+        if self.tailnet_host is not None:
+            refuses_a_name_that_is_not_a_bare_host(
+                TAILNET_HOST, self.tailnet_host, "sermon-processor.home.example.me"
+            )
 
     @property
     def issuer(self):
@@ -153,7 +168,12 @@ def reads_access(environment):
             f"{ACCESS_AUDIENCE} is set but nothing sets {ACCESS_TEAM_DOMAIN}; "
             f"set both to require Cloudflare Access, or neither"
         )
-    return CloudflareAccess(team_domain=team_domain, audience=audience)
+    tailnet_host = environment.get(TAILNET_HOST)
+    return CloudflareAccess(
+        team_domain=team_domain,
+        audience=audience,
+        tailnet_host=tailnet_host.strip().lower() if tailnet_host and tailnet_host.strip() else None,
+    )
 
 
 @dataclass(frozen=True)
