@@ -188,7 +188,7 @@
     {% if view.blocks %}
     <ol>
     {% for block in view.blocks %}
-      {% set mine = picked is not none and block.classification == picked.classification and block.end_seconds > picked.punch_in_seconds and block.start_seconds < picked.punch_out_seconds %}
+      {% set mine = picked is not none and block.type == picked.classification and block.end_seconds > picked.punch_in_seconds and block.start_seconds < picked.punch_out_seconds %}
       <li data-row="block" data-block-type="{{ block.type }}" data-cue-start="{{ block.cue_start_seconds }}" data-cue-end="{{ block.cue_end_seconds }}"{% if drawable %} data-create-from="{{ block.start_seconds }}" data-create-to="{{ block.end_seconds }}" data-create-as="{{ block.classification }}"{% endif %}{% if mine %} data-selected="true"{% endif %} style="--band:var(--type-{{ block.type }}, var(--type-other))">
         <span data-field="block-type">{{ block.type }}</span>
         <span data-field="block-span">{{ block.span }}</span>
