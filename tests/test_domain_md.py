@@ -107,9 +107,27 @@ def test_glance_includes_the_reviewer():
 
 def test_the_reviewer_is_counted_among_the_system_nouns():
     intro = glance_intro()
-    assert "plus eight the system needs" in intro
+    assert "plus nine the system needs" in intro
     assert "`Reviewer`" in intro
-    assert "plus seven the system needs" not in intro
+    assert "plus eight the system needs" not in intro
+
+
+def test_the_user_is_counted_among_the_system_nouns_and_drawn_without_a_foreign_key():
+    assert "`User`" in glance_intro()
+    user_lines = "\n".join(line for line in glance().splitlines() if line.startswith("User"))
+    assert user_lines
+    assert "──" not in user_lines
+
+
+def test_a_user_is_the_verified_address_and_the_actor_is_not_a_reference_to_it():
+    assert "\n## User\n" in DOMAIN.read_text()
+    stated = why("User", "email").lower()
+    assert "verified" in stated
+    assert "never one the request announced" in stated
+    assert "actor" in stated
+    actor = why("LogEntry", "actor").lower()
+    assert "not a foreign key" in actor
+    assert "tailnet" in section("User").lower()
 
 
 def test_opting_out_is_modelled_on_the_reviewer_not_the_notification():
