@@ -30,6 +30,7 @@ sermon-regrade = "sermon.cli:regrades"
 sermon-render = "sermon.cli:renders"
 sermon-serve = "sermon.cli:serves"
 sermon-title = "sermon.cli:titles"
+sermon-user = "sermon.cli:manages_users"
 sermon-work = "sermon.cli:works"
 
 [project.optional-dependencies]

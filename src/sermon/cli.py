@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import sys
@@ -75,6 +76,7 @@ from sermon.reconciles_bucket import (
 )
 from sermon.queues_new_recordings import QueuesNewRecordings
 from sermon.records_publication_details import RecordsPublicationDetails
+from sermon.sets_password import EmailRefused, PasswordRefused, SetsPassword, reads_email
 from sermon.scans_on_schedule import IntervalNotUnderstood, ScansOnSchedule, interval_from
 from sermon.scores_cut import (
     DEGRADED,
@@ -89,6 +91,7 @@ from sermon.sends_notification import SendsNotification, opens_channel
 from sermon.store import (
     Artifact,
     Block,
+    Credential,
     Discovery,
     Job,
     Proposal,
@@ -97,6 +100,7 @@ from sermon.store import (
     Segment,
     SkippedObject,
     StoredSchemaDiffers,
+    User,
     layout,
     opens_store,
 )
@@ -1830,4 +1834,85 @@ def titles(settings=None, arguments=None, prints=print):
         return 0
     finally:
         classify.ENDPOINT = held
+        store.close()
+
+
+USERS_USAGE = "sermon-user add <email> | set-password <email> | list"
+PASSWORD_ENTRIES = 2
+
+
+def reads_users_command(arguments):
+    if arguments == ["list"]:
+        return "list", None
+    if len(arguments) == 2 and arguments[0] in {"add", "set-password"}:
+        return arguments[0], arguments[1]
+    return None
+
+
+def asks_twice_for_password(email, asks):
+    entries = [asks(f"Password for {email}: ") for _ in range(PASSWORD_ENTRIES)]
+    if len(set(entries)) != 1:
+        raise PasswordRefused("the two entries do not match")
+    return entries[0]
+
+
+def lists_users(store, prints):
+    users = store.lists(User)
+    if not users:
+        prints("no users")
+    for user in users:
+        has_password = store.loads(Credential, user.email) is not None
+        prints(
+            f"{user.email}  first seen {user.first_seen_at.date().isoformat()}  "
+            f"{'password set' if has_password else 'no password'}"
+        )
+    return 0
+
+
+def sets_password_for(store, command, email, asks, prints):
+    named = reads_email(email)
+    held = store.loads(User, named)
+    if command == "add" and store.loads(Credential, named) is not None:
+        prints(f"{named} already has a password; use: sermon-user set-password {named}")
+        return 1
+    if command == "set-password" and held is None:
+        prints(f"{named} is not a user yet; use: sermon-user add {named}")
+        return 1
+    SetsPassword(store=store)(named, asks_twice_for_password(named, asks))
+    prints(f"{'gave' if held else 'added'} {named} {'a' if command == 'add' else 'a new'} password")
+    return 0
+
+
+def manages_users(settings=None, arguments=None, prints=print, asks=None):
+    """Make the people who may sign in on the tailnet host, and give them passwords.
+
+    The password is asked for, never taken as an argument, so it reaches neither
+    a shell history nor a process listing.
+    """
+    asks = getpass.getpass if asks is None else asks
+    asked = reads_users_command(list(sys.argv[1:] if arguments is None else arguments))
+    if asked is None:
+        prints(f"usage: {USERS_USAGE}")
+        return 1
+    command, email = asked
+    settings = resolves_settings() if settings is None else settings
+    if not settings.get(DATA_ROOT):
+        prints(f"nothing sets {DATA_ROOT}")
+        return 1
+    try:
+        store = opens_store(Path(settings[DATA_ROOT]))
+    except StoredSchemaDiffers as stale:
+        prints(str(stale))
+        return 1
+    try:
+        if command == "list":
+            return lists_users(store, prints)
+        return sets_password_for(store, command, email, asks, prints)
+    except (EmailRefused, PasswordRefused) as refused:
+        prints(str(refused))
+        return 1
+    except (EOFError, KeyboardInterrupt):
+        prints("cancelled; nothing was changed")
+        return 1
+    finally:
         store.close()

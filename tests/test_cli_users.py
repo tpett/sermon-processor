@@ -63,16 +63,16 @@ def test_adding_a_person_makes_them_a_user_with_a_hashed_password(tmp_path):
     assert EMAIL in str(said)
 
 
-def test_the_password_is_asked_for_twice_and_never_as_an_argument(tmp_path):
+def test_the_password_is_asked_for_twice(tmp_path):
     _, _, typing = runs(tmp_path, "add", EMAIL)
     assert len(typing.prompts) == 2
-    with pytest.raises(SystemExit):
-        manages_users(
-            settings={"SERMON_DATA_ROOT": str(tmp_path)},
-            arguments=["add", EMAIL, PASSWORD],
-            prints=Lines(),
-            asks=Typing(),
-        )
+
+
+def test_a_password_given_as_an_argument_is_refused_and_not_echoed_back(tmp_path):
+    outcome, said, typing = runs(tmp_path, "add", EMAIL, PASSWORD)
+    assert outcome == 1 and "sermon-user" in str(said)
+    assert PASSWORD not in str(said)
+    assert typing.prompts == [] and reads(tmp_path, User, EMAIL) is None
 
 
 def test_the_default_prompt_is_getpass_so_nothing_is_echoed(tmp_path):
