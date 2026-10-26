@@ -34,12 +34,14 @@ def app_for(store, secret=SECRET):
     verifies = VerifiesAccessToken(
         access=access, keys=HoldsAccessKeys(fetches=lambda: published_keys(public_jwk()))
     )
-    return creates_app(
+    app = creates_app(
         store=store,
         verifies_access=verifies,
         webhook_token=Credential("the-bearer"),
         secret_key=secret,
     )
+    app.config["PREFERRED_URL_SCHEME"] = "https"
+    return app
 
 
 @pytest.fixture

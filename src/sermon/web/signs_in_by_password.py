@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-from flask import g, request
-from flask.sessions import SecureCookieSessionInterface
-
 HOME = "/"
 SIGN_IN_PATH = "/login"
 MAX_DESTINATION = 2000
@@ -37,13 +34,3 @@ def reads_client_address(asked):
     forwarded = asked.headers.get("X-Forwarded-For", "").split(",")[-1].strip()
     return (forwarded or asked.remote_addr or "unknown")[:MAX_ADDRESS]
 
-
-class SessionsForTailnet(SecureCookieSessionInterface):
-    """Secure when the request was HTTPS or, on the tailnet host only, the proxy says it was."""
-
-    def get_cookie_secure(self, app):
-        if request.is_secure:
-            return True
-        if not g.get("on_tailnet"):
-            return False
-        return request.headers.get("X-Forwarded-Proto", "").split(",")[0].strip().lower() == "https"

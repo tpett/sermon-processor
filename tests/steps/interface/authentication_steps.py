@@ -83,6 +83,7 @@ class SignInRequired:
                 clock=self.now,
                 secret_key="a-key-only-the-sign-in-scenarios-sign-with",
             )
+            self.app.config["PREFERRED_URL_SCHEME"] = "https"
             self.browser = self.app.test_client()
         return self.browser
 
@@ -448,8 +449,7 @@ def follows_locally(sign_in, response):
 
 SIGN_IN_VARIANT = re.compile(
     r'^(?: asking to be taken to "(?P<destination>[^"]*)"'
-    r"| having come through Cloudflare"
-    r"| over a secure connection)?$"
+    r"| having come through Cloudflare)?$"
 )
 
 
@@ -506,8 +506,6 @@ def _(sign_in, email, password, how):
     headers = {}
     if "Cloudflare" in how:
         headers["Cf-Ray"] = "8a1b2c3d4e5f6a7b-ORD"
-    if "secure connection" in how:
-        headers["X-Forwarded-Proto"] = "https"
     posted = signs_in(sign_in, email, password, variant.group("destination"), **headers)
     return follows_locally(sign_in, posted)
 
@@ -643,14 +641,6 @@ def _(store, sign_in, email):
 def _(store, sign_in, page, mark):
     name, value = EDGE_MARKS[mark]
     return gets(sign_in.client(), store, page, Host=TAILNET_HOST, **{name: value})
-
-
-@when(
-    parsers.parse('I ask for "{page}" from outside the tailnet claiming a secure connection'),
-    target_fixture="page_response",
-)
-def _(store, sign_in, page):
-    return gets(sign_in.client(), store, page, Host=PUBLIC_HOST, **{"X-Forwarded-Proto": "https"})
 
 
 def owner_runs(data_root, arguments, password):
@@ -821,17 +811,6 @@ def _(sign_in):
 @then("the browser is told to send the sign-in only over a secure connection")
 def _(sign_in):
     assert "secure" in [part.lower() for part in session_cookie(sign_in)]
-
-
-@then("the browser is not told to send the sign-in only over a secure connection")
-def _(sign_in):
-    assert "secure" not in [part.lower() for part in session_cookie(sign_in)]
-
-
-@then("no sign-in is remembered")
-def _(page_response):
-    assert reads_cookie(page_response) is None
-    assert not page_response.headers.getlist("Set-Cookie")
 
 
 @then("the page offers to sign out")

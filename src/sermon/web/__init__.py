@@ -84,7 +84,6 @@ from sermon.verifies_access_token import AccessKeysUnavailable, AccessRefused
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 from sermon.web.signs_in_by_password import (
     SIGN_IN_PATH,
-    SessionsForTailnet,
     comes_from_another_site,
     reads_client_address,
     reads_safe_destination,
@@ -182,9 +181,9 @@ def creates_app(
     )
     app.config["BIND_HOST"] = os.environ.get("SERMON_BIND_HOST", "100.64.0.1")
     app.secret_key = secret_key or secrets.token_hex(32)
-    app.session_interface = SessionsForTailnet()
     app.config.update(
         SESSION_COOKIE_NAME=SESSION_COOKIE,
+        SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_DOMAIN=None,

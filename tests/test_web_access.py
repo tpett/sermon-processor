@@ -73,7 +73,9 @@ def segment(store, recording):
 def enforcing(store, tailnet_host=TAILNET, fetches=lambda: published_keys(public_jwk())):
     access = dataclasses.replace(ACCESS, tailnet_host=tailnet_host)
     verifies = VerifiesAccessToken(access=access, keys=HoldsAccessKeys(fetches=fetches))
-    return creates_app(store=store, verifies_access=verifies, webhook_token=Credential(BEARER))
+    app = creates_app(store=store, verifies_access=verifies, webhook_token=Credential(BEARER))
+    app.config["PREFERRED_URL_SCHEME"] = "https"
+    return app
 
 
 def app_for_sign_in(store):
