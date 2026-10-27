@@ -616,12 +616,37 @@ def _(store, segment, device):
         assert wide <= device["viewport"]["width"], f"{wide}px of page on a {device['viewport']['width']}px screen"
 
 
+CONTROLS_UNDER_A_THUMB = """() => {
+  const found = [];
+  const controls = "a[href], button, input:not([type=hidden]), select, summary, textarea";
+  for (const control of document.querySelectorAll(controls)) {
+    const box = control.getBoundingClientRect();
+    if (!box.width || !box.height || getComputedStyle(control).visibility === "hidden") continue;
+    if (box.height < 44) {
+      const name = control.getAttribute("data-role") || control.getAttribute("data-field") || control.name;
+      found.push(`${control.tagName.toLowerCase()} ${name || control.className} is ${box.height}px tall`);
+    }
+  }
+  return found;
+}"""
+
+
+def reads_every_control_fit_for_a_thumb(page):
+    page.evaluate("() => document.querySelectorAll('details').forEach(held => { held.open = true; })")
+    too_small = page.evaluate(CONTROLS_UNDER_A_THUMB)
+    assert too_small == [], too_small
+
+
 @then("I can still skip it, or approve it as-is if I choose to")
 def _(store, segment, device):
     with _browser.opens_page(store, device) as page:
         page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        assert page.locator('[data-role="cut-view"]').get_attribute("data-mode") == "edit"
+        reads_every_control_fit_for_a_thumb(page)
+        page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
         page.locator('[data-role="done-editing"]').click()
         page.wait_for_load_state()
+        reads_every_control_fit_for_a_thumb(page)
         for action in ("Skip", "Approve"):
             control = page.locator(
                 f'[data-row="segment-action"][data-action="{action}"] [data-field="action-control"]'
