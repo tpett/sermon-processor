@@ -62,6 +62,7 @@ def opens_editor(page, recording, segment, centre=CENTRE, zoom="three+seconds"):
 
 
 def selects(page, start=SELECTION[0], end=SELECTION[1]):
+    page.locator(DETAIL).scroll_into_view_if_needed()
     _browser.drags_between_seconds(page, DETAIL, start, end)
     page.wait_for_selector('[data-role="selection"]:not([hidden])')
 
@@ -227,3 +228,58 @@ def test_putting_a_span_back_from_the_waveform_stays_in_edit_mode(store, recordi
         assert page.locator('[data-role="detail"]').count() == 1
         assert marks(page).count() == 0
         assert page.locator('[data-row="removed-span"]').count() == 0
+
+
+def touch_drags(page, start, end):
+    pane = page.locator(DETAIL)
+    pane.scroll_into_view_if_needed()
+    (x1, y), (x2, _) = (_browser.x_at_seconds(pane, at) for at in (start, end))
+    session = page.context.new_cdp_session(page)
+    session.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x1, "y": y}]})
+    for step in range(1, 9):
+        x = x1 + (x2 - x1) * step / 8
+        session.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y}]})
+    session.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+
+
+def test_a_touch_drag_across_the_detail_pane_selects_on_a_phone(store, recording, segment):
+    with _browser.opens_page(store, _browser.PHONE) as page:
+        opens_editor(page, recording, segment)
+        touch_drags(page, *SELECTION)
+        page.wait_for_selector('[data-role="selection"]:not([hidden])')
+
+        assert page.locator('[data-field="selection-length"]').inner_text().strip() == "0.70 s"
+
+
+def test_the_selection_and_put_back_controls_are_44px_targets_inside_the_pane_on_a_phone(
+    store, recording, segment
+):
+    removes_spans(store, segment, (44.4, 44.9))
+    with _browser.opens_page(store, _browser.PHONE) as page:
+        opens_editor(page, recording, segment)
+        selects(page, 45.0, 45.6)
+        pane = box_of(page, DETAIL)
+        controls = [
+            '[data-role="play-selection"]',
+            '[data-role="remove-selection"]',
+            '[data-role="clear-selection"]',
+            '[data-role="put-back-span"]',
+        ]
+        for selector in controls:
+            box = box_of(page, selector)
+            assert box["height"] >= 44, selector
+            assert pane["x"] <= box["x"], selector
+            assert box["x"] + box["width"] <= pane["x"] + pane["width"], selector
+
+        bar = box_of(page, '[data-role="selection-toolbar"]')
+        assert pane["x"] <= bar["x"]
+        assert bar["x"] + bar["width"] <= pane["x"] + pane["width"]
+
+
+def test_the_edit_page_does_not_scroll_sideways_on_a_phone_with_a_selection(store, recording, segment):
+    removes_spans(store, segment, (44.4, 44.9))
+    with _browser.opens_page(store, _browser.PHONE) as page:
+        opens_editor(page, recording, segment)
+        selects(page, 45.0, 45.6)
+
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
