@@ -45,7 +45,7 @@
       {% endfor %}
       </div>
       {% for proposal in row.proposals %}
-      <p class="proposed"><span class="kind" style="--band:var(--type-{{ proposal.classification }}, var(--type-other))">{{ proposal.classification|replace("_", " ")|capitalize }}</span> proposed <span class="dot">&middot;</span> <span class="mono">{{ proposal.span }}</span> <span class="dot">&middot;</span> <span class="mono">{{ proposal.length }}</span></p>
+      <p class="proposed"><span class="kind" style="--band:var(--type-{{ proposal.classification }}, var(--type-other))">{{ proposal.classification|replace("_", " ")|capitalize }}</span> {{ "re-cut" if proposal.recut else "proposed" }} <span class="dot">&middot;</span> <span class="mono">{{ proposal.span }}</span> <span class="dot">&middot;</span> <span class="mono">{{ proposal.length }}</span></p>
       {% endfor %}
     </li>
   {% endfor %}

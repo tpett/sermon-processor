@@ -401,3 +401,22 @@ def test_recording_level_forms_offered_in_review_mode_do_not_return_to_edit_mode
     modes = posted_modes(store, recording, segment, "review")
     assert modes
     assert {action: mode for action, mode in modes.items() if mode == ["edit"]} == {}
+
+
+def test_a_recut_segment_waiting_on_the_list_says_it_is_a_recut(store, recording):
+    saves_segment(store, recording)
+    store.saves(
+        Segment(
+            recording_id=recording.recording_id,
+            classification="lesson",
+            state="recut",
+            span_start_seconds=4000.0,
+            span_end_seconds=5000.0,
+            punch_in_seconds=4000.0,
+            punch_out_seconds=5000.0,
+        )
+    )
+    listing = creates_app(store=store).test_client().get("/").get_data(as_text=True)
+    [row] = reads_rows(listing, "awaiting")
+    said = re.findall(r"(Sermon|Lesson) (proposed|re-cut)", " ".join(row["text"].split()))
+    assert said == [("Sermon", "proposed"), ("Lesson", "re-cut")], row["text"]

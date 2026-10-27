@@ -442,7 +442,8 @@
     </div>
     <p class="warn" data-field="punch-unavailable"{% if not view.punch_unavailable %} hidden{% endif %}>{{ view.punch_unavailable or "" }}</p>
     {% if view.span_edges %}
-    <div class="reach">
+    <details class="reach">
+      <summary>Span edges</summary>
       <p class="quiet">A punch point can only sit inside the Segment's own span. Move the span to reach past it.</p>
       <ol class="span-edges">
       {% for edge in view.span_edges %}
@@ -466,7 +467,7 @@
         </li>
       {% endfor %}
       </ol>
-    </div>
+    </details>
     {% endif %}
     {% endif %}
     <span class="spacer"></span>
@@ -513,6 +514,7 @@
              data-state="{{ view.cut_light.state }}"
              data-side="{{ view.cut_light.side }}">
           <span class="lamp" data-role="cut-lamp" aria-hidden="true"></span>
+          <span class="cutlight-idle">Plays each seam, {{ '%g'|format(view.preview_lead_seconds) }} s either side</span>
           <span class="cutlight-text">
             <strong data-field="cut-light-boundary">{{ view.cut_light.boundary }}</strong>
             <span data-field="cut-light-at">{{ view.cut_light.at }}</span>
@@ -559,6 +561,8 @@
   <div class="removals" data-role="removed-spans">
     <h3>Removed from inside the cut{% if view.removed %} <span class="quiet">· <span data-field="length-removed">{{ view.removed }}</span> in all</span>{% endif %}</h3>
     {% if editing and view.removal_url %}
+    <details class="type-span"{% if view.removal_from %} open{% endif %}>
+    <summary>Type a span</summary>
     <form method="post" action="{{ view.removal_url }}{{ window }}" data-role="removal">
       <button type="submit" name="do" value="mark-start" data-field="mark-start-control">Start removal at playhead</button>
       <label>from <input type="text" name="from" value="{{ view.removal_from or '' }}" placeholder="h:mm:ss.ss" data-field="removal-from"></label>
@@ -566,6 +570,7 @@
       <label>to <input type="text" name="to" value="" placeholder="h:mm:ss.ss" data-field="removal-to"></label>
       <button type="submit" name="do" value="remove" data-field="remove-span-control">Remove this span</button>
     </form>
+    </details>
     {% endif %}
     {% if view.removed_spans %}
     <ol class="removed-spans">
@@ -659,11 +664,11 @@
   {% set checked = view.proposal.needs_checking[0] %}
   <p class="callout" data-role="check-callout"><strong>Check the {{ "opening" if checked.point == "punch-in" else "ending" }}.</strong> It is graded {{ checked.grade }} to place; listen to it, or edit the cut.</p>
   {% endif %}
-  {% if not editing and view.short_tail %}
+  {% if view.short_tail %}
   <p class="callout tail-callout"><strong>Check the ending.</strong> Only {{ view.gap_seconds|seconds }} follows the punch-out, shorter than the 1.5 second tail the editor prefers.</p>
   {% endif %}
-  <p class="quiet{% if not editing %} visually-hidden{% endif %}">Boundaries <span data-field="boundary-controls">{{ view.boundary_controls }}</span></p>
-  <p class="quiet{% if not editing %} visually-hidden{% endif %}">Classified <span data-field="classification">{{ view.classification }}</span>
+  <p class="quiet visually-hidden">Boundaries <span data-field="boundary-controls">{{ view.boundary_controls }}</span></p>
+  <p class="quiet visually-hidden">Classified <span data-field="classification">{{ view.classification }}</span>
      of <span data-field="classification-choices">{{ view.classification_choices|join(", ") }}</span></p>
   {% if view.classify_url %}
   <details class="reclassify"{% if editing %} open{% endif %}>
@@ -772,11 +777,13 @@
     </li>
   {% endfor %}
   </ul>
+  <div class="machine-line">
   <p class="quiet">machine proposal <span class="mono" data-field="proposed-boundaries">{{ view.proposed_punch_in_seconds|precise }} – {{ view.proposed_punch_out_seconds|precise }}</span></p>
   <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ view.selected_segment_id }}/boundaries/punch-in{{ window }}">
     <input type="hidden" name="do" value="revert">
     <button type="submit" data-field="revert-control">Revert to the machine proposal</button>
   </form>
+  </div>
   {% if view.alternatives %}
   <h3>Other candidates for the punch-in</h3>
   <ul class="alternatives">
@@ -797,7 +804,7 @@
   {% endif %}
   {% endif %}
   {% if editing %}
-  <a class="done" data-role="done-editing" href="{{ review_url }}">Done editing</a>
+  <div class="done-bar"><a class="done" data-role="done-editing" href="{{ review_url }}">Done editing</a></div>
   {% elif view.boundary_controls in ("editable", "collapsed") %}
   <a class="edit-link" data-role="edit-the-cut" href="{{ edit_url }}">Edit the cut</a>
   {% endif %}

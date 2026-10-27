@@ -180,6 +180,7 @@ class ProposalView:
     classification: str
     span: str
     length: str
+    recut: bool = False
 
 
 @dataclass(frozen=True)
@@ -423,6 +424,7 @@ class ListsRecordings:
                 classification=segment.classification,
                 span=f"{formats_clock(segment.punch_in_seconds)} \u2013 {formats_clock(segment.punch_out_seconds)}",
                 length=formats_clock(segment.punch_out_seconds - segment.punch_in_seconds),
+                recut=segment.state == "recut",
             )
             for segment in proposed
         )
