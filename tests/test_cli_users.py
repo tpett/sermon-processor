@@ -250,8 +250,8 @@ def test_listing_shows_each_persons_role(tmp_path):
     outcome, said, _ = runs(tmp_path, "list")
     lines = {line.split()[0]: line for line in said.lines}
     assert outcome == 0
-    assert "reviewer" in lines[EMAIL] and "viewer" not in lines[EMAIL]
-    assert "viewer" in lines["elder@reformation.example"]
+    assert lines[EMAIL].split()[1] == "reviewer"
+    assert lines["elder@reformation.example"].split()[1] == "viewer"
 
 
 def test_the_usage_names_promote(tmp_path):

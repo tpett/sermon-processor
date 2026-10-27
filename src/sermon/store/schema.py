@@ -100,6 +100,7 @@ class Table:
     references: dict[str, str] = field(default_factory=dict)
     closed: dict[str, tuple[str, ...]] = field(default_factory=dict)
     collections: tuple[Collection, ...] = ()
+    added: dict[str, str] = field(default_factory=dict)
 
 
 TABLES = {
@@ -294,6 +295,8 @@ TABLES = {
             name="user",
             identity="email",
             generated=False,
+            closed={"role": vocabularies.USER_ROLES},
+            added={"role": "viewer"},
         ),
         Table(
             entity=Credential,
@@ -444,6 +447,12 @@ def column_definition(table, name, annotation):
     if name in table.references:
         parts.append(f"REFERENCES {table.references[name]}")
     return " ".join(parts)
+
+
+def added_column_ddl(table, name):
+    annotation = get_type_hints(table.entity)[name]
+    definition = column_definition(table, name, annotation)
+    return f"ALTER TABLE {table.name} ADD COLUMN {definition} DEFAULT {listed((table.added[name],))}"
 
 
 def table_ddl(table):

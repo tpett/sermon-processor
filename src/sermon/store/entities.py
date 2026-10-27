@@ -183,6 +183,7 @@ class Reviewer:
 class User:
     email: str
     first_seen_at: datetime
+    role: str = "viewer"
 
 
 @dataclass(frozen=True, kw_only=True)

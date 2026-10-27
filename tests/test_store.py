@@ -95,6 +95,7 @@ CLOSED_COLUMNS = [
     ("corpus_pair", "punch_in_difficulty", vocabularies.CUT_DIFFICULTIES),
     ("corpus_pair", "punch_out_difficulty", vocabularies.CUT_DIFFICULTIES),
     ("corpus_pair", "provenance", vocabularies.CORPUS_PROVENANCES),
+    ("user", "role", vocabularies.USER_ROLES),
 ]
 
 CLOSED_COLLECTIONS = [

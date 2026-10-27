@@ -10,6 +10,7 @@ from typing import get_type_hints
 
 from .schema import (
     TABLES,
+    added_column_ddl,
     column_names,
     declared_columns,
     element_columns,
@@ -234,6 +235,16 @@ def creates_schema(connection):
             connection.execute(statement)
 
 
+def adds_columns_older_databases_lack(connection):
+    with connection:
+        connection.execute("BEGIN")
+        for table in TABLES.values():
+            stored = reads_stored_columns(connection, table.name)
+            for name in table.added:
+                if name not in stored:
+                    connection.execute(added_column_ddl(table, name))
+
+
 def reads_stored_columns(connection, table):
     return tuple(row["name"] for row in connection.execute(f"PRAGMA table_info({table})"))
 
@@ -271,5 +282,6 @@ def opens_store(data_root):
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     creates_schema(connection)
+    adds_columns_older_databases_lack(connection)
     guards_schema(connection, database)
     return Store(connection, ResolvesStoredPath(data_root=root))
