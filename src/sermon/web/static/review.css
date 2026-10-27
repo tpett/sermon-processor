@@ -595,7 +595,12 @@ button.primary {
 }
 
 .transport .spacer {
+  order: 6;
   flex: 1;
+}
+
+.transport .warn {
+  order: 3;
 }
 
 .transport .punch {
@@ -605,6 +610,7 @@ button.primary {
 }
 
 .transport .reach {
+  order: 5;
   flex: 1 1 100%;
   display: flex;
   flex-direction: column;
@@ -640,6 +646,8 @@ button.primary {
 }
 
 .transport .keys {
+  order: 4;
+  margin-left: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2101,8 +2109,12 @@ details summary {
   cursor: pointer;
 }
 
+.transport .zoom-steps {
+  order: 1;
+}
+
 .transport .punch-set {
-  order: 10;
+  order: 2;
   display: flex;
   gap: 6px;
   align-items: center;
