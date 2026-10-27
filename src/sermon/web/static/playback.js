@@ -111,6 +111,11 @@
     }
   });
 
+  document.addEventListener("waveform:play-window", function (event) {
+    const asked = event.detail || {};
+    playWindow(null, Number(asked.start), Number(asked.end));
+  });
+
   document.addEventListener("waveform:seek", function (event) {
     const asked = event.detail || {};
     stopAt = null;

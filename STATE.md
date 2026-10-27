@@ -1,3 +1,11 @@
+## UI redesign 4/6: drag across the detail waveform to remove a span; set-back punch controls (2026-10-27, sp-zmwo)
+
+- Edit mode only. On `[data-role="detail"]` a pointerdown that moves 4 px makes a selection (`review.js`: `selected`, `placesSelection`); a press without movement is still the click that seeks and plays, and the click that ends a drag is swallowed. Presses on handles, the scrub handle, buttons and forms never start one. The selection is rounded to 10 ms and clamped to the cut region.
+- `data-role="selection"` (hidden until there is one) holds `data-role="selection-toolbar"`: `data-field="selection-length"` ("0.70 s", a timecode from a minute up), `play-selection` (fires `waveform:play-window`, which `playback.js` plays and stops at the end), `remove-selection` and `clear-selection`. Remove fills the existing removal form's `from`/`to` and submits it with the `remove-span-control` button as submitter, so the server path, the notice and `mode=edit` are the existing ones.
+- A removed span in the detail pane is hatched and carries a `put-back` form (`do=restore`, its own `from`/`to`): the pill "0.7 s removed · Put back". The list's "Put it back" is unchanged.
+- The punch controls moved to the end of the transport as "At playhead: set in · set out", muted and underlined (`data-emphasis="secondary"`); markup and `data-field="punch-control"` unchanged, only the button text and the `.punch-set` wrapper are new. No Delete-key shortcut.
+- Checked in headless Chromium, desktop and 390 px: a click seeks, a drag selects and Remove/Put back round-trip in Edit, no horizontal scroll, the set in/out buttons are 44 px. The selection toolbar's phone size and touch dragging were not exercised.
+
 ## UI redesign 3/6: Preview the cut plays the current cut, one control per seam (2026-10-26, sp-gwjy)
 
 - Every seam is a clip the server encodes from the stored Segment, the way the render makes the cut, so removed audio is never in it and a nudge or removal is heard on the next press with no re-analysis. `GET /api/segments/<id>/seam/opening|ending` is the 5 s either side of the punch point with removed spans taken out; `GET /api/segments/<id>/join?from&to` is unchanged. Both go through `hears_cut_audio`, answer `Cache-Control: no-store` and carry `X-Kept-Pieces` (JSON `[[from, to], ...]`: the source ranges the clip was cut from).
