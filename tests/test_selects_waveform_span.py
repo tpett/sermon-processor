@@ -1,8 +1,9 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
 
-from sermon.store import Recording, Segment, opens_store
+from sermon.store import Recording, RemovedSpan, Segment, opens_store
 from steps import _audio, _browser
 from steps._peaks import writes_peaks
 
@@ -160,3 +161,69 @@ def test_the_punch_controls_follow_the_zoom_row_with_the_reach_and_help_below(
         assert zoom["y"] <= punch["y"] < zoom["y"] + zoom["height"] + 16
         assert keys["y"] >= punch["y"] + punch["height"]
         assert reach["y"] >= punch["y"] + punch["height"]
+
+
+def removes_spans(store, segment, *spans):
+    return store.saves(
+        replace(
+            segment,
+            removed_spans=tuple(RemovedSpan(start_seconds=a, end_seconds=b) for a, b in spans),
+        )
+    )
+
+
+def marks(page):
+    return page.locator('[data-role="removed-span-detail"]')
+
+
+def clicks_overview_at(page, seconds):
+    box = box_of(page, '[data-role="waveform"]')
+    page.mouse.click(box["x"] + box["width"] * seconds / 120.0, box["y"] + box["height"] / 2)
+
+
+def test_a_removed_span_outside_the_detail_window_shows_no_mark_or_pill(store, recording, segment):
+    removes_spans(store, segment, (60.0, 61.0))
+    with _browser.opens_page(store) as page:
+        opens_editor(page, recording, segment)
+        assert marks(page).count() == 1
+        assert not marks(page).first.is_visible()
+        assert not page.locator('[data-role="put-back-span"]').is_visible()
+
+        clicks_overview_at(page, 60.5)
+        page.wait_for_function(
+            "document.querySelector('[data-role=\"removed-span-detail\"]').offsetParent !== null"
+        )
+        assert page.locator('[data-role="put-back-span"]').is_visible()
+
+        clicks_overview_at(page, 80.0)
+        page.wait_for_function(
+            "document.querySelector('[data-role=\"removed-span-detail\"]').offsetParent === null"
+        )
+        assert not page.locator('[data-role="put-back-span"]').is_visible()
+
+
+@pytest.mark.parametrize("removed", [(42.0, 43.8), (46.3, 47.0)], ids=["left-edge", "right-edge"])
+def test_a_put_back_pill_on_a_span_at_the_window_edge_stays_inside_the_pane(
+    store, recording, segment, removed
+):
+    removes_spans(store, segment, removed)
+    with _browser.opens_page(store) as page:
+        opens_editor(page, recording, segment)
+        pill = box_of(page, '[data-role="put-back-span"]')
+        pane = box_of(page, DETAIL)
+
+        assert pill["x"] >= pane["x"]
+        assert pill["x"] + pill["width"] <= pane["x"] + pane["width"]
+
+
+def test_putting_a_span_back_from_the_waveform_stays_in_edit_mode(store, recording, segment):
+    removes_spans(store, segment, (44.4, 44.9))
+    with _browser.opens_page(store) as page:
+        opens_editor(page, recording, segment)
+        with page.expect_navigation():
+            page.locator('[data-role="put-back-span"]').click()
+
+        assert "mode=edit" in page.url
+        assert page.locator('[data-role="detail"]').count() == 1
+        assert marks(page).count() == 0
+        assert page.locator('[data-row="removed-span"]').count() == 0
