@@ -192,3 +192,68 @@ def test_a_cancelled_prompt_sets_nothing(tmp_path):
     )
     assert outcome == 1 and "cancelled" in str(said)
     assert reads(tmp_path, User, EMAIL) is None
+
+
+def test_a_person_added_by_the_owner_is_a_viewer(tmp_path):
+    runs(tmp_path, "add", EMAIL)
+    assert reads(tmp_path, User, EMAIL).role == "viewer"
+
+
+def test_promoting_a_person_makes_them_a_reviewer_and_says_so(tmp_path):
+    store = opens_store(tmp_path)
+    store.saves(User(email=EMAIL, first_seen_at=FIRST))
+    store.close()
+    outcome, said, typing = runs(tmp_path, "promote", EMAIL)
+    assert outcome == 0
+    assert str(said) == f"{EMAIL} is now a reviewer"
+    assert reads(tmp_path, User, EMAIL).role == "reviewer"
+    assert reads(tmp_path, User, EMAIL).first_seen_at == FIRST
+    assert typing.prompts == []
+
+
+def test_promoting_keeps_the_password(tmp_path):
+    runs(tmp_path, "add", EMAIL)
+    held = reads(tmp_path, Credential, EMAIL).password_hash
+    runs(tmp_path, "promote", EMAIL)
+    assert reads(tmp_path, Credential, EMAIL).password_hash == held
+
+
+def test_promoting_someone_already_a_reviewer_says_so_and_changes_nothing(tmp_path):
+    runs(tmp_path, "add", EMAIL)
+    runs(tmp_path, "promote", EMAIL)
+    outcome, said, _ = runs(tmp_path, "promote", EMAIL)
+    assert outcome == 0 and str(said) == f"{EMAIL} is already a reviewer"
+    assert reads(tmp_path, User, EMAIL).role == "reviewer"
+
+
+def test_promoting_the_address_in_capitals_finds_the_same_person(tmp_path):
+    runs(tmp_path, "add", EMAIL)
+    outcome, said, _ = runs(tmp_path, "promote", EMAIL.upper())
+    assert outcome == 0 and str(said) == f"{EMAIL} is now a reviewer"
+
+
+def test_promoting_someone_who_has_not_signed_in_yet_makes_nobody(tmp_path):
+    outcome, said, _ = runs(tmp_path, "promote", EMAIL)
+    assert outcome == 1 and "not a user yet" in str(said)
+    assert reads(tmp_path, User, EMAIL) is None
+
+
+def test_promoting_something_that_is_not_an_address_is_refused(tmp_path):
+    outcome, said, _ = runs(tmp_path, "promote", "pastor")
+    assert outcome == 1 and "not an email address" in str(said)
+
+
+def test_listing_shows_each_persons_role(tmp_path):
+    runs(tmp_path, "add", EMAIL)
+    runs(tmp_path, "add", "elder@reformation.example")
+    runs(tmp_path, "promote", EMAIL)
+    outcome, said, _ = runs(tmp_path, "list")
+    lines = {line.split()[0]: line for line in said.lines}
+    assert outcome == 0
+    assert "reviewer" in lines[EMAIL] and "viewer" not in lines[EMAIL]
+    assert "viewer" in lines["elder@reformation.example"]
+
+
+def test_the_usage_names_promote(tmp_path):
+    _, said, _ = runs(tmp_path)
+    assert "promote <email>" in str(said)
