@@ -2165,8 +2165,9 @@ a.button.primary {
   .segmented a,
   .search input[type="search"],
   .search button,
-  .review-queue a.review,
+  .review-queue a,
   .recordings a,
+  .recordings button,
   .paging a {
     min-height: 44px;
   }

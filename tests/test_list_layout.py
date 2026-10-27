@@ -96,3 +96,25 @@ def test_a_quiet_row_lays_its_date_title_and_duration_side_by_side_without_overl
 
         assert when["right"] <= title["left"]
         assert title["right"] <= duration["left"]
+
+
+def test_every_control_on_the_phone_list_is_at_least_44_px_tall(store):
+    saves_awaiting(store, "20260906_090014", "Hebrews")
+    saves_recording(store, "20260913_090014")
+    with _browser.opens_page(store, _browser.PHONE) as page:
+        page.goto("/")
+        shown = {
+            f"{section}: {label}": height
+            for section, selector in (
+                ("awaiting", ".review-queue a"),
+                ("rows", ".recordings a, .recordings button"),
+            )
+            for label, height in (
+                (control.inner_text().strip(), control.bounding_box()["height"])
+                for control in page.locator(selector).all()
+            )
+        }
+
+        assert "awaiting: Hebrews" in shown
+        assert "rows: Ingest" in shown
+        assert {name: height for name, height in shown.items() if height < 44} == {}
