@@ -2061,6 +2061,10 @@ details summary {
   z-index: 5;
 }
 
+.waveform .selection-bar[hidden] {
+  display: none;
+}
+
 .waveform .selection-bar button {
   min-width: 28px;
   min-height: 28px;

@@ -338,8 +338,8 @@ if (detailPane) {
 }
 
 const selectionMark = detailPane && detailPane.querySelector('[data-role="selection"]');
-const selectionBar = selectionMark && selectionMark.querySelector('[data-role="selection-toolbar"]');
-const selectionLength = selectionMark && selectionMark.querySelector('[data-field="selection-length"]');
+const selectionBar = detailPane && detailPane.querySelector('[data-role="selection-toolbar"]');
+const selectionLength = selectionBar && selectionBar.querySelector('[data-field="selection-length"]');
 const removalForm = document.querySelector('form[data-role="removal"]');
 const DRAG_PIXELS = 4;
 let selected = null;
@@ -369,10 +369,12 @@ function placesSelection() {
   if (!selectionMark) return;
   if (!selected) {
     selectionMark.hidden = true;
+    selectionBar.hidden = true;
     return;
   }
   const opens = acrossWindow(selected.from);
   selectionMark.hidden = false;
+  selectionBar.hidden = false;
   selectionMark.style.left = `${opens}%`;
   selectionMark.style.width = `${acrossWindow(selected.to) - opens}%`;
   selectionLength.textContent = readsLength(selected.to - selected.from);
@@ -381,7 +383,7 @@ function placesSelection() {
   const inside = mine.left - pane.left;
   const wanted = inside + mine.width / 2 - selectionBar.offsetWidth / 2;
   const kept = Math.min(Math.max(wanted, 4), Math.max(pane.width - selectionBar.offsetWidth - 4, 4));
-  selectionBar.style.left = `${kept - inside}px`;
+  selectionBar.style.left = `${kept}px`;
 }
 
 function clearsSelection() {

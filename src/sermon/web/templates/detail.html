@@ -387,13 +387,12 @@
       </div>
       {% endfor %}
       {% if view.removal_url %}
-      <div class="selection" data-role="selection" hidden>
-        <div class="selection-bar" data-role="selection-toolbar">
-          <span class="mono" data-field="selection-length"></span>
-          <button type="button" data-role="play-selection" aria-label="Play the selection">&#9654;</button>
-          <button type="button" class="remove" data-role="remove-selection">Remove</button>
-          <button type="button" data-role="clear-selection" aria-label="Clear the selection">&times;</button>
-        </div>
+      <div class="selection" data-role="selection" hidden></div>
+      <div class="selection-bar" data-role="selection-toolbar" hidden>
+        <span class="mono" data-field="selection-length"></span>
+        <button type="button" data-role="play-selection" aria-label="Play the selection">&#9654;</button>
+        <button type="button" class="remove" data-role="remove-selection">Remove</button>
+        <button type="button" data-role="clear-selection" aria-label="Clear the selection">&times;</button>
       </div>
       {% endif %}
       <div class="removed pending" data-role="removal-pending-mark"{% if view.removal_from %} data-from-seconds="{{ view.removal_from }}"{% else %} hidden{% endif %}></div>
