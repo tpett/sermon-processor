@@ -18,6 +18,8 @@ from sermon.jobs.analyzes_recording import STAGE_ORDER
 from sermon.lists_recordings import (
     FAILED_STATES,
     IngestView,
+    artifact_url,
+    formats_size,
     formats_clock,
     formats_precise,
     formats_recorded_at,
@@ -27,12 +29,11 @@ from sermon.lists_recordings import (
 )
 from sermon.glossary import ReadsGlossary
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
-from sermon.recuts_segment import current_renders, holds_published_render
+from sermon.recuts_segment import offered_render
 from sermon.removes_span import kept_seconds, removed_seconds
 from sermon.store import Artifact, Block, Job, Proposal, Recording, RecordingTitle, Segment, Store
 from sermon.store import vocabularies
 
-SIZE_UNITS = ("bytes", "KB", "MB", "GB", "TB")
 
 PRE_REVIEW_PROGRESS = {
     "discovered": "Discovered in the object store; not downloaded or analysed yet",
@@ -222,14 +223,6 @@ def classifies_block(block_type):
     return UNNAMED_BLOCK_CLASSIFICATION
 
 
-def formats_size(size_bytes):
-    size = float(size_bytes)
-    for unit in SIZE_UNITS:
-        if size < 1024 or unit == SIZE_UNITS[-1]:
-            return f"{size:.0f} bytes" if unit == "bytes" else f"{size:.1f} {unit}"
-        size /= 1024
-
-
 def formats_container(object_key):
     return PurePosixPath(object_key).suffix.lstrip(".").upper() or "recording"
 
@@ -319,10 +312,6 @@ def formats_lasting(seconds):
     if seconds < 60:
         return formats_seconds(seconds)
     return formats_precise(seconds)
-
-
-def artifact_url(path):
-    return f"/api/artifacts/{path}"
 
 
 def bounds_window(at_seconds, duration_seconds, lead=PREVIEW_LEAD_SECONDS):
@@ -1034,16 +1023,11 @@ class ShowsRecording:
         return min(follows) - selected.punch_out_seconds if follows else None
 
     def _published(self, selected):
-        # artifact_downloads.feature offers it only for a finished Segment: a
-        # link to a file that is still rendering is worse than no link.
         if selected is None:
             return None
-        if selected.state != "complete" and not holds_published_render(self.store, selected):
+        mp3 = offered_render(self.store, selected)
+        if mp3 is None:
             return None
-        rendered = current_renders(self.store, selected)
-        if not rendered:
-            return None
-        mp3 = rendered[-1]
         return PublishedView(
             url=artifact_url(mp3.path),
             filename=PurePosixPath(mp3.path).name,

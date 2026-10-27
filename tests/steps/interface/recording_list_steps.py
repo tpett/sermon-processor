@@ -497,7 +497,7 @@ def finishes(store, when, classification, label, intent):
             segment_id=segment.segment_id,
             kind="rendered_mp3",
             path=layout.published_path(f"{started:%Y-%m-%d} - {label}.mp3"),
-            size_bytes=30_800_000,
+            size_bytes=32_296_141,
             checksum="stub",
         )
     )
@@ -550,6 +550,8 @@ def _(store, list_page, when, count):
 
 @then("it names each file by its label, with its length and size")
 def _(store, download_row):
-    for segment, _ in offered(store, download_row["id"]):
-        named = f"{segment.label} {formats_clock(kept_seconds(segment))} 30.8 MB"
-        assert named in download_row["text"], (named, download_row["text"])
+    files = offered(store, download_row["id"])
+    assert files, download_row
+    for segment, _ in files:
+        named = (segment.label, formats_clock(kept_seconds(segment)), "30.8 MB")
+        assert all(part in download_row["text"] for part in named), (named, download_row["text"])

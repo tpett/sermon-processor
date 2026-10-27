@@ -12,6 +12,8 @@ from sermon.forces_ingestion import (
     reads_standing,
 )
 from sermon.glossary import ReadsGlossary
+from sermon.recuts_segment import offered_render
+from sermon.removes_span import kept_seconds
 from sermon.store import Block, Job, LogEntry, Proposal, Recording, RecordingTitle, Segment, Store
 
 
@@ -183,6 +185,50 @@ class ProposalView:
     recut: bool = False
 
 
+SIZE_UNITS = ("bytes", "KB", "MB", "GB", "TB")
+def formats_size(size_bytes):
+    size = float(size_bytes)
+    for unit in SIZE_UNITS:
+        if size < 1024 or unit == SIZE_UNITS[-1]:
+            return f"{size:.0f} bytes" if unit == "bytes" else f"{size:.1f} {unit}"
+        size /= 1024
+
+
+def artifact_url(path):
+    return f"/api/artifacts/{path}"
+
+
+@dataclass(frozen=True)
+class DownloadView:
+    label: str
+    filename: str
+    url: str
+    size: str
+    length: str
+
+
+def offers_downloads(store, segments):
+    """The files a row offers: every finished Segment's MP3 but the archived ones."""
+    offered = []
+    for segment in segments:
+        if segment.intent == "archive":
+            continue
+        mp3 = offered_render(store, segment)
+        if mp3 is None:
+            continue
+        filename = mp3.path.rsplit("/", 1)[-1]
+        offered.append(
+            DownloadView(
+                label=segment.label or filename.removesuffix(".mp3"),
+                filename=filename,
+                url=artifact_url(mp3.path),
+                size=formats_size(mp3.size_bytes or 0),
+                length=formats_clock(kept_seconds(segment)),
+            )
+        )
+    return tuple(offered)
+
+
 @dataclass(frozen=True)
 class RecordingRow:
     recording_id: str
@@ -206,6 +252,7 @@ class RecordingRow:
     day: str = ""
     week_ending: str = ""
     bands: tuple = ()
+    downloads: tuple = ()
     proposals: tuple = ()
     undownloaded: bool = False
 
@@ -398,6 +445,7 @@ class ListsRecordings:
             day=recording.started_at.strftime("%a"),
             week_ending=week_ending(recording.started_at).isoformat(),
             bands=bands,
+            downloads=offers_downloads(self.store, segments),
             proposals=proposals,
             undownloaded=recording.state == INGEST_STATE and not recording.duration_seconds,
         )
