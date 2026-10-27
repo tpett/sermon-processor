@@ -664,9 +664,14 @@ class ShowsRecording:
         if doc:
             utterances = doc.get("utterances", [])
             turns = (reads_json(self.store, recording, "diarization") or {}).get("turns") or []
+            speakers = AttributesSpeakers()(utterances, turns)
+            names = {}
+            for speaker in speakers:
+                if speaker is not None:
+                    names.setdefault(speaker, f"Speaker {len(names) + 1}")
             transcript = tuple(
-                (item["start"], item["end"], item.get("text", ""), speaker)
-                for item, speaker in zip(utterances, AttributesSpeakers()(utterances, turns))
+                (item["start"], item["end"], item.get("text", ""), names.get(speaker))
+                for item, speaker in zip(utterances, speakers)
             )
         gap = self._gap(selected, segments, transcript)
         proposal = self._proposal(selected)

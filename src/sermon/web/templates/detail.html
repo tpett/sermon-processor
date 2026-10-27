@@ -122,7 +122,7 @@
               {% for utterance in view.selected_transcript %}
                 <li data-row="utterance" data-utterance-at-seconds="{{ utterance[0] }}" data-utterance-end-seconds="{{ utterance[1] }}">
                   <span data-field="utterance-at">{{ utterance[0]|precise }}</span>
-                  {% if utterance[3] %}<span data-field="utterance-speaker">{{ utterance[3] }}</span>{% endif %}
+                  {% if utterance[3] and (loop.first or loop.previtem[3] != utterance[3]) %}<span data-field="utterance-speaker">{{ utterance[3] }}</span>{% endif %}
                   <span data-field="utterance-text">{{ utterance[2] }}</span>
                 </li>
               {% endfor %}
@@ -137,6 +137,7 @@
                 {% for utterance in view.transcript %}
                   <li data-row="recording-utterance" data-utterance-at-seconds="{{ utterance[0] }}">
                     <span data-field="utterance-at">{{ utterance[0]|precise }}</span>
+                    {% if utterance[3] and (loop.first or loop.previtem[3] != utterance[3]) %}<span data-field="utterance-speaker">{{ utterance[3] }}</span>{% endif %}
                     <span data-field="utterance-text">{{ utterance[2] }}</span>
                   </li>
                 {% endfor %}

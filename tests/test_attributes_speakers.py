@@ -79,10 +79,10 @@ def a_diarized_recording(store):
 def test_the_recording_view_names_who_speaks_each_utterance(store):
     recording = a_diarized_recording(store)
     view = ShowsRecording(store=store)(recording.recording_id)
-    assert [item[3] for item in view.transcript] == ["S0", "S0", None]
+    assert [item[3] for item in view.transcript] == ["Speaker 1", "Speaker 1", None]
 
 
-def test_the_transcript_panel_shows_the_speaker_beside_the_words(store):
+def test_the_transcript_panel_names_the_speaker_once_until_it_changes(store):
     recording = a_diarized_recording(store)
     page = creates_app(store=store).test_client().get(f"/recordings/{recording.recording_id}").get_data(as_text=True)
-    assert page.count('data-field="utterance-speaker">S0<') == 2
+    assert page.count('data-field="utterance-speaker">Speaker 1<') == 1

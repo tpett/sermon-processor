@@ -420,3 +420,47 @@ def test_a_recut_segment_waiting_on_the_list_says_it_is_a_recut(store, recording
     [row] = reads_rows(listing, "awaiting")
     said = re.findall(r"(Sermon|Lesson) (proposed|re-cut)", " ".join(row["text"].split()))
     assert said == [("Sermon", "proposed"), ("Lesson", "re-cut")], row["text"]
+
+
+def test_each_transcript_names_a_voice_by_its_order_and_only_where_it_changes(store, recording):
+    from sermon.analysis.io import writes_json
+
+    segment = saves_segment(store, recording, span_start_seconds=20.0, punch_in_seconds=20.0)
+    writes_json(
+        store,
+        recording,
+        "transcript",
+        {
+            "utterances": [
+                {"start": start, "end": start + 8.0, "text": f"line {index}"}
+                for index, start in enumerate((0.0, 10.0, 20.0, 30.0, 40.0, 50.0))
+            ]
+        },
+    )
+    writes_json(
+        store,
+        recording,
+        "diarization",
+        {
+            "turns": [
+                {"start": 0.0, "end": 9.0, "speaker": "S25"},
+                {"start": 9.5, "end": 19.0, "speaker": "S9"},
+                {"start": 19.5, "end": 39.0, "speaker": "S25"},
+                {"start": 39.5, "end": 60.0, "speaker": "S9"},
+            ]
+        },
+    )
+    page = (
+        creates_app(store=store)
+        .test_client()
+        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}")
+        .get_data(as_text=True)
+    )
+
+    def speakers(role):
+        return [row.get("utterance-speaker") for row in reads_rows(page, role)]
+
+    assert speakers("recording-utterance") == [
+        "Speaker 1", "Speaker 2", "Speaker 1", None, "Speaker 2", None,
+    ]
+    assert speakers("utterance") == ["Speaker 1", None, "Speaker 2", None]
