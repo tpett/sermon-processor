@@ -172,7 +172,7 @@ def _(list_page):
 def _(list_page):
     failed = [row for row in reads_rows(list_page, "recording") if row["failed"] == "true"]
     assert failed
-    assert all(row["state"] == "analysis_failed" for row in failed)
+    assert all(row["state"] == "Analysis failed" for row in failed)
 
 
 @then("the count of Segments awaiting disposition is shown")

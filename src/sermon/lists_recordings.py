@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sermon.forces_ingestion import (
     INGEST_ACTION,
@@ -34,6 +34,52 @@ KIND_TAGS = {
     "rehearsal": "Rehearsal",
     "empty": "Silence or noise",
 }
+
+
+STATE_WORDS = {
+    "discovered": ("Waiting to download", "accent"),
+    "downloading": ("Downloading", "accent"),
+    "downloaded": ("Waiting to analyse", "accent"),
+    "analyzing": ("Analysing", "accent"),
+    "awaiting_review": ("Awaiting review", "warn"),
+    "ingest_failed": ("Ingest failed", "bad"),
+    "analysis_failed": ("Analysis failed", "bad"),
+    "ignored": ("Ignored", "muted"),
+    "discarded": ("Discarded", "muted"),
+}
+
+PUBLISHED = ("Published", "muted")
+ARCHIVED = ("Archived", "muted")
+NOTHING_TO_PUBLISH = ("Nothing to publish", "muted")
+RENDER_FAILED = ("Render failed", "bad")
+RENDERING = ("Rendering", "accent")
+APPROVED = ("Approved, waiting to render", "accent")
+SKIPPED = ("Skipped", "muted")
+
+
+def says_state(state, segments):
+    if state == "reviewed":
+        complete = [segment for segment in segments if segment.state == "complete"]
+        if complete:
+            return ARCHIVED if all(segment.intent == "archive" for segment in complete) else PUBLISHED
+        held = {segment.state for segment in segments}
+        for state, said in (
+            ("processing_failed", RENDER_FAILED),
+            ("processing", RENDERING),
+            ("approved", APPROVED),
+            ("skipped", SKIPPED),
+        ):
+            if state in held:
+                return said
+        return NOTHING_TO_PUBLISH
+    if state == "awaiting_review" and not segments:
+        return NOTHING_TO_PUBLISH
+    return STATE_WORDS.get(state, (state.replace("_", " ").capitalize(), "muted"))
+
+
+def week_ending(moment):
+    day = moment.date()
+    return day + timedelta(days=6 - day.weekday())
 
 
 def tags_kind(kind, series, glossary):
@@ -110,6 +156,21 @@ def reads_ingest(store, recording, queued=None):
 
 
 @dataclass(frozen=True)
+class BandView:
+    type: str
+    left: float
+    width: float
+    emphasised: bool
+
+
+@dataclass(frozen=True)
+class ProposalView:
+    classification: str
+    span: str
+    length: str
+
+
+@dataclass(frozen=True)
 class RecordingRow:
     recording_id: str
     recorded_at: str
@@ -127,11 +188,26 @@ class RecordingRow:
     title: str | None = None
     kind: str | None = None
     tag: str | None = None
+    state_label: str = ""
+    state_tone: str = "muted"
+    day: str = ""
+    week_ending: str = ""
+    bands: tuple = ()
+    proposals: tuple = ()
+
+
+@dataclass(frozen=True)
+class Week:
+    ending: str
+    heading: str
+    rows: tuple
 
 
 @dataclass(frozen=True)
 class RecordingPage:
     rows: tuple
+    weeks: tuple
+    waiting: tuple
     page: int
     pages: int
     total: int
@@ -140,12 +216,31 @@ class RecordingPage:
     next: int | None
 
 
+def groups_by_week(rows):
+    weeks = []
+    for row in rows:
+        if not weeks or weeks[-1][0] != row.week_ending:
+            weeks.append((row.week_ending, []))
+        weeks[-1][1].append(row)
+    return tuple(
+        Week(
+            ending=ending,
+            heading=f"Week ending {datetime.strptime(ending, '%Y-%m-%d'):%a %-d %b}",
+            rows=tuple(members),
+        )
+        for ending, members in weeks
+    )
+
+
 def builds_page(rows, page):
     pages = max(1, -(-len(rows) // PAGE_SIZE))
     current = min(max(1, page or 1), pages)
     start = (current - 1) * PAGE_SIZE
+    shown = rows[start : start + PAGE_SIZE]
     return RecordingPage(
-        rows=rows[start : start + PAGE_SIZE],
+        rows=shown,
+        weeks=groups_by_week(shown),
+        waiting=tuple(row for row in rows if row.proposals) if current == 1 else (),
         page=current,
         pages=pages,
         total=len(rows),
@@ -257,6 +352,12 @@ class ListsRecordings:
         if recording.waiting_since is not None:
             waiting = (self.clock() - recording.waiting_since).total_seconds() > 86400
         titled = self.store.loads(RecordingTitle, recording.recording_id)
+        label, tone = says_state(recording.state, segments)
+        bands, proposals = (
+            self._offers_review(recording, segments)
+            if recording.state == "awaiting_review"
+            else ((), ())
+        )
         return RecordingRow(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
@@ -278,4 +379,37 @@ class ListsRecordings:
             title=titled.title if titled else None,
             kind=recording.kind,
             tag=tags_kind(recording.kind, titled.series if titled else None, glossary or ReadsGlossary()()),
+            state_label=label,
+            state_tone=tone,
+            day=recording.started_at.strftime("%a"),
+            week_ending=week_ending(recording.started_at).isoformat(),
+            bands=bands,
+            proposals=proposals,
         )
+
+    def _offers_review(self, recording, segments):
+        proposed = [segment for segment in segments if segment.state == "proposed"]
+        if not proposed:
+            return (), ()
+        blocks = self.store.lists(Block, recording_id=recording.recording_id)
+        total = recording.duration_seconds or max((block.end_seconds for block in blocks), default=0)
+        seeds = {segment.seed_block_id for segment in proposed}
+        bands = tuple(
+            BandView(
+                type=block.type,
+                left=round(100 * block.start_seconds / total, 3),
+                width=round(100 * (block.end_seconds - block.start_seconds) / total, 3),
+                emphasised=block.block_id in seeds,
+            )
+            for block in blocks
+            if total
+        )
+        proposals = tuple(
+            ProposalView(
+                classification=segment.classification,
+                span=f"{formats_clock(segment.punch_in_seconds)} \u2013 {formats_clock(segment.punch_out_seconds)}",
+                length=formats_clock(segment.punch_out_seconds - segment.punch_in_seconds),
+            )
+            for segment in proposed
+        )
+        return bands, proposals
