@@ -98,6 +98,7 @@ NAMED_IN_THE_PATH = {
     ),
     "edge": ("start", "end"),
     "boundary": ("punch-in", "punch-out"),
+    "seam": ("opening", "ending"),
 }
 FORM = {
     "do": "set",

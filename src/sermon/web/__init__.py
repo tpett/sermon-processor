@@ -72,6 +72,7 @@ from sermon.shows_recording import (
     PLAYHEAD_OUTSIDE_SPAN,
     PREVIEW_LEAD_SECONDS,
     ShowsRecording,
+    bounds_window,
     formats_precise,
     formats_seconds,
 )
@@ -971,20 +972,38 @@ def creates_app(
         to_seconds = request.args.get("to", type=float)
         if from_seconds is None or to_seconds is None:
             return {"error": "name the removed span by its from and to seconds"}, 400
+        return hears_cut_audio(
+            segment,
+            max(segment.punch_in_seconds, from_seconds - PREVIEW_LEAD_SECONDS),
+            min(segment.punch_out_seconds, to_seconds + PREVIEW_LEAD_SECONDS),
+        )
+
+    @app.get("/api/segments/<int:segment_id>/seam/<seam>")
+    def hears_seam(segment_id, seam):
+        segment = store.loads(Segment, segment_id)
+        if segment is None:
+            return NO_SUCH_SEGMENT
+        if seam not in ("opening", "ending"):
+            return ("", 404)
+        at = segment.punch_in_seconds if seam == "opening" else segment.punch_out_seconds
+        recording = store.loads(Recording, segment.recording_id)
+        start, end = bounds_window(at, recording.duration_seconds or 0.0)
+        return hears_cut_audio(segment, start, end)
+
+    def hears_cut_audio(segment, start, end):
         recording = store.loads(Recording, segment.recording_id)
         heard, channel = audio_for_joins(recording)
         if heard is None:
             return {"error": JOIN_AUDIO_UNAVAILABLE}, 404
-        pieces = kept_pieces(
-            max(segment.punch_in_seconds, from_seconds - PREVIEW_LEAD_SECONDS),
-            min(segment.punch_out_seconds, to_seconds + PREVIEW_LEAD_SECONDS),
-            segment.removed_spans,
-        )
+        pieces = kept_pieces(start, end, segment.removed_spans)
         try:
             joined = encodes_join(heard, pieces, channel)
         except JoinProducedNothing as failure:
             return {"error": str(failure)}, 500
-        return Response(joined, mimetype=JOIN_MEDIA_TYPE)
+        response = Response(joined, mimetype=JOIN_MEDIA_TYPE)
+        response.headers["X-Kept-Pieces"] = json.dumps([list(piece) for piece in pieces])
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     def audio_for_joins(recording):
         source = store.resolves(recording)
