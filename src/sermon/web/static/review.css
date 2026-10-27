@@ -1463,7 +1463,7 @@ canvas {
 .transcript ol {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
   max-height: 26rem;
   overflow-y: auto;
   padding-right: 6px;
@@ -1471,15 +1471,30 @@ canvas {
 
 .transcript li {
   display: grid;
-  grid-template-columns: 9ch 1fr;
-  gap: 10px;
+  grid-template-columns: 11ch minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: baseline;
   font-variant-numeric: tabular-nums;
 }
 
 .transcript [data-field="utterance-at"] {
+  grid-column: 1;
+  grid-row: 1;
   font-family: var(--mono);
   font-size: 11px;
   color: var(--muted);
+}
+
+.transcript [data-field="utterance-speaker"] {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.transcript [data-field="utterance-text"] {
+  grid-column: 2;
+  grid-row: 1 / span 2;
 }
 
 .actions .row,
@@ -2315,7 +2330,8 @@ details summary {
   }
 
   .transcript li {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 10ch minmax(0, 1fr);
+    column-gap: 8px;
   }
 
   /* A label is ~100px wide and the marks sit ~68px apart at this width, so
