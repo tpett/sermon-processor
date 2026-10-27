@@ -353,6 +353,7 @@ def creates_app(
                 segment=segment_id,
                 focus=focus,
                 removing_from=removing_from,
+                mode=request.values.get("mode"),
                 zoom=request.values.get("zoom"),
                 centre=request.values.get("centre"),
                 playhead=request.values.get("playhead"),
@@ -464,7 +465,16 @@ def creates_app(
         )
         if view is None:
             return ("", 404)
-        return render_template("detail.html", view=view, payload=json.dumps(asdict(view)))
+        asked = request.args.get("mode")
+        hard = view.proposal is not None and view.proposal.punch_in_grade == "hard"
+        editing = (
+            view.selected_segment_id is not None
+            and view.boundary_controls in {"editable", "collapsed"}
+            and (asked == "edit" or (asked != "review" and hard))
+        )
+        return render_template(
+            "detail.html", view=view, editing=editing, payload=json.dumps(asdict(view))
+        )
 
     @app.get("/api/recordings/<recording_id>/peaks")
     def recording_peaks(recording_id):

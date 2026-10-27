@@ -494,11 +494,15 @@ def _(store, drawn):
 def _(store):
     segments = _analysis.proposed(store)
     assert len(segments) == 2
+    recording_id = _analysis.the_recording(store).recording_id
     for item in segments:
-        page = _web.opens_detail(store, _analysis.the_recording(store).recording_id, segment=item.segment_id)
+        offered = {
+            "review": _web.opens_detail(store, recording_id, segment=item.segment_id, mode="review"),
+            "edit": _web.opens_detail(store, recording_id, segment=item.segment_id, mode="edit"),
+        }
         base = f"/recordings/{item.recording_id}/segments/{item.segment_id}"
-        for action in ("classify", "boundaries/punch-in", "approve", "skip"):
-            assert f"{base}/{action}" in page, f"no {action} control for Segment {item.segment_id}"
+        for action, mode in (("classify", "review"), ("boundaries/punch-in", "edit"), ("approve", "review"), ("skip", "review")):
+            assert f"{base}/{action}" in offered[mode], f"no {action} control for Segment {item.segment_id}"
 
 
 @then("1 Segment exists spanning from the first punch-in to the last punch-out")

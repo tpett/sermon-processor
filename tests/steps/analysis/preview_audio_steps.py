@@ -295,10 +295,12 @@ def _(store, recording):
     assert "has not been rendered" in page
 
 
-def reviewed_page(store, recording):
+def reviewed_page(store, recording, **query):
     proposed = store.lists(Segment, recording_id=recording.recording_id, state="proposed")
     assert proposed, "analysis proposed no Segment to review"
-    return proposed[0], _web.opens_detail(store, recording.recording_id, segment=proposed[0].segment_id)
+    return proposed[0], _web.opens_detail(
+        store, recording.recording_id, segment=proposed[0].segment_id, **query
+    )
 
 
 @then("the transcript, summaries and waveform are still usable")
@@ -317,12 +319,13 @@ def _(store, recording):
 
 @then("boundaries can still be adjusted and approved")
 def _(store, recording):
-    segment, page = reviewed_page(store, recording)
+    segment, page = reviewed_page(store, recording, mode="edit")
     assert [row["boundary"] for row in reads_rows(page, "boundary")] == ["punch-in", "punch-out"]
-    later = _forms.submits(store, page, 'data-nudge="later ')
+    _forms.submits(store, page, 'data-nudge="later ')
     moved = store.loads(Segment, segment.segment_id).punch_in_seconds
     assert moved > segment.punch_in_seconds, f"the punch-in stayed at {moved}"
-    approved = _forms.submits(store, later, 'data-field="action-control">Approve')
+    _, reviewing = reviewed_page(store, recording)
+    approved = _forms.submits(store, reviewing, 'data-field="action-control">Approve')
     assert reads_field(approved, "action-notice") == "the Segment is approved and queued for processing"
 
 

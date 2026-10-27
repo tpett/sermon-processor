@@ -9,8 +9,10 @@ from pytest_bdd import given, parsers, then, when
 from sermon.approves_segment import ApprovesSegment, ReviewSession
 from sermon.extends_segment_span import ReadsTimecode
 from sermon.reopens_segment import ReopensSegment
+from sermon.raises_notification import SEGMENT_PROPOSED, RaisesNotification
 from sermon.settles_recording import SettlesRecording
 from sermon.shows_recording import NOTICES, formats_precise
+from sermon.sends_notification import does_not_send
 from sermon.skips_segment import SkipsSegment
 from sermon.store import Block, Job, LogEntry, Proposal, Recording, Segment
 from sermon.web import creates_app
@@ -103,11 +105,7 @@ def _(store, recording):
         start += 60.0
 
 
-@given(
-    parsers.parse('a Segment classified "{classification}" whose cuts are both graded "{grade}"'),
-    target_fixture="segment",
-)
-def _(store, recording, classification, grade):
+def grades_both_cuts(store, recording, classification, grade):
     segment = [
         item
         for item in store.lists(Segment, recording_id=recording.recording_id)
@@ -116,6 +114,22 @@ def _(store, recording, classification, grade):
     proposal = store.lists(Proposal, segment_id=segment.segment_id)[0]
     store.saves(replace(proposal, punch_in_grade=grade, punch_out_grade=grade))
     return segment
+
+
+@given(
+    parsers.parse('a Segment classified "{classification}" whose cuts are both graded "{grade}"'),
+    target_fixture="segment",
+)
+def _(store, recording, classification, grade):
+    return grades_both_cuts(store, recording, classification, grade)
+
+
+@given(
+    parsers.parse('a Segment whose cuts are both graded "{grade}"'),
+    target_fixture="segment",
+)
+def _(store, recording, grade):
+    return grades_both_cuts(store, recording, "sermon", grade)
 
 
 @when("I preview the punch-in")
@@ -424,7 +438,8 @@ def _(store, segment):
 def _(store, segment):
     page = _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
     assert reads_field(page, "boundary-controls") in {"editable", "collapsed"}
-    assert [row["boundary"] for row in reads_rows(page, "boundary")] == ["punch-in", "punch-out"]
+    editing = follows(store, page, "edit-the-cut")
+    assert [row["boundary"] for row in reads_rows(editing, "boundary")] == ["punch-in", "punch-out"]
 
 
 SPOKEN_ACROSS_THE_MORNING = (
@@ -601,10 +616,37 @@ def _(store, segment, device):
         assert wide <= device["viewport"]["width"], f"{wide}px of page on a {device['viewport']['width']}px screen"
 
 
+CONTROLS_UNDER_A_THUMB = """() => {
+  const found = [];
+  const controls = "a[href], button, input:not([type=hidden]), select, summary, textarea";
+  for (const control of document.querySelectorAll(controls)) {
+    const box = control.getBoundingClientRect();
+    if (!box.width || !box.height || getComputedStyle(control).visibility === "hidden") continue;
+    if (box.height < 44) {
+      const name = control.getAttribute("data-role") || control.getAttribute("data-field") || control.name;
+      found.push(`${control.tagName.toLowerCase()} ${name || control.className} is ${box.height}px tall`);
+    }
+  }
+  return found;
+}"""
+
+
+def reads_every_control_fit_for_a_thumb(page):
+    page.evaluate("() => document.querySelectorAll('details').forEach(held => { held.open = true; })")
+    too_small = page.evaluate(CONTROLS_UNDER_A_THUMB)
+    assert too_small == [], too_small
+
+
 @then("I can still skip it, or approve it as-is if I choose to")
 def _(store, segment, device):
     with _browser.opens_page(store, device) as page:
         page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        assert page.locator('[data-role="cut-view"]').get_attribute("data-mode") == "edit"
+        reads_every_control_fit_for_a_thumb(page)
+        page.goto(f"/recordings/{segment.recording_id}?segment={segment.segment_id}")
+        page.locator('[data-role="done-editing"]').click()
+        page.wait_for_load_state()
+        reads_every_control_fit_for_a_thumb(page)
         for action in ("Skip", "Approve"):
             control = page.locator(
                 f'[data-row="segment-action"][data-action="{action}"] [data-field="action-control"]'
@@ -728,3 +770,67 @@ def _(store, recording, detail_page):
     shown = [row["block-type"] for row in reads_rows(order[1], "block")]
     stored = sorted(store.lists(Block, recording_id=recording.recording_id), key=lambda b: b.start_seconds)
     assert shown == [block.type for block in stored]
+
+
+@when("I open the notification", target_fixture="notified")
+def _(store, segment):
+    raised = RaisesNotification(store=store, notifies=does_not_send)(
+        SEGMENT_PROPOSED,
+        f"A {segment.classification} was proposed.",
+        recording_id=segment.recording_id,
+        segment_id=segment.segment_id,
+    )
+    listing = _web.opens_app(store).test_client().get("/notifications").get_data(as_text=True)
+    row = [item for item in reads_rows(listing, "notification") if item["id"] == str(raised.notification_id)][0]
+    return {"summary": row["summary"], "href": unescape(row["links"][0])}
+
+
+@then("I can read the summary")
+def _(notified, segment):
+    assert segment.classification in notified["summary"]
+
+
+def reads_fit_for_a_thumb(control, device):
+    box = control.bounding_box()
+    assert control.is_visible()
+    assert box["height"] >= 44, box
+    assert 0 <= box["x"] and box["x"] + box["width"] <= device["viewport"]["width"], box
+
+
+@then("I can preview the whole cut")
+def _(store, notified, device):
+    with _browser.opens_page(store, device) as page:
+        page.goto(notified["href"])
+        reads_fit_for_a_thumb(page.locator('[data-role="preview-cut"]'), device)
+
+
+@then("I can approve")
+def _(store, notified, device):
+    with _browser.opens_page(store, device) as page:
+        page.goto(notified["href"])
+        reads_fit_for_a_thumb(
+            page.locator('[data-row="segment-action"][data-action="Approve"] [data-field="action-control"]'),
+            device,
+        )
+
+
+@then("the whole flow works without opening the editor")
+def _(store, notified, device):
+    with _browser.opens_page(store, device) as page:
+        page.goto(notified["href"])
+        assert page.locator('[data-role="cut-view"]').get_attribute("data-mode") == "review"
+        offered = [name for name, mark in EDITING_CONTROLS.items() if mark in page.content()]
+        assert offered == [], offered
+        reads_every_control_fit_for_a_thumb(page)
+
+
+@then("the waveform, zooming, word alignment and nudge controls are all available")
+def _(detail_page):
+    wanted = {
+        "the waveform": EDITING_CONTROLS["the detail waveform"],
+        "zooming": EDITING_CONTROLS["zoom"],
+        "word alignment": '<ol class="words">',
+        "nudges": EDITING_CONTROLS["nudges"],
+    }
+    missing = [name for name, mark in wanted.items() if mark not in detail_page]
+    assert missing == [], f"missing in the editor: {missing}"

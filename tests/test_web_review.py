@@ -102,7 +102,7 @@ def a_reviewable_segment(store):
 
 
 def detail_of(client, segment, **query):
-    asked = {"segment": segment.segment_id} | query
+    asked = {"segment": segment.segment_id, "mode": "edit"} | query
     return client.get(
         f"/recordings/{segment.recording_id}", query_string=asked
     ).get_data(as_text=True)
@@ -226,7 +226,7 @@ def posts_a_punch_in(client, segment, timecode, **query):
         f"/recordings/{segment.recording_id}/segments/{segment.segment_id}"
         f"/boundaries/punch-in",
         data={"do": "set", "timecode": timecode},
-        query_string=query,
+        query_string={"mode": "edit", **query},
     )
 
 

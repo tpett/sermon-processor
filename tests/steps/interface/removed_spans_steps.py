@@ -30,9 +30,13 @@ def opens(store, segment):
     return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id)
 
 
+def opens_editor(store, segment):
+    return _web.opens_detail(store, segment.recording_id, segment=segment.segment_id, mode="edit")
+
+
 def removes(store, segment, start, end):
     return _forms.submits(
-        store, opens(store, segment), REMOVAL_CONTROL, do="remove", **{"from": start, "to": end}
+        store, opens_editor(store, segment), REMOVAL_CONTROL, do="remove", **{"from": start, "to": end}
     )
 
 
@@ -68,7 +72,7 @@ def _(store, segment, start, end):
 @when("I mark the start of a removal at the playhead", target_fixture="detail_page")
 def _(store, segment):
     return _forms.submits(
-        store, opens(store, segment), REMOVAL_CONTROL, do="mark-start", playhead=store._playhead
+        store, opens_editor(store, segment), REMOVAL_CONTROL, do="mark-start", playhead=store._playhead
     )
 
 
@@ -86,8 +90,8 @@ def restores_from(store, page):
 
 
 @when("I restore that span", target_fixture="detail_page")
-def _(store, detail_page):
-    return restores_from(store, detail_page)
+def _(store, segment, detail_page):
+    return restores_from(store, opens_editor(store, segment))
 
 
 @when("I try to restore that span", target_fixture="detail_page")
@@ -138,7 +142,7 @@ def _(store, recording):
 @when("the machine proposes Segments for the Recording again", target_fixture="detail_page")
 def _(store, recording, segment):
     _analysis.proposes(store, recording)
-    return opens(store, segment)
+    return opens_editor(store, segment)
 
 
 @then(
@@ -190,7 +194,7 @@ def _(detail_page, start, end):
 
 @then(parsers.parse('the span from "{start}" to "{end}" is still listed as removed'))
 def _(store, segment, start, end):
-    assert (precise(start), precise(end)) in [row[:2] for row in listed(opens(store, segment))]
+    assert (precise(start), precise(end)) in [row[:2] for row in listed(opens_editor(store, segment))]
 
 
 @then(parsers.parse('the punch-in and punch-out are still "{punch_in}" and "{punch_out}"'))

@@ -155,7 +155,7 @@ def reads_span(page):
 )
 def _(store, segment, timecode):
     return _web.posts(
-        store, _web.span_action(segment, "start"), do="set", timecode=timecode
+        store, _web.span_action(segment, "start"), do="set", timecode=timecode, mode="edit"
     )
 
 
@@ -181,6 +181,7 @@ def _(store, segment, detail_page):
             _web.boundary_action(segment, "punch-in"),
             do="set",
             timecode=formats_precise(at),
+            mode="edit",
         )
         assert reads_field(page, "action-notice") not in REFUSALS
         assert abs(READS(reads_field(page, "punch-in")) - at) < 0.005
@@ -203,7 +204,9 @@ def _(store, recording, timecode):
 
 @when(parsers.parse('I then try to extend it to "{timecode}"'), target_fixture="refused_page")
 def _(store, segment, timecode):
-    return _web.posts(store, _web.span_action(segment, "start"), do="set", timecode=timecode)
+    return _web.posts(
+        store, _web.span_action(segment, "start"), do="set", timecode=timecode, mode="edit"
+    )
 
 
 @then("the further extension is rejected because it would overlap the neighbouring Segment")
@@ -296,7 +299,7 @@ def _(detail_page):
 
 @when("I revert to the proposed boundaries", target_fixture="detail_page")
 def _(store, segment):
-    return _web.posts(store, _web.boundary_action(segment, "punch-in"), do="revert")
+    return _web.posts(store, _web.boundary_action(segment, "punch-in"), do="revert", mode="edit")
 
 
 @then("my discarded adjustment is recorded in the history")
@@ -322,7 +325,7 @@ def _(store, segment):
 @when("Analysis is re-run", target_fixture="detail_page")
 def _(store, recording, segment):
     _web.posts(store, _web.recording_action(recording, "re-run-analysis"))
-    return _web.opens_detail(store, recording.recording_id, segment=segment.segment_id)
+    return _web.opens_detail(store, recording.recording_id, segment=segment.segment_id, mode="edit")
 
 
 @then("my adjustment survives")
@@ -410,6 +413,7 @@ def _(store, segment):
     return _web.posts(
         store,
         _web.boundary_action(segment, "punch-in"),
+        mode="edit",
         do="set",
         timecode=formats_precise(candidates[0].timecode),
     )
@@ -436,6 +440,7 @@ def _(store, segment):
         do="nudge",
         direction="later",
         amount="10 s",
+        mode="edit",
     )
 
 
@@ -462,7 +467,7 @@ def _(store, recording, segment):
         )
         page.goto(
             f"/recordings/{segment.recording_id}?segment={segment.segment_id}"
-            f"&zoom=three+seconds&centre={played_to}"
+            f"&mode=edit&zoom=three+seconds&centre={played_to}"
         )
         control = page.locator('[data-row="punch-point"][data-boundary="punch-in"] button')
         assert control.is_disabled(), "the page did not open with the playhead outside the span"

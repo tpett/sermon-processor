@@ -2,10 +2,7 @@
   "use strict";
 
   const panel = document.querySelector('[data-role="removed-spans"]');
-  if (!panel) {
-    return;
-  }
-  const form = panel.querySelector('form[data-role="removal"]');
+  const form = panel && panel.querySelector('form[data-role="removal"]');
   const pending = document.querySelector('[data-role="removal-pending-mark"]');
 
   function playheadNow() {
@@ -43,7 +40,7 @@
   }
 
   let hearing = null;
-  panel.querySelectorAll('[data-role="hear-join"]').forEach(function (control) {
+  document.querySelectorAll('[data-role="hear-join"]').forEach(function (control) {
     control.addEventListener("click", function () {
       const preview = document.querySelector('[data-role="preview-audio"]');
       if (preview && !preview.paused) {

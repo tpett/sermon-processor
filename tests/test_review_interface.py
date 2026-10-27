@@ -1,4 +1,7 @@
+import re
 from datetime import UTC, datetime
+from html import unescape
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -56,7 +59,7 @@ def test_a_punch_in_just_before_its_span_does_not_open_the_page_with_dead_punch_
     page = (
         creates_app(store=store)
         .test_client()
-        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}")
+        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}&mode=edit")
         .get_data(as_text=True)
     )
     assert "disabled" not in page.split('data-role="punch"')[1].split("</ol>")[0]
@@ -67,7 +70,7 @@ def test_the_punch_controls_carry_the_span_the_client_judges_them_against(store,
     page = (
         creates_app(store=store)
         .test_client()
-        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}")
+        .get(f"/recordings/{recording.recording_id}?segment={segment.segment_id}&mode=edit")
         .get_data(as_text=True)
     )
     punch = reads_role(page, "punch")
@@ -252,7 +255,7 @@ def test_the_page_rounds_a_timecode_before_carrying_it(store, recording):
     with _browser.opens_page(store) as page:
         page.goto(
             f"/recordings/{recording.recording_id}?segment={segment.segment_id}"
-            "&zoom=three+seconds&centre=3899.9&playhead=3899.899"
+            "&mode=edit&zoom=three+seconds&centre=3899.9&playhead=3899.899"
         )
         page.locator("body").click(position={"x": 5, "y": 5})
         page.keyboard.press(".")
@@ -349,3 +352,51 @@ def test_a_collision_is_judged_on_the_recording_date_not_the_publication_date(st
     refused = client.put(url, json={"date": "2026-09-20", "label": "Hebrews 12"})
     assert refused.status_code == 409
     assert refused.get_json()["path"] == "published/2026-09-13 - Hebrews 12.mp3"
+
+
+FORM_MARKUP = re.compile(r'<form\b[^>]*\baction="([^"]*)"[^>]*>(.*?)</form>', re.S)
+HIDDEN = re.compile(r'<input\b[^>]*type="hidden"[^>]*>')
+
+
+def recording_level_posts(page, recording_id):
+    posts = []
+    for action, body in FORM_MARKUP.findall(page):
+        action = unescape(action)
+        if not action.startswith(f"/recordings/{recording_id}/actions/"):
+            continue
+        fields = {
+            name.group(1): unescape(value.group(1))
+            for tag in HIDDEN.findall(body)
+            if (name := re.search(r'name="([^"]*)"', tag)) and (value := re.search(r'value="([^"]*)"', tag))
+        }
+        for typed in re.findall(r'<input\b[^>]*type="text"[^>]*name="([^"]*)"', body):
+            fields[typed] = "carried"
+        posts.append((action, fields))
+    return posts
+
+
+def posted_modes(store, recording, segment, mode):
+    client = creates_app(store=store).test_client()
+    page = client.get(
+        f"/recordings/{recording.recording_id}?segment={segment.segment_id}&mode={mode}"
+    ).get_data(as_text=True)
+    posts = recording_level_posts(page, recording.recording_id)
+    assert any(action.endswith("/actions/retitle") for action, _ in posts)
+    return {
+        action: parse_qs(urlsplit(client.post(action, data=fields).headers["Location"]).query).get("mode")
+        for action, fields in posts
+    }
+
+
+def test_every_recording_level_form_offered_in_edit_mode_returns_to_edit_mode(store, recording):
+    segment = saves_segment(store, recording)
+    modes = posted_modes(store, recording, segment, "edit")
+    assert modes
+    assert {action: mode for action, mode in modes.items() if mode != ["edit"]} == {}
+
+
+def test_recording_level_forms_offered_in_review_mode_do_not_return_to_edit_mode(store, recording):
+    segment = saves_segment(store, recording)
+    modes = posted_modes(store, recording, segment, "review")
+    assert modes
+    assert {action: mode for action, mode in modes.items() if mode == ["edit"]} == {}

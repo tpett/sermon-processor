@@ -42,7 +42,8 @@ NAMED_WINDOWS = {
 
 def renders_detail(store, query=""):
     recording_id = store.lists(Recording)[0].recording_id
-    response = creates_app(store=store).test_client().get(f"/recordings/{recording_id}{query}")
+    editing = f"{query}{'&' if '?' in query else '?'}mode=edit"
+    response = creates_app(store=store).test_client().get(f"/recordings/{recording_id}{editing}")
     return response.get_data(as_text=True)
 
 
@@ -818,7 +819,7 @@ SCRUBBED = 7218.4
 def opens_with_playhead(store, segment, seconds, **query):
     client = creates_app(store=store).test_client()
     client.post(f"/api/recordings/{segment.recording_id}/seek", json={"seconds": seconds})
-    asked = {"segment": segment.segment_id} | query
+    asked = {"segment": segment.segment_id, "mode": "edit"} | query
     return client.get(f"/recordings/{segment.recording_id}", query_string=asked).get_data(
         as_text=True
     )

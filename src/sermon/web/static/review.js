@@ -53,8 +53,22 @@ async function peaks(source) {
 }
 
 function cutRange() {
-  if (!region) return null;
-  return [Number(region.dataset.fromSeconds), Number(region.dataset.toSeconds)];
+  if (region) return [Number(region.dataset.fromSeconds), Number(region.dataset.toSeconds)];
+  const view = document.querySelector('[data-role="cut-view"]');
+  if (!view || view.dataset.punchInSeconds === undefined) return null;
+  return [Number(view.dataset.punchInSeconds), Number(view.dataset.punchOutSeconds)];
+}
+
+function extremes(held, first, bins, column, columns) {
+  const start = first + Math.floor((column * bins) / columns);
+  const finish = Math.max(start + 1, first + Math.floor(((column + 1) * bins) / columns));
+  let low = 0;
+  let high = 0;
+  for (let bin = start; bin < finish && bin < held.lows.length; bin += 1) {
+    low = Math.min(low, held.lows[bin]);
+    high = Math.max(high, held.highs[bin]);
+  }
+  return [low, high];
 }
 
 function removedRanges() {
@@ -82,14 +96,7 @@ function paint(canvas, held, fromSeconds, throughSeconds) {
   const last = Math.min(held.lows.length, Math.ceil(throughSeconds / held.secondsPerBin));
   const bins = Math.max(last - first, 1);
   for (let column = 0; column < canvas.width; column += 1) {
-    const start = first + Math.floor((column * bins) / canvas.width);
-    const finish = Math.max(start + 1, first + Math.floor(((column + 1) * bins) / canvas.width));
-    let low = 0;
-    let high = 0;
-    for (let bin = start; bin < finish && bin < held.lows.length; bin += 1) {
-      low = Math.min(low, held.lows[bin]);
-      high = Math.max(high, held.highs[bin]);
-    }
+    const [low, high] = extremes(held, first, bins, column, canvas.width);
     const at = fromSeconds + ((throughSeconds - fromSeconds) * column) / canvas.width;
     context.fillStyle = shipped(kept, removed, at) ? hot : cool;
     const top = middle - (high / held.fullScale) * middle;
@@ -120,10 +127,42 @@ function marksTicks(fromSeconds, windowSeconds) {
   }
 }
 
+const SEAM_LEAD_SECONDS = 5;
+
+function paintsSeam(canvas, held) {
+  const context = canvas.getContext("2d");
+  const middle = canvas.height / 2;
+  const half = canvas.width / 2;
+  const before = Number(canvas.dataset.before);
+  const after = Number(canvas.dataset.after);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  [
+    [before - SEAM_LEAD_SECONDS, before, canvas.dataset.beforeKept === "true", 0],
+    [after, after + SEAM_LEAD_SECONDS, canvas.dataset.afterKept === "true", half],
+  ].forEach(([fromSeconds, throughSeconds, kept, offset]) => {
+    const first = Math.max(0, Math.floor(fromSeconds / held.secondsPerBin));
+    const last = Math.min(held.lows.length, Math.ceil(throughSeconds / held.secondsPerBin));
+    const bins = Math.max(last - first, 1);
+    context.fillStyle = token(kept ? "--wave-hot" : "--wave");
+    for (let column = 0; column < half; column += 1) {
+      const [low, high] = extremes(held, first, bins, column, half);
+      const top = middle - (high / held.fullScale) * middle;
+      const bottom = middle - (low / held.fullScale) * middle;
+      context.fillRect(offset + column, top, 1, Math.max(bottom - top, 1));
+    }
+  });
+}
+
 async function draws() {
   const all = sources();
   const overview = coarsest(all);
   if (overview) paint(overviewCanvas, await peaks(overview), 0, duration);
+  const seamCanvases = [...document.querySelectorAll('[data-role="seam-wave"]')];
+  const fine = finest(all) || overview;
+  if (fine && seamCanvases.length) {
+    const held = await peaks(fine);
+    if (held) seamCanvases.forEach((canvas) => paintsSeam(canvas, held));
+  }
   if (!detailPane) return;
   const from = Number(detailPane.dataset.windowStartSeconds);
   const seconds = Number(detailPane.dataset.windowSeconds);
@@ -768,7 +807,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const direction = SCRUB_KEYS[event.key];
-  if (direction === undefined) return;
+  if (direction === undefined || !detailPane) return;
   const step = event.shiftKey ? 1 : event.altKey ? 0.05 : 0.1;
   scrubs(direction * step);
   event.preventDefault();
