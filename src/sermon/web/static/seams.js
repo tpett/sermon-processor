@@ -54,12 +54,15 @@
     }
   }
 
-  function stop() {
+  function stop(syncsPreview = true) {
     if (!session) {
       return;
     }
     const mine = session;
     session = null;
+    if (syncsPreview && audio && mine.clock) {
+      audio.currentTime = mine.clock();
+    }
     clip.pause();
     window.cancelAnimationFrame(mine.frame);
     mine.urls.forEach(function (url) {
@@ -91,6 +94,7 @@
       const clock = function () {
         return sourceAt(seam.pieces, clip.currentTime);
       };
+      mine.clock = clock;
       const boundary = boundaryOf(seam.seam);
       const last = seam.pieces[seam.pieces.length - 1];
       clip.onended = function () {
@@ -132,7 +136,7 @@
     if (audio && !audio.paused) {
       audio.pause();
     }
-    const mine = { urls: [], controls: pressed, frame: 0, boundary: null };
+    const mine = { urls: [], controls: pressed, frame: 0, boundary: null, clock: null };
     session = mine;
     pressed.forEach(function (control) {
       delete control.dataset.failed;
@@ -218,8 +222,12 @@
     }
   });
 
-  document.addEventListener("waveform:seek", stop);
+  document.addEventListener("waveform:seek", function () {
+    stop(false);
+  });
   if (audio) {
-    audio.addEventListener("play", stop);
+    audio.addEventListener("play", function () {
+      stop(false);
+    });
   }
 })();
