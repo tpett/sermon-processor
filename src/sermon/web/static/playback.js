@@ -105,11 +105,28 @@
       audio.pause();
       return;
     }
+    const shown = Number(marker && marker.dataset.seconds);
+    if (Number.isFinite(shown) && Math.abs(shown - audio.currentTime) > 0.05) {
+      audio.currentTime = shown;
+    }
     const started = audio.play();
     if (started && started.catch) {
       started.catch(function () {});
     }
   });
+
+  const toggle = document.querySelector('[data-role="transport-toggle"]');
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      document.dispatchEvent(new CustomEvent("waveform:transport"));
+    });
+    const reflectsTransport = function () {
+      toggle.dataset.transport = audio.paused ? "paused" : "playing";
+      toggle.setAttribute("aria-label", audio.paused ? "Play" : "Pause");
+    };
+    audio.addEventListener("play", reflectsTransport);
+    audio.addEventListener("pause", reflectsTransport);
+  }
 
   document.addEventListener("waveform:play-window", function (event) {
     const asked = event.detail || {};

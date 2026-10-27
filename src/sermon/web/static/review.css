@@ -968,7 +968,7 @@ canvas {
 }
 
 .waveform .words {
-  height: 58px;
+  height: 32px;
   border-top: 1px dashed var(--line);
   padding-top: 8px;
   overflow: hidden;
@@ -984,12 +984,8 @@ canvas {
   text-overflow: ellipsis;
 }
 
-.waveform .words li:nth-child(3n + 2) {
-  top: 25px;
-}
-
-.waveform .words li:nth-child(3n) {
-  top: 42px;
+.waveform .words li[data-culled] {
+  visibility: hidden;
 }
 
 .waveform .words li[data-word-inside="false"] {
@@ -2302,7 +2298,7 @@ details summary {
   }
 
   .waveform .words {
-    height: 44px;
+    height: 32px;
   }
 
   .fields {
@@ -2737,6 +2733,31 @@ button.preview:hover {
   background: #fff;
 }
 
+button.preview[data-playing="true"],
+[data-mode] button.preview[data-playing="true"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0;
+}
+
+button.preview[data-playing="true"]::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  border-left: 4px solid currentColor;
+  border-right: 4px solid currentColor;
+}
+
+button.preview[data-playing="true"]::after {
+  content: "Stop preview" / "";
+  font-size: 15px;
+}
+
+[data-mode="edit"] button.preview[data-playing="true"]::after {
+  font-size: 14px;
+}
+
 .seams {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -2972,20 +2993,12 @@ details.reclassify > summary {
   }
 
   .waveform .words {
-    height: 132px;
+    height: 44px;
     padding-top: 0;
   }
 
   .waveform .words li {
     top: 0;
-  }
-
-  .waveform .words li:nth-child(3n + 2) {
-    top: 44px;
-  }
-
-  .waveform .words li:nth-child(3n) {
-    top: 88px;
   }
 
   .waveform .detailwrap .playhead .scrub,
@@ -3569,7 +3582,7 @@ details.reclassify > summary {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: 12px;
+  column-gap: 8px;
 }
 
 [data-mode="edit"] > * {
@@ -3615,11 +3628,11 @@ details.reclassify > summary {
 
 [data-mode="edit"] .transport > .keys {
   flex: 1 1 100%;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 2px 14px;
   order: 5;
-  text-align: left;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 [data-mode="edit"] .transport > .reach {
@@ -3632,9 +3645,17 @@ details.reclassify > summary {
   margin: 0;
 }
 
+[data-mode="edit"] .zoom-steps {
+  gap: 0;
+}
+
 [data-mode="edit"] .zoom-steps li {
   min-width: 0;
-  padding: 4px 12px;
+  padding: 4px 6px;
+}
+
+[data-mode="edit"] .zoom-steps a {
+  letter-spacing: -0.02em;
 }
 
 [data-mode="edit"] .zoom-steps [data-field="zoom-step-purpose"] {
@@ -3895,6 +3916,86 @@ details.type-span[open] > summary {
 
   .supporting .boundaries .nudges > summary {
     text-align: right;
+  }
+}
+
+[data-mode="edit"] .transport > .transport-toggle {
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+}
+
+.transport-toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-35%, -50%);
+  border-style: solid;
+  border-width: 8px 0 8px 13px;
+  border-color: transparent transparent transparent currentColor;
+}
+
+.transport-toggle[data-transport="playing"]::before {
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 16px;
+  border-width: 0 4px;
+  border-color: currentColor;
+}
+
+[data-mode="edit"] .transport > .transport-time {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 561px) {
+  [data-mode="edit"] .transport .punch-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+[data-mode="edit"] .transport > .key-help {
+  flex: 1 1 100%;
+  order: 5;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.key-help kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  [data-mode="edit"] .transport > .key-help {
+    display: none;
   }
 }
 

@@ -425,6 +425,10 @@
   {% endif %}
   {% if editing %}
   <div class="transport">
+    {% if view.preview_ready %}
+    <button type="button" class="transport-toggle" data-role="transport-toggle" data-transport="paused" aria-label="Play"></button>
+    <span class="transport-time">{{ view.playhead_seconds|precise }}</span>
+    {% endif %}
     {% if view.boundary_controls == "editable" %}
     {% set reach = view.span_edges | map(attribute="seconds") | list %}
     <div class="punch-set">
@@ -472,6 +476,7 @@
     {% endif %}
     <span class="spacer"></span>
     {% if editing and wave.available %}
+    <p class="key-help" aria-hidden="true"><kbd>Space</kbd> play · <kbd>=</kbd> <kbd>−</kbd> zoom · <kbd>\</kbd> fit · <kbd>,</kbd> <kbd>.</kbd> scrub · <kbd>←</kbd> <kbd>→</kbd> nudge · drag to select</p>
     <p class="keys">
       <span class="mono" data-field="zoom-keys">{{ wave.zoom_in_keys }} to zoom in, {{ wave.zoom_out_keys }} to zoom out</span>
       <span><span class="mono" data-field="zoom-fit-key">{{ wave.zoom_fit_key }}</span> fits the whole recording</span>
@@ -671,7 +676,7 @@
   <p class="quiet visually-hidden">Classified <span data-field="classification">{{ view.classification }}</span>
      of <span data-field="classification-choices">{{ view.classification_choices|join(", ") }}</span></p>
   {% if view.classify_url %}
-  <details class="reclassify"{% if editing %} open{% endif %}>
+  <details class="reclassify">
     <summary>Reclassify</summary>
     <form method="post" action="{{ view.classify_url }}">
       <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">

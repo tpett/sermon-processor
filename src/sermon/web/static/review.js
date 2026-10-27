@@ -4,6 +4,7 @@ const detailPane = document.querySelector('[data-role="detail"]');
 const detailCanvas = document.querySelector('[data-role="detail-canvas"]');
 const marker = wave && wave.querySelector('[data-role="waveform-playhead"]');
 const readout = document.querySelector('.waveform [data-field="playhead"]');
+const transportTime = document.querySelector(".transport-time");
 const detailMarker = detailPane && detailPane.querySelector('[data-role="detail-playhead"]');
 const region = detailPane && detailPane.querySelector('[data-role="cut-region"]');
 const ticks = document.querySelector('[data-role="detail-ticks"]');
@@ -212,6 +213,7 @@ function movesPlayhead(seconds) {
     }
   }
   if (readout) readout.textContent = formatsTimecode(seconds);
+  if (transportTime) transportTime.textContent = formatsTimecode(seconds);
   judgesPunch(seconds);
 }
 
@@ -595,40 +597,70 @@ document.addEventListener("preview:ended", () => {
 draws();
 
 const words = document.querySelector(".waveform .words");
-const LANES = [8, 25, 42];
+const WORD_GAP_PIXELS = 5;
+
+function wordPosition(word) {
+  // data-word-left is the server's placement for the window it rendered. Once
+  // the window has moved under us it is a different stretch of the recording,
+  // so the position has to come from the word's own timecode.
+  return detailPane ? windowPosition(Number(word.dataset.wordAtSeconds)) : Number(word.dataset.wordLeft);
+}
+
+function punchAdjacent(shown) {
+  const kept = cutRange();
+  if (!kept) return new Set();
+  const at = (word) => Number(word.dataset.wordAtSeconds);
+  const opening = shown.find((word) => at(word) >= kept[0]);
+  const closing = [...shown].reverse().find((word) => at(word) <= kept[1]);
+  return new Set([opening, closing].filter(Boolean));
+}
 
 function packsWords() {
   if (!words) return;
   const across = words.getBoundingClientRect().width;
   if (!across) return;
-  const filled = LANES.map(() => -Infinity);
+  const shown = [];
   [...words.children].forEach((word) => {
-    // data-word-left is the server's placement for the window it rendered. Once
-    // the window has moved under us it is a different stretch of the recording,
-    // so the position has to come from the word's own timecode.
-    const position = detailPane
-      ? windowPosition(Number(word.dataset.wordAtSeconds))
-      : Number(word.dataset.wordLeft);
-    if (position < 0 || position > 100) {
-      word.hidden = true;
-      return;
-    }
-    word.hidden = false;
+    const position = wordPosition(word);
+    delete word.dataset.culled;
+    word.hidden = position < 0 || position > 100;
+    if (word.hidden) return;
     word.style.left = `${position}%`;
-    const left = (position / 100) * across;
-    const lane = filled.findIndex((edge) => left >= edge);
-    if (lane < 0) {
-      word.hidden = true;
+    word.style.removeProperty("top");
+    shown.push(word);
+  });
+  const edges = new Map(
+    shown.map((word) => {
+      const left = (wordPosition(word) / 100) * across;
+      return [word, [left, left + word.getBoundingClientRect().width + WORD_GAP_PIXELS]];
+    })
+  );
+  const winners = punchAdjacent(shown);
+  const taken = [];
+  const collides = ([left, right]) => taken.some(([from, to]) => left < to && from < right);
+  [...winners, ...shown.filter((word) => !winners.has(word))].forEach((word) => {
+    const span = edges.get(word);
+    if (collides(span)) {
+      word.dataset.culled = "true";
       return;
     }
-    word.style.top = `${LANES[lane]}px`;
-    filled[lane] = left + word.getBoundingClientRect().width + 5;
+    taken.push(span);
   });
 }
 
 const listen = document.querySelector('[data-role="listen"]');
 const recordingId = listen ? listen.dataset.recording : null;
 let fetchedFor = null;
+const wordShape = words && words.firstElementChild ? words.firstElementChild.cloneNode(true) : null;
+
+function shapesWord() {
+  if (wordShape) return wordShape.cloneNode(true);
+  const line = document.createElement("li");
+  const label = document.createElement("span");
+  label.dataset.field = "word-text";
+  line.appendChild(label);
+  return line;
+}
 
 // The page is rendered with the words for one window. Once the playhead has
 // carried the window somewhere else, the words for that stretch have to be
@@ -651,10 +683,9 @@ async function fetchesWords() {
     return;
   }
   if (`${from.toFixed(2)}/${seconds}` !== fetchedFor) return;
-  const shape = words.firstElementChild;
   words.replaceChildren(
     ...payload.words.map((word) => {
-      const line = shape ? shape.cloneNode(true) : document.createElement("li");
+      const line = shapesWord();
       line.dataset.row = "transcript-word";
       line.dataset.wordAt = word.at;
       line.dataset.wordAtSeconds = String(word.at_seconds);
