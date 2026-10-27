@@ -392,29 +392,34 @@ function clearsSelection() {
 if (selectionMark && removalForm) {
   detailPane.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || operates(event)) return;
-    pressing = { x: event.clientX, anchor: clampedToCut(windowSecondsAt(event)), dragging: false };
+    detailPane.setPointerCapture(event.pointerId);
+    pressing = {
+      id: event.pointerId,
+      x: event.clientX,
+      anchor: clampedToCut(windowSecondsAt(event)),
+      dragging: false,
+    };
   });
   detailPane.addEventListener("pointermove", (event) => {
-    if (!pressing) return;
+    if (!pressing || event.pointerId !== pressing.id) return;
     if (!pressing.dragging) {
       if (Math.abs(event.clientX - pressing.x) < DRAG_PIXELS) return;
       pressing.dragging = true;
-      detailPane.setPointerCapture(event.pointerId);
     }
     const here = clampedToCut(windowSecondsAt(event));
     selected = { from: Math.min(pressing.anchor, here), to: Math.max(pressing.anchor, here) };
     placesSelection();
   });
   const releases = (event) => {
-    if (!pressing) return;
+    if (!pressing || event.pointerId !== pressing.id) return;
     const dragged = pressing.dragging;
     pressing = null;
+    if (detailPane.hasPointerCapture(event.pointerId)) detailPane.releasePointerCapture(event.pointerId);
     if (!dragged) return;
     dragEndedClick = true;
     setTimeout(() => {
       dragEndedClick = false;
     }, 0);
-    if (detailPane.hasPointerCapture(event.pointerId)) detailPane.releasePointerCapture(event.pointerId);
     if (selected && selected.to - selected.from < 0.01) clearsSelection();
   };
   detailPane.addEventListener("pointerup", releases);
