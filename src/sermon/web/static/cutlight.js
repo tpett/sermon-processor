@@ -140,8 +140,6 @@
     }
   }
 
-  // A seam clip is not the preview file, so its event hands over a clock that
-  // maps the clip's position back to a time in the recording.
   document.addEventListener("preview:started", function (event) {
     clock = event.detail && typeof event.detail.clock === "function" ? event.detail.clock : null;
     light.dataset.auditioning = "yes";

@@ -1,13 +1,3 @@
-// Hearing the cut: one seam on its own, or every seam in turn.
-//
-// A seam is encoded by the server from the stored Segment, the way the render
-// makes the cut, so what is heard is what will ship and no removed audio is in
-// it. Skipping over a removed span in the preview player lags by a fraction of
-// a second, which is why the seam is not played that way.
-//
-// Each clip carries the source pieces it was cut from (X-Kept-Pieces), which is
-// how a position in the clip maps back to a time in the recording. The cut light
-// and the playhead read that time, so they stay exact on every seam.
 (function () {
   "use strict";
 
@@ -196,7 +186,6 @@
         return;
       }
       if (!primed) {
-        // A phone only lets an element play after one play() inside a tap.
         primed = true;
         clip.src = SILENCE;
         const unlocked = clip.play();
@@ -208,8 +197,6 @@
     });
   });
 
-  // The transport key pauses and resumes what is playing here, and keeps the
-  // preview player from starting underneath it.
   document.addEventListener("waveform:transport", function (event) {
     if (!session) {
       return;
