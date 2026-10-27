@@ -66,3 +66,33 @@ def test_clicking_ingest_on_a_discovered_row_posts_the_ingest_action(store):
 
         assert posted.value.url.endswith(f"/recordings/{discovered.recording_id}/actions/ingest")
     assert store.lists(Job, recording_id=discovered.recording_id, kind="download")
+
+
+TEXT_BOX = """(element) => {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  const box = range.getBoundingClientRect();
+  return {left: box.left, right: box.right};
+}"""
+
+
+def quiet_row_text(page, recording):
+    row = page.locator(f'li[data-id="{recording.recording_id}"]')
+    return [
+        row.locator(selector).evaluate(TEXT_BOX)
+        for selector in (".when", "a.title", '[data-field="duration"]')
+    ]
+
+
+@pytest.mark.parametrize("device", [_browser.DESKTOP, _browser.PHONE], ids=["desktop", "phone"])
+def test_a_quiet_row_lays_its_date_title_and_duration_side_by_side_without_overlap(store, device):
+    quiet = saves_recording(
+        store, "20260913_090014", state="reviewed", kind="empty", duration_seconds=240.0
+    )
+    titles(store, quiet, "Silence or noise on the recorder")
+    with _browser.opens_page(store, device) as page:
+        page.goto("/")
+        when, title, duration = quiet_row_text(page, quiet)
+
+        assert when["right"] <= title["left"]
+        assert title["right"] <= duration["left"]

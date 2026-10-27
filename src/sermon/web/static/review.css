@@ -2119,6 +2119,7 @@ a.button.primary {
 }
 
 .recordings li[data-quiet="true"] {
+  grid-template-columns: calc(2.6rem + 9.5rem + 14px) minmax(0, 1fr) auto 10rem;
   grid-template-areas: "when main duration status";
   padding: 5px 18px;
   background: var(--bg);
