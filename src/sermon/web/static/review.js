@@ -273,12 +273,26 @@ function settles() {
     handle.style.left = `${acrossWindow(at)}%`;
   });
   detailPane.querySelectorAll('[data-role="removed-span-detail"]').forEach((mark) => {
-    const opens = acrossWindow(Number(mark.dataset.fromSeconds));
+    const starts = Number(mark.dataset.fromSeconds);
+    const ends = Number(mark.dataset.toSeconds);
+    mark.hidden = ends <= from || starts >= from + span;
+    const opens = acrossWindow(starts);
     mark.style.left = `${opens}%`;
-    mark.style.width = `${acrossWindow(Number(mark.dataset.toSeconds)) - opens}%`;
+    mark.style.width = `${acrossWindow(ends) - opens}%`;
+    placesPutBack(mark);
   });
   placesPendingRemoval();
+  placesSelection();
   packsWords();
+}
+
+function placesPutBack(mark) {
+  const pill = mark.querySelector(".put-back");
+  if (!pill || mark.hidden) return;
+  const pane = detailPane.getBoundingClientRect();
+  const inside = mark.getBoundingClientRect().left - pane.left;
+  const wanted = Math.min(Math.max(inside, 4), Math.max(pane.width - pill.offsetWidth - 4, 4));
+  pill.style.left = `${wanted - inside}px`;
 }
 
 function placesPendingRemoval() {
@@ -323,7 +337,7 @@ if (wave) {
 
 if (detailPane) {
   detailPane.addEventListener("click", (event) => {
-    if (operates(event)) return;
+    if (operates(event) || dragEndedClick) return;
     seeks(
       secondsAt(
         event,
@@ -333,6 +347,108 @@ if (detailPane) {
       ),
       true
     );
+  });
+}
+
+const selectionMark = detailPane && detailPane.querySelector('[data-role="selection"]');
+const selectionBar = detailPane && detailPane.querySelector('[data-role="selection-toolbar"]');
+const selectionLength = selectionBar && selectionBar.querySelector('[data-field="selection-length"]');
+const removalForm = document.querySelector('form[data-role="removal"]');
+const DRAG_PIXELS = 4;
+let selected = null;
+let pressing = null;
+let dragEndedClick = false;
+
+function windowSecondsAt(event) {
+  return secondsAt(
+    event,
+    detailPane,
+    Number(detailPane.dataset.windowStartSeconds),
+    Number(detailPane.dataset.windowSeconds)
+  );
+}
+
+function clampedToCut(seconds) {
+  const rounded = Math.round(seconds * 100) / 100;
+  if (!region) return rounded;
+  return Math.min(Math.max(rounded, Number(region.dataset.fromSeconds)), Number(region.dataset.toSeconds));
+}
+
+function readsLength(seconds) {
+  return seconds < 60 ? `${seconds.toFixed(2)} s` : formatsTimecode(seconds);
+}
+
+function placesSelection() {
+  if (!selectionMark) return;
+  if (!selected) {
+    selectionMark.hidden = true;
+    selectionBar.hidden = true;
+    return;
+  }
+  const opens = acrossWindow(selected.from);
+  selectionMark.hidden = false;
+  selectionBar.hidden = false;
+  selectionMark.style.left = `${opens}%`;
+  selectionMark.style.width = `${acrossWindow(selected.to) - opens}%`;
+  selectionLength.textContent = readsLength(selected.to - selected.from);
+  const pane = detailPane.getBoundingClientRect();
+  const mine = selectionMark.getBoundingClientRect();
+  const inside = mine.left - pane.left;
+  const wanted = inside + mine.width / 2 - selectionBar.offsetWidth / 2;
+  const kept = Math.min(Math.max(wanted, 4), Math.max(pane.width - selectionBar.offsetWidth - 4, 4));
+  selectionBar.style.left = `${kept}px`;
+}
+
+function clearsSelection() {
+  selected = null;
+  placesSelection();
+}
+
+if (selectionMark && removalForm) {
+  detailPane.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || operates(event)) return;
+    detailPane.setPointerCapture(event.pointerId);
+    pressing = {
+      id: event.pointerId,
+      x: event.clientX,
+      anchor: clampedToCut(windowSecondsAt(event)),
+      dragging: false,
+    };
+  });
+  detailPane.addEventListener("pointermove", (event) => {
+    if (!pressing || event.pointerId !== pressing.id) return;
+    if (!pressing.dragging) {
+      if (Math.abs(event.clientX - pressing.x) < DRAG_PIXELS) return;
+      pressing.dragging = true;
+    }
+    const here = clampedToCut(windowSecondsAt(event));
+    selected = { from: Math.min(pressing.anchor, here), to: Math.max(pressing.anchor, here) };
+    placesSelection();
+  });
+  const releases = (event) => {
+    if (!pressing || event.pointerId !== pressing.id) return;
+    const dragged = pressing.dragging;
+    pressing = null;
+    if (detailPane.hasPointerCapture(event.pointerId)) detailPane.releasePointerCapture(event.pointerId);
+    if (!dragged) return;
+    dragEndedClick = true;
+    setTimeout(() => {
+      dragEndedClick = false;
+    }, 0);
+    if (selected && selected.to - selected.from < 0.01) clearsSelection();
+  };
+  detailPane.addEventListener("pointerup", releases);
+  detailPane.addEventListener("pointercancel", releases);
+  selectionBar.querySelector('[data-role="clear-selection"]').addEventListener("click", clearsSelection);
+  selectionBar.querySelector('[data-role="play-selection"]').addEventListener("click", () => {
+    document.dispatchEvent(
+      new CustomEvent("waveform:play-window", { detail: { start: selected.from, end: selected.to } })
+    );
+  });
+  selectionBar.querySelector('[data-role="remove-selection"]').addEventListener("click", () => {
+    removalForm.querySelector('input[name="from"]').value = formatsTimecode(selected.from);
+    removalForm.querySelector('input[name="to"]').value = formatsTimecode(selected.to);
+    removalForm.requestSubmit(removalForm.querySelector('[data-field="remove-span-control"]'));
   });
 }
 

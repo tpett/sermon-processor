@@ -595,7 +595,12 @@ button.primary {
 }
 
 .transport .spacer {
+  order: 6;
   flex: 1;
+}
+
+.transport .warn {
+  order: 3;
 }
 
 .transport .punch {
@@ -605,6 +610,7 @@ button.primary {
 }
 
 .transport .reach {
+  order: 5;
   flex: 1 1 100%;
   display: flex;
   flex-direction: column;
@@ -640,6 +646,8 @@ button.primary {
 }
 
 .transport .keys {
+  order: 4;
+  margin-left: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2017,8 +2025,7 @@ details summary {
   top: 0;
   bottom: 0;
   min-width: 2px;
-  background: repeating-linear-gradient(135deg, var(--warn) 0 2px, transparent 2px 6px);
-  opacity: 0.55;
+  background: repeating-linear-gradient(135deg, rgba(240, 180, 80, 0.55) 0 2px, transparent 2px 6px);
   pointer-events: none;
   z-index: 2;
 }
@@ -2027,6 +2034,103 @@ details summary {
   width: 2px;
   background: var(--warn);
   opacity: 0.9;
+}
+
+.waveform .detailwrap {
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.waveform .detailwrap .selection {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.waveform .selection-bar {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 6px;
+  background: var(--raised);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: default;
+  z-index: 5;
+}
+
+.waveform .selection-bar[hidden] {
+  display: none;
+}
+
+.waveform .selection-bar button {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.waveform .selection-bar button.remove {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.waveform .put-back {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  margin: 0;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.waveform .put-back button {
+  min-height: 24px;
+  padding: 0 8px;
+  background: var(--raised);
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  color: var(--warn);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.transport .zoom-steps {
+  order: 1;
+}
+
+.transport .punch-set {
+  order: 2;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.transport .punch-set .punch li {
+  display: flex;
+  align-items: center;
+}
+
+.transport .punch-set .punch li + li::before {
+  content: "\00b7";
+  margin-right: 6px;
 }
 
 .removals {
@@ -2373,6 +2477,8 @@ details.reclassify > summary {
   [data-mode="edit"] button.hear,
   [data-mode="edit"] button.preview,
   [data-mode="edit"] .transport .punch li[data-emphasis="secondary"] button,
+  .waveform .selection-bar button,
+  .waveform .put-back button,
   .drawer details > summary,
   .segments a,
   .drawer a[data-field="source-download"],

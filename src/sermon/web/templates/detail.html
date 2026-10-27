@@ -378,8 +378,23 @@
       <div class="region" data-role="cut-region" data-from-seconds="{{ view.punch_in_seconds }}" data-to-seconds="{{ view.punch_out_seconds }}" style="left:{{ region_left|round(4) }}%;width:{{ (region_right - region_left)|round(4) }}%"></div>
       {% endif %}
       {% for mark in wave.removed_marks %}
-      <div class="removed" data-role="removed-span-detail" data-from-seconds="{{ mark.from_seconds }}" data-to-seconds="{{ mark.to_seconds }}"></div>
+      <div class="removed" data-role="removed-span-detail" data-from-seconds="{{ mark.from_seconds }}" data-to-seconds="{{ mark.to_seconds }}">
+        {% if view.removal_url %}<form method="post" action="{{ view.removal_url }}{{ window }}" class="put-back">
+          <input type="hidden" name="from" value="{{ mark.from_seconds }}">
+          <input type="hidden" name="to" value="{{ mark.to_seconds }}">
+          <button type="submit" name="do" value="restore" data-role="put-back-span">{{ '%.1f'|format(mark.to_seconds - mark.from_seconds) }} s removed · Put back</button>
+        </form>{% endif %}
+      </div>
       {% endfor %}
+      {% if view.removal_url %}
+      <div class="selection" data-role="selection" hidden></div>
+      <div class="selection-bar" data-role="selection-toolbar" hidden>
+        <span class="mono" data-field="selection-length"></span>
+        <button type="button" data-role="play-selection" aria-label="Play the selection">&#9654;</button>
+        <button type="button" class="remove" data-role="remove-selection">Remove</button>
+        <button type="button" data-role="clear-selection" aria-label="Clear the selection">&times;</button>
+      </div>
+      {% endif %}
       <div class="removed pending" data-role="removal-pending-mark"{% if view.removal_from %} data-from-seconds="{{ view.removal_from }}"{% else %} hidden{% endif %}></div>
       <div class="playhead" data-role="detail-playhead" data-playhead-seconds="{{ view.playhead_seconds }}" style="left:{{ ([[100.0 * (view.playhead_seconds - start) / span, 0.0]|max, 100.0]|min)|round(4) }}%"><button type="button" class="scrub" data-role="scrub-handle" aria-label="Drag the playhead"></button></div>
       {% for boundary in view.boundaries %}
@@ -405,16 +420,19 @@
   <div class="transport">
     {% if view.boundary_controls == "editable" %}
     {% set reach = view.span_edges | map(attribute="seconds") | list %}
+    <div class="punch-set">
+    <span class="punch-label">At playhead:</span>
     <ol class="punch" data-role="punch"{% if reach %} data-span-start-seconds="{{ reach[0] }}" data-span-end-seconds="{{ reach[1] }}"{% endif %} data-unavailable-reason="{{ playhead_outside_span }}">
     {% for boundary in view.boundaries %}
       <li data-row="punch-point" data-boundary="{{ boundary.field }}" data-at-seconds="{{ boundary.seconds }}" data-emphasis="secondary">
         <form method="post" action="{{ boundary.url }}{{ window }}">
           <input type="hidden" name="do" value="playhead">
-          <button type="submit" data-role="punch-from-playhead"{% if view.punch_unavailable %} disabled title="{{ view.punch_unavailable }}"{% endif %} data-field="punch-control">Punch {{ "in" if boundary.field == "punch-in" else "out" }} here</button>
+          <button type="submit" data-role="punch-from-playhead"{% if view.punch_unavailable %} disabled title="{{ view.punch_unavailable }}"{% endif %} data-field="punch-control">set {{ "in" if boundary.field == "punch-in" else "out" }}</button>
         </form>
       </li>
     {% endfor %}
     </ol>
+    </div>
     <p class="warn" data-field="punch-unavailable"{% if not view.punch_unavailable %} hidden{% endif %}>{{ view.punch_unavailable or "" }}</p>
     {% if view.span_edges %}
     <div class="reach">
