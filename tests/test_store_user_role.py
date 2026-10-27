@@ -1,10 +1,12 @@
 import sqlite3
+import threading
 from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
 
 from sermon.store import DATABASE_NAME, Credential, User, opens_store
+from sermon.store import store as store_module
 
 EMAIL = "pastor@reformation.example"
 ELDER = "elder@reformation.example"
@@ -87,6 +89,49 @@ def test_a_migrated_database_refuses_a_role_outside_the_vocabulary(older_root):
         assert store.loads(User, EMAIL).role == "viewer"
     finally:
         store.close()
+
+
+def test_two_openings_of_an_older_database_at_once_both_succeed(older_root, monkeypatch):
+    inspected = threading.Barrier(2, timeout=0.5)
+    seen = threading.local()
+    reads = store_module.reads_stored_columns
+
+    def reads_then_waits_for_the_other_opening(connection, table):
+        columns = reads(connection, table)
+        if not getattr(seen, "waited", False):
+            seen.waited = True
+            try:
+                inspected.wait()
+            except threading.BrokenBarrierError:
+                pass
+        return columns
+
+    monkeypatch.setattr(
+        store_module, "reads_stored_columns", reads_then_waits_for_the_other_opening
+    )
+    opened = []
+    failures = []
+
+    def opens():
+        try:
+            opened.append(opens_store(older_root))
+        except sqlite3.OperationalError as error:
+            failures.append(error)
+
+    threads = [threading.Thread(target=opens) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    try:
+        assert failures == []
+        assert len(opened) == 2
+        with sqlite3.connect(older_root / DATABASE_NAME) as inspecting:
+            columns = [row[1] for row in inspecting.execute("PRAGMA table_info(user)")]
+        assert columns.count("role") == 1
+    finally:
+        for one in opened:
+            one.close()
 
 
 def store_roles(store):
