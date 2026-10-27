@@ -36,7 +36,7 @@ from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.identifies_requester import IdentifiesRequester, LoginRequired
 from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob
 from sermon.lists_notifications import ListsNotifications, MarksNotificationsSeen, SetsNotificationPreference
-from sermon.lists_recordings import ListsRecordings
+from sermon.lists_recordings import ListsRecordings, says_state_alone
 from sermon.object_store import UnsatisfiableRange
 from sermon.raises_notification import REVIEWER
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
@@ -197,6 +197,7 @@ def creates_app(
     )
     app.add_template_filter(formats_precise, "precise")
     app.add_template_filter(formats_seconds, "seconds")
+    app.add_template_filter(says_state_alone, "state_words")
     app.jinja_env.globals["playhead_outside_span"] = PLAYHEAD_OUTSIDE_SPAN
     app.jinja_env.globals["notices"] = NOTICES
     accepts = AcceptsRecordingWebhook(store=store, clock=clock)

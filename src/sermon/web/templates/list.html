@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Recordings</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%230d0f12'/%3E%3Cpath d='M3 8h2V5h2v6h2V3h2v10h2V8h0' fill='none' stroke='%235cc8e0' stroke-width='1.4'/%3E%3C/svg%3E">
 </head>
 <body class="list">
 <header class="bar">
@@ -24,7 +25,8 @@
 <section class="needs-review plain">
   <div class="eyebrow-row">
     {% if paging.waiting %}<h2 class="eyebrow">Needs your review</h2>{% endif %}
-    <p class="awaiting-count"><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</p>
+    {% if awaiting %}<p class="awaiting-count"><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</p>
+    {% else %}<p class="awaiting-count none"><span class="visually-hidden"><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</span>Nothing is waiting for review</p>{% endif %}
   </div>
   {% if paging.waiting %}
   <ol class="review-queue">
@@ -43,7 +45,7 @@
       {% endfor %}
       </div>
       {% for proposal in row.proposals %}
-      <p class="proposed"><span class="kind" style="--band:var(--type-{{ proposal.classification }}, var(--type-other))">{{ proposal.classification|replace("_", " ")|capitalize }}</span> proposed <span class="dot">&middot;</span> <span class="mono">{{ proposal.span }}</span> <span class="dot">&middot;</span> <span class="mono">{{ proposal.length }}</span></p>
+      <p class="proposed"><span class="kind" style="--band:var(--type-{{ proposal.classification }}, var(--type-other))">{{ proposal.classification|replace("_", " ")|capitalize }}</span> {{ "re-cut" if proposal.recut else "proposed" }} <span class="dot">&middot;</span> <span class="mono">{{ proposal.span }}</span> <span class="dot">&middot;</span> <span class="mono">{{ proposal.length }}</span></p>
       {% endfor %}
     </li>
   {% endfor %}
@@ -67,6 +69,7 @@
   </form>
 </div>
 
+{% set segment_words = {"processing": "rendering", "processing_failed": "render failed", "recut": "re-cut"} %}
 {% if recordings %}
 {% for week in paging.weeks %}
 <section class="week plain">
@@ -74,7 +77,7 @@
   <ol class="recordings">
   {% for row in week.rows %}
     {% set quiet = row.kind == "empty" %}
-    <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ (row.needs_attention and not quiet)|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}" data-kind="{{ row.kind or '' }}" data-quiet="{{ quiet|lower }}" data-week-ending="{{ row.week_ending }}">
+    <li{% if row.undownloaded and row.ingest %} title="{{ row.ingest.standing }}"{% endif %} data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ (row.needs_attention and not quiet)|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}" data-kind="{{ row.kind or '' }}" data-quiet="{{ quiet|lower }}" data-undownloaded="{{ row.undownloaded|lower }}" data-week-ending="{{ row.week_ending }}">
       {% if not quiet %}<span class="day">{{ row.day }}</span>{% endif %}
       <span class="main">
         {% if row.title %}<a class="title" href="/recordings/{{ row.recording_id }}" data-field="title">{{ row.title }}</a>{% else %}<a class="title untitled" href="/recordings/{{ row.recording_id }}">Untitled recording</a>{% endif %}
@@ -82,9 +85,9 @@
         {% if not quiet %}
         <span class="contents">
         {% for item in row.segments %}
-          <span class="chip" style="--band:var(--type-{{ item[0] }}, var(--type-other))"><i></i>{{ item[0]|replace("_", " ") }}</span>
+          <span class="chip" style="--band:var(--type-{{ item[0] }}, var(--type-other))"><i></i>{% if item[3] %}{{ item[3] }}{% else %}{{ item[0]|replace("_", " ")|capitalize }} <span class="dot">&middot;</span> {{ segment_words.get(item[2], item[2]|replace("_", " ")) }}{% endif %}</span>
         {% endfor %}
-          <span class="rating" data-field="confidence">{{ row.confidence or "" }}</span>
+          <span class="rating visually-hidden" data-field="confidence">{{ row.confidence or "" }}</span>
           {% if row.awaiting_disposition %}<span class="rating" data-field="row-awaiting">{{ row.awaiting_disposition }} awaiting</span>{% endif %}
         </span>
         {% endif %}
@@ -93,8 +96,8 @@
       <span data-field="duration">{{ row.duration }}</span>
       {% if not quiet %}<span class="status" data-tone="{{ row.state_tone }}"><span data-field="state">{{ row.state_label }}</span></span>{% endif %}
       {% if row.failure %}<span class="flag" data-field="row-failure">{{ row.failure }}</span>{% endif %}
-      {% if row.ingest %}<span class="standing" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
-      {% if can_edit %}<form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}{% endif %}
+      {% if row.ingest %}<span class="standing{% if row.undownloaded %} visually-hidden{% endif %}" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
+      {% if can_edit %}<form class="inline ingest" method="post" action="{{ row.ingest.url }}"><button type="submit"{% if row.undownloaded %} class="ghost"{% endif %} data-field="row-ingest-control">Ingest</button></form>{% endif %}{% endif %}
     </li>
   {% endfor %}
   </ol>
