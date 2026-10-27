@@ -183,3 +183,127 @@ def test_a_password_sign_in_gets_the_same_role_as_the_same_person_through_access
     assert client.post(path, headers=on(TAILNET)).status_code == 403
     makes_reviewers(store, EMAIL)
     assert client.post(path, headers=on(TAILNET)).status_code != 403
+
+
+MP3 = "2026/09/13/recording_20260913_090014/hebrews-13-7-8.mp3"
+
+
+@pytest.fixture
+def published(store, segment):
+    done = store.saves(replace(segment, state="complete", label="Hebrews 13.7-8", intent="publish"))
+    store.saves(
+        Artifact(
+            recording_id=RECORDING_ID,
+            segment_id=done.segment_id,
+            kind="rendered_mp3",
+            path=MP3,
+            size_bytes=40_000_000,
+            checksum="abc",
+        )
+    )
+    return done
+
+
+def opens(client, segment, *, mode=None, **headers):
+    query = f"?segment={segment.segment_id}" + (f"&mode={mode}" if mode else "")
+    return client.get(f"/recordings/{RECORDING_ID}{query}", headers=on(PUBLIC, **(headers or signed_in())))
+
+
+def beside(page):
+    return page.split('<div class="supporting">', 1)[1]
+
+
+def test_every_page_a_viewer_opens_says_view_only(client, recording, segment):
+    for path in ("/", "/notifications", f"/recordings/{RECORDING_ID}?segment={segment.segment_id}"):
+        page = client.get(path, headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+        assert 'data-field="access">View only<' in page, path
+
+
+def test_a_reviewer_is_not_told_they_can_only_look(client, store, recording, segment):
+    makes_reviewers(store, EMAIL)
+    for path in ("/", "/notifications", f"/recordings/{RECORDING_ID}?segment={segment.segment_id}"):
+        page = client.get(path, headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+        assert 'data-field="access"' not in page, path
+
+
+def test_without_a_sign_in_configured_nobody_is_told_they_can_only_look(store, recording, segment):
+    page = creates_app(store=store).test_client().get(f"/recordings/{RECORDING_ID}?segment={segment.segment_id}")
+    assert 'data-field="access"' not in page.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("mode", [None, "review", "edit"])
+def test_a_viewer_is_shown_review_mode_whatever_the_address_asks_for(client, recording, segment, mode):
+    page = opens(client, segment, mode=mode).get_data(as_text=True)
+    assert 'data-role="cut-view" data-mode="review"' in page
+    for absent in ("edit-the-cut", "review-the-cut", "done-editing", 'class="mode-switch"', "detail-window"):
+        assert absent not in page, absent
+
+
+def test_a_viewer_is_offered_no_form_that_posts_anything(client, recording, segment):
+    page = opens(client, segment).get_data(as_text=True)
+    assert "<form" not in page.replace('<form class="inline" method="get"', "")
+
+
+def test_a_viewer_of_a_published_segment_is_offered_what_was_published(client, store, recording, published):
+    page = opens(client, published).get_data(as_text=True)
+    column = beside(page)
+    from steps._markup import reads_field, reads_field_link, reads_links
+
+    assert reads_field(column, "label") == "Hebrews 13.7-8"
+    assert reads_field(column, "mp3-filename") == "hebrews-13-7-8.mp3"
+    assert reads_field(column, "mp3-length")
+    assert reads_field(column, "mp3-size") == "38.1 MB"
+    assert reads_field(column, "mp3-download") == "Download MP3"
+    assert reads_field_link(column, "mp3-download") == f"/api/artifacts/{MP3}"
+    assert reads_field(column, "original-download") == "Download the original recording"
+    assert f"/api/artifacts/2026/09/13/{RECORDING_ID}.flac" in reads_links(column)
+
+
+def test_the_published_file_is_offered_once_to_a_viewer_and_beside_the_cut_to_a_reviewer(
+    client, store, recording, published
+):
+    viewing = opens(client, published).get_data(as_text=True)
+    assert viewing.count('data-field="mp3-download"') == 1
+    makes_reviewers(store, EMAIL)
+    reviewing = opens(client, published).get_data(as_text=True)
+    assert reviewing.count('data-field="mp3-download"') == 1
+    assert 'data-field="mp3-download"' not in beside(reviewing)
+
+
+def test_a_viewer_of_an_unpublished_segment_is_told_so_and_offered_only_the_original(
+    client, recording, segment
+):
+    from steps._markup import reads_field
+
+    column = beside(opens(client, segment).get_data(as_text=True))
+    assert reads_field(column, "published-state") == "This Segment has not been published."
+    assert reads_field(column, "mp3-download") is None
+    assert reads_field(column, "original-download") == "Download the original recording"
+
+
+def test_a_viewer_with_no_segment_chosen_is_still_offered_the_original(client, recording):
+    page = client.get(f"/recordings/{RECORDING_ID}", headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+    assert 'data-field="original-download"' in page
+
+
+def test_a_viewer_is_not_offered_the_recording_actions_in_the_details(client, recording, segment):
+    page = opens(client, segment).get_data(as_text=True)
+    assert 'data-details-section="actions"' not in page
+    assert 'data-details-section="source"' in page
+
+
+def test_a_viewer_is_not_offered_to_scan_or_to_change_a_notification_preference(client, recording):
+    listed = client.get("/", headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+    assert 'action="/recordings/refresh"' not in listed
+    told = client.get("/notifications", headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+    assert 'action="/notifications/preference"' not in told
+
+
+def test_a_reviewer_is_still_offered_to_scan_and_to_change_a_notification_preference(
+    client, store, recording
+):
+    makes_reviewers(store, EMAIL)
+    listed = client.get("/", headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+    assert 'action="/recordings/refresh"' in listed
+    told = client.get("/notifications", headers=on(PUBLIC, **signed_in())).get_data(as_text=True)
+    assert 'action="/notifications/preference"' in told
