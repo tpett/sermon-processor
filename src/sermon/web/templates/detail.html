@@ -511,13 +511,13 @@
     </div>
     <ol class="seams">
     {% for seam in view.seams %}
-      <li data-row="seam" data-seam="{{ seam.seam }}" data-before-seconds="{{ seam.before_seconds }}" data-after-seconds="{{ seam.after_seconds }}"{% if seam.flagged %} data-flagged="true"{% endif %}>
+      <li data-row="seam" data-seam="{{ seam.seam }}" data-clip="{{ seam.clip_url }}" data-before-seconds="{{ seam.before_seconds }}" data-after-seconds="{{ seam.after_seconds }}"{% if seam.flagged %} data-flagged="true"{% endif %}>
         <div class="seam-head"><strong>{{ seam.heading }}</strong> <span class="mono">{{ seam.at }}</span></div>
         <canvas class="seam-wave" data-role="seam-wave" data-kind="{{ seam.kind }}" data-before="{{ seam.before_seconds }}" data-after="{{ seam.after_seconds }}" data-before-kept="{{ 'true' if seam.before_kept else 'false' }}" data-after-kept="{{ 'true' if seam.after_kept else 'false' }}" width="320" height="56" aria-hidden="true"></canvas>
         <p class="seam-words"><span class="before" data-field="words-before">{{ seam.words_before or "no words here" }}</span> <span class="after" data-field="words-after">{{ seam.words_after or "no words here" }}</span></p>
         {% if view.preview_ready %}
         {% if seam.kind == "join" %}
-        <button type="button" class="hear" data-role="hear-join" data-url="{{ seam.join_url }}" data-field="hear-seam-control">{{ seam.hear }}</button>
+        <button type="button" class="hear" data-role="hear-join" data-url="{{ seam.clip_url }}" data-field="hear-seam-control">{{ seam.hear }}</button>
         {% else %}
         <button type="button" class="hear" data-role="preview-{{ seam.kind }}" data-kind="{{ seam.kind }}" data-at="{{ seam.before_seconds }}" data-start="{{ seam.start_seconds }}" data-end="{{ seam.end_seconds }}" data-field="hear-seam-control">{{ seam.hear }}</button>
         {% endif %}
@@ -596,6 +596,7 @@
   </div>
   </div>
   <script src="{{ url_for('static', filename='timecode.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='seams.js') }}" defer></script>
   <script src="{{ url_for('static', filename='playback.js') }}" defer></script>
   <script src="{{ url_for('static', filename='cutlight.js') }}" defer></script>
   <script src="{{ url_for('static', filename='removals.js') }}" defer></script>

@@ -30,6 +30,7 @@
   let discards = light.dataset.discards;
   let keeps = light.dataset.keeps;
   let running = false;
+  let clock = null;
   let frame = null;
 
   function signed(seconds) {
@@ -86,7 +87,7 @@
     if (!running || !audio) {
       return;
     }
-    show(audio.currentTime);
+    show(clock ? clock() : audio.currentTime);
     frame = window.requestAnimationFrame(tick);
   }
 
@@ -140,6 +141,7 @@
   }
 
   document.addEventListener("preview:started", function (event) {
+    clock = event.detail && typeof event.detail.clock === "function" ? event.detail.clock : null;
     light.dataset.auditioning = "yes";
     retarget(event.detail);
     start();
@@ -148,7 +150,10 @@
   document.addEventListener("preview:ended", function () {
     delete light.dataset.auditioning;
     stop();
-    if (audio) {
+    if (clock) {
+      show(clock());
+      clock = null;
+    } else if (audio) {
       show(audio.currentTime);
     }
   });
