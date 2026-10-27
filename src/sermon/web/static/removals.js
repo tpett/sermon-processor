@@ -39,27 +39,4 @@
     }
   }
 
-  let hearing = null;
-  document.querySelectorAll('[data-role="hear-join"]').forEach(function (control) {
-    control.addEventListener("click", function () {
-      const preview = document.querySelector('[data-role="preview-audio"]');
-      if (preview && !preview.paused) {
-        preview.pause();
-      }
-      if (hearing) {
-        hearing.pause();
-      }
-      hearing = new Audio(control.dataset.url);
-      control.dataset.playing = "true";
-      hearing.addEventListener("ended", function () {
-        delete control.dataset.playing;
-      });
-      const started = hearing.play();
-      if (started && started.catch) {
-        started.catch(function () {
-          delete control.dataset.playing;
-        });
-      }
-    });
-  });
 })();

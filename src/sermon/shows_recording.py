@@ -401,7 +401,7 @@ class SeamView:
     kind: str
     start_seconds: float | None
     end_seconds: float | None
-    join_url: str | None
+    clip_url: str
     flagged: bool
 
 
@@ -835,7 +835,7 @@ class ShowsRecording:
                 kind="punch-in",
                 start_seconds=window[0],
                 end_seconds=window[1],
-                join_url=None,
+                clip_url=f"/api/segments/{selected.segment_id}/seam/opening",
                 flagged="punch-in" in checked,
             )
         )
@@ -859,7 +859,7 @@ class ShowsRecording:
                     kind="join",
                     start_seconds=None,
                     end_seconds=None,
-                    join_url=view.join_url,
+                    clip_url=view.join_url,
                     flagged=False,
                 )
             )
@@ -880,7 +880,7 @@ class ShowsRecording:
                 kind="punch-out",
                 start_seconds=window[0],
                 end_seconds=window[1],
-                join_url=None,
+                clip_url=f"/api/segments/{selected.segment_id}/seam/ending",
                 flagged="punch-out" in checked,
             )
         )

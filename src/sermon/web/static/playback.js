@@ -12,7 +12,6 @@
   const recordingId = section.dataset.recording;
   const declaredLength = Number(audio.dataset.duration) || 0;
   let stopAt = null;
-  let queued = [];
   let auditioning = null;
 
   function length() {
@@ -49,11 +48,6 @@
     }).catch(function () {});
   }
 
-  const boundaries = {};
-  document.querySelectorAll('[data-role^="preview-"][data-at]').forEach(function (control) {
-    boundaries[control.dataset.kind] = Number(control.dataset.at);
-  });
-
   function announce(name, detail) {
     document.dispatchEvent(new CustomEvent(name, { detail }));
   }
@@ -67,8 +61,7 @@
     announce("preview:ended", { boundary: ended });
   }
 
-  function playWindow(boundary, start, end, rest) {
-    queued = rest || [];
+  function playWindow(boundary, start, end) {
     stopAt = end;
     seekTo(start);
     if (boundary !== auditioning) {
@@ -78,7 +71,6 @@
       auditioning = boundary;
       announce("preview:started", {
         boundary,
-        seconds: boundaries[boundary],
         from: start,
         to: end,
       });
@@ -92,11 +84,6 @@
   audio.addEventListener("timeupdate", function () {
     showPosition(audio.currentTime);
     if (stopAt === null || audio.currentTime < stopAt) {
-      return;
-    }
-    const next = queued.shift();
-    if (next) {
-      playWindow(next[2], next[0], next[1], queued);
       return;
     }
     stopAt = null;
@@ -127,7 +114,6 @@
   document.addEventListener("waveform:seek", function (event) {
     const asked = event.detail || {};
     stopAt = null;
-    queued = [];
     endAudition();
     seekTo(Number(asked.seconds) || 0);
     if (asked.play) {
@@ -138,22 +124,20 @@
     }
   });
 
-  const controls = '[data-role^="preview-"][data-kind], [data-role="start-at-block"]';
+  const controls = '[data-role="preview-cue-excerpt"], [data-role="start-at-block"]';
   document.querySelectorAll(controls).forEach(function (control) {
     control.addEventListener("click", function () {
       const data = control.dataset;
-      if (data.kind === "cut") {
-        playWindow("punch-in", Number(data.inStart), Number(data.inEnd), [
-          [Number(data.outStart), Number(data.outEnd), "punch-out"],
-        ]);
-        return;
-      }
       if (data.kind === "seek") {
-        playWindow(null, Number(data.start), null, []);
+        playWindow(null, Number(data.start), null);
         return;
       }
-      playWindow(data.kind, Number(data.start), Number(data.end), []);
+      playWindow(data.kind, Number(data.start), Number(data.end));
     });
+  });
+
+  document.addEventListener("seam:position", function (event) {
+    showPosition(event.detail.seconds);
   });
 
   const track = document.querySelector('[data-role="playback-track"]');
@@ -164,7 +148,6 @@
         return;
       }
       stopAt = null;
-      queued = [];
       endAudition();
       seekTo(((event.clientX - box.left) / box.width) * length());
     });
