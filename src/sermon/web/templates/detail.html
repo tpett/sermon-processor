@@ -6,6 +6,7 @@
   {% if view.progress %}<meta http-equiv="refresh" content="20">{% endif %}
   <title>{% if view.title %}{{ view.title }} · {% endif %}{{ view.recorded_at }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%230d0f12'/%3E%3Cpath d='M3 8h2V5h2v6h2V3h2v10h2V8h0' fill='none' stroke='%235cc8e0' stroke-width='1.4'/%3E%3C/svg%3E">
 </head>
 <body class="detail">
 {% set edit_url = url_for('html_detail', recording_id=view.recording_id, segment=view.selected_segment_id, mode='edit') %}
@@ -18,7 +19,7 @@
   </div>
   <div class="bar-end">
     {% if view.kind_tag %}<span class="tag" data-field="kind">{{ view.kind_tag }}</span>{% endif %}
-    <span class="pill" data-state="{{ view.state }}"><span data-field="state">{{ view.state }}</span></span>
+    <span class="pill" data-state="{{ view.state }}"><span class="visually-hidden" data-field="state">{{ view.state }}</span>{{ view.state|state_words }}</span>
     {% if view.progress %}<span class="chip" data-field="progress">{{ view.progress }}</span>{% endif %}
     {% if view.reason %}<span class="chip flag" data-field="reason">{{ view.reason }}</span>{% endif %}
     {% include "access.html" %}
@@ -206,9 +207,10 @@
     {% for block in view.blocks %}
       {% set mine = picked is not none and block.type == picked.classification and block.end_seconds > picked.punch_in_seconds and block.start_seconds < picked.punch_out_seconds %}
       <li data-row="block" data-block-type="{{ block.type }}" data-cue-start="{{ block.cue_start_seconds }}" data-cue-end="{{ block.cue_end_seconds }}"{% if drawable %} data-create-from="{{ block.start_seconds }}" data-create-to="{{ block.end_seconds }}" data-create-as="{{ block.classification }}"{% endif %}{% if mine %} data-selected="true"{% endif %} style="--band:var(--type-{{ block.type }}, var(--type-other))">
-        <span data-field="block-type">{{ block.type }}</span>
+        <span class="visually-hidden"><span data-field="block-type">{{ block.type }}</span></span>
+        <span class="block-name" aria-hidden="true">{{ block.type|replace("_", " ")|capitalize }}</span>
         <span data-field="block-span">{{ block.span }}</span>
-        <span class="note"><span data-field="block-summary">{{ block.summary or "" }}</span>{% if not block.summary %}<span class="quiet">no summary yet</span>{% endif %}</span>
+        <span class="note"{% if block.summary %} title="{{ block.summary }}"{% endif %}><span data-field="block-summary">{{ block.summary or "" }}</span>{% if not block.summary %}<span class="quiet">no summary yet</span>{% endif %}</span>
         {% if mine %}<span class="mine">Segment · {{ picked.state }}</span>{% endif %}
         <span class="tools">
         {% if view.preview_ready and block.cue_start_seconds is not none %}<button type="button" data-role="preview-cue-excerpt" data-kind="cue" data-start="{{ block.cue_start_seconds }}" data-end="{{ block.cue_end_seconds }}">Preview</button>
@@ -316,7 +318,7 @@
     <div class="wave" data-role="waveform" data-spans="{{ wave.spans }}" data-duration-seconds="{{ wave.duration_seconds }}" data-overview="{{ wave.overview }}" data-recording="{{ view.recording_id }}">
       <ol class="ruler" data-role="timecode-ruler" data-seeks="playhead" title="Click anywhere on the ruler to jump the playhead there">
       {% for mark in wave.ruler_marks %}
-        <li data-row="ruler-mark" data-ruler-elapsed="{{ mark.elapsed }}" data-ruler-seconds="{{ mark.elapsed_seconds }}" data-ruler-wall-clock="{{ mark.wall_clock }}" style="left:{{ mark.left }}%"><span data-field="ruler-elapsed">{{ mark.elapsed }}</span> <span data-field="ruler-wall-clock">{{ mark.wall_clock }}</span></li>
+        <li data-row="ruler-mark" data-ruler-elapsed="{{ mark.elapsed }}" data-ruler-seconds="{{ mark.elapsed_seconds }}" data-ruler-wall-clock="{{ mark.wall_clock }}" style="left:{{ mark.left }}%" title="{{ mark.wall_clock }}"><span data-field="ruler-elapsed">{{ mark.elapsed }}</span> <span data-field="ruler-wall-clock">{{ mark.wall_clock }}</span></li>
       {% endfor %}
       </ol>
       <ol class="spans">
@@ -657,8 +659,11 @@
   {% set checked = view.proposal.needs_checking[0] %}
   <p class="callout" data-role="check-callout"><strong>Check the {{ "opening" if checked.point == "punch-in" else "ending" }}.</strong> It is graded {{ checked.grade }} to place; listen to it, or edit the cut.</p>
   {% endif %}
-  <p class="quiet">Boundaries <span data-field="boundary-controls">{{ view.boundary_controls }}</span></p>
-  <p class="quiet">Classified <span data-field="classification">{{ view.classification }}</span>
+  {% if not editing and view.short_tail %}
+  <p class="callout tail-callout"><strong>Check the ending.</strong> Only {{ view.gap_seconds|seconds }} follows the punch-out, shorter than the 1.5 second tail the editor prefers.</p>
+  {% endif %}
+  <p class="quiet{% if not editing %} visually-hidden{% endif %}">Boundaries <span data-field="boundary-controls">{{ view.boundary_controls }}</span></p>
+  <p class="quiet{% if not editing %} visually-hidden{% endif %}">Classified <span data-field="classification">{{ view.classification }}</span>
      of <span data-field="classification-choices">{{ view.classification_choices|join(", ") }}</span></p>
   {% if view.classify_url %}
   <details class="reclassify"{% if editing %} open{% endif %}>
@@ -679,7 +684,7 @@
   <p class="quiet" data-field="classify-state">this Segment can no longer be reclassified</p>
   {% endif %}
   {% if not editing %}
-  <p class="quiet">Intent <span data-field="intent">{{ view.intent }}</span>
+  <p class="quiet visually-hidden">Intent <span data-field="intent">{{ view.intent }}</span>
      of <span data-field="intent-choices">{{ view.intent_choices|join(", ") }}</span>,
      publication label <span data-field="label">{{ view.label or "none entered" }}</span></p>
   <ul class="row">
@@ -716,7 +721,7 @@
   <p data-field="processing-progress">{{ view.processing_progress }}</p>
   {% if view.segment_failure %}<p class="flag" data-field="segment-failure">{{ view.segment_failure }}</p>{% endif %}
   {% elif not editing %}
-  <p class="quiet">The cut runs from {{ view.punch_in_seconds|precise }} to {{ view.punch_out_seconds|precise }}.</p>
+  <p class="quiet cut-runs">The cut runs from {{ view.punch_in_seconds|precise }} to {{ view.punch_out_seconds|precise }}.</p>
   {% if view.whole_span_note %}
   <p data-field="whole-span-note">{{ view.whole_span_note }}</p>
   {% endif %}

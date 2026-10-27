@@ -24,6 +24,10 @@ INGEST_STATE = "discovered"
 
 PAGE_SIZE = 50
 
+NO_DURATION = "\u2014"
+
+AWAITING_SEGMENT_STATES = frozenset({"proposed", "recut"})
+
 FAILED_STATES = frozenset({"ingest_failed", "analysis_failed", "processing_failed"})
 
 KIND_TAGS = {
@@ -59,6 +63,8 @@ SKIPPED = ("Skipped", "muted")
 
 def says_state(state, segments):
     if state == "reviewed":
+        if any(segment.state in AWAITING_SEGMENT_STATES for segment in segments):
+            return STATE_WORDS["awaiting_review"]
         complete = [segment for segment in segments if segment.state == "complete"]
         if complete:
             return ARCHIVED if all(segment.intent == "archive" for segment in complete) else PUBLISHED
@@ -75,6 +81,12 @@ def says_state(state, segments):
     if state == "awaiting_review" and not segments:
         return NOTHING_TO_PUBLISH
     return STATE_WORDS.get(state, (state.replace("_", " ").capitalize(), "muted"))
+
+
+def says_state_alone(state):
+    if state == "reviewed":
+        return "Reviewed"
+    return STATE_WORDS.get(state, (state.replace("_", " ").capitalize(),))[0]
 
 
 def week_ending(moment):
@@ -194,6 +206,7 @@ class RecordingRow:
     week_ending: str = ""
     bands: tuple = ()
     proposals: tuple = ()
+    undownloaded: bool = False
 
 
 @dataclass(frozen=True)
@@ -333,8 +346,8 @@ class ListsRecordings:
         for segment in segments:
             proposals = self.store.lists(Proposal, segment_id=segment.segment_id)
             confidence = proposals[0].classification_confidence if proposals else None
-            summaries.append((segment.classification, confidence, segment.state))
-            if segment.state == "proposed":
+            summaries.append((segment.classification, confidence, segment.state, segment.label))
+            if segment.state in AWAITING_SEGMENT_STATES:
                 awaiting += 1
             if confidence is not None and (
                 best is None or CONFIDENCE_RANK[confidence] < CONFIDENCE_RANK[best]
@@ -355,13 +368,13 @@ class ListsRecordings:
         label, tone = says_state(recording.state, segments)
         bands, proposals = (
             self._offers_review(recording, segments)
-            if recording.state == "awaiting_review"
+            if recording.state in {"awaiting_review", "reviewed"}
             else ((), ())
         )
         return RecordingRow(
             recording_id=recording.recording_id,
             recorded_at=formats_recorded_at(recording.started_at),
-            duration=formats_clock(recording.duration_seconds or 0),
+            duration=formats_clock(recording.duration_seconds) if recording.duration_seconds else NO_DURATION,
             state=recording.state,
             segments=tuple(summaries),
             confidence=best,
@@ -385,10 +398,11 @@ class ListsRecordings:
             week_ending=week_ending(recording.started_at).isoformat(),
             bands=bands,
             proposals=proposals,
+            undownloaded=recording.state == INGEST_STATE and not recording.duration_seconds,
         )
 
     def _offers_review(self, recording, segments):
-        proposed = [segment for segment in segments if segment.state == "proposed"]
+        proposed = [segment for segment in segments if segment.state in AWAITING_SEGMENT_STATES]
         if not proposed:
             return (), ()
         blocks = self.store.lists(Block, recording_id=recording.recording_id)
