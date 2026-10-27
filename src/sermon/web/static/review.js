@@ -273,13 +273,26 @@ function settles() {
     handle.style.left = `${acrossWindow(at)}%`;
   });
   detailPane.querySelectorAll('[data-role="removed-span-detail"]').forEach((mark) => {
-    const opens = acrossWindow(Number(mark.dataset.fromSeconds));
+    const starts = Number(mark.dataset.fromSeconds);
+    const ends = Number(mark.dataset.toSeconds);
+    mark.hidden = ends <= from || starts >= from + span;
+    const opens = acrossWindow(starts);
     mark.style.left = `${opens}%`;
-    mark.style.width = `${acrossWindow(Number(mark.dataset.toSeconds)) - opens}%`;
+    mark.style.width = `${acrossWindow(ends) - opens}%`;
+    placesPutBack(mark);
   });
   placesPendingRemoval();
   placesSelection();
   packsWords();
+}
+
+function placesPutBack(mark) {
+  const pill = mark.querySelector(".put-back");
+  if (!pill || mark.hidden) return;
+  const pane = detailPane.getBoundingClientRect();
+  const inside = mark.getBoundingClientRect().left - pane.left;
+  const wanted = Math.min(Math.max(inside, 4), Math.max(pane.width - pill.offsetWidth - 4, 4));
+  pill.style.left = `${wanted - inside}px`;
 }
 
 function placesPendingRemoval() {
