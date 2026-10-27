@@ -237,7 +237,7 @@ def creates_schema(connection):
 
 def adds_columns_older_databases_lack(connection):
     with connection:
-        connection.execute("BEGIN")
+        connection.execute("BEGIN IMMEDIATE")
         for table in TABLES.values():
             stored = reads_stored_columns(connection, table.name)
             for name in table.added:
