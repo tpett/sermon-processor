@@ -36,7 +36,7 @@ from sermon.forces_ingestion import INGEST_ACTION, ForcesIngestion
 from sermon.identifies_requester import IdentifiesRequester, LoginRequired
 from sermon.jobs.runs_queued_jobs import JobNotFailed, RetriesFailedJob
 from sermon.lists_notifications import ListsNotifications, MarksNotificationsSeen, SetsNotificationPreference
-from sermon.lists_recordings import KIND_TAGS, ListsRecordings
+from sermon.lists_recordings import ListsRecordings
 from sermon.object_store import UnsatisfiableRange
 from sermon.raises_notification import REVIEWER
 from sermon.pipeline.preview import MEDIA_TYPE as PREVIEW_MEDIA_TYPE
@@ -414,6 +414,30 @@ def creates_app(
             return None
         return url_for("home", **{**request.args.to_dict(), "page": number})
 
+    KIND_CHOICES = (
+        ("", "All"),
+        ("service", "Services"),
+        ("class", "Classes"),
+        ("meeting", "Meetings"),
+        ("rehearsal", "Rehearsals"),
+    )
+
+    def offers_kinds():
+        chosen = request.args.get("kind") or ""
+        kept = {
+            key: request.args[key]
+            for key in ("q", "discarded", "filter", "classification")
+            if request.args.get(key)
+        }
+        return [
+            {
+                "name": name,
+                "on": value == chosen,
+                "url": url_for("home", **kept, **({"kind": value} if value else {})),
+            }
+            for value, name in KIND_CHOICES
+        ]
+
     SCAN_NOTICES = {
         "scanned": "the bucket was scanned",
         "scan-transient": "the object store could not be reached; nothing changed",
@@ -443,7 +467,7 @@ def creates_app(
             next_url=keeps_the_narrowing(paged.next),
             notice=scan_notice(),
             searched=request.args.get("q"),
-            kinds=KIND_TAGS,
+            kind_choices=offers_kinds(),
             chosen_kind=request.args.get("kind") or "",
             unread_notifications=lists_notifications().unread,
         )

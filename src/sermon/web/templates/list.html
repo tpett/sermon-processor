@@ -6,65 +6,108 @@
   <title>Recordings</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='review.css') }}">
 </head>
-<body>
-{% include "signed_in.html" %}
-{% include "access.html" %}
-<h1>Recordings</h1>
-<p><a href="/notifications" data-field="notifications-link">Notifications</a> <span data-field="unread-notifications">{{ unread_notifications }}</span> unread</p>
-<p><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</p>
-
-{% if can_edit %}<form class="inline" method="post" action="/recordings/refresh">
-  <button type="submit" data-field="refresh-control">Scan the bucket</button>
-</form>{% endif %}
+<body class="list">
+<header class="bar">
+  <h1>Recordings</h1>
+  <div class="bar-end">
+    {% if can_edit %}<form class="inline" method="post" action="/recordings/refresh">
+      <button type="submit" data-field="refresh-control">Scan the bucket</button>
+    </form>{% endif %}
+    <a class="bell" href="/notifications" data-field="notifications-link">Notifications <span class="count" data-empty="{{ (not unread_notifications)|lower }}" data-field="unread-notifications">{{ unread_notifications }}</span><span class="unread-word"> unread</span></a>
+    {% include "access.html" %}
+    {% include "signed_in.html" %}
+  </div>
+</header>
+<main class="recordings-page">
 {% if notice %}<p class="notice" data-field="scan-notice">{{ notice }}</p>{% endif %}
 
-<form class="inline" method="get" action="/" data-role="search">
-  <label>Find a recording by date, title, classification, label or summary
-    <input type="search" name="q" value="{{ searched or '' }}">
-  </label>
-  <label>Kind
-    <select name="kind" data-field="kind-filter">
-      <option value="">any</option>
-    {% for value, tag in kinds.items() %}
-      <option value="{{ value }}"{% if value == chosen_kind %} selected{% endif %}>{{ tag }}</option>
-    {% endfor %}
-    </select>
-  </label>
-  <button type="submit" data-field="search-control">Search</button>
-</form>
+<section class="needs-review plain">
+  <div class="eyebrow-row">
+    {% if paging.waiting %}<h2 class="eyebrow">Needs your review</h2>{% endif %}
+    <p class="awaiting-count"><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</p>
+  </div>
+  {% if paging.waiting %}
+  <ol class="review-queue">
+  {% for row in paging.waiting %}
+    <li data-row="awaiting" data-id="{{ row.recording_id }}">
+      <div class="head">
+        <div class="what">
+          {% if row.title %}<a class="title" href="/recordings/{{ row.recording_id }}" data-field="title">{{ row.title }}</a>{% endif %}
+          <p class="stamp"><span data-field="recorded-at">{{ row.recorded_at }}</span> <span class="dot">&middot;</span> <span data-field="duration">{{ row.duration }}</span></p>
+        </div>
+        <a class="button primary review" href="/recordings/{{ row.recording_id }}" data-field="review-control">Review</a>
+      </div>
+      <div class="band" aria-hidden="true">
+      {% for band in row.bands %}
+        <span class="block{% if band.emphasised %} on{% endif %}" style="left:{{ band.left }}%;width:{{ band.width }}%;--band:var(--type-{{ band.type }}, var(--type-other))"></span>
+      {% endfor %}
+      </div>
+      {% for proposal in row.proposals %}
+      <p class="proposed"><span class="kind" style="--band:var(--type-{{ proposal.classification }}, var(--type-other))">{{ proposal.classification|replace("_", " ")|capitalize }}</span> proposed <span class="dot">&middot;</span> <span class="mono">{{ proposal.span }}</span> <span class="dot">&middot;</span> <span class="mono">{{ proposal.length }}</span></p>
+      {% endfor %}
+    </li>
+  {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+
+<div class="filters">
+  <nav class="segmented" aria-label="Kind" data-role="kind-filter">
+  {% for choice in kind_choices %}
+    <a href="{{ choice.url }}"{% if choice.on %} class="on" aria-current="true"{% endif %}>{{ choice.name }}</a>
+  {% endfor %}
+  </nav>
+  <form class="inline search" method="get" action="/" data-role="search">
+    {% if chosen_kind %}<input type="hidden" name="kind" value="{{ chosen_kind }}">{% endif %}
+    <label>
+      <span class="visually-hidden">Find a recording by date, title, classification, label or summary</span>
+      <input type="search" name="q" value="{{ searched or '' }}" placeholder="Find a recording">
+    </label>
+    <button type="submit" data-field="search-control">Search</button>
+  </form>
+</div>
 
 {% if recordings %}
-<ol class="recordings">
-{% for row in recordings %}
-  {% set quiet = row.kind == "empty" %}
-  <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ (row.needs_attention and not quiet)|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}" data-kind="{{ row.kind or '' }}" data-quiet="{{ quiet|lower }}">
-    {% if row.title %}<a class="title" href="/recordings/{{ row.recording_id }}" data-field="title">{{ row.title }}</a>{% endif %}
-    <a{% if row.title %} class="when"{% endif %} href="/recordings/{{ row.recording_id }}" data-field="recorded-at">{{ row.recorded_at }}</a>
-    <span data-field="duration">{{ row.duration }}</span>
-    {% if not quiet %}
-    {% if row.tag %}<span class="tag" data-field="kind">{{ row.tag }}</span>{% endif %}
-    <span data-field="state">{{ row.state }}</span>
-    <span data-field="confidence">{{ row.confidence or "" }}</span>
-    <span class="contents">
-    {% for item in row.segments %}
-      <span class="segment">{{ item[0] }} ({{ item[1] or "unrated" }}, {{ item[2] }})</span>
-    {% endfor %}
-    </span>
-    <span data-field="row-awaiting">{{ row.awaiting_disposition }} awaiting</span>
-    {% endif %}
-    {% if row.failure %}<span class="flag" data-field="row-failure">{{ row.failure }}</span>{% endif %}
-    {% if row.ingest %}<span class="standing" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
-    {% if can_edit %}<form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}{% endif %}
-  </li>
+{% for week in paging.weeks %}
+<section class="week plain">
+  <h2 class="week-heading" data-week-heading="{{ week.ending }}">{{ week.heading }}</h2>
+  <ol class="recordings">
+  {% for row in week.rows %}
+    {% set quiet = row.kind == "empty" %}
+    <li data-row="recording" data-id="{{ row.recording_id }}" data-state="{{ row.state }}" data-attention="{{ (row.needs_attention and not quiet)|lower }}" data-failed="{{ row.failed|lower }}" data-awaiting="{{ row.awaiting_disposition }}" data-confidence="{{ row.confidence or '' }}" data-classifications="{% for item in row.segments %}{{ item[0] }} {% endfor %}" data-ingest="{{ row.ingest.outcome if row.ingest else '' }}" data-kind="{{ row.kind or '' }}" data-quiet="{{ quiet|lower }}" data-week-ending="{{ row.week_ending }}">
+      {% if not quiet %}<span class="day">{{ row.day }}</span>{% endif %}
+      <span class="main">
+        {% if row.title %}<a class="title" href="/recordings/{{ row.recording_id }}" data-field="title">{{ row.title }}</a>{% else %}<a class="title untitled" href="/recordings/{{ row.recording_id }}">Untitled recording</a>{% endif %}
+        {% if not quiet and row.tag %}<span class="tag" data-field="kind">{{ row.tag }}</span>{% endif %}
+        {% if not quiet %}
+        <span class="contents">
+        {% for item in row.segments %}
+          <span class="chip" style="--band:var(--type-{{ item[0] }}, var(--type-other))"><i></i>{{ item[0]|replace("_", " ") }}</span>
+        {% endfor %}
+          <span class="rating" data-field="confidence">{{ row.confidence or "" }}</span>
+          {% if row.awaiting_disposition %}<span class="rating" data-field="row-awaiting">{{ row.awaiting_disposition }} awaiting</span>{% endif %}
+        </span>
+        {% endif %}
+      </span>
+      <span class="when" data-field="recorded-at">{{ row.recorded_at }}</span>
+      <span data-field="duration">{{ row.duration }}</span>
+      {% if not quiet %}<span class="status" data-tone="{{ row.state_tone }}"><span data-field="state">{{ row.state_label }}</span></span>{% endif %}
+      {% if row.failure %}<span class="flag" data-field="row-failure">{{ row.failure }}</span>{% endif %}
+      {% if row.ingest %}<span class="standing" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
+      {% if can_edit %}<form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}{% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+</section>
 {% endfor %}
-</ol>
 <nav class="paging" data-role="paging" data-page="{{ paging.page }}" data-pages="{{ paging.pages }}" data-total="{{ paging.total }}">
   {% if previous_url %}<a href="{{ previous_url }}" data-field="newer-page">Newer recordings</a>{% endif %}
   <span data-field="paging">Page {{ paging.page }} of {{ paging.pages }}, {{ paging.total }} recordings, newest first</span>
   {% if next_url %}<a href="{{ next_url }}" data-field="older-page">Older recordings</a>{% endif %}
 </nav>
 {% else %}
-<p data-field="empty">No recordings yet. They appear here once the recorder uploads them.</p>
+<p class="empty" data-field="empty">No recordings yet. They appear here once the recorder uploads them.</p>
 {% endif %}
+</main>
 </body>
 </html>
