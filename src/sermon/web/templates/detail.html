@@ -166,6 +166,7 @@
               {% for action in view.recording_actions %}
                 <li data-row="action" data-action="{{ action.name }}">
                   <form method="post" action="{{ action.url }}">
+                    <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
                     {% if view.selected_segment_id is not none %}<input type="hidden" name="segment" value="{{ view.selected_segment_id }}">{% endif %}
                     {% for prompt in action.prompts %}<label>{{ prompt }} <input type="text" name="{{ prompt }}"></label>
                     {% endfor %}{% if action.name == "Discard" %}<input type="hidden" name="confirm" value="{{ 'yes' if view.notice == 'it contains a published segment; confirm to discard it' else 'no' }}">
@@ -177,6 +178,7 @@
               <details class="rename">
                 <summary>Rename</summary>
                 <form class="inline" method="post" action="/recordings/{{ view.recording_id }}/actions/retitle">
+                  <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
                   <label>Title <input type="text" name="title" size="40" value="{{ view.title or '' }}" data-field="title-input"></label>
                   <button type="submit" data-field="retitle-control">Save title</button>
                 </form>
@@ -209,6 +211,7 @@
         {% if view.preview_ready and block.cue_start_seconds is not none %}<button type="button" data-role="preview-cue-excerpt" data-kind="cue" data-start="{{ block.cue_start_seconds }}" data-end="{{ block.cue_end_seconds }}">Preview</button>
         <button type="button" data-role="start-at-block" data-kind="seek" data-start="{{ block.start_seconds }}" data-end="{{ block.end_seconds }}">Start here</button>{% endif %}
         {% if drawable %}<form class="from-block" method="post" action="{{ drawable.url }}">
+          <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
           <input type="hidden" name="from" value="{{ block.start_seconds }}">
           <input type="hidden" name="to" value="{{ block.end_seconds }}">
           <input type="hidden" name="classification" value="{{ block.classification }}">
@@ -231,6 +234,7 @@
   <h2>Processing</h2>
   <p class="quiet"><span data-field="ingest-standing">{{ view.ingest.standing }}</span></p>
   <form method="post" action="{{ view.ingest.url }}">
+    <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
     <button type="submit" class="primary" data-field="ingest-control">Ingest</button>
   </form>
   <p class="quiet" data-field="ingest-explains">Ingest queues the download and the analysis pipeline; the worker does the work, so this page returns straight away.</p>
