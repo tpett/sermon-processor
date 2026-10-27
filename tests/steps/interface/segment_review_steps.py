@@ -821,6 +821,7 @@ def _(store, notified, device):
         assert page.locator('[data-role="cut-view"]').get_attribute("data-mode") == "review"
         offered = [name for name, mark in EDITING_CONTROLS.items() if mark in page.content()]
         assert offered == [], offered
+        reads_every_control_fit_for_a_thumb(page)
 
 
 @then("the waveform, zooming, word alignment and nudge controls are all available")
