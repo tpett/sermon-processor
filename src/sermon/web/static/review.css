@@ -1958,6 +1958,11 @@ a.button.primary {
   inset: 0;
 }
 
+.recordings li button {
+  position: relative;
+  z-index: 1;
+}
+
 .recordings li:first-child {
   border-top: 0;
 }
