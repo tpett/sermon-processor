@@ -191,8 +191,8 @@ to `SERMON_WEBHOOK_TOKEN` alone, because the Recorder has no cookie. Access
 cannot carry a 700 MB FLAC over its proxy, which is why the tailnet host exists.
 There is no health route exempt: `/api/health` needs a sign-in like the rest.
 
-With neither Access variable set nothing is enforced, there is no `/login`, and
-actions are recorded as `reviewer`.
+With neither Access variable set nothing is enforced, there is no `/login`, the
+person at the browser is a reviewer, and actions are recorded as `reviewer`.
 
 *Making people.* There is no sign-up and no reset page: the owner runs
 `sermon-user` on the server, which prompts for the password with `getpass` (twice,
@@ -202,6 +202,7 @@ never as an argument, never printed) and keeps a salted scrypt hash in the
 ```bash
 ssh nas docker exec -it sermon-processor sermon-user add pastor@example.org
 ssh nas docker exec -it sermon-processor sermon-user set-password pastor@example.org
+ssh nas docker exec sermon-processor sermon-user promote pastor@example.org
 ssh nas docker exec sermon-processor sermon-user list
 ```
 
@@ -209,6 +210,29 @@ ssh nas docker exec sermon-processor sermon-user list
 password signs out every browser that used the old one. A person who has only
 come through Cloudflare has no password and cannot sign in on the tailnet until
 the owner gives them one.
+
+*Roles.* A person is a `viewer` or a `reviewer` (`User.role`). Everyone starts as
+a viewer: a person Access vouches for the first time, a person added with
+`sermon-user add`, and every `User` row that exists when roles ship (the column is
+added when the database opens, defaulting to `viewer`). A viewer opens the same
+Review page without the Review | Edit switch, Approve, Skip or the recording
+actions, marked "View only", with the preview of the cut and every seam, and a
+Published column holding the file, its length and size, **Download MP3** and the
+original recording. Hiding the controls is the courtesy; the rule is one guard
+after the sign-in check that answers a plain 403 to every POST, PUT or DELETE from
+a viewer and changes nothing. Only signing in, signing out, the webhook (its
+bearer token) and the playhead `seek` are open to a viewer; a new state-changing
+route is refused to a viewer until someone makes it so. `sermon-user promote
+<email>` makes a person a reviewer and prints "<email> is now a reviewer"; it
+takes effect on their next request, `sermon-user list` shows each role, and a
+person must have signed in, or been added, before they can be promoted. Templates
+read `can_edit` from the context processor `names_who_is_signed_in`; do not test
+the role anywhere else.
+
+**Deploy step.** The migration makes every existing user a viewer, the owner
+included. After deploying, before anyone changes anything, run
+`ssh nas docker exec sermon-processor sermon-user promote <owner email>`; until
+then the owner can only look.
 
 *The cookie.* `sermon_session` is a Flask signed cookie: host-only (no `Domain`),
 `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, thirty days sliding. `Secure` is
