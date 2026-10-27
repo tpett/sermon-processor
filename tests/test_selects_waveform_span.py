@@ -140,3 +140,23 @@ def test_a_press_released_outside_the_pane_before_dragging_leaves_nothing_pendin
         page.mouse.move(x + 60, box["y"] + box["height"] / 2, steps=4)
 
         assert selection_is_hidden(page)
+
+
+def box_of(page, selector):
+    return page.locator(selector).bounding_box()
+
+
+@pytest.mark.parametrize("device", [_browser.DESKTOP, _browser.PHONE], ids=["desktop", "phone"])
+def test_the_punch_controls_follow_the_zoom_row_with_the_reach_and_help_below(
+    store, recording, segment, device
+):
+    with _browser.opens_page(store, device) as page:
+        opens_editor(page, recording, segment)
+        zoom = box_of(page, ".transport .zoom-steps")
+        punch = box_of(page, ".transport .punch-set")
+        keys = box_of(page, ".transport .keys")
+        reach = box_of(page, ".transport .reach")
+
+        assert zoom["y"] <= punch["y"] < zoom["y"] + zoom["height"] + 16
+        assert keys["y"] >= punch["y"] + punch["height"]
+        assert reach["y"] >= punch["y"] + punch["height"]
