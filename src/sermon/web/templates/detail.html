@@ -21,7 +21,8 @@
     <span class="pill" data-state="{{ view.state }}"><span data-field="state">{{ view.state }}</span></span>
     {% if view.progress %}<span class="chip" data-field="progress">{{ view.progress }}</span>{% endif %}
     {% if view.reason %}<span class="chip flag" data-field="reason">{{ view.reason }}</span>{% endif %}
-    {% if view.selected_segment_id is not none and view.boundary_controls in ("editable", "collapsed") %}
+    {% include "access.html" %}
+    {% if can_edit and view.selected_segment_id is not none and view.boundary_controls in ("editable", "collapsed") %}
     <div class="mode-switch" role="group" aria-label="Review or edit">
       {% if editing %}
       <a class="mode" data-role="review-the-cut" href="{{ review_url }}">Review</a><span class="mode on" aria-current="true">Edit</span>
@@ -159,6 +160,7 @@
             </div>
           </details>
 
+          {% if can_edit %}
           <details class="acc" name="details-section" data-details-section="actions">
             <summary><span class="t">Recording actions</span><span class="s">{% for action in view.recording_actions %}{{ action.name }}{% if not loop.last %}, {% endif %}{% endfor %}</span></summary>
             <div class="recording-actions">
@@ -183,6 +185,7 @@
                   <button type="submit" data-field="retitle-control">Save title</button>
                 </form>
               </details>
+          {% endif %}
             </div>
           </details>
         </aside>
@@ -196,7 +199,7 @@
 <nav class="rail" data-role="service-order" aria-label="Service order">
   <section class="blocks">
     <h2>Service order</h2>
-    {% set drawable = view.recording_actions | selectattr("name", "in", ["Create segment", "Create segment by hand"]) | list | first %}
+    {% set drawable = (view.recording_actions | selectattr("name", "in", ["Create segment", "Create segment by hand"]) | list | first) if can_edit else none %}
     {% set picked = (view.segments | selectattr("segment_id", "equalto", view.selected_segment_id) | list | first) if view.selected_segment_id is not none else none %}
     {% if view.blocks %}
     <ol>
@@ -233,11 +236,13 @@
 <section class="ingest" data-role="ingest" data-ingest-outcome="{{ view.ingest.outcome }}" data-ingest-position="{{ view.ingest.position if view.ingest.position is not none else '' }}" data-ingest-queued="{{ view.ingest.queued_count }}">
   <h2>Processing</h2>
   <p class="quiet"><span data-field="ingest-standing">{{ view.ingest.standing }}</span></p>
+  {% if can_edit %}
   <form method="post" action="{{ view.ingest.url }}">
     <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
     <button type="submit" class="primary" data-field="ingest-control">Ingest</button>
   </form>
   <p class="quiet" data-field="ingest-explains">Ingest queues the download and the analysis pipeline; the worker does the work, so this page returns straight away.</p>
+  {% endif %}
 </section>
 {% endif %}
 
@@ -283,7 +288,7 @@
 </div>
 {% endif %}
 
-{% if view.published %}
+{% if view.published and can_edit %}
 <section class="published">
   <h2>Published</h2>
   <p>
@@ -543,7 +548,7 @@
       </li>
     {% endfor %}
     </ol>
-    {% if not editing and view.boundary_controls in ("editable", "collapsed") %}
+    {% if can_edit and not editing and view.boundary_controls in ("editable", "collapsed") %}
     <p class="hero-foot">Something off? Adjust the punch points or remove a span. <a class="button" data-role="edit-the-cut" href="{{ edit_url }}">Edit the cut</a></p>
     {% endif %}
   </section>
@@ -624,6 +629,25 @@
 </main>
 
 <div class="supporting">
+{% if not can_edit %}
+<section class="viewing" data-role="published-column">
+  <h2>Published</h2>
+  {% if view.published %}
+  {% if view.label %}<p class="published-label" data-field="label">{{ view.label }}</p>{% endif %}
+  <p class="mono published-file" data-field="mp3-filename">{{ view.published.filename }}</p>
+  <dl class="tiles">
+    <div><dt>Length</dt><dd class="mono" data-field="mp3-length">{{ view.published.length }}</dd></div>
+    <div><dt>Size</dt><dd class="mono" data-field="mp3-size">{{ view.published.size }}</dd></div>
+  </dl>
+  <a class="button primary" href="{{ view.published.url }}" download data-field="mp3-download">Download MP3</a>
+  {% elif view.selected_segment_id is none %}
+  <p class="quiet" data-field="published-state">No Segment is selected, so there is nothing published to show.</p>
+  {% else %}
+  <p class="quiet" data-field="published-state">This Segment has not been published.</p>
+  {% endif %}
+  <a class="original" href="/api/artifacts/{{ view.object_key }}" download data-field="original-download">Download the original recording</a>
+</section>
+{% else %}
 <section class="actions">
   <h2>{% if editing %}Editing the {{ view.classification|replace("_", " ") }}{% else %}This Segment{% endif %}</h2>
   {% if view.selected_segment_id is none %}
@@ -774,6 +798,7 @@
   {% endif %}
   {% endif %}
 </section>
+{% endif %}
 </div>
 <script src="{{ url_for('static', filename='details.js') }}" defer></script>
 </body>

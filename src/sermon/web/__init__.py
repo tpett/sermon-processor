@@ -488,7 +488,8 @@ def creates_app(
         asked = request.args.get("mode")
         hard = view.proposal is not None and view.proposal.punch_in_grade == "hard"
         editing = (
-            view.selected_segment_id is not None
+            g.can_edit
+            and view.selected_segment_id is not None
             and view.boundary_controls in {"editable", "collapsed"}
             and (asked == "edit" or (asked != "review" and hard))
         )

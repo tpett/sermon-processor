@@ -8,11 +8,12 @@
 </head>
 <body>
 {% include "signed_in.html" %}
+{% include "access.html" %}
 <p><a href="/">Recordings</a></p>
 <h1>Notifications</h1>
 <p><span data-field="unread">{{ page.unread }}</span> unread</p>
 
-<form class="inline" method="post" action="/notifications/preference">
+{% if can_edit %}<form class="inline" method="post" action="/notifications/preference">
   {% if page.receives_notifications %}
   <span data-field="preference">Notifications are sent to you.</span>
   <input type="hidden" name="receives" value="off">
@@ -22,7 +23,7 @@
   <input type="hidden" name="receives" value="on">
   <button type="submit" data-field="preference-control">Send notifications again</button>
   {% endif %}
-</form>
+</form>{% endif %}
 
 {% if page.notifications %}
 <ol class="notifications">
