@@ -324,11 +324,17 @@ def test_a_tailnet_request_with_no_sign_in_creates_no_user(client, store, record
     assert store.lists(User) == []
 
 
+def makes_reviewers(store, *emails):
+    for email in emails:
+        store.saves(User(email=email, first_seen_at=datetime(2026, 9, 1, 9, 0, tzinfo=UTC), role="reviewer"))
+
+
 def actors(store):
     return {entry.actor for entry in store.lists(LogEntry) if entry.actor is not None}
 
 
 def test_an_approval_by_a_signed_in_person_is_recorded_against_their_email(client, store, segment):
+    makes_reviewers(store, EMAIL)
     client.post(
         f"/recordings/{RECORDING_ID}/segments/{segment.segment_id}/approve",
         data={"intent": "archive"},
@@ -339,6 +345,7 @@ def test_an_approval_by_a_signed_in_person_is_recorded_against_their_email(clien
 
 
 def test_the_api_approval_is_recorded_against_their_email_too(client, store, segment):
+    makes_reviewers(store, EMAIL)
     store.saves(dataclasses.replace(segment, intent="archive"))
     client.post(f"/api/segments/{segment.segment_id}/approve", headers=on(PUBLIC, **signed_in()))
     assert actors(store) == {EMAIL}
@@ -355,6 +362,7 @@ def test_an_approval_from_the_tailnet_after_a_password_sign_in_is_recorded_again
     from sermon.sets_password import SetsPassword
 
     SetsPassword(store=store)(EMAIL, "correct horse battery")
+    makes_reviewers(store, EMAIL)
     store.saves(dataclasses.replace(segment, intent="archive"))
     client = app_for_sign_in(store).test_client()
     client.post("/login", data={"email": EMAIL, "password": "correct horse battery"}, headers=on(TAILNET))
@@ -363,6 +371,7 @@ def test_an_approval_from_the_tailnet_after_a_password_sign_in_is_recorded_again
 
 
 def test_two_people_are_each_recorded_against_their_own_email(client, store, segment, recording):
+    makes_reviewers(store, EMAIL, "elder@reformation.example")
     client.post(
         f"/recordings/{RECORDING_ID}/actions/retitle", data={"title": "One"}, headers=on(PUBLIC, **signed_in())
     )
@@ -375,6 +384,7 @@ def test_two_people_are_each_recorded_against_their_own_email(client, store, seg
 
 
 def test_every_human_action_a_signed_in_person_takes_is_recorded_against_them(client, store, recording, segment):
+    makes_reviewers(store, EMAIL)
     headers = on(PUBLIC, **signed_in())
     base = f"/recordings/{RECORDING_ID}"
     chosen = f"{base}/segments/{segment.segment_id}"
