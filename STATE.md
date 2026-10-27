@@ -73,7 +73,11 @@ implemented.
   the downloads, every change they post is refused 403. Without sign-in nothing
   changes. The three existing approve/skip attribution scenarios now promote
   their person first, so they are red until the role exists.
-- Pins 36 / 592 / 172 / 781, 2533 steps. Theme is deliberately not specified.
+- Each list row offers its published files to download, to everyone: one MP3
+  link with its size, or one control listing every file by label, length and
+  size; archived files are not offered there (`download-size`,
+  `download-count` fields on the row).
+- Pins 36 / 596 / 173 / 785, 2551 steps. Theme is deliberately not specified.
   The step definitions pin a markup contract implementers may revise:
   `data-role="cut-view" data-mode`, `edit-the-cut` / `done-editing` links,
   `data-row="seam"` cards, `preview-cut data-seams="before:after,..."`,

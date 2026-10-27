@@ -4,10 +4,10 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 
 ## What the guard found
 
-- 1619 step definitions read from `tests/steps`
+- 1627 step definitions read from `tests/steps`
 - 7 condemned
-- 9 of 587 non-deferred scenarios rest on at least one condemned step
-- 9 of 773 expanded scenario tests likewise
+- 9 of 591 non-deferred scenarios rest on at least one condemned step
+- 9 of 777 expanded scenario tests likewise
 - 1 scenarios whose every Then is condemned, so nothing they claim is checked
 - 2 scenarios whose every step outside the Background is condemned
 - 0 scenarios whose every step, Background included, is condemned
@@ -66,7 +66,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/ingestion/s3_reconciliation_steps.py` | 38 | 0 | sound |
 | `tests/steps/ingestion/webhook_notification_steps.py` | 39 | 0 | sound |
 | `tests/steps/interface/approval_steps.py` | 50 | 0 | sound |
-| `tests/steps/interface/authentication_steps.py` | 99 | 0 | sound |
+| `tests/steps/interface/authentication_steps.py` | 101 | 0 | sound |
 | `tests/steps/interface/cut_light_steps.py` | 4 | 0 | sound |
 | `tests/steps/interface/discarding_steps.py` | 20 | 0 | sound |
 | `tests/steps/interface/playback_steps.py` | 11 | 0 | sound |
@@ -75,7 +75,7 @@ Regenerate with `.venv/bin/python tests/step_integrity.py`. Hand edits are lost.
 | `tests/steps/interface/punch_nudge_steps.py` | 17 | 0 | sound |
 | `tests/steps/interface/punch_point_adjustment_steps.py` | 45 | 0 | sound |
 | `tests/steps/interface/recording_detail_steps.py` | 29 | 0 | sound |
-| `tests/steps/interface/recording_list_steps.py` | 43 | 0 | sound |
+| `tests/steps/interface/recording_list_steps.py` | 49 | 0 | sound |
 | `tests/steps/interface/removed_spans_steps.py` | 32 | 0 | sound |
 | `tests/steps/interface/segment_review_steps.py` | 78 | 0 | sound |
 | `tests/steps/interface/waveform_steps.py` | 104 | 0 | sound |

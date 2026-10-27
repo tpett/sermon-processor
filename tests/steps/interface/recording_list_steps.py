@@ -6,7 +6,11 @@ from time import perf_counter
 from pytest_bdd import given, parsers, then, when
 
 from sermon.extends_segment_span import ReadsTimecode
-from sermon.store import Block, Proposal, Recording, Segment
+from sermon.lists_recordings import formats_clock
+from sermon.recuts_segment import current_renders
+from sermon.removes_span import kept_seconds
+from sermon.shows_recording import artifact_url
+from sermon.store import Artifact, Block, Proposal, Recording, Segment, layout
 from sermon.store.vocabularies import SEGMENT_CLASSIFICATIONS
 from sermon.web import creates_app
 from steps._markup import reads_field, reads_rows
@@ -477,3 +481,77 @@ def _(list_page, datatable):
     rows = reads_rows(list_page, "recording")
     grouped = [(week, sum(1 for row in rows if row.get("week-ending") == week)) for week in weeks]
     assert grouped == [(week, int(count)) for week, count in datatable[1:]], grouped
+
+
+def finishes(store, when, classification, label, intent):
+    recording_id, started = recording_id_from(when)
+    segment = next(
+        item
+        for item in store.lists(Segment, recording_id=recording_id)
+        if item.classification == classification
+    )
+    segment = store.saves(replace(segment, state="complete", intent=intent, label=label))
+    store.saves(
+        Artifact(
+            recording_id=recording_id,
+            segment_id=segment.segment_id,
+            kind="rendered_mp3",
+            path=layout.published_path(f"{started:%Y-%m-%d} - {label}.mp3"),
+            size_bytes=32_296_141,
+            checksum="stub",
+        )
+    )
+
+
+def offered(store, recording_id):
+    return [
+        (segment, artifact_url(current_renders(store, segment)[-1].path))
+        for segment in store.lists(Segment, recording_id=recording_id)
+        if current_renders(store, segment)
+    ]
+
+
+@given(parsers.parse('the {classification} from "{when}" was published as "{label}"'))
+def _(store, classification, when, label):
+    finishes(store, when, classification, label, "publish")
+
+
+@given(parsers.parse('the {classification} from "{when}" was archived as "{label}"'))
+def _(store, classification, when, label):
+    finishes(store, when, classification, label, "archive")
+
+
+@then(parsers.parse('the row for "{when}" offers its MP3 to download, with its size'))
+def _(store, list_page, when):
+    row = finds_row(reads_rows(list_page, "recording"), when)
+    ((_, url),) = offered(store, recording_id_from(when)[0])
+    assert url in row["links"], row["links"]
+    assert row.get("download-size") == "30.8 MB", row
+
+
+@then(parsers.parse('the row for "{when}" offers nothing to download'))
+def _(list_page, when):
+    row = finds_row(reads_rows(list_page, "recording"), when)
+    assert not [link for link in row["links"] if link.endswith(".mp3")], row["links"]
+    assert "download-count" not in row and "download-size" not in row, row
+
+
+@then(
+    parsers.parse('the row for "{when}" offers one control for its {count:d} files'),
+    target_fixture="download_row",
+)
+def _(store, list_page, when, count):
+    row = finds_row(reads_rows(list_page, "recording"), when)
+    assert row.get("download-count") == f"{count} files", row
+    urls = [url for _, url in offered(store, recording_id_from(when)[0])]
+    assert len(urls) == count and all(url in row["links"] for url in urls), row["links"]
+    return row
+
+
+@then("it names each file by its label, with its length and size")
+def _(store, download_row):
+    files = offered(store, download_row["id"])
+    assert files, download_row
+    for segment, _ in files:
+        named = (segment.label, formats_clock(kept_seconds(segment)), "30.8 MB")
+        assert all(part in download_row["text"] for part in named), (named, download_row["text"])

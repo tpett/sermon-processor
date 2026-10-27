@@ -562,6 +562,15 @@ Feature: Access control
       And the MP3 it offers is served to me
 
     @stated
+    Scenario: A viewer can download what is finished from the list
+      Given sign-in is required
+      And a Segment in state "complete" from a Recording dated "2026-08-23"
+      And "visitor@reformation.example" has the password "correct horse battery"
+      And I have signed in on the tailnet host as "visitor@reformation.example" with "correct horse battery"
+      When I open the recordings list on the tailnet host
+      Then the list offers that Segment's MP3 to download
+
+    @stated
     Scenario Outline: A change a viewer asks for is refused
       # Hiding the controls is the courtesy; refusing the request is the rule.
       Given sign-in is required

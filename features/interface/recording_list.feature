@@ -91,6 +91,34 @@ Feature: The recordings list
       When I click the row for the recording from "2026-08-23"
       Then I am taken to that Recording's detail view
 
+  Rule: A published file can be downloaded from the list
+
+    # The owner on 2026-10-27: "Most non-editors shouldn't even need to click
+    # into the message. They just want to download the published artifact for
+    # final publishing." Everyone sees the downloads; archived files are not
+    # offered here.
+
+    @happy-path @stated
+    Scenario: A recording with one published file offers it
+      Given the sermon from "2026-08-09 10:29 AM" was published as "Hebrews 12.1-3"
+      When I visit the recordings list
+      Then the row for "2026-08-09 10:29 AM" offers its MP3 to download, with its size
+      And the row for "2026-08-23 10:29 AM" offers nothing to download
+
+    @stated
+    Scenario: A recording with several published files offers each from one control
+      Given the lesson from "2026-08-16 09:00 AM" was published as "TEC - Hebrews 12 (lesson)"
+      And the sermon from "2026-08-16 09:00 AM" was published as "Hebrews 12.1-3"
+      When I visit the recordings list
+      Then the row for "2026-08-16 09:00 AM" offers one control for its 2 files
+      And it names each file by its label, with its length and size
+
+    @stated
+    Scenario: An archived file is not offered on the list
+      Given the sermon from "2026-08-09 10:29 AM" was archived as "Members Meeting"
+      When I visit the recordings list
+      Then the row for "2026-08-09 10:29 AM" offers nothing to download
+
   Rule: The list can be narrowed
 
     @happy-path

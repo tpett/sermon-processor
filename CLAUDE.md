@@ -63,7 +63,7 @@ A system that finds the sermon inside a recorded church service, lets one person
 review and approve the cut, and renders an MP3. Read `STATE.md` first — it is the
 handoff and it is kept current.
 
-`features/` is **the specification and the test suite**, 592 Gherkin scenarios.
+`features/` is **the specification and the test suite**, 596 Gherkin scenarios.
 `experiments/` is a **frozen record** of the spike that proved the approach; every
 number in `FINDINGS.md` traces to the code there.
 
@@ -75,7 +75,7 @@ uv venv --python 3.13 && uv pip install -e ".[dev]"  # python3 on PATH is out of
 .venv/bin/python -m pytest                          # the pre-merge run; before master
 .venv/bin/python -m pytest tests/test_spec.py -k "<Feature or Rule title>"
 .venv/bin/python features/validate_spec.py          # spec guardrail — also runs as a test
-.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 781 tests (Outlines expand)
+.venv/bin/python -m pytest --collect-only -q tests/test_spec.py   # 785 tests (Outlines expand)
 bd ready                                            # what to work on next
 ```
 
@@ -1068,8 +1068,20 @@ that person is a reviewer. `DOMAIN.md` gained `User.role`. The dark theme is not
 in the spec: nothing a scenario could observe about it is behaviour. Twenty
 scenarios, two Rules, twenty-seven tests and ninety-nine steps were added.
 
-Pins are now **36 files / 592 scenarios / 172 rules / 781 collected**, and
-`SPEC_STEPS` is 2533.
+On 2026-10-27 the owner asked for downloads on the list: "On the recordings
+list, I would like to add a download link next to each published recording.
+Most non-editors shouldn't even need to click into the message. They just want
+to download the published artifact for final publishing." Shown three designs,
+they chose one control per row that opens a menu when a recording holds several
+files, and said "archived don't need the download link on the list view.
+Everyone should see the links." Nothing in the spec offered a file outside the
+detail view, so `recording_list.feature` gained the Rule `A published file can
+be downloaded from the list` (three scenarios) and `authentication.feature`'s
+viewer Rule gained `A viewer can download what is finished from the list`. Four
+scenarios, one Rule, four tests and eighteen steps were added.
+
+Pins are now **36 files / 596 scenarios / 173 rules / 785 collected**, and
+`SPEC_STEPS` is 2551.
 
 `tests/test_spec_harness.py` asserts all of these, in `SPEC_SHAPE`, `SPEC_TESTS`
 and `SPEC_STEPS`. Grepping the repository for the literal numbers does not find

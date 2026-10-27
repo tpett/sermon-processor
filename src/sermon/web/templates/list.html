@@ -70,6 +70,7 @@
 </div>
 
 {% set segment_words = {"processing": "rendering", "processing_failed": "render failed", "recut": "re-cut"} %}
+{% set download_icon %}<svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path></svg>{% endset %}
 {% if recordings %}
 {% for week in paging.weeks %}
 <section class="week plain">
@@ -95,6 +96,22 @@
       <span class="when" data-field="recorded-at">{{ row.recorded_at }}</span>
       <span data-field="duration">{{ row.duration }}</span>
       {% if not quiet %}<span class="status" data-tone="{{ row.state_tone }}"><span data-field="state">{{ row.state_label }}</span></span>{% endif %}
+      {% if row.downloads|length == 1 %}{% set file = row.downloads[0] %}
+      <a class="download" href="{{ file.url }}" download title="{{ file.filename }}" aria-label="Download {{ file.filename }}, {{ file.size }}">{{ download_icon }}<span>MP3</span><span class="size" data-field="download-size">{{ file.size }}</span></a>
+      {% elif row.downloads %}
+      <details class="downloads">
+        <summary aria-label="Download {{ row.downloads|length }} files">{{ download_icon }}<span data-field="download-count">{{ row.downloads|length }} files</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></summary>
+        <div class="menu">
+        {% for file in row.downloads %}
+          <a href="{{ file.url }}" download title="{{ file.filename }}">
+            <span class="name"><span class="named">{{ file.label }}</span> <span class="file">{{ file.filename }}</span></span>
+            <span class="meta"><span>{{ file.length }}</span> <span>{{ file.size }}</span></span>
+            {{ download_icon }}
+          </a>
+        {% endfor %}
+        </div>
+      </details>
+      {% endif %}
       {% if row.failure %}<span class="flag" data-field="row-failure">{{ row.failure }}</span>{% endif %}
       {% if row.ingest %}<span class="standing{% if row.undownloaded %} visually-hidden{% endif %}" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
       {% if can_edit %}<form class="inline ingest" method="post" action="{{ row.ingest.url }}"><button type="submit"{% if row.undownloaded %} class="ghost"{% endif %} data-field="row-ingest-control">Ingest</button></form>{% endif %}{% endif %}
@@ -112,5 +129,6 @@
 <p class="empty" data-field="empty">No recordings yet. They appear here once the recorder uploads them.</p>
 {% endif %}
 </main>
+<script src="{{ url_for('static', filename='list.js') }}" defer></script>
 </body>
 </html>

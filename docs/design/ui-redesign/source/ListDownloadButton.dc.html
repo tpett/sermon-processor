@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recordings, download button</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0d0f12}
+a{color:#7fd6ea}a:hover{color:#b5ecf7}
+button{font:inherit;color:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="--bg:#0d0f12;--panel:#14171b;--raised:#1b1f24;--line:#262b31;--line2:#343a42;--text:#e7e9ec;--muted:#9aa3ad;--accent:#5cc8e0;--accent-ink:#06222a;--warn:#f0b450;--bad:#ef7b78;--mono:'JetBrains Mono',ui-monospace,monospace;min-height:980px;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45">
+
+  <header style="display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap">
+    <h1 style="margin:0;font-size:17px;font-weight:600;flex:1">Recordings</h1>
+    <button type="button" style="display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:transparent;font-size:13px">Scan the bucket</button>
+  </header>
+
+  <main style="max-width:1080px;margin:0 auto;padding:28px 24px 48px;display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">All recordings</h2>
+
+    <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="2">
+      <div style="display:flex;flex-direction:column">
+        <h3 style="margin:8px 0 6px;font-size:12px;font-weight:600;color:var(--muted)">{{w.label}}</h3>
+        <ol style="list-style:none;margin:0;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--panel)">
+          <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">
+            <li style="position:relative;border-top:1px solid {{r.sep}};display:flex;align-items:center;gap:16px;padding:12px 16px;min-height:44px;flex-wrap:wrap">
+              <span style="width:92px;display:flex;flex-direction:column;font-family:var(--mono);font-size:12px">
+                <span>{{r.day}}</span><span style="color:var(--muted)">{{r.time}}</span>
+              </span>
+              <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
+                <span style="display:flex;align-items:center;gap:8px;min-width:0">
+                  <a href="Main.dc.html" style="font-size:14px;font-weight:500;color:var(--text);text-decoration:none;overflow-wrap:anywhere">{{r.title}}</a>
+                  <span style="flex:none;padding:1px 6px;border-radius:4px;border:1px solid var(--line2);font-family:var(--mono);font-size:11px;color:var(--muted)">{{r.tag}}</span>
+                </span>
+                <span style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ r.segs }}" as="s" hint-placeholder-count="1">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:6px;height:6px;border-radius:2px;background:{{s.color}}"></span>{{s.label}}</span>
+                  </sc-for>
+                </span>
+              </span>
+              <span style="width:64px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted)">{{r.dur}}</span>
+              <span style="width:130px;display:inline-flex;align-items:center;gap:7px;font-size:13px;color:{{r.stColor}}">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{r.stColor}}"></span>{{r.status}}
+              </span>
+              <span style="width:132px;display:flex;justify-content:flex-end">
+                <sc-if value="{{ r.one }}" hint-placeholder-val="{{ true }}">
+                  <a href="#" download="{{r.first.name}}" style="display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:var(--raised);color:var(--text);text-decoration:none;font-size:13px;font-weight:500">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7fd6ea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path></svg>
+                    MP3 <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">{{r.first.size}}</span>
+                  </a>
+                </sc-if>
+                <sc-if value="{{ r.many }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ r.toggle }}" aria-expanded="{{r.open}}" style="display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid {{r.btnLine}};background:var(--raised);font-size:13px;font-weight:500">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7fd6ea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path></svg>
+                    {{r.count}} files
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+                  </button>
+                </sc-if>
+              </span>
+              <sc-if value="{{ r.showMenu }}" hint-placeholder-val="{{ false }}">
+                <div role="menu" style="position:absolute;right:16px;top:58px;z-index:2;width:380px;padding:6px;border-radius:10px;border:1px solid var(--line2);background:var(--raised);box-shadow:0 12px 32px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:2px">
+                  <sc-for list="{{ r.segs }}" as="s" hint-placeholder-count="2">
+                    <a href="#" role="menuitem" download="{{s.name}}" style="display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:7px;color:var(--text);text-decoration:none">
+                      <span style="width:8px;height:8px;border-radius:2px;background:{{s.color}}"></span>
+                      <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                        <span style="font-size:13px;font-weight:500">{{s.label}}</span>
+                        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{s.name}}</span>
+                      </span>
+                      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right">{{s.len}}<br>{{s.size}}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7fd6ea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path></svg>
+                    </a>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+    </sc-for>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: 'tec' };
+  }
+  renderVals() {
+    const C = { sermon: '#7fb08c', lesson: '#7fb08c', meeting: '#c9b37a' };
+    const ST = { review: ['Awaiting review', 'var(--warn)'], published: ['Published', 'var(--muted)'], archived: ['Archived', 'var(--muted)'], nothing: ['Nothing to publish', 'var(--muted)'] };
+    const seg = (color, label, len, size, name) => ({ color, label, len, size, name });
+    const row = (id, day, time, title, tag, dur, st, segs) => {
+      segs = segs || [];
+      const files = segs.filter((s) => s.name);
+      const open = this.state.open === id;
+      return {
+        day, time, title, tag, dur, segs, status: ST[st][0], stColor: ST[st][1],
+        first: files[0] || {}, count: files.length, one: files.length === 1, many: files.length > 1,
+        open: String(open), showMenu: open && files.length > 1, btnLine: open ? 'var(--accent)' : 'var(--line2)',
+        toggle: () => this.setState({ open: open ? null : id })
+      };
+    };
+    const weeks = [
+      { label: 'This week', rows: [
+        row('svc26', 'Sun 26', '09:00', 'Sunday Service - Hebrews 13:7-8', 'Service', '2:14:06', 'review', [seg(C.sermon, 'Sermon · proposed')]),
+        row('reh26', 'Sun 26', '08:15', 'Pre-Service Rehearsal', 'Rehearsal', '41:20', 'nothing')
+      ] },
+      { label: 'Week of 19 Oct', rows: [
+        row('tec', 'Sun 19', '09:00', 'Theological Equipping Class - Giving, then Sunday Service - Hebrews 13:1-6', 'TEC', '3:02:18', 'published', [
+          seg(C.lesson, 'TEC - Giving (lesson)', '48:10', '33.1 MB', '2026-10-19 - TEC - Giving (lesson).mp3'),
+          seg(C.sermon, 'Hebrews 13.1-6', '44:52', '30.8 MB', '2026-10-19 - Hebrews 13.1-6.mp3')
+        ]),
+        row('mm', 'Wed 15', '19:00', 'Members Meeting - Budget', 'Meeting', '1:12:40', 'archived', [seg(C.meeting, 'Members Meeting', '1:10:02', '48.1 MB', '2026-10-15 - Members Meeting.mp3')])
+      ] },
+      { label: 'Week of 12 Oct', rows: [
+        row('ct', 'Sun 12', '10:58', 'Culture and Theology - Islam', 'CT', '58:12', 'published', [seg(C.lesson, 'CT-Islam', '55:40', '38.2 MB', '2026-10-12 - CT-Islam.mp3')]),
+        row('svc12', 'Sun 12', '09:00', 'Sunday Service - Hebrews 12:25-29', 'Service', '2:09:51', 'published', [seg(C.sermon, 'Hebrews 12.25-29', '41:37', '28.6 MB', '2026-10-12 - Hebrews 12.25-29.mp3')])
+      ] }
+    ];
+    weeks.forEach((w) => w.rows.forEach((r, i) => { r.sep = i === 0 ? 'transparent' : 'var(--line)'; }));
+    return { weeks };
+  }
+}
+</script>
+</body>
+</html>

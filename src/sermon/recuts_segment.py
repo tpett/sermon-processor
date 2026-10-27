@@ -34,6 +34,15 @@ def holds_published_render(store, segment):
     )
 
 
+def offered_render(store, segment):
+    # artifact_downloads.feature offers it only for a finished Segment: a
+    # link to a file that is still rendering is worse than no link.
+    if segment.state != "complete" and not holds_published_render(store, segment):
+        return None
+    rendered = current_renders(store, segment)
+    return rendered[-1] if rendered else None
+
+
 @dataclass(frozen=True)
 class RecutsSegment:
     store: Store

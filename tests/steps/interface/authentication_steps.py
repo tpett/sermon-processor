@@ -970,3 +970,16 @@ def _(detail_page):
 
     assert 'data-role="edit-the-cut"' in detail_page, "the page offers no switch to editing"
     assert "Approve" in [row["action"] for row in reads_rows(detail_page, "segment-action")]
+
+
+@when("I open the recordings list on the tailnet host", target_fixture="page_response")
+def _(sign_in):
+    return sign_in.client().get("/", headers={"Host": TAILNET_HOST, **BROWSER})
+
+
+@then("the list offers that Segment's MP3 to download")
+def _(store, segment, page_response):
+    from steps._markup import reads_links
+
+    assert page_response.status_code == 200, page_response.status_code
+    assert offers_mp3(store, segment) in reads_links(page_response.get_data(as_text=True))
