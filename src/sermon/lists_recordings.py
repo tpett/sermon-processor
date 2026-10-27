@@ -51,14 +51,27 @@ STATE_WORDS = {
 PUBLISHED = ("Published", "muted")
 ARCHIVED = ("Archived", "muted")
 NOTHING_TO_PUBLISH = ("Nothing to publish", "muted")
+RENDER_FAILED = ("Render failed", "bad")
+RENDERING = ("Rendering", "accent")
+APPROVED = ("Approved, waiting to render", "accent")
+SKIPPED = ("Skipped", "muted")
 
 
 def says_state(state, segments):
     if state == "reviewed":
         complete = [segment for segment in segments if segment.state == "complete"]
-        if not complete:
-            return NOTHING_TO_PUBLISH
-        return ARCHIVED if all(segment.intent == "archive" for segment in complete) else PUBLISHED
+        if complete:
+            return ARCHIVED if all(segment.intent == "archive" for segment in complete) else PUBLISHED
+        held = {segment.state for segment in segments}
+        for state, said in (
+            ("processing_failed", RENDER_FAILED),
+            ("processing", RENDERING),
+            ("approved", APPROVED),
+            ("skipped", SKIPPED),
+        ):
+            if state in held:
+                return said
+        return NOTHING_TO_PUBLISH
     if state == "awaiting_review" and not segments:
         return NOTHING_TO_PUBLISH
     return STATE_WORDS.get(state, (state.replace("_", " ").capitalize(), "muted"))
