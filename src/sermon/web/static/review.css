@@ -2371,8 +2371,60 @@ details.reclassify > summary {
   button.preview,
   details.reclassify > summary,
   [data-mode="edit"] button.hear,
-  [data-mode="edit"] .transport .punch li[data-emphasis="secondary"] button {
+  [data-mode="edit"] button.preview,
+  [data-mode="edit"] .transport .punch li[data-emphasis="secondary"] button,
+  .drawer details > summary,
+  .segments a,
+  .drawer a[data-field="source-download"],
+  .transport .span-edges input[type="text"],
+  .removals input[type="text"],
+  .waveform .spans li a,
+  .waveform .quiet-spans button,
+  .waveform .words button {
     min-height: 44px;
+  }
+
+  .segments a,
+  .drawer a[data-field="source-download"] {
+    display: flex;
+    align-items: center;
+  }
+
+  .waveform .spans,
+  .waveform .spans li,
+  .waveform .quiet-spans,
+  .waveform .quiet-spans li {
+    height: 44px;
+  }
+
+  .waveform .spans li {
+    top: 0;
+    line-height: 44px;
+  }
+
+  .waveform .words {
+    height: 132px;
+    padding-top: 0;
+  }
+
+  .waveform .words li {
+    top: 0;
+  }
+
+  .waveform .words li:nth-child(3n + 2) {
+    top: 44px;
+  }
+
+  .waveform .words li:nth-child(3n) {
+    top: 88px;
+  }
+
+  .waveform .detailwrap .playhead .scrub,
+  .waveform .detailwrap .playhead .scrub[data-dragging="true"] {
+    left: -22px;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(var(--text), var(--text)) center top / 13px 11px no-repeat;
   }
 
   button.preview {
