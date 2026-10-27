@@ -105,6 +105,10 @@ SIGN_IN_ASSETS = frozenset({"review.css"})
 WEBHOOK_ENDPOINT = "recordings_webhook"
 SIGN_IN_ENDPOINT = "sign_in_page"
 SIGN_IN_ENDPOINTS = frozenset({SIGN_IN_ENDPOINT, "signs_in_by_password"})
+VIEWER_REFUSED = "a viewer can look but not change anything\n"
+OPEN_TO_A_VIEWER = frozenset({*SIGN_IN_ENDPOINTS, "signs_out", WEBHOOK_ENDPOINT, "seek"})
+READING_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+REVIEWER_ROLE = "reviewer"
 HTML = "text/html"
 BOUNDARIES = ("punch-in", "punch-out")
 INLINE_KINDS = frozenset({"preview"})
@@ -269,13 +273,28 @@ def creates_app(
         g.by_login = requester.by_login
         g.signed_in_as = requester.email
         if requester.email:
-            g.actor = signs_in(requester.email).email
+            person = signs_in(requester.email)
+            g.actor = person.email
+            g.can_edit = person.role == REVIEWER_ROLE
         else:
             g.actor = None if verifies_access else REVIEWER
+            g.can_edit = g.actor is not None
+
+    @app.before_request
+    def refuses_a_viewer_who_would_change_something():
+        if request.method in READING_METHODS or request.endpoint in OPEN_TO_A_VIEWER:
+            return None
+        if request.endpoint is None or g.can_edit:
+            return None
+        return Response(VIEWER_REFUSED, status=403, mimetype="text/plain")
 
     @app.context_processor
     def names_who_is_signed_in():
-        return {"signed_in_as": g.get("signed_in_as"), "can_sign_out": g.get("by_login", False)}
+        return {
+            "signed_in_as": g.get("signed_in_as"),
+            "can_sign_out": g.get("by_login", False),
+            "can_edit": g.get("can_edit", False),
+        }
 
     def actor():
         assert g.actor, "an action was taken by a request nobody signed in"
@@ -469,7 +488,8 @@ def creates_app(
         asked = request.args.get("mode")
         hard = view.proposal is not None and view.proposal.punch_in_grade == "hard"
         editing = (
-            view.selected_segment_id is not None
+            g.can_edit
+            and view.selected_segment_id is not None
             and view.boundary_controls in {"editable", "collapsed"}
             and (asked == "edit" or (asked != "review" and hard))
         )

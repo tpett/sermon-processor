@@ -8,13 +8,14 @@
 </head>
 <body>
 {% include "signed_in.html" %}
+{% include "access.html" %}
 <h1>Recordings</h1>
 <p><a href="/notifications" data-field="notifications-link">Notifications</a> <span data-field="unread-notifications">{{ unread_notifications }}</span> unread</p>
 <p><span data-field="awaiting">{{ awaiting }}</span> Segments awaiting disposition</p>
 
-<form class="inline" method="post" action="/recordings/refresh">
+{% if can_edit %}<form class="inline" method="post" action="/recordings/refresh">
   <button type="submit" data-field="refresh-control">Scan the bucket</button>
-</form>
+</form>{% endif %}
 {% if notice %}<p class="notice" data-field="scan-notice">{{ notice }}</p>{% endif %}
 
 <form class="inline" method="get" action="/" data-role="search">
@@ -53,7 +54,7 @@
     {% endif %}
     {% if row.failure %}<span class="flag" data-field="row-failure">{{ row.failure }}</span>{% endif %}
     {% if row.ingest %}<span class="standing" data-ingest-outcome="{{ row.ingest.outcome }}" data-ingest-position="{{ row.ingest.position if row.ingest.position is not none else '' }}" data-field="row-ingest-standing">{{ row.ingest.standing }}</span>
-    <form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}
+    {% if can_edit %}<form class="inline" method="post" action="{{ row.ingest.url }}"><button type="submit" data-field="row-ingest-control">Ingest</button></form>{% endif %}{% endif %}
   </li>
 {% endfor %}
 </ol>

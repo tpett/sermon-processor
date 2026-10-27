@@ -1845,14 +1845,14 @@ def titles(settings=None, arguments=None, prints=print):
         store.close()
 
 
-USERS_USAGE = "sermon-user add <email> | set-password <email> | list"
+USERS_USAGE = "sermon-user add <email> | set-password <email> | promote <email> | list"
 PASSWORD_ENTRIES = 2
 
 
 def reads_users_command(arguments):
     if arguments == ["list"]:
         return "list", None
-    if len(arguments) == 2 and arguments[0] in {"add", "set-password"}:
+    if len(arguments) == 2 and arguments[0] in {"add", "set-password", "promote"}:
         return arguments[0], arguments[1]
     return None
 
@@ -1871,9 +1871,26 @@ def lists_users(store, prints):
     for user in users:
         has_password = store.loads(Credential, user.email) is not None
         prints(
-            f"{user.email}  first seen {user.first_seen_at.date().isoformat()}  "
+            f"{user.email}  {user.role}  first seen {user.first_seen_at.date().isoformat()}  "
             f"{'password set' if has_password else 'no password'}"
         )
+    return 0
+
+
+def promotes_user(store, email, prints):
+    named = reads_email(email)
+    held = store.loads(User, named)
+    if held is None:
+        prints(
+            f"{named} is not a user yet; they are a viewer from the first time they "
+            f"sign in, and then: sermon-user promote {named}"
+        )
+        return 1
+    if held.role == "reviewer":
+        prints(f"{named} is already a reviewer")
+        return 0
+    store.saves(replace(held, role="reviewer"))
+    prints(f"{named} is now a reviewer")
     return 0
 
 
@@ -1895,7 +1912,7 @@ def sets_password_for(store, command, email, asks, prints):
 
 
 def manages_users(settings=None, arguments=None, prints=print, asks=None):
-    """Make the people who may sign in on the tailnet host, and give them passwords.
+    """Make the people who may sign in on the tailnet host, give them passwords and make reviewers of them.
 
     The password is asked for, never taken as an argument, so it reaches neither
     a shell history nor a process listing.
@@ -1918,6 +1935,8 @@ def manages_users(settings=None, arguments=None, prints=print, asks=None):
     try:
         if command == "list":
             return lists_users(store, prints)
+        if command == "promote":
+            return promotes_user(store, email, prints)
         return sets_password_for(store, command, email, asks, prints)
     except (EmailRefused, PasswordRefused) as refused:
         prints(str(refused))
