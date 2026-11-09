@@ -202,6 +202,25 @@ ul {
   text-overflow: ellipsis;
 }
 
+.bar .retitle {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.bar .retitle summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.bar .retitle form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
 .bar .when,
 .bar .length {
   font-family: var(--mono);

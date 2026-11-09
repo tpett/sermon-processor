@@ -39,9 +39,13 @@ Answer with one JSON object and nothing else:
   A recording with no identifiable speech or music is kind empty.
   A recording that holds a class and then a service names both, the class
   first: "Theological Equipping Class - <topic>, then Sunday Service - <passage>".
+  A Saturday or weekend teaching day the speaker calls a culture and theology
+  event is "Culture and Theology - <topic>", never "Theological Equipping Class".
+  Theological Equipping Class is the Sunday morning class. The topic is the
+  subject of the teaching, such as "Counseling", not the series name.
 - series: whenever any lesson or seminar is listed above, the name of that
   class or series written in full, even when a service follows it in the same
-  recording; otherwise null.
+  recording; otherwise null. Culture and theology is "Culture and Theology".
 - topic: the subject of that lesson or seminar, or the main business of a
   members' meeting, in one to three words and never a person's name; otherwise
   null.

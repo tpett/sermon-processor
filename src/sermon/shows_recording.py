@@ -94,15 +94,16 @@ SEGMENT_ACTION_PATHS = {
     "Cancel processing": "reopen",
     "Retry processing": "retry-processing",
     "Re-cut": "recut",
+    "Remove": "remove",
 }
 
 SEGMENT_ACTIONS = {
-    "proposed": ("Approve", "Skip"),
-    "skipped": ("Approve", "Revisit"),
+    "proposed": ("Approve", "Skip", "Remove"),
+    "skipped": ("Approve", "Revisit", "Remove"),
     "approved": ("Cancel processing",),
     "processing": ("Cancel processing",),
-    "processing_failed": ("Retry processing",),
-    "recut": ("Approve", "Skip"),
+    "processing_failed": ("Retry processing", "Remove"),
+    "recut": ("Approve", "Skip", "Remove"),
     "complete": ("Re-cut",),
 }
 
@@ -116,6 +117,9 @@ NOTICES = {
         "change the label or confirm it replaces that file"
     ),
     "skipped": "the Segment is skipped and stays available",
+    "removed": "the Segment is removed; the source recording is untouched",
+    "a published segment cannot be removed": "a published segment cannot be removed",
+    "a segment that is rendering cannot be removed": "a segment that is rendering cannot be removed",
     "reopened": "the Segment has returned to proposed",
     "recut": (
         "the Segment is open for re-cutting; its MP3 stays downloadable "

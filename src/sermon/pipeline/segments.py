@@ -313,22 +313,18 @@ def derive(blocks: list[dict], doc: dict, refine: bool = True,
     blocks = coalesce(blocks)
     segs = []
     for i, b in enumerate(blocks):
-        if b.get("type") not in ("sermon", "lesson"):
+        if b.get("type") not in ("sermon", "lesson", "seminar"):
             continue
         pin, pout = float(b["start"]), float(b["end"])
 
-        # A lesson starts at the top of the session, not at the teaching.
-        #
-        # The frontier control classifies a class correctly — announcements,
-        # opening prayer, then the lesson — and starts the segment at the
-        # teaching, 124 s in. That is a defensible reading and it is not the
-        # convention: a class is published from the beginning, introduction and
-        # opening prayer included. So extend backwards through whatever leads
-        # into it. No equivalent for a sermon, where the run-up is a different
-        # part of the service and is always cut.
-        if b.get("type") == "lesson":
+        # A class starts at the top of the session, not at the teaching.
+        # A seminar walks back through announcements and prayer only. A
+        # preceding `other` block is a separate introduction, and the
+        # published Culture and Theology cut starts at the first session.
+        if b.get("type") in ("lesson", "seminar"):
+            lead_in = LESSON_LEAD_IN if b.get("type") == "lesson" else {"announcements", "prayer"}
             j = i - 1
-            while j >= 0 and blocks[j].get("type") in LESSON_LEAD_IN:
+            while j >= 0 and blocks[j].get("type") in lead_in:
                 pin = float(blocks[j]["start"])
                 j -= 1
 

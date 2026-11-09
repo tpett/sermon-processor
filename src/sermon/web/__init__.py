@@ -60,6 +60,7 @@ from sermon.removes_span import (
     kept_pieces,
 )
 from sermon.recuts_segment import RecutsSegment, SegmentNotComplete
+from sermon.removes_segment import RemovesSegment, SegmentCannotBeRemoved
 from sermon.reopens_segment import ReopensSegment, SegmentAlreadyRendered
 from sermon.retries_processing import ProcessingNotFailed, RetriesProcessing
 from sermon.sends_notification import lists_undelivered
@@ -210,6 +211,7 @@ def creates_app(
     shows = ShowsRecording(store=store)
     approves = ApprovesSegment(store=store, clock=clock)
     skips = SkipsSegment(store=store, clock=clock)
+    removes = RemovesSegment(store=store, clock=clock)
     discards = DiscardsRecording(store=store, clock=clock)
     restores = RestoresRecording(store=store, clock=clock)
     reconciles = ReconcilesBucket(store=store, lists_objects=lists_objects, clock=clock)
@@ -872,6 +874,12 @@ def creates_app(
         if segment is None or segment.recording_id != recording_id:
             return ("", 404)
         focus = request.form.get("focus")
+        if action == "remove":
+            try:
+                removes(segment, actor=actor())
+            except SegmentCannotBeRemoved as refusal:
+                return returns_to(recording_id, str(refusal), segment_id, focus)
+            return returns_to(recording_id, "removed")
         try:
             notice = performs_segment_action(segment, action)
         except PublicationLabelRequired:

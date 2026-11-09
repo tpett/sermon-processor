@@ -15,6 +15,16 @@
   <a class="back" href="/">Recordings</a>
   <div class="title">
     <h1>{% if view.title %}<span data-field="title">{{ view.title }}</span> <span class="when">{{ view.recorded_at }}</span>{% else %}{{ view.recorded_at }}{% endif %}</h1>
+    {% if can_edit %}
+    <details class="retitle">
+      <summary>Edit title</summary>
+      <form method="post" action="/recordings/{{ view.recording_id }}/actions/retitle">
+        <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
+        <label>Title <input type="text" name="title" size="40" value="{{ view.title or '' }}" data-field="title-input"></label>
+        <button type="submit" data-field="retitle-control">Save title</button>
+      </form>
+    </details>
+    {% endif %}
     <span class="length mono">{{ view.duration }}</span>
   </div>
   <div class="bar-end">
@@ -179,14 +189,7 @@
                 </li>
               {% endfor %}
               </ul>
-              <details class="rename">
-                <summary>Rename</summary>
-                <form class="inline" method="post" action="/recordings/{{ view.recording_id }}/actions/retitle">
-                  <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
-                  <label>Title <input type="text" name="title" size="40" value="{{ view.title or '' }}" data-field="title-input"></label>
-                  <button type="submit" data-field="retitle-control">Save title</button>
-                </form>
-              </details>
+
           {% endif %}
             </div>
           </details>
@@ -265,6 +268,12 @@
       <span class="label">length</span> <span data-field="segment-length">{{ segment.length }}</span>
       <span class="label">confidence</span> <span data-field="segment-confidence">{{ segment.confidence or "" }}</span>
       <span class="label">state</span> <span data-field="segment-state">{{ segment.state }}</span>
+      {% if can_edit and segment.state in ("proposed", "skipped", "recut", "processing_failed") %}
+      <form method="post" action="/recordings/{{ view.recording_id }}/segments/{{ segment.segment_id }}/remove">
+        <input type="hidden" name="mode" value="{{ 'edit' if editing else 'review' }}">
+        <button type="submit" class="danger" data-field="remove-segment">Remove</button>
+      </form>
+      {% endif %}
     </li>
   {% endfor %}
   </ol>
