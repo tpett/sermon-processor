@@ -8,7 +8,7 @@ from sermon.removes_segment import (
     RemovesSegment,
     SegmentCannotBeRemoved,
 )
-from sermon.store import Artifact, LogEntry, Recording, Segment, opens_store
+from sermon.store import Artifact, Job, LogEntry, Proposal, Recording, Segment, SpeakerProfile, opens_store
 
 RECORDING_ID = "recording_20261107_082943"
 MOMENT = datetime(2026, 11, 9, 21, 0, tzinfo=UTC)
@@ -93,3 +93,54 @@ def test_a_segment_that_is_rendering_cannot_be_removed(store):
 
     with pytest.raises(SegmentCannotBeRemoved, match=IN_FLIGHT):
         RemovesSegment(store=store)(held)
+
+
+def test_a_failed_render_can_be_removed_without_leaving_its_references(store):
+    recording(store)
+    held = segment(store, state="processing_failed")
+    job = store.saves(
+        Job(
+            recording_id=RECORDING_ID,
+            segment_id=held.segment_id,
+            kind="render",
+            state="failed",
+            attempts=1,
+            max_attempts=3,
+            dedupe_key=f"render:{RECORDING_ID}:{held.segment_id}",
+            last_error="ffmpeg exited 1",
+            queued_at=MOMENT,
+        )
+    )
+    proposal = store.saves(
+        Proposal(
+            segment_id=held.segment_id,
+            classification_confidence="low",
+            boundary_confidence="low",
+            punch_in_grade="moderate",
+            punch_out_grade="moderate",
+        )
+    )
+    store.saves(
+        LogEntry(
+            recording_id=RECORDING_ID,
+            segment_id=held.segment_id,
+            job_id=job.job_id,
+            proposal_id=proposal.proposal_id,
+            kind="job_attempt",
+            occurred_at=MOMENT,
+            correlation_id=job.dedupe_key,
+            error="ffmpeg exited 1",
+        )
+    )
+    profile = store.saves(
+        SpeakerProfile(name="Travis", embedding=b"voice", enrolled_from=(held.segment_id,))
+    )
+
+    RemovesSegment(store=store, clock=lambda: MOMENT)(held)
+
+    assert store.loads(Segment, held.segment_id) is None
+    assert store.loads(Job, job.job_id) is None
+    assert store.loads(Proposal, proposal.proposal_id) is None
+    attempt = next(item for item in store.lists(LogEntry, recording_id=RECORDING_ID) if item.kind == "job_attempt")
+    assert (attempt.segment_id, attempt.job_id, attempt.proposal_id) == (None, None, None)
+    assert store.loads(SpeakerProfile, profile.speaker_profile_id).enrolled_from == ()

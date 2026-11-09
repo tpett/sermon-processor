@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from sermon.settles_recording import SettlesRecording
-from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, Store
+from sermon.store import Artifact, Job, LogEntry, Notification, Proposal, SpeakerProfile, Store
 
 REMOVABLE = frozenset({"proposed", "skipped", "recut", "processing_failed"})
 PUBLISHED = "a published segment cannot be removed"
@@ -34,11 +34,16 @@ class RemovesSegment:
         occurred = self.clock()
         recording_id = segment.recording_id
         identity = segment.segment_id
-        for entry in self.store.lists(LogEntry, segment_id=identity):
-            self.store.saves(replace(entry, segment_id=None))
-        for proposal in self.store.lists(Proposal, segment_id=identity):
-            self.store.forgets(proposal)
-        for job in self.store.lists(Job, segment_id=identity):
+        jobs = self.store.lists(Job, segment_id=identity)
+        proposals = self.store.lists(Proposal, segment_id=identity)
+        job_ids = {job.job_id for job in jobs}
+        proposal_ids = {proposal.proposal_id for proposal in proposals}
+        self._detaches_log(identity, job_ids, proposal_ids)
+        self._drops_enrolment(identity)
+        self._clears_superseded(proposal_ids)
+        for proposal in proposals:
+            self.store.forgets(self.store.loads(Proposal, proposal.proposal_id))
+        for job in jobs:
             self.store.forgets(job)
         for notice in self.store.lists(Notification, segment_id=identity):
             self.store.forgets(notice)
@@ -56,3 +61,39 @@ class RemovesSegment:
         )
         SettlesRecording(self.store, clock=self.clock)(recording_id)
         return identity
+
+    def _detaches_log(self, identity, job_ids, proposal_ids):
+        seen = set()
+        entries = list(self.store.lists(LogEntry, segment_id=identity))
+        for job_id in job_ids:
+            entries.extend(self.store.lists(LogEntry, job_id=job_id))
+        for proposal_id in proposal_ids:
+            entries.extend(self.store.lists(LogEntry, proposal_id=proposal_id))
+        for entry in entries:
+            if entry.log_entry_id in seen:
+                continue
+            seen.add(entry.log_entry_id)
+            cleared = replace(
+                entry,
+                segment_id=None if entry.segment_id == identity else entry.segment_id,
+                job_id=None if entry.job_id in job_ids else entry.job_id,
+                proposal_id=None if entry.proposal_id in proposal_ids else entry.proposal_id,
+            )
+            if cleared != entry:
+                self.store.saves(cleared)
+
+    def _drops_enrolment(self, identity):
+        for profile in self.store.lists(SpeakerProfile):
+            if identity not in profile.enrolled_from:
+                continue
+            self.store.saves(
+                replace(
+                    profile,
+                    enrolled_from=tuple(item for item in profile.enrolled_from if item != identity),
+                )
+            )
+
+    def _clears_superseded(self, proposal_ids):
+        for proposal in self.store.lists(Proposal):
+            if proposal.superseded_by in proposal_ids:
+                self.store.saves(replace(proposal, superseded_by=None))
