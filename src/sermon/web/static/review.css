@@ -830,10 +830,12 @@ canvas {
   position: absolute;
   top: 0;
   bottom: 0;
-  min-width: 2px;
+  min-width: 8px;
   border: 1px solid var(--text);
   opacity: 0.55;
-  pointer-events: none;
+  cursor: ew-resize;
+  z-index: 2;
+  touch-action: none;
 }
 
 .waveform .playhead {
@@ -2525,6 +2527,34 @@ details summary {
   border-right: 2px solid var(--accent);
   pointer-events: none;
   z-index: 3;
+}
+
+.waveform .detailwrap .edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  margin-left: -7px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: ew-resize;
+  z-index: 4;
+  touch-action: none;
+}
+
+.waveform .detailwrap .edge::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 6px;
+  width: 2px;
+  background: var(--accent);
+}
+
+.waveform .detailwrap .edge[hidden] {
+  display: none;
 }
 
 .waveform .selection-bar {

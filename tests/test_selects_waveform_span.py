@@ -283,3 +283,36 @@ def test_the_edit_page_does_not_scroll_sideways_on_a_phone_with_a_selection(stor
         selects(page, 45.0, 45.6)
 
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+
+
+def window_start(page):
+    return float(page.locator(DETAIL).get_attribute("data-window-start-seconds"))
+
+
+def test_dragging_a_selection_edge_extends_it(store, recording, segment):
+    with _browser.opens_page(store) as page:
+        opens_editor(page, recording, segment)
+        selects(page)
+        handle = page.locator('[data-role="selection-edge"][data-edge="to"]')
+        box = handle.bounding_box()
+        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        page.mouse.down()
+        page.mouse.move(box["x"] + 40, box["y"] + box["height"] / 2, steps=6)
+        page.mouse.up()
+
+        length = page.locator('[data-field="selection-length"]').inner_text().strip()
+        assert float(length.removesuffix(" s")) > 0.70
+
+
+def test_the_wheel_pans_the_detail_window(store, recording, segment):
+    with _browser.opens_page(store) as page:
+        opens_editor(page, recording, segment)
+        pane = page.locator(DETAIL)
+        pane.scroll_into_view_if_needed()
+        before = window_start(page)
+        box = pane.bounding_box()
+        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        page.mouse.wheel(400, 0)
+
+        assert window_start(page) > before
+

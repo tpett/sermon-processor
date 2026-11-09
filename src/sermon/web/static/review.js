@@ -154,7 +154,26 @@ function paintsSeam(canvas, held) {
   });
 }
 
+let painting = false;
+let paintAgain = false;
+
 async function draws() {
+  if (painting) {
+    paintAgain = true;
+    return;
+  }
+  painting = true;
+  try {
+    do {
+      paintAgain = false;
+      await paints();
+    } while (paintAgain);
+  } finally {
+    painting = false;
+  }
+}
+
+async function paints() {
   const all = sources();
   const overview = coarsest(all);
   if (overview) paint(overviewCanvas, await peaks(overview), 0, duration);
@@ -311,21 +330,36 @@ function readsTimecode(text) {
 
 document.addEventListener("removal:pending", placesPendingRemoval);
 
+function showsWindow(from, centre) {
+  if (!detailPane) return;
+  const span = Number(detailPane.dataset.windowSeconds);
+  const start = Math.max(0, Math.min(from, Math.max(duration - span, 0)));
+  detailPane.dataset.windowStartSeconds = String(start);
+  detailPane.dataset.windowCentreSeconds = String(centre);
+  if (windowMarker && duration > 0) {
+    windowMarker.style.left = `${(100 * start) / duration}%`;
+    windowMarker.dataset.windowStartSeconds = String(start);
+    windowMarker.dataset.windowCentreSeconds = String(centre);
+  }
+  settles();
+  draws();
+}
+
 function recentres(seconds, at) {
   if (!detailPane) return;
   const span = Number(detailPane.dataset.windowSeconds);
   const lands = typeof at === "number" ? at : 0.5;
-  const from = Math.max(0, Math.min(seconds - span * lands, duration - span));
-  detailPane.dataset.windowStartSeconds = String(from);
-  detailPane.dataset.windowCentreSeconds = String(seconds);
-  if (windowMarker && duration > 0) {
-    windowMarker.style.left = `${(100 * from) / duration}%`;
-    windowMarker.dataset.windowStartSeconds = String(from);
-    windowMarker.dataset.windowCentreSeconds = String(seconds);
-  }
-  settles();
-  draws();
+  const from = Math.max(0, Math.min(seconds - span * lands, Math.max(duration - span, 0)));
+  showsWindow(from, seconds);
   fetchesWords();
+}
+
+function pans(delta) {
+  if (!detailPane) return;
+  const span = Number(detailPane.dataset.windowSeconds);
+  const from = Number(detailPane.dataset.windowStartSeconds);
+  const start = Math.max(0, Math.min(from + delta, Math.max(duration - span, 0)));
+  showsWindow(start, start + span / 2);
 }
 
 if (wave) {
@@ -382,9 +416,13 @@ function readsLength(seconds) {
 
 function placesSelection() {
   if (!selectionMark) return;
+  const edges = detailPane.querySelectorAll('[data-role="selection-edge"]');
   if (!selected) {
     selectionMark.hidden = true;
     selectionBar.hidden = true;
+    edges.forEach((handle) => {
+      handle.hidden = true;
+    });
     return;
   }
   const opens = acrossWindow(selected.from);
@@ -393,6 +431,10 @@ function placesSelection() {
   selectionMark.style.left = `${opens}%`;
   selectionMark.style.width = `${acrossWindow(selected.to) - opens}%`;
   selectionLength.textContent = readsLength(selected.to - selected.from);
+  edges.forEach((handle) => {
+    handle.hidden = false;
+    handle.style.left = `${acrossWindow(selected[handle.dataset.edge])}%`;
+  });
   const pane = detailPane.getBoundingClientRect();
   const mine = selectionMark.getBoundingClientRect();
   const inside = mine.left - pane.left;
@@ -403,6 +445,66 @@ function placesSelection() {
 
 function clearsSelection() {
   selected = null;
+  placesSelection();
+}
+
+const EDGE = 0.08;
+let edgeFollow = null;
+let wordsTimer = 0;
+
+function fetchesWordsSoon() {
+  clearTimeout(wordsTimer);
+  wordsTimer = setTimeout(fetchesWords, 150);
+}
+
+function edgeDelta(fraction) {
+  if (fraction >= EDGE && fraction <= 1 - EDGE) return 0;
+  const over = fraction < EDGE ? EDGE - fraction : fraction - (1 - EDGE);
+  const span = Number(detailPane.dataset.windowSeconds);
+  const speed = Math.min(Math.max(over, 0.02), 0.25);
+  return (fraction < EDGE ? -1 : 1) * span * speed * 0.12;
+}
+
+function timeUnder(event) {
+  const box = detailPane.getBoundingClientRect();
+  const fraction = (event.clientX - box.left) / box.width;
+  const delta = edgeDelta(fraction);
+  if (delta) {
+    pans(delta);
+    edgeFollow.moved = true;
+  }
+  const from = Number(detailPane.dataset.windowStartSeconds);
+  const span = Number(detailPane.dataset.windowSeconds);
+  return clampedToCut(from + Math.min(Math.max(fraction, 0), 1) * span);
+}
+
+function tracksEdge(event, apply) {
+  if (!edgeFollow) {
+    edgeFollow = { event, apply, frame: 0, moved: false };
+    const step = () => {
+      if (!edgeFollow) return;
+      edgeFollow.apply(timeUnder(edgeFollow.event));
+      edgeFollow.frame = requestAnimationFrame(step);
+    };
+    edgeFollow.frame = requestAnimationFrame(step);
+  }
+  edgeFollow.event = event;
+  edgeFollow.apply = apply;
+}
+
+function stopsEdge() {
+  if (!edgeFollow) return;
+  const moved = edgeFollow.moved;
+  cancelAnimationFrame(edgeFollow.frame);
+  edgeFollow = null;
+  if (moved) fetchesWordsSoon();
+}
+
+function setsEdge(edge, seconds) {
+  if (!selected) return;
+  const next = clampedToCut(seconds);
+  if (edge === "from") selected.from = Math.min(next, selected.to - 0.01);
+  else selected.to = Math.max(next, selected.from + 0.01);
   placesSelection();
 }
 
@@ -418,19 +520,21 @@ if (selectionMark && removalForm) {
     };
   });
   detailPane.addEventListener("pointermove", (event) => {
-    if (!pressing || event.pointerId !== pressing.id) return;
+    if (!pressing || event.pointerId !== pressing.id || pressing.edge) return;
     if (!pressing.dragging) {
       if (Math.abs(event.clientX - pressing.x) < DRAG_PIXELS) return;
       pressing.dragging = true;
     }
-    const here = clampedToCut(windowSecondsAt(event));
-    selected = { from: Math.min(pressing.anchor, here), to: Math.max(pressing.anchor, here) };
-    placesSelection();
+    tracksEdge(event, (here) => {
+      selected = { from: Math.min(pressing.anchor, here), to: Math.max(pressing.anchor, here) };
+      placesSelection();
+    });
   });
   const releases = (event) => {
-    if (!pressing || event.pointerId !== pressing.id) return;
+    if (!pressing || event.pointerId !== pressing.id || pressing.edge) return;
     const dragged = pressing.dragging;
     pressing = null;
+    stopsEdge();
     if (detailPane.hasPointerCapture(event.pointerId)) detailPane.releasePointerCapture(event.pointerId);
     if (!dragged) return;
     dragEndedClick = true;
@@ -441,6 +545,45 @@ if (selectionMark && removalForm) {
   };
   detailPane.addEventListener("pointerup", releases);
   detailPane.addEventListener("pointercancel", releases);
+  detailPane.querySelectorAll('[data-role="selection-edge"]').forEach((handle) => {
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      handle.setPointerCapture(event.pointerId);
+      pressing = { id: event.pointerId, edge: handle.dataset.edge, dragging: true };
+    });
+    handle.addEventListener("pointermove", (event) => {
+      if (!pressing || event.pointerId !== pressing.id || !pressing.edge) return;
+      tracksEdge(event, (here) => setsEdge(pressing.edge, here));
+    });
+    handle.addEventListener("pointerup", (event) => {
+      if (!pressing || event.pointerId !== pressing.id) return;
+      pressing = null;
+      stopsEdge();
+      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+      dragEndedClick = true;
+      setTimeout(() => {
+        dragEndedClick = false;
+      }, 0);
+    });
+    handle.addEventListener("pointercancel", (event) => {
+      if (!pressing || event.pointerId !== pressing.id) return;
+      pressing = null;
+      stopsEdge();
+    });
+  });
+  detailPane.addEventListener(
+    "wheel",
+    (event) => {
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      if (!delta) return;
+      event.preventDefault();
+      const span = Number(detailPane.dataset.windowSeconds);
+      pans((delta / detailPane.getBoundingClientRect().width) * span);
+      fetchesWordsSoon();
+    },
+    { passive: false }
+  );
   selectionBar.querySelector('[data-role="clear-selection"]').addEventListener("click", clearsSelection);
   selectionBar.querySelector('[data-role="play-selection"]').addEventListener("click", () => {
     document.dispatchEvent(
@@ -453,6 +596,44 @@ if (selectionMark && removalForm) {
     removalForm.requestSubmit(removalForm.querySelector('[data-field="remove-span-control"]'));
   });
 }
+
+if (windowMarker && wave && detailPane) {
+  let scrub = null;
+  windowMarker.title = "Drag to move the detail view";
+  windowMarker.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    windowMarker.setPointerCapture(event.pointerId);
+    scrub = { id: event.pointerId, x: event.clientX, moved: false };
+  });
+  windowMarker.addEventListener("pointermove", (event) => {
+    if (!scrub || event.pointerId !== scrub.id) return;
+    if (Math.abs(event.clientX - scrub.x) < 3) return;
+    scrub.moved = true;
+    const span = Number(detailPane.dataset.windowSeconds);
+    const at = secondsAt(event, wave, 0, duration);
+    const from = Math.max(0, Math.min(at - span / 2, Math.max(duration - span, 0)));
+    showsWindow(from, at);
+  });
+  const ends = (event) => {
+    if (!scrub || event.pointerId !== scrub.id) return;
+    const moved = scrub.moved;
+    scrub = null;
+    if (windowMarker.hasPointerCapture(event.pointerId)) windowMarker.releasePointerCapture(event.pointerId);
+    if (moved) {
+      windowMarker.dataset.dragged = "true";
+      fetchesWordsSoon();
+    }
+  };
+  windowMarker.addEventListener("pointerup", ends);
+  windowMarker.addEventListener("pointercancel", ends);
+  windowMarker.addEventListener("click", (event) => {
+    if (windowMarker.dataset.dragged !== "true") return;
+    event.stopPropagation();
+    delete windowMarker.dataset.dragged;
+  });
+}
+
 
 function showsBoundary(handle, seconds) {
   handle.style.left = `${acrossWindow(seconds)}%`;

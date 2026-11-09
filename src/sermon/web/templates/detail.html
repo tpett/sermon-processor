@@ -396,6 +396,8 @@
       {% endfor %}
       {% if view.removal_url %}
       <div class="selection" data-role="selection" hidden></div>
+      <button type="button" class="edge" data-role="selection-edge" data-edge="from" hidden aria-label="Drag the start of the selection"></button>
+      <button type="button" class="edge" data-role="selection-edge" data-edge="to" hidden aria-label="Drag the end of the selection"></button>
       <div class="selection-bar" data-role="selection-toolbar" hidden>
         <span class="mono" data-field="selection-length"></span>
         <button type="button" data-role="play-selection" aria-label="Play the selection">&#9654;</button>
