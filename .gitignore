@@ -31,3 +31,4 @@ __pycache__/
 
 # Local runtime data root (SERMON_DATA_ROOT)
 data/
+.playwright-mcp/
